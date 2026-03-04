@@ -1,5 +1,3 @@
-// public/assets/js/components.js
-
 document.addEventListener('DOMContentLoaded', () => {
     initComponentContainers();
 });
@@ -19,7 +17,7 @@ function initComponentContainers() {
     // 2. Global Confirm Modal Container
     if (!document.getElementById('global-confirm-modal')) {
         const confirmHTML = `
-            <div id="global-confirm-modal" class="modal-backdrop items-center justify-center">
+            <div id="global-confirm-modal" class="modal-backdrop items-center justify-center hidden">
                 <div class="modal-content bg-slate-800 border border-slate-700 p-6 rounded-3xl shadow-2xl max-w-sm w-full mx-4 relative">
                     <div class="flex items-center gap-3 mb-4">
                         <div class="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-400">
@@ -54,7 +52,7 @@ function showAlert(message, type = 'success') {
     // Reset styles safely
     banner.className = 'fixed top-6 z-[9999] flex items-center gap-3 px-6 py-4 rounded-2xl text-white shadow-2xl transition-all duration-300 border';
 
-    // Apply foolproof CSS classes instead of Tailwind utilities
+    // Apply CSS classes instead of Tailwind utilities for colors
     if (type === 'success') {
         banner.classList.add('alert-success');
         iconEl.innerText = 'check_circle';
@@ -79,25 +77,20 @@ function showAlert(message, type = 'success') {
         banner.style.opacity = '1';
     }, 10);
 
-    // Clear any existing timeout (prevents bugs if buttons are clicked rapidly)
     clearTimeout(alertTimeout);
 
-    // Set the 4-second auto-close timeout
     alertTimeout = setTimeout(() => {
         closeAlert();
     }, 4000);
 }
 
-// Ensure this function exists right below showAlert!
 function closeAlert() {
     const banner = document.getElementById('custom-alert');
     if (!banner) return;
 
-    // Animate out (slide up and fade out)
     banner.style.transform = 'translate(-50%, -20px)';
     banner.style.opacity = '0';
 
-    // Wait for the CSS transition to finish before actually hiding the element
     setTimeout(() => {
         banner.style.display = 'none';
     }, 300);
@@ -110,7 +103,6 @@ function showToast(message, type = 'success') {
     const container = document.getElementById('toast-container');
     if (!container) return;
 
-    // Limit to 3 toasts
     if (container.children.length >= 3) {
         container.firstElementChild.remove();
     }
@@ -134,7 +126,6 @@ function showToast(message, type = 'success') {
 
     container.appendChild(toast);
 
-    // Auto remove after 4 seconds
     setTimeout(() => {
         if (toast.parentElement) {
             toast.classList.remove('toast-enter');
@@ -152,8 +143,12 @@ function showToast(message, type = 'success') {
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
-        modal.classList.add('show');
-        document.body.style.overflow = 'hidden';
+        modal.classList.remove('hidden'); // Ensure Tailwind hidden is removed
+        // Slight delay to allow display to change before animating opacity
+        setTimeout(() => {
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }, 10);
     }
 }
 
@@ -162,13 +157,16 @@ function closeModal(modalId) {
     if (modal) {
         modal.classList.remove('show');
         document.body.style.overflow = '';
+        // Wait for animation to finish before hiding completely
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
     }
 }
 
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal-backdrop')) {
-        e.target.classList.remove('show');
-        document.body.style.overflow = '';
+        closeModal(e.target.id);
     }
 });
 

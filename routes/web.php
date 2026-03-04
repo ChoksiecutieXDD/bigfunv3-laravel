@@ -9,3 +9,5 @@ Route::get('/', function () {
 Route::get('/settings', function () {
     return view('system.settings');
 });
+
+Route::view('/system/db-view', 'system.db_view');
