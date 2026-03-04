@@ -1,0 +1,215 @@
+/* public/assets/css/inventory.css */
+
+:root {
+    --color-plum: #9D686E;
+    --color-plum-dark: #855359;
+    --color-plum-light: #FCE7F3;
+    --color-plum-alpha: rgba(157, 104, 110, 0.15);
+}
+
+/* --- GLOBAL RESETS (Kills phantom black borders) --- */
+* {
+    outline: none !important;
+}
+
+.text-plum {
+    color: var(--color-plum);
+}
+
+.bg-plum {
+    background-color: var(--color-plum);
+}
+
+.hover\:bg-plum-dark:hover {
+    background-color: var(--color-plum-dark);
+}
+
+/* --- TABS --- */
+.tab-btn {
+    padding: 0.6rem 1.25rem;
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: #94A3B8;
+    background: transparent;
+    border-radius: 9999px;
+    /* Pill shape */
+    border: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    color: var(--color-plum-dark);
+    background: #F8FAFC;
+}
+
+.tab-btn.active {
+    color: var(--color-plum-dark);
+    background: var(--color-plum-light);
+}
+
+/* --- FORM INPUTS --- */
+.input-field {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #E2E8F0;
+    /* Soft gray */
+    background-color: #F8FAFC;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    color: #1E293B;
+    transition: all 0.2s ease-in-out;
+}
+
+.input-field::placeholder {
+    color: #94A3B8;
+}
+
+.input-field:focus {
+    background-color: #FFFFFF;
+    border-color: var(--color-plum);
+    box-shadow: 0 0 0 3px var(--color-plum-alpha);
+}
+
+/* --- CARDS & TABLE WRAPPERS (Responsive Padding) --- */
+.form-card {
+    background: #FFFFFF;
+    border-radius: 1rem;
+    padding: 1.25rem;
+    /* Mobile padding */
+    border: 1px solid #F1F5F9;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+}
+
+/* Desktop padding */
+@media (min-width: 768px) {
+    .form-card {
+        padding: 2rem;
+    }
+}
+
+.table-card {
+    background: #FFFFFF;
+    border-radius: 1rem;
+    padding: 0;
+    /* Zero padding so tables stretch to the edge */
+    border: 1px solid #F1F5F9;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    overflow: hidden;
+    overflow-x: auto;
+    /* Fixes mobile overflow */
+}
+
+/* --- TABLES --- */
+.clean-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.clean-table th {
+    text-align: left;
+    padding: 1.25rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #94A3B8;
+    letter-spacing: 0.05em;
+    background-color: #FFFFFF;
+    border-bottom: 1px solid #F1F5F9;
+}
+
+.clean-table td {
+    padding: 1rem 1.25rem;
+    font-size: 0.875rem;
+    border-bottom: 1px solid #F8FAFC;
+    vertical-align: middle;
+}
+
+.clean-table tr:hover td {
+    background-color: #F8FAFC;
+}
+
+.group-header td {
+    background-color: #F8FAFC;
+    color: #64748B;
+    font-weight: 800;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1rem 1.25rem;
+}
+
+/* --- ACTION BUTTONS --- */
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-edit {
+    background: #EFF6FF;
+    color: #3B82F6;
+}
+
+.btn-edit:hover {
+    background: #DBEAFE;
+    color: #1D4ED8;
+}
+
+.btn-delete {
+    background: #FEF2F2;
+    color: #EF4444;
+}
+
+.btn-delete:hover {
+    background: #FEE2E2;
+    color: #B91C1C;
+}
+
+.btn-move {
+    background: transparent;
+    color: #94A3B8;
+}
+
+.btn-move:hover {
+    color: #1E293B;
+    background: #F1F5F9;
+}
+
+/* --- STATUS BADGES --- */
+.status-badge {
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.status-active {
+    background-color: #ECFDF5;
+    color: #059669;
+}
+
+.status-inactive {
+    background-color: #F1F5F9;
+    color: #64748B;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

@@ -1,0 +1,183 @@
+/* public/assets/css/auth.css */
+:root {
+    --color-plum: #9E6B73;
+    --color-plum-dark: #86545C;
+    --color-bg-light: #FDF2F4;
+}
+
+/* STRICT NO SCROLLBAR LOGIC */
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden !important;
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--color-bg-light);
+    color: #2D3748;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-enter {
+    animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+}
+
+.delay-100 {
+    animation-delay: 0.1s;
+}
+
+.delay-200 {
+    animation-delay: 0.2s;
+}
+
+.delay-300 {
+    animation-delay: 0.3s;
+}
+
+@keyframes float {
+    0% {
+        transform: translate(0px, 0px) scale(1);
+    }
+
+    33% {
+        transform: translate(30px, -50px) scale(1.1);
+    }
+
+    66% {
+        transform: translate(-20px, 20px) scale(0.9);
+    }
+
+    100% {
+        transform: translate(0px, 0px) scale(1);
+    }
+}
+
+.blob {
+    position: absolute;
+    filter: blur(80px);
+    z-index: 0;
+    opacity: 0.6;
+    animation: float 10s infinite ease-in-out;
+}
+
+.input-group {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.input-icon {
+    position: absolute;
+    left: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #A0AEC0;
+    transition: color 0.3s ease;
+    font-size: 1.5rem;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.modern-input {
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    color: #2D3748;
+}
+
+.modern-input:focus {
+    border-color: var(--color-plum);
+    background-color: #fff;
+    box-shadow: 0 10px 30px -10px rgba(158, 107, 115, 0.2);
+    color: #1a202c;
+}
+
+.modern-input:focus+.input-icon {
+    color: var(--color-plum);
+}
+
+.custom-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239E6B73' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 1rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+}
+
+.bg-login-image {
+    background-image: url('../img/bg-login.jpg');
+    /* Updated Path */
+    background-size: cover;
+    background-position: center;
+}
+
+.slide {
+    transition: opacity 0.7s ease-in-out, transform 0.7s ease-out;
+}
+
+.slide.active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.slide.inactive {
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+}
+
+.dot {
+    transition: all 0.3s ease;
+}
+
+.dot.active {
+    width: 4rem;
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+.dot.inactive {
+    width: 1rem;
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.modal-overlay {
+    transition: opacity 0.3s ease, visibility 0.3s;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.modal-content {
+    transform: scale(0.95);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-overlay.active .modal-content {
+    transform: scale(1);
+}

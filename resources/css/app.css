@@ -1,11 +1,476 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
-
+/* 1. Define your custom palette and typography for Tailwind v4 */
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --color-plum: #9E6B73;
+    --color-plum-dark: #86545C;
+    --color-plum-light: #FDF2F4;
+    --color-text-main: #2D3748;
+    --color-bg-page: #FFF5F7;
+    --color-bg-custom: #C5A8A3;
+    /* Added specifically for the Calendar background */
+    --font-poppins: 'Poppins', sans-serif;
+}
+
+/* 2. Set your base HTML/Body styles */
+@layer base {
+    body {
+        font-family: var(--font-poppins);
+        color: var(--color-text-main);
+        background-color: var(--color-bg-page);
+        min-height: 100vh;
+        overflow-x: hidden;
+        overflow-y: auto;
+        /* Added for Calendar scroll */
+    }
+}
+
+/* 3. Your Custom Component Classes */
+@layer components {
+
+    /* --- EXISTING LANDING PAGE STYLES --- */
+    .hero-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        background:
+            radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.8) 0%, transparent 40%),
+            radial-gradient(circle at 90% 80%, rgba(158, 107, 115, 0.05) 0%, transparent 40%);
+    }
+
+    .nav-container {
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border-bottom: 1px solid transparent;
+        box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0);
+    }
+
+    .nav-transparent {
+        background: transparent;
+        padding: 1.5rem 0;
+    }
+
+    .nav-scrolled {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(12px);
+        border-bottom-color: rgba(0, 0, 0, 0.05);
+        padding: 1rem 0;
+        box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
+    }
+
+    .text-gradient {
+        background: linear-gradient(135deg, var(--color-plum-dark), var(--color-plum));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .btn-plum {
+        background-color: var(--color-plum);
+        color: white;
+        box-shadow: 0 10px 20px -5px rgba(158, 107, 115, 0.4);
+        transition: all 0.3s ease;
+    }
+
+    .btn-plum:hover {
+        background-color: var(--color-plum-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px -5px rgba(158, 107, 115, 0.6);
+    }
+
+    .btn-white {
+        background-color: white;
+        color: var(--color-text-main);
+        border: 1px solid #E2E8F0;
+        transition: all 0.3s ease;
+    }
+
+    .btn-white:hover {
+        border-color: var(--color-plum);
+        color: var(--color-plum);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.05);
+    }
+
+    .img-card {
+        border-radius: 24px;
+        background-size: cover;
+        background-position: center;
+        box-shadow: 0 20px 40px -10px rgba(158, 107, 115, 0.2);
+        border: 4px solid white;
+        transition: transform 0.5s ease;
+    }
+
+    .img-card:hover {
+        transform: scale(1.02);
+        z-index: 20;
+    }
+
+    .feature-card {
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+    }
+
+    .feature-card:hover {
+        background: white;
+        border-color: var(--color-plum-light);
+        box-shadow: 0 20px 40px -10px rgba(158, 107, 115, 0.1);
+        transform: translateY(-5px);
+    }
+
+    /* --- NEW CALENDAR STYLES --- */
+
+    .bg-plum {
+        background-color: var(--color-plum);
+    }
+
+    .text-plum {
+        color: var(--color-plum);
+    }
+
+    .hover\:bg-plum-dark:hover {
+        background-color: var(--color-plum-dark);
+    }
+
+    /* Sidebar Active State Override */
+    #sidebar a[href*="calendar.php"] {
+        background-color: var(--color-plum-light) !important;
+        color: var(--color-plum) !important;
+    }
+
+    #sidebar a[href*="calendar.php"] span {
+        color: var(--color-plum) !important;
+    }
+
+    #sidebar {
+        z-index: 50 !important;
+    }
+
+    /* Custom Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.05);
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(158, 107, 115, 0.5);
+        border-radius: 4px;
+    }
+
+    /* Layout Elements */
+    .calendar-header-bar {
+        background-color: var(--color-plum);
+        color: white;
+        border-top-left-radius: 1.5rem;
+        border-top-right-radius: 1.5rem;
+    }
+
+    .day-header {
+        background-color: #f8fafc;
+        padding: 0.75rem 1.5rem;
+        font-weight: 700;
+        color: var(--color-plum);
+        border-top: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e2e8f0;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+    }
+
+    /* Booking Cards */
+    .booking-card {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 1rem;
+        background: white;
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.2s;
+        text-decoration: none;
+        cursor: pointer;
+        border-left: 4px solid transparent;
+    }
+
+    @media (min-width: 1024px) {
+        .booking-card {
+            display: grid;
+            grid-template-columns: 1.2fr 1.2fr 1fr 1.6fr 1fr;
+            gap: 1rem;
+            align-items: center;
+            flex-direction: row;
+        }
+    }
+
+    .booking-card:hover {
+        background-color: #fff5f7;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        z-index: 10;
+    }
+
+    /* Card Status Colors */
+    .card-red {
+        border-left-color: #ef4444;
+        background-color: #fef2f2;
+    }
+
+    .card-orange {
+        border-left-color: #f97316;
+        background-color: #fff7ed;
+    }
+
+    .card-blue {
+        border-left-color: #3b82f6;
+        background-color: #eff6ff;
+    }
+
+    .card-purple {
+        border-left-color: #a855f7;
+        background-color: #faf5ff;
+    }
+
+    .card-green {
+        border-left-color: #22c55e;
+        background-color: #f0fdf4;
+    }
+
+    .card-gray {
+        border-left-color: #9ca3af;
+        background-color: #f3f4f6;
+        opacity: 0.7;
+    }
+
+    /* Typography inside cards */
+    .booking-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        color: #9ca3af;
+        font-weight: 700;
+        display: block;
+        letter-spacing: 0.05em;
+        margin-bottom: 2px;
+    }
+
+    .booking-value {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--color-text-main);
+        line-height: 1.3;
+    }
+
+    /* Status Dots */
+    .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 6px;
+    }
+
+    .dot-red {
+        background-color: #ef4444;
+    }
+
+    .dot-orange {
+        background-color: #f97316;
+    }
+
+    .dot-blue {
+        background-color: #3b82f6;
+    }
+
+    .dot-purple {
+        background-color: #a855f7;
+    }
+
+    .dot-green {
+        background-color: #22c55e;
+    }
+
+    /* Forms & Pills */
+    .filter-select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239E6B73' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.2em 1.2em;
+        padding-right: 2rem;
+        padding-left: 1rem;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: 99px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .pill-install {
+        background-color: #e0f2fe;
+        color: #1e40af;
+    }
+
+    /* Floating Action Button */
+    .fab-reminders {
+        position: fixed;
+        bottom: 6rem;
+        right: 1.5rem;
+        z-index: 45;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s;
+    }
+
+    @media (min-width: 1024px) {
+        .fab-reminders {
+            bottom: 2rem;
+            right: 2rem;
+        }
+    }
+
+    .fab-reminders:hover {
+        transform: scale(1.05);
+    }
+
+    .fab-badge {
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        width: 12px;
+        height: 12px;
+        background-color: #ef4444;
+        border-radius: 50%;
+        border: 2px solid white;
+        font-size: 8px;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Reminder Panels */
+    .reminder-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100%;
+        width: 100%;
+        max-width: 400px;
+        background: white;
+        box-shadow: -10px 0 25px rgba(0, 0, 0, 0.1);
+        z-index: 60;
+        transform: translateX(100%);
+        transition: transform 0.3s ease-in-out;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .reminder-panel.open {
+        transform: translateX(0);
+    }
+
+    .reminder-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 55;
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(2px);
+        display: none;
+    }
+
+    .reminder-overlay.open {
+        display: block;
+    }
+}
+
+/* ==========================================
+       GLOBAL MODAL BACKDROP
+       ========================================== */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 50;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.modal-backdrop.show {
+    display: flex;
+    opacity: 1;
+}
+
+/* Modal Content Animation */
+.modal-content {
+    transform: scale(0.95);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-backdrop.show .modal-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+/* ==========================================
+       TOAST ANIMATIONS
+       ========================================== */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.toast-enter {
+    animation: slideInRight 0.3s forwards cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toast-exit {
+    animation: fadeOutRight 0.3s forwards ease-in;
+}
+
+/* ==========================================
+       ALERT BANNER STYLES
+       ========================================== */
+.alert-success {
+    background-color: #059669 !important;
+    border-color: #10b981 !important;
+}
+
+.alert-error {
+    background-color: #dc2626 !important;
+    border-color: #ef4444 !important;
+}
+
+.alert-info {
+    background-color: var(--color-plum) !important;
+    border-color: var(--color-plum-dark) !important;
 }

@@ -1,0 +1,97 @@
+/* public/assets/css/sidebar.css */
+
+/* ==========================================
+   1. SMOOTH PC & MOBILE TRANSITIONS
+   ========================================== */
+/* Hardware acceleration and premium cubic-bezier easing for the sidebar */
+#sidebar {
+    will-change: width, transform;
+    transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+        transform 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+/* Smoothly shift the main content area to match the sidebar */
+#mainContent {
+    will-change: margin-left;
+    transition: margin-left 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+/* Prevent text wrapping/stacking during the shrink animation */
+#sidebar .nav-text,
+#sidebar .nav-section-title,
+#sidebar .profile-details {
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* ==========================================
+   2. COLLAPSE HELPERS (Applies to all)
+   ========================================== */
+#sidebar.collapsed .nav-text,
+#sidebar.collapsed .nav-section-title,
+#sidebar.collapsed .profile-details {
+    display: none;
+}
+
+#sidebar.collapsed .nav-item {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* Prevent animation jumping on page load */
+.no-transition,
+.no-transition #mainContent {
+    transition: none !important;
+}
+
+/* ==========================================
+   3. DARK MODE STYLES
+   ========================================== */
+body.dark-mode #sidebar {
+    background-color: #1F2937;
+    border-color: #374151;
+}
+
+body.dark-mode #sidebar .border-gray-50,
+body.dark-mode #sidebar .border-gray-100 {
+    border-color: #374151;
+}
+
+body.dark-mode #sidebar .text-gray-500,
+body.dark-mode #sidebar .text-gray-400 {
+    color: #9CA3AF;
+}
+
+body.dark-mode #sidebar .profile-name {
+    color: #F3F4F6;
+}
+
+body.dark-mode #sidebar .nav-item:hover:not(.active-nav) {
+    background-color: #374151;
+    color: #F3F4F6;
+}
+
+body.dark-mode #sidebar .active-nav {
+    background-color: #374151 !important;
+    color: #F9A8D4 !important;
+    border-color: #9E6B73;
+}
+
+body.dark-mode #pc-toggle-btn {
+    background-color: #1F2937;
+    border-color: #4B5563;
+    color: #9CA3AF;
+}
+
+body.dark-mode #pc-toggle-btn:hover {
+    color: #F9A8D4;
+}
+
+body.dark-mode #sidebar .text-red-400 {
+    color: #F87171;
+}
+
+body.dark-mode #sidebar .hover\:bg-red-50:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+}

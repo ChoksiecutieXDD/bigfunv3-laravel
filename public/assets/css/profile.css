@@ -1,0 +1,49 @@
+:root {
+    --plum: #9E6B73;
+    --plum-dark: #86545C;
+    --plum-light: #FDF2F4;
+    --text-main: #2D3748;
+    --bg-page: #F6F7FB;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: radial-gradient(1200px 600px at 15% -10%, rgba(158, 107, 115, .18), transparent 60%),
+        radial-gradient(900px 500px at 95% 10%, rgba(134, 84, 92, .14), transparent 55%),
+        var(--bg-page);
+    color: var(--text-main);
+}
+
+.bg-plum {
+    background-color: var(--plum);
+}
+
+.text-plum {
+    color: var(--plum);
+}
+
+.bg-plum-light {
+    background-color: var(--plum-light);
+}
+
+.border-plum {
+    border-color: var(--plum);
+}
+
+.focus\:ring-plum:focus {
+    --tw-ring-color: var(--plum);
+    --tw-ring-opacity: 0.5;
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
