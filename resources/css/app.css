@@ -21,7 +21,6 @@
         min-height: 100vh;
         overflow-x: hidden;
         overflow-y: auto;
-        /* Added for Calendar scroll */
     }
 }
 
@@ -120,8 +119,55 @@
         transform: translateY(-5px);
     }
 
-    /* --- NEW CALENDAR STYLES --- */
+    /* --- SIDEBAR STYLES (NEWLY MERGED) --- */
+    #sidebar {
+        will-change: width, transform;
+        transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1), transform 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+        z-index: 50 !important;
+    }
 
+    #mainContent {
+        will-change: margin-left;
+        transition: margin-left 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+    }
+
+    #sidebar .nav-text,
+    #sidebar .nav-section-title,
+    #sidebar .profile-details {
+        white-space: nowrap;
+        overflow: hidden;
+    }
+
+    #sidebar.collapsed .nav-text,
+    #sidebar.collapsed .nav-section-title,
+    #sidebar.collapsed .profile-details {
+        display: none;
+    }
+
+    #sidebar.collapsed .nav-item {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    /* Active Nav Class for Dynamic Laravel Routing */
+    #sidebar .active-nav {
+        background-color: var(--color-plum-light);
+        color: var(--color-plum);
+        font-weight: 600;
+        border: 1px solid rgba(158, 107, 115, 0.1);
+    }
+
+    #sidebar .active-nav span {
+        color: var(--color-plum) !important;
+    }
+
+    .no-transition,
+    .no-transition #mainContent {
+        transition: none !important;
+    }
+
+    /* --- CALENDAR STYLES --- */
     .bg-plum {
         background-color: var(--color-plum);
     }
@@ -132,20 +178,6 @@
 
     .hover\:bg-plum-dark:hover {
         background-color: var(--color-plum-dark);
-    }
-
-    /* Sidebar Active State Override */
-    #sidebar a[href*="calendar.php"] {
-        background-color: var(--color-plum-light) !important;
-        color: var(--color-plum) !important;
-    }
-
-    #sidebar a[href*="calendar.php"] span {
-        color: var(--color-plum) !important;
-    }
-
-    #sidebar {
-        z-index: 50 !important;
     }
 
     /* Custom Scrollbar */

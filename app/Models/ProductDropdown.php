@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProductDropdown extends Model
 {
+    public $timestamps = false;
+
     // Make sure your fillables are set too!
     protected $fillable = ['category_target', 'label'];
 

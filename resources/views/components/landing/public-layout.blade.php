@@ -12,6 +12,25 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+    <style>
+        /* Define the transition state */
+        .nav-container {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding-top: 1.5rem;
+            padding-bottom: 1.5rem;
+        }
+
+        /* The 'Scrolled' state */
+        .nav-scrolled {
+            background-color: rgba(255, 255, 255, 0.8) !important;
+            backdrop-filter: blur(12px);
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        }
+    </style>
 </head>
 
 <body class="min-h-screen flex flex-col relative selection:bg-plum selection:text-white">
@@ -19,7 +38,7 @@
     <div class="fixed top-[-100px] right-[-100px] w-[600px] h-[600px] bg-[#9E6B73]/5 rounded-full blur-3xl pointer-events-none z-[-2]"></div>
     <div class="fixed bottom-0 left-0 w-[500px] h-[500px] bg-blue-100/30 rounded-full blur-3xl pointer-events-none z-[-2]"></div>
 
-    <nav id="navbar" class="nav-container nav-transparent fixed top-0 w-full z-50">
+    <nav id="navbar" class="nav-container fixed top-0 w-full z-50">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
             <div class="flex justify-between items-center">
                 <a href="/" class="flex-shrink-0 group">
@@ -80,7 +99,18 @@
         </div>
     </footer>
 
-    <a href="/settings" class="fixed bottom-0 right-0 w-10 h-10 opacity-0 z-[9999] cursor-default" title=""></a>
+    <a href="/settings" class="fixed bottom-0 right-0 w-10 h-10 opacity-0 z-[9999] cursor-default"></a>
+
+    <script>
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('nav-scrolled');
+            } else {
+                navbar.classList.remove('nav-scrolled');
+            }
+        });
+    </script>
 
     {{ $scripts ?? '' }}
 </body>

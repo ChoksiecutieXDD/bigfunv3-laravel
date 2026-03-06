@@ -6,12 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
+    public $timestamps = false;
+
     protected $fillable = [
         'name',
         'category',
         'counts_against',
         'price',
         'daily_limit',
+        'sort_order',
         'is_active'
     ];
 

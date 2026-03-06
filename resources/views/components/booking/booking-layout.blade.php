@@ -20,7 +20,9 @@
 
 <body class="min-h-screen relative bg-bg-page font-['Poppins'] text-text-main {{ $bodyClass ?? '' }}">
 
-    @include('partials.alert')
+    @include('partials.toast') {{-- Top-right corner notifications --}}
+    @include('partials.alert') {{-- Top-center important banners --}}
+    @include('partials.confirm') {{-- Centered action confirmation modals --}}
 
     <header class="w-full bg-white shadow-sm border-b border-slate-100 sticky top-0 z-40">
         <div class="max-w-[1400px] mx-auto px-6 lg:px-8 py-4 flex justify-between items-center">
@@ -36,9 +38,10 @@
         </div>
     </header>
 
-    {{ $slot }}
+    <main>
+        {{ $slot }}
+    </main>
 
-    <script src="/assets/js/components.js"></script>
     {{ $scripts ?? '' }}
     @livewireScripts
 </body>

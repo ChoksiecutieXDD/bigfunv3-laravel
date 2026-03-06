@@ -1,4 +1,6 @@
-<div x-data="{ tab: @entangle('activeTab') }" class="w-full py-10 px-6 lg:px-8 max-w-[1400px] mx-auto relative z-10 font-['Poppins']">
+<div
+    x-data="{ tab: @entangle('activeTab') }"
+    class="w-full py-10 px-6 lg:px-8 max-w-[1400px] mx-auto relative z-10 font-['Poppins']">
 
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-text-main tracking-tight">Booking Administration</h1>
@@ -33,7 +35,7 @@
         </button>
     </div>
 
-    <div x-show="tab === 'categories'" x-cloak class="flex flex-col gap-6">
+    <div x-show="tab === 'categories'" wire:key="tab-container-categories" class="flex flex-col gap-6">
         <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="font-bold text-text-main text-xs uppercase tracking-widest">
@@ -51,10 +53,9 @@
                     <div class="md:col-span-12 lg:col-span-6">
                         <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-2">Category Name</label>
                         <input type="text" wire:model="category_name" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" placeholder="e.g. Packages" required>
-                        @error('category_name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                     </div>
                     <div class="md:col-span-12 lg:col-span-4">
-                        <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-2">Daily Limit <span class="text-slate-400 normal-case tracking-normal">(0 = Unlimited)</span></label>
+                        <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-2">Daily Limit <span class="text-slate-400 normal-case tracking-normal font-normal">(0 = Unlimited)</span></label>
                         <input type="number" wire:model="cat_daily_limit" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" placeholder="0">
                     </div>
                     <div class="md:col-span-12 lg:col-span-2">
@@ -79,9 +80,9 @@
                     </thead>
                     <tbody class="divide-y divide-slate-50">
                         @foreach ($categories as $cat)
-                        <tr class="hover:bg-slate-50/50 transition-colors group">
+                        <tr wire:key="category-{{ $cat->id }}" class="hover:bg-slate-50/50 transition-colors group">
                             <td class="py-4 pl-8 font-semibold text-text-main text-[15px]">{{ $cat->category_name }}</td>
-                            <td class="py-4">
+                            <td class="py-4 font-semibold text-text-main">
                                 @if($cat->daily_limit > 0)
                                 <span class="text-amber-600 text-[11px] font-bold bg-amber-50 px-2.5 py-1 rounded uppercase tracking-wider">Max {{ $cat->daily_limit }}</span>
                                 @else
@@ -99,7 +100,15 @@
                                     <button wire:click="editCategory({{ $cat->id }})" class="w-8 h-8 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors">
                                         <span class="material-symbols-rounded text-[16px]">edit</span>
                                     </button>
-                                    <button wire:click="deleteCategory({{ $cat->id }})" wire:confirm="Are you sure you want to delete this category?" class="w-8 h-8 rounded bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors shadow-sm">
+                                    <button type="button"
+                                        @click="$dispatch('open-modal', { 
+                                            title: 'Delete Category?', 
+                                            message: 'Are you sure you want to remove the \'{{ addslashes($cat->category_name) }}\' category? This cannot be undone.', 
+                                            type: 'danger', 
+                                            event: 'execute-delete-category', 
+                                            params: {{ $cat->id }} 
+                                        })"
+                                        class="w-8 h-8 rounded bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors shadow-sm">
                                         <span class="material-symbols-rounded text-[16px]">delete</span>
                                     </button>
                                 </div>
@@ -112,8 +121,8 @@
         </div>
     </div>
 
-    <div x-show="tab === 'products'" x-cloak class="flex flex-col gap-6">
-        <div class="relative w-full max-w-md mb-2">
+    <div x-show="tab === 'products'" wire:key="tab-container-products" class="flex flex-col gap-6">
+        <div class="relative w-full mb-2">
             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <span class="material-symbols-rounded text-slate-400">search</span>
             </div>
@@ -133,13 +142,11 @@
             </div>
 
             <form wire:submit="saveProduct">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div class="grid grid-cols-1 gap-6 mb-6">
                     <div>
                         <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Product Name</label>
                         <input type="text" wire:model="prod_name" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" required>
-                        @error('prod_name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                     </div>
-
                     <div>
                         <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Category</label>
                         <select wire:model="prod_category" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" required>
@@ -149,7 +156,6 @@
                             @endforeach
                         </select>
                     </div>
-
                     <div>
                         <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Counts Against Target</label>
                         <select wire:model="counts_against" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors">
@@ -159,16 +165,12 @@
                             @endforeach
                         </select>
                     </div>
-
                     <div>
                         <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Price ($)</label>
                         <input type="number" step="0.01" wire:model="prod_price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" placeholder="0.00">
                     </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Item Limit <span class="text-slate-400 normal-case tracking-normal">(0=UNL)</span></label>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Item Limit <span class="text-slate-400 normal-case tracking-normal font-normal">(0=UNL)</span></label>
                         <input type="number" wire:model="prod_limit" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" placeholder="0">
                     </div>
                 </div>
@@ -186,21 +188,37 @@
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <table class="w-full text-left border-collapse min-w-[800px]">
+            <table wire:key="products-table" class="w-full text-left border-collapse min-w-[800px]" x-data="{ arranging: null }">
                 <tbody class="divide-y divide-slate-100">
                     @php $currentCat = ''; @endphp
                     @forelse ($products as $prod)
 
                     @if($currentCat !== $prod->category)
                     @php $currentCat = $prod->category; @endphp
-                    <tr class="bg-slate-50 border-b border-slate-200">
-                        <td colspan="5" class="py-3 pl-8 text-[11px] font-bold text-slate-500 uppercase tracking-widest">{{ $currentCat }}</td>
+                    <tr wire:key="cat-header-{{ $currentCat }}" class="bg-slate-50 border-b border-slate-200">
+                        <td colspan="5" class="py-3 px-8 text-[11px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100">
+                            <div class="flex justify-between items-center w-full">
+                                <span>{{ $currentCat }}</span>
+                                <div class="flex gap-4">
+                                    <button type="button" wire:click="autoArrangeAlphabetical('{{ addslashes($currentCat) }}')" class="hover:text-plum transition-colors flex items-center gap-1">
+                                        <span class="material-symbols-rounded text-[14px]">sort_by_alpha</span> Auto Arrange (A-Z)
+                                    </button>
+                                    <button type="button" @click="arranging === '{{ addslashes($currentCat) }}' ? arranging = null : arranging = '{{ addslashes($currentCat) }}'" class="hover:text-plum transition-colors flex items-center gap-1" :class="arranging === '{{ addslashes($currentCat) }}' ? 'text-plum' : ''">
+                                        <span class="material-symbols-rounded text-[14px]">swap_vert</span> Edit Arrange
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
                     </tr>
                     @endif
 
-                    <tr class="hover:bg-slate-50/50 transition-colors">
+                    <tr wire:key="product-{{ $prod->id }}" class="hover:bg-slate-50/50 transition-colors">
                         <td class="py-5 pl-8 w-[40%]">
                             <div class="flex items-center flex-wrap gap-x-4 gap-y-2">
+                                <div class="flex flex-col -space-y-2 mr-1 h-full justify-center" x-show="arranging === '{{ addslashes($prod->category) }}'" x-cloak>
+                                    <button type="button" wire:click.prevent="reorderProduct({{ $prod->id }}, 'up')" class="hover:text-plum text-slate-300 leading-none"><span class="material-symbols-rounded text-[20px]">arrow_drop_up</span></button>
+                                    <button type="button" wire:click.prevent="reorderProduct({{ $prod->id }}, 'down')" class="hover:text-plum text-slate-300 leading-none"><span class="material-symbols-rounded text-[20px]">arrow_drop_down</span></button>
+                                </div>
                                 <span class="font-bold text-text-main text-[15px]">{{ $prod->name }}</span>
                                 @if($prod->counts_against && $prod->counts_against !== $prod->category)
                                 <span class="inline-flex items-center gap-1 bg-[#FDF2F4] text-[#B07079] border border-[#F9E1E5] px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">
@@ -212,7 +230,7 @@
                         <td class="py-5 font-bold text-slate-800 text-[15px] w-[15%]">
                             ${{ number_format($prod->price, 2) }}
                         </td>
-                        <td class="py-5 w-[20%]">
+                        <td class="py-5 w-[20%] text-text-main font-medium">
                             @php
                             $target_cat = $prod->counts_against ?: $prod->category;
                             $cat_obj = $categories->firstWhere('category_name', $target_cat);
@@ -221,19 +239,11 @@
                             <div class="flex flex-col border border-slate-200 rounded-lg text-[11px] w-[110px] overflow-hidden shadow-sm">
                                 <div class="flex justify-between items-center px-2 py-1 border-b border-slate-200 bg-white">
                                     <span class="text-slate-600 font-bold tracking-wider">ITEM</span>
-                                    @if($prod->daily_limit > 0)
-                                    <span class="text-[#D97757] font-semibold">{{ $prod->daily_limit }}/day</span>
-                                    @else
-                                    <span class="text-slate-400 italic">Unl</span>
-                                    @endif
+                                    <span class="{{ $prod->daily_limit > 0 ? 'text-[#D97757] font-bold' : 'text-slate-400 italic' }}">{{ $prod->daily_limit > 0 ? $prod->daily_limit.'/day' : 'Unl' }}</span>
                                 </div>
                                 <div class="flex justify-between items-center px-2 py-1 bg-white">
                                     <span class="text-slate-600 font-bold tracking-wider">CAT</span>
-                                    @if($c_limit > 0)
-                                    <span class="text-[#D97757] font-semibold">{{ $c_limit }}/day</span>
-                                    @else
-                                    <span class="text-slate-400 italic">Unl</span>
-                                    @endif
+                                    <span class="{{ $c_limit > 0 ? 'text-[#D97757] font-bold' : 'text-slate-400 italic' }}">{{ $c_limit > 0 ? $c_limit.'/day' : 'Unl' }}</span>
                                 </div>
                             </div>
                         </td>
@@ -246,10 +256,18 @@
                         </td>
                         <td class="py-5 pr-8 text-right w-[10%]">
                             <div class="flex justify-end gap-2">
-                                <button wire:click="editProduct({{ $prod->id }})" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                                <button type="button" wire:click="editProduct({{ $prod->id }})" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors">
                                     <span class="material-symbols-rounded text-[18px]">edit</span>
                                 </button>
-                                <button wire:click="deleteProduct({{ $prod->id }})" wire:confirm="Delete this product?" class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors shadow-sm">
+                                <button type="button"
+                                    @click="$dispatch('open-modal', { 
+                                        title: 'Delete Product?', 
+                                        message: 'Are you sure you want to delete \'{{ addslashes($prod->name) }}\'?', 
+                                        type: 'danger', 
+                                        event: 'execute-delete-product', 
+                                        params: {{ $prod->id }} 
+                                    })"
+                                    class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors shadow-sm">
                                     <span class="material-symbols-rounded text-[18px]">delete</span>
                                 </button>
                             </div>
@@ -265,8 +283,7 @@
         </div>
     </div>
 
-    <div x-show="tab === 'extras'" x-cloak class="flex flex-col gap-10">
-
+    <div x-show="tab === 'extras'" wire:key="tab-container-extras" class="flex flex-col gap-10">
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
             <div class="xl:col-span-4 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden h-fit">
                 <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
@@ -287,38 +304,30 @@
                                     @endforeach
                                 </select>
                             </div>
-
                             @foreach($addonRows as $index => $row)
                             <div class="relative space-y-4 pt-4 {{ $index > 0 ? 'border-t border-dashed border-slate-200' : '' }}">
                                 @if($index > 0)
-                                <button type="button" wire:click="removeAddonRow({{ $index }})" class="absolute top-2 right-0 text-red-400 hover:text-red-600 transition-colors" title="Remove Row">
+                                <button type="button" wire:click="removeAddonRow({{ $index }})" class="absolute top-2 right-0 text-red-400 hover:text-red-600 transition-colors">
                                     <span class="material-symbols-rounded text-sm">close</span>
                                 </button>
                                 @endif
-
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Item Name</label>
-                                    <input type="text" wire:model="addonRows.{{ $index }}.label" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" placeholder="e.g. Generator" required>
+                                    <input type="text" wire:model="addonRows.{{ $index }}.label" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum px-4 py-3 transition-colors" placeholder="e.g. Generator" required>
                                 </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Price <span class="text-slate-400 normal-case tracking-normal">(Leave empty for free)</span></label>
-                                    <input type="number" step="0.01" wire:model="addonRows.{{ $index }}.price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" placeholder="Free">
+                                <div class="mt-4">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Price <span class="text-slate-400 normal-case tracking-normal font-normal">(Leave empty for free)</span></label>
+                                    <input type="number" step="0.01" wire:model="addonRows.{{ $index }}.price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum px-4 py-3 transition-colors" placeholder="Free">
                                 </div>
                             </div>
                             @endforeach
                         </div>
-
                         @if(!$addon_id)
-                        <button type="button" wire:click="addAddonRow" class="text-plum text-[12px] font-bold flex items-center gap-1 mb-6 mt-4 hover:text-plum-dark transition-colors tracking-wide">
-                            + Add Row
-                        </button>
+                        <button type="button" wire:click="addAddonRow" class="text-plum text-[12px] font-bold flex items-center gap-1 mb-6 mt-4 hover:text-plum-dark transition-colors tracking-wide">+ Add Row</button>
                         @else
                         <div class="mt-6"></div>
                         @endif
-
-                        <button type="submit" class="w-full btn-plum py-3 rounded-xl font-bold text-[15px]">
-                            {{ $addon_id ? 'Update Item' : 'Save Items' }}
-                        </button>
+                        <button type="submit" class="w-full btn-plum py-3 rounded-xl font-bold text-[15px]">{{ $addon_id ? 'Update Item' : 'Save Items' }}</button>
                     </form>
                 </div>
             </div>
@@ -331,10 +340,10 @@
                     <table class="w-full text-left border-collapse">
                         <thead class="border-b border-slate-100 bg-white">
                             <tr>
-                                <th class="py-4 pl-6 text-[11px] font-bold text-slate-500 uppercase tracking-widest w-1/4">Category</th>
-                                <th class="py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest w-2/4">Item Name</th>
-                                <th class="py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Price</th>
-                                <th class="py-4 pr-6 text-right text-[11px] font-bold text-slate-500 uppercase tracking-widest">Action</th>
+                                <th class="py-4 pl-6 text-[11px] font-bold text-slate-500 uppercase tracking-widest w-[20%]">Category</th>
+                                <th class="py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest w-[50%]">Item Name</th>
+                                <th class="py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest w-[15%]">Price</th>
+                                <th class="py-4 pr-6 text-right text-[11px] font-bold text-slate-500 uppercase tracking-widest w-[15%]">Action</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-50">
@@ -342,21 +351,21 @@
                             <tr class="hover:bg-slate-50 transition-colors">
                                 <td class="py-5 pl-6 text-[12px] font-bold text-slate-500 uppercase tracking-wider">{{ $addon->category_target }}</td>
                                 <td class="py-5 text-[15px] font-medium text-text-main">{{ $addon->addon_label }}</td>
-                                <td class="py-5">
-                                    @if($addon->addon_price > 0)
-                                    <span class="text-[14px] font-bold text-text-main">${{ number_format($addon->addon_price, 2) }}</span>
-                                    @else
-                                    <span class="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Free</span>
-                                    @endif
+                                <td class="py-5 font-bold text-text-main">
+                                    @if($addon->addon_price > 0) ${{ number_format($addon->addon_price, 2) }} @else <span class="text-emerald-600 uppercase text-[11px]">Free</span> @endif
                                 </td>
                                 <td class="py-5 pr-6 text-right">
                                     <div class="flex justify-end gap-2">
-                                        <button wire:click="editAddon({{ $addon->id }})" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors">
-                                            <span class="material-symbols-rounded text-[18px]">edit</span>
-                                        </button>
-                                        <button wire:click="deleteAddon({{ $addon->id }})" wire:confirm="Delete this Add-on?" class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors">
-                                            <span class="material-symbols-rounded text-[18px]">delete</span>
-                                        </button>
+                                        <button wire:click="editAddon({{ $addon->id }})" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors"><span class="material-symbols-rounded text-[18px]">edit</span></button>
+                                        <button type="button"
+                                            @click="$dispatch('open-modal', { 
+                                                title: 'Delete Add-on?', 
+                                                message: 'Remove \'{{ addslashes($addon->addon_label) }}\'?', 
+                                                type: 'danger', 
+                                                event: 'execute-delete-addon', 
+                                                params: {{ $addon->id }} 
+                                            })"
+                                            class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors"><span class="material-symbols-rounded text-[18px]">delete</span></button>
                                     </div>
                                 </td>
                             </tr>
@@ -382,7 +391,7 @@
                         <div class="space-y-4 mb-2">
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Target Category</label>
-                                <select wire:model="dd_category" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors">
+                                <select wire:model="dd_category" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum px-4 py-3 transition-colors">
                                     <option value="General Logistics">General Logistics</option>
                                     @foreach ($categories as $c)
                                     <option value="{{ $c->category_name }}">{{ $c->category_name }}</option>
@@ -391,36 +400,28 @@
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Dropdown Label</label>
-                                <input type="text" wire:model="dd_label" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" placeholder="e.g. Hire Type" required>
+                                <input type="text" wire:model="dd_label" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum px-4 py-3 transition-colors" placeholder="e.g. Hire Type" required>
                             </div>
-
                             @foreach($dropdownRows as $index => $row)
                             <div class="relative space-y-4 pt-4 {{ $index > 0 ? 'border-t border-dashed border-slate-200' : '' }}">
                                 @if($index > 0)
-                                <button type="button" wire:click="removeDropdownRow({{ $index }})" class="absolute top-2 right-0 text-red-400 hover:text-red-600 transition-colors" title="Remove Option">
+                                <button type="button" wire:click="removeDropdownRow({{ $index }})" class="absolute top-2 right-0 text-red-400 hover:text-red-600 transition-colors">
                                     <span class="material-symbols-rounded text-sm">close</span>
                                 </button>
                                 @endif
-
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Option Name</label>
-                                    <input type="text" wire:model="dropdownRows.{{ $index }}.label" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" placeholder="e.g. Standard Hire" required>
+                                    <input type="text" wire:model="dropdownRows.{{ $index }}.label" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum px-4 py-3 transition-colors" placeholder="e.g. Standard Hire" required>
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Price <span class="text-slate-400 normal-case tracking-normal">(Leave empty for free)</span></label>
-                                    <input type="number" step="0.01" wire:model="dropdownRows.{{ $index }}.price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" placeholder="Free">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Price <span class="text-slate-400 normal-case tracking-normal font-normal">(Leave empty for free)</span></label>
+                                    <input type="number" step="0.01" wire:model="dropdownRows.{{ $index }}.price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum px-4 py-3 transition-colors" placeholder="Free">
                                 </div>
                             </div>
                             @endforeach
                         </div>
-
-                        <button type="button" wire:click="addDropdownRow" class="text-plum text-[12px] font-bold flex items-center gap-1 mb-6 mt-4 hover:text-plum-dark transition-colors tracking-wide">
-                            + Add Option
-                        </button>
-
-                        <button type="submit" class="w-full btn-plum py-3 rounded-xl font-bold text-[15px]">
-                            {{ $dd_id ? 'Update Dropdown' : 'Save Dropdown' }}
-                        </button>
+                        <button type="button" wire:click="addDropdownRow" class="text-plum text-[12px] font-bold flex items-center gap-1 mb-6 mt-4 hover:text-plum-dark transition-colors tracking-wide">+ Add Option</button>
+                        <button type="submit" class="w-full btn-plum py-3 rounded-xl font-bold text-[15px]">{{ $dd_id ? 'Update Dropdown' : 'Save Dropdown' }}</button>
                     </form>
                 </div>
             </div>
@@ -445,24 +446,24 @@
                                 <td class="py-5 align-top">
                                     <div class="font-bold text-text-main text-[15px] mb-2">{{ $dd->label }}</div>
                                     @foreach($dd->options as $opt)
-                                    <div class="text-[13px] text-slate-500 flex items-center gap-2 mb-1 pl-2">
+                                    <div class="text-[13px] text-slate-500 flex items-center gap-2 mb-1 pl-2 font-medium">
                                         {{ $opt->option_label }}
-                                        @if($opt->option_price > 0)
-                                        <span class="text-[13px] font-bold text-text-main ml-1">(${{ number_format($opt->option_price, 2) }})</span>
-                                        @else
-                                        <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider ml-1">Free</span>
-                                        @endif
+                                        <span class="text-text-main font-bold ml-1">(@if($opt->option_price > 0) ${{ number_format($opt->option_price, 2) }} @else <span class="text-emerald-600 uppercase text-[10px]">Free</span> @endif)</span>
                                     </div>
                                     @endforeach
                                 </td>
                                 <td class="py-5 pr-6 text-right align-top">
                                     <div class="flex justify-end gap-2 mt-1">
-                                        <button wire:click="editDropdown({{ $dd->id }})" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors">
-                                            <span class="material-symbols-rounded text-[18px]">edit</span>
-                                        </button>
-                                        <button wire:click="deleteDropdown({{ $dd->id }})" wire:confirm="Delete this Dropdown?" class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors">
-                                            <span class="material-symbols-rounded text-[18px]">delete</span>
-                                        </button>
+                                        <button wire:click="editDropdown({{ $dd->id }})" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors"><span class="material-symbols-rounded text-[18px]">edit</span></button>
+                                        <button type="button"
+                                            @click="$dispatch('open-modal', { 
+                                                title: 'Delete Dropdown?', 
+                                                message: 'Remove the \'{{ addslashes($dd->label) }}\' dropdown?', 
+                                                type: 'danger', 
+                                                event: 'execute-delete-dropdown', 
+                                                params: {{ $dd->id }} 
+                                            })"
+                                            class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors"><span class="material-symbols-rounded text-[18px]">delete</span></button>
                                     </div>
                                 </td>
                             </tr>
@@ -474,7 +475,7 @@
         </div>
     </div>
 
-    <div x-show="tab === 'delivery'" x-cloak class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
+    <div x-show="tab === 'delivery'" wire:key="tab-container-delivery" class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
         <div class="lg:col-span-1">
             <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
                 <div class="flex justify-between items-center mb-6">
@@ -484,9 +485,9 @@
                     @endif
                 </div>
                 <form wire:submit="saveDelivery" class="space-y-4">
-                    <input type="text" wire:model="zone_name" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum focus:border-plum transition-colors" placeholder="Zone Name" required>
-                    <input type="number" step="0.01" wire:model="del_price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum focus:border-plum transition-colors" placeholder="Price" required>
-                    <button type="submit" class="w-full btn-plum py-3 mt-4 rounded-xl font-semibold text-[15px]">Save</button>
+                    <input type="text" wire:model="zone_name" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum transition-colors" placeholder="Zone Name" required>
+                    <input type="number" step="0.01" wire:model="del_price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum transition-colors" placeholder="Price" required>
+                    <button type="submit" class="w-full btn-plum py-3 mt-4 rounded-xl font-bold text-[15px]">Save</button>
                 </form>
             </div>
         </div>
@@ -507,15 +508,19 @@
                             <td class="py-4 pl-8 font-semibold text-text-main text-[15px] flex items-center gap-3">
                                 <span class="material-symbols-rounded text-slate-300 text-xl">location_on</span> {{ $del->zone_name }}
                             </td>
-                            <td class="py-4 font-semibold text-slate-700">${{ number_format($del->price, 2) }}</td>
+                            <td class="py-4 font-bold text-slate-700">${{ number_format($del->price, 2) }}</td>
                             <td class="py-4 pr-8 text-right">
                                 <div class="flex justify-end gap-2">
-                                    <button wire:click="editDelivery({{ $del->id }})" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors">
-                                        <span class="material-symbols-rounded text-[18px]">edit</span>
-                                    </button>
-                                    <button wire:click="deleteDelivery({{ $del->id }})" wire:confirm="Delete zone?" class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors">
-                                        <span class="material-symbols-rounded text-[18px]">delete</span>
-                                    </button>
+                                    <button wire:click="editDelivery({{ $del->id }})" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors"><span class="material-symbols-rounded text-[18px]">edit</span></button>
+                                    <button type="button"
+                                        @click="$dispatch('open-modal', { 
+                                            title: 'Delete Delivery Zone?', 
+                                            message: 'Remove zone \'{{ addslashes($del->zone_name) }}\'?', 
+                                            type: 'danger', 
+                                            event: 'execute-delete-delivery', 
+                                            params: {{ $del->id }} 
+                                        })"
+                                        class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors"><span class="material-symbols-rounded text-[18px]">delete</span></button>
                                 </div>
                             </td>
                         </tr>
@@ -526,7 +531,7 @@
         </div>
     </div>
 
-    <div x-show="tab === 'duration'" x-cloak class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
+    <div x-show="tab === 'duration'" wire:key="tab-container-duration" class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
         <div class="lg:col-span-1">
             <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
                 <div class="flex justify-between items-center mb-6">
@@ -536,10 +541,10 @@
                     @endif
                 </div>
                 <form wire:submit="saveDuration" class="space-y-4">
-                    <input type="text" wire:model="dur_label" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum focus:border-plum transition-colors" placeholder="Label (e.g. 4 Hours)" required>
-                    <input type="number" step="0.5" wire:model="dur_hours" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum focus:border-plum transition-colors" placeholder="Hours (4.0)" required>
-                    <input type="number" step="0.01" wire:model="dur_price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum focus:border-plum transition-colors" placeholder="Price" required>
-                    <button type="submit" class="w-full btn-plum py-3 mt-4 rounded-xl font-semibold text-[15px]">Save</button>
+                    <input type="text" wire:model="dur_label" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum transition-colors" placeholder="Label (e.g. 4 Hours)" required>
+                    <input type="number" step="0.5" wire:model="dur_hours" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum transition-colors" placeholder="Hours (4.0)" required>
+                    <input type="number" step="0.01" wire:model="dur_price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum transition-colors" placeholder="Price" required>
+                    <button type="submit" class="w-full btn-plum py-3 mt-4 rounded-xl font-bold text-[15px]">Save</button>
                 </form>
             </div>
         </div>
@@ -560,15 +565,19 @@
                         <tr class="hover:bg-slate-50/50 transition-colors">
                             <td class="py-4 pl-8 font-semibold text-text-main text-[15px]">{{ $dur->label }}</td>
                             <td class="py-4 text-[14px] font-medium text-slate-600">{{ $dur->hours }} hrs</td>
-                            <td class="py-4 font-semibold text-slate-700">${{ number_format($dur->price, 2) }}</td>
+                            <td class="py-4 font-bold text-slate-700">${{ number_format($dur->price, 2) }}</td>
                             <td class="py-4 pr-8 text-right">
                                 <div class="flex justify-end gap-2">
-                                    <button wire:click="editDuration({{ $dur->id }})" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors">
-                                        <span class="material-symbols-rounded text-[18px]">edit</span>
-                                    </button>
-                                    <button wire:click="deleteDuration({{ $dur->id }})" wire:confirm="Delete this duration?" class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors">
-                                        <span class="material-symbols-rounded text-[18px]">delete</span>
-                                    </button>
+                                    <button wire:click="editDuration({{ $dur->id }})" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors"><span class="material-symbols-rounded text-[18px]">edit</span></button>
+                                    <button type="button"
+                                        @click="$dispatch('open-modal', { 
+                                            title: 'Delete Duration?', 
+                                            message: 'Remove duration \'{{ addslashes($dur->label) }}\'?', 
+                                            type: 'danger', 
+                                            event: 'execute-delete-duration', 
+                                            params: {{ $dur->id }} 
+                                        })"
+                                        class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors"><span class="material-symbols-rounded text-[18px]">delete</span></button>
                                 </div>
                             </td>
                         </tr>

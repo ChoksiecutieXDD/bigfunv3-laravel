@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class DeliveryZone extends Model
 {
+    public $timestamps = false;
+
     protected $fillable = [
         'zone_name',
         'price'

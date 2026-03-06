@@ -4,9 +4,11 @@ namespace App\Livewire\System;
 
 use Livewire\Component;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Auth;
 
 #[Layout('components.system.settings-layout')]
 class SystemSettings extends Component
@@ -38,7 +40,6 @@ class SystemSettings extends Component
 
         foreach ($tables as $tableObj) {
             $table = array_values((array)$tableObj)[0];
-
             $sqlScript .= "-- --------------------------------------------------------\n";
             $sqlScript .= "-- Table structure for `$table`\n";
             $sqlScript .= "-- --------------------------------------------------------\n";
@@ -71,17 +72,17 @@ class SystemSettings extends Component
     // ==========================================
     // 2. SYSTEM CACHE
     // ==========================================
+    #[On('execute-clear-cache')]
     public function clearCache()
     {
         try {
-            // Use safe clearing commands instead of optimize:clear
             Artisan::call('cache:clear');
             Artisan::call('route:clear');
             Artisan::call('config:clear');
 
             $this->dispatch('show-toast', message: 'System cache cleared successfully.', type: 'success');
         } catch (\Exception $e) {
-            $this->dispatch('show-toast', message: 'Error: ' . $e->getMessage(), type: 'error');
+            $this->dispatch('show-alert', message: 'Error clearing cache: ' . $e->getMessage(), type: 'error');
         }
     }
 
@@ -94,43 +95,81 @@ class SystemSettings extends Component
             if ($this->isMaintenance) {
                 Artisan::call('up');
                 $this->isMaintenance = false;
-                $this->dispatch('show-toast', message: 'Maintenance mode turned OFF.', type: 'success');
+                // Changed to show-alert
+                $this->dispatch('show-alert', message: 'Maintenance mode turned OFF. Site is live.', type: 'success');
             } else {
-                // Generates the Laravel maintenance file. 
-                // You can bypass the lock screen by visiting: yoursite.com/bigfun-admin
                 Artisan::call('down', ['--secret' => 'bigfun-admin']);
                 $this->isMaintenance = true;
-                $this->dispatch('show-toast', message: 'Maintenance mode turned ON.', type: 'info');
+                // Changed to show-alert
+                $this->dispatch('show-alert', message: 'Maintenance mode turned ON. Public access restricted.', type: 'info');
             }
         } catch (\Exception $e) {
-            // If it fails, revert the toggle property so the UI checkbox unchecks itself
             $this->isMaintenance = app()->isDownForMaintenance();
-            $this->dispatch('show-toast', message: 'Connection error. Check console for details.', type: 'error');
+            $this->dispatch('show-alert', message: 'Connection error changing maintenance status.', type: 'error');
         }
     }
 
     // ==========================================
     // 4. ENVIRONMENT TOGGLE
     // ==========================================
-    public function changeEnvironment($env)
+    #[On('execute-change-environment')]
+    public function changeEnvironment($id = null)
     {
+        // Extract the target environment string safely
+        $targetEnv = is_array($id) ? ($id['id'] ?? $id[0] ?? null) : $id;
+
+        if (!$targetEnv) {
+            $this->dispatch('show-toast', message: 'Invalid environment selected.', type: 'error');
+            return;
+        }
+
         $validEnvs = ['local', 'development', 'staging', 'production'];
 
-        if (in_array($env, $validEnvs)) {
+        if (in_array($targetEnv, $validEnvs)) {
             try {
                 $path = base_path('.env');
+
                 if (file_exists($path)) {
                     $envContent = file_get_contents($path);
-                    $envContent = preg_replace("/^APP_ENV=.*/m", "APP_ENV={$env}", $envContent);
+
+                    // Update APP_ENV, or add it if it somehow doesn't exist
+                    if (preg_match("/^APP_ENV=/m", $envContent)) {
+                        $envContent = preg_replace("/^APP_ENV=.*/m", "APP_ENV={$targetEnv}", $envContent);
+                    } else {
+                        $envContent .= "\nAPP_ENV={$targetEnv}\n";
+                    }
+
+                    // Save the file
                     file_put_contents($path, $envContent);
 
-                    $this->currentEnv = $env;
-                    $this->dispatch('show-toast', message: 'Environment set to ' . strtoupper($env), type: 'success');
+                    // FORWARD THE NEW CONFIG TO LARAVEL
+                    Artisan::call('config:clear');
+
+                    $this->currentEnv = config('app.env'); // Fetch the fresh config to confirm
+
+                    $this->dispatch('show-alert', message: 'Environment successfully set to ' . strtoupper($targetEnv), type: 'success');
+                } else {
+                    $this->dispatch('show-toast', message: 'Cannot find .env file.', type: 'error');
                 }
             } catch (\Exception $e) {
-                $this->dispatch('show-toast', message: 'Failed to save the environment setting.', type: 'error');
+                $this->dispatch('show-toast', message: 'Failed to update .env file. Please check file permissions.', type: 'error');
             }
+        } else {
+            $this->dispatch('show-toast', message: 'Environment name not allowed.', type: 'error');
         }
+    }
+
+    // ==========================================
+    // FORCE LOGOUT ALL
+    // ==========================================
+    #[On('execute-force-logout')]
+    public function forceLogout()
+    {
+        Auth::logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+
+        return redirect('/');
     }
 
     // ==========================================
@@ -139,7 +178,6 @@ class SystemSettings extends Component
     public function testSmtp()
     {
         try {
-            // Temporarily override config with your hardcoded values for the test
             config([
                 'mail.mailers.smtp.host' => 'smtp.gmail.com',
                 'mail.mailers.smtp.port' => 587,
@@ -161,15 +199,14 @@ class SystemSettings extends Component
                     ");
             });
 
-            $this->dispatch('show-toast', message: 'Test email sent! Please check your Gmail inbox.', type: 'success');
+            $this->dispatch('show-toast', message: 'Test email sent! Please check your inbox.', type: 'success');
         } catch (\Exception $e) {
-            $this->dispatch('show-toast', message: "Failed to connect to server. Check console for details.", type: 'error');
+            $this->dispatch('show-alert', message: "SMTP Failed: " . $e->getMessage(), type: 'error');
         }
     }
 
     public function render()
     {
-        // Updated to reflect the folder path
         return view('livewire.system.system-settings');
     }
 }

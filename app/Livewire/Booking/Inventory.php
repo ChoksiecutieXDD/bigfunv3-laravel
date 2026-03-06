@@ -4,6 +4,8 @@ namespace App\Livewire\Booking;
 
 use Livewire\Component;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
+use Livewire\Attributes\Url;
 use Illuminate\Validation\Rule;
 use App\Models\ProductCategory;
 use App\Models\Product;
@@ -16,6 +18,7 @@ use App\Models\DurationPrice;
 #[Layout('components.booking.booking-layout')]
 class Inventory extends Component
 {
+    #[Url]
     public $activeTab = 'categories';
     public $searchProduct = '';
 
@@ -28,7 +31,6 @@ class Inventory extends Component
     // --- Add-on State ---
     public $addon_id;
     public $addon_category = 'General Logistics';
-    // Using an array to handle dynamic rows natively in Livewire
     public $addonRows = [['label' => '', 'price' => '']];
 
     // --- Dropdown State ---
@@ -84,10 +86,34 @@ class Inventory extends Component
         $this->cat_daily_limit = $cat->daily_limit;
     }
 
+    #[On('execute-delete-category')]
     public function deleteCategory($id)
     {
-        ProductCategory::destroy($id);
-        $this->dispatchToast('Category deleted.');
+        $id = is_array($id) ? ($id['id'] ?? $id[0]) : $id;
+
+        $category = ProductCategory::find($id);
+        if ($category) {
+            $catName = $category->category_name;
+
+            // Delete related products
+            Product::where('category', $catName)->delete();
+            Product::where('counts_against', $catName)->update(['counts_against' => null]);
+
+            // Delete related extras (CategoryAddon)
+            CategoryAddon::where('category_target', $catName)->delete();
+
+            // Delete related dropdowns and their options
+            $dropdowns = ProductDropdown::where('category_target', $catName)->get();
+            foreach ($dropdowns as $dd) {
+                DropdownOption::where('dropdown_id', $dd->id)->delete();
+                $dd->delete();
+            }
+
+            // Finally delete the category
+            $category->delete();
+        }
+
+        $this->dispatchToast('Category and related items deleted.');
     }
 
     public function reorderCategory($id, $direction)
@@ -107,6 +133,7 @@ class Inventory extends Component
             $current->update(['sort_order' => $adjacent->sort_order]);
             $adjacent->update(['sort_order' => $temp]);
         }
+        $this->dispatchToast('Category arrangement updated.');
     }
 
     public function resetCategoryForm()
@@ -125,6 +152,13 @@ class Inventory extends Component
             'prod_price' => 'nullable|numeric'
         ]);
 
+        if (!$this->prod_id) {
+            $maxOrder = Product::where('category', $this->prod_category)->max('sort_order') ?? 0;
+            $sortOrder = $maxOrder + 1;
+        } else {
+            $sortOrder = Product::find($this->prod_id)->sort_order ?? 0;
+        }
+
         Product::updateOrCreate(
             ['id' => $this->prod_id],
             [
@@ -133,6 +167,7 @@ class Inventory extends Component
                 'counts_against' => $this->counts_against ?: $this->prod_category,
                 'price' => $this->prod_price ?: 0,
                 'daily_limit' => $this->prod_limit ?: 0,
+                'sort_order' => $sortOrder,
                 'is_active' => $this->is_active
             ]
         );
@@ -153,10 +188,48 @@ class Inventory extends Component
         $this->is_active = $prod->is_active;
     }
 
+    #[On('execute-delete-product')]
     public function deleteProduct($id)
     {
+        $id = is_array($id) ? ($id['id'] ?? $id[0]) : $id;
         Product::destroy($id);
         $this->dispatchToast('Product deleted.');
+    }
+
+    public function reorderProduct($id, $direction)
+    {
+        $current = Product::find($id);
+        if (!$current) return;
+
+        $compareOp = $direction === 'up' ? '<' : '>';
+        $orderDir = $direction === 'up' ? 'desc' : 'asc';
+
+        $adjacent = Product::where('category', $current->category)
+            ->where('sort_order', $compareOp, $current->sort_order)
+            ->orderBy('sort_order', $orderDir)
+            ->first();
+
+        if ($adjacent) {
+            $temp = $current->sort_order;
+            $current->update(['sort_order' => $adjacent->sort_order]);
+            $adjacent->update(['sort_order' => $temp]);
+        }
+        $this->dispatchToast('Product arrangement updated.');
+    }
+
+    public function autoArrangeAlphabetical($categoryName)
+    {
+        $products = Product::where('category', $categoryName)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        $order = 1;
+        foreach ($products as $prod) {
+            $prod->update(['sort_order' => $order]);
+            $order++;
+        }
+
+        $this->dispatchToast("Category '{$categoryName}' sorted alphabetically.");
     }
 
     public function resetProductForm()
@@ -176,13 +249,12 @@ class Inventory extends Component
     public function removeAddonRow($index)
     {
         unset($this->addonRows[$index]);
-        $this->addonRows = array_values($this->addonRows); // Re-index array
+        $this->addonRows = array_values($this->addonRows);
     }
 
     public function saveAddons()
     {
         if ($this->addon_id) {
-            // Editing a single record
             $row = $this->addonRows[0] ?? null;
             if ($row && !empty($row['label'])) {
                 CategoryAddon::where('id', $this->addon_id)->update([
@@ -193,7 +265,6 @@ class Inventory extends Component
             }
             $msg = 'Add-on updated.';
         } else {
-            // Bulk inserting new rows
             foreach ($this->addonRows as $row) {
                 if (!empty($row['label'])) {
                     CategoryAddon::create([
@@ -218,8 +289,10 @@ class Inventory extends Component
         $this->addonRows = [['label' => $addon->addon_label, 'price' => $addon->addon_price]];
     }
 
+    #[On('execute-delete-addon')]
     public function deleteAddon($id)
     {
+        $id = is_array($id) ? ($id['id'] ?? $id[0]) : $id;
         CategoryAddon::destroy($id);
         $this->dispatchToast('Add-on deleted.');
     }
@@ -251,18 +324,15 @@ class Inventory extends Component
             'dd_label' => 'required|string'
         ]);
 
-        // Save or Update Parent Dropdown
         $dropdown = ProductDropdown::updateOrCreate(
             ['id' => $this->dd_id],
             ['category_target' => $this->dd_category, 'label' => $this->dd_label]
         );
 
-        // Wipe old options if editing, then insert fresh
         if ($this->dd_id) {
             DropdownOption::where('dropdown_id', $this->dd_id)->delete();
         }
 
-        // Insert new options
         foreach ($this->dropdownRows as $row) {
             if (!empty($row['label'])) {
                 DropdownOption::create([
@@ -294,8 +364,10 @@ class Inventory extends Component
         }
     }
 
+    #[On('execute-delete-dropdown')]
     public function deleteDropdown($id)
     {
+        $id = is_array($id) ? ($id['id'] ?? $id[0]) : $id;
         ProductDropdown::destroy($id);
         $this->dispatchToast('Dropdown deleted.');
     }
@@ -330,8 +402,10 @@ class Inventory extends Component
         $this->del_price = $zone->price;
     }
 
+    #[On('execute-delete-delivery')]
     public function deleteDelivery($id)
     {
+        $id = is_array($id) ? ($id['id'] ?? $id[0]) : $id;
         DeliveryZone::destroy($id);
         $this->dispatchToast('Delivery zone deleted.');
     }
@@ -365,8 +439,10 @@ class Inventory extends Component
         $this->dur_price = $dur->price;
     }
 
+    #[On('execute-delete-duration')]
     public function deleteDuration($id)
     {
+        $id = is_array($id) ? ($id['id'] ?? $id[0]) : $id;
         DurationPrice::destroy($id);
         $this->dispatchToast('Duration deleted.');
     }
@@ -376,7 +452,7 @@ class Inventory extends Component
     // ==========================================
     private function dispatchToast($message, $type = 'success')
     {
-        $this->dispatch('show-toast', message: $message, type: $type);
+        $this->dispatch('show-toast', ['message' => $message, 'type' => $type]);
     }
 
     public function render()
@@ -384,7 +460,7 @@ class Inventory extends Component
         return view('livewire.booking.inventory', [
             'categories' => ProductCategory::orderBy('sort_order')->get(),
             'products' => Product::where('name', 'like', '%' . $this->searchProduct . '%')
-                ->orderBy('category')->orderBy('name')->get(),
+                ->orderBy('category')->orderBy('sort_order')->orderBy('name')->get(),
             'extras_addons' => CategoryAddon::orderBy('category_target')->orderBy('addon_label')->get(),
             'dropdowns' => ProductDropdown::with('options')->orderBy('category_target')->get(),
             'deliveries' => DeliveryZone::orderBy('price')->get(),

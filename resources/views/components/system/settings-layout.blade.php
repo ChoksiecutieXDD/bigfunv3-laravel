@@ -4,7 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ $title ?? 'BigFun - Management System' }}</title>
@@ -21,35 +20,14 @@
 
 <body class="min-h-screen relative overflow-x-hidden bg-slate-900 {{ $bodyClass ?? '' }}">
 
+    @include('partials.toast')
     @include('partials.alert')
+    @include('partials.confirm')
 
     {{ $slot }}
 
-    <script src="/assets/js/components.js"></script>
-
     {{ $scripts ?? '' }}
-
     @livewireScripts
-
-    <script>
-        // Changed to 'show-toast' to match your Livewire component dispatches
-        window.addEventListener('show-toast', (event) => {
-
-            // Livewire 3 handles dispatched event details slightly differently depending on the array structure
-            const data = event.detail;
-            const message = data.message || (Array.isArray(data) && data[0] ? data[0].message : 'Action completed.');
-            const type = data.type || (Array.isArray(data) && data[0] ? data[0].type : 'success');
-
-            if (typeof showToast === 'function') {
-                showToast(message, type);
-            } else if (typeof showAlert === 'function') {
-                showAlert(message, type); // Fallback
-            } else {
-                alert(`[${type.toUpperCase()}] ${message}`);
-            }
-
-        });
-    </script>
 </body>
 
 </html>

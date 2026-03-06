@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class DropdownOption extends Model
 {
+    public $timestamps = false;
+
     protected $fillable = ['dropdown_id', 'option_label', 'option_price'];
 
     // Optional: The inverse relationship

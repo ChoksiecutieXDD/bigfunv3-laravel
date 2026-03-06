@@ -1,5 +1,8 @@
-<div>
-    <div class="fixed top-[-20%] left-[-10%] w-[500px] h-[500px] bg-[#9E6B73] rounded-full blur-[150px] opacity-20 pointer-events-none z-0"></div>
+<div
+    @execute-clear-cache.window="$wire.clearCache()"
+    @execute-change-environment.window="$wire.changeEnvironment($event.detail.id)"
+    @execute-force-logout.window="$wire.forceLogout()">
+    <div class="fixed top-[-20%] left-[-10%] w-[500px] h-[500px] bg-plum rounded-full blur-[150px] opacity-20 pointer-events-none z-0"></div>
     <div class="fixed bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-900 rounded-full blur-[150px] opacity-20 pointer-events-none z-0"></div>
 
     <div class="max-w-7xl mx-auto relative z-10 p-4 md:p-6">
@@ -7,7 +10,7 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-white flex items-center gap-3">
-                    <span class="material-symbols-rounded text-[#9E6B73] text-4xl">settings_system_daydream</span>
+                    <span class="material-symbols-rounded text-plum text-4xl">settings_system_daydream</span>
                     System Configuration
                 </h1>
                 <p class="text-slate-400 mt-1">Manage core application settings, databases, and mail servers.</p>
@@ -40,9 +43,9 @@
                 </div>
 
                 <div class="space-y-4">
-                    <a href="/system/db-view" class="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-[#9E6B73] hover:bg-slate-800 transition-all group cursor-pointer">
+                    <a href="/system/db-view" wire:navigate class="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-plum hover:bg-slate-800 transition-all group cursor-pointer">
                         <div class="flex items-center gap-3">
-                            <span class="material-symbols-rounded text-slate-400 group-hover:text-[#9E6B73] transition-colors">table_view</span>
+                            <span class="material-symbols-rounded text-slate-400 group-hover:text-plum transition-colors">table_view</span>
                             <span class="font-medium text-slate-200">Database Viewer</span>
                         </div>
                         <span class="material-symbols-rounded text-slate-500 group-hover:text-white">chevron_right</span>
@@ -60,7 +63,7 @@
 
             <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full">
                 <div class="flex items-center gap-3 mb-6">
-                    <div class="w-12 h-12 rounded-full bg-[#9E6B73]/10 flex items-center justify-center text-[#9E6B73] shrink-0">
+                    <div class="w-12 h-12 rounded-full bg-plum/10 flex items-center justify-center text-plum shrink-0">
                         <span class="material-symbols-rounded">memory</span>
                     </div>
                     <div>
@@ -70,12 +73,20 @@
                 </div>
 
                 <div class="space-y-4">
-                    <button wire:click="clearCache" class="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-[#9E6B73] hover:bg-slate-800 transition-all group disabled:opacity-50">
+                    <button type="button"
+                        x-data
+                        @click="$dispatch('open-modal', { 
+                            title: 'Clear System Cache?', 
+                            message: 'This will clear compiled views, config, and route caches. Proceed?', 
+                            type: 'warning', 
+                            event: 'execute-clear-cache' 
+                        })"
+                        class="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-plum hover:bg-slate-800 transition-all group disabled:opacity-50">
                         <div class="flex items-center gap-3">
-                            <span class="material-symbols-rounded text-slate-400 group-hover:text-[#9E6B73] transition-colors">cleaning_services</span>
+                            <span class="material-symbols-rounded text-slate-400 group-hover:text-plum transition-colors">cleaning_services</span>
                             <div class="text-left">
                                 <span class="font-medium text-slate-200 block" wire:loading.remove wire:target="clearCache">Clear System Cache</span>
-                                <span class="font-medium text-[#9E6B73] block" wire:loading wire:target="clearCache">Clearing...</span>
+                                <span class="font-medium text-plum block" wire:loading wire:target="clearCache">Clearing...</span>
                                 <span class="text-xs text-slate-500 block">Frees up temporary server files</span>
                             </div>
                         </div>
@@ -120,7 +131,7 @@
                             <h3 class="font-bold text-slate-200">Product Management</h3>
                             <p class="text-xs text-slate-400 mt-1">Add new rides, update pricing, or edit existing inventory items.</p>
                         </div>
-                        <a href="/inventory" wire:navigate class="flex shrink-0 items-center gap-2 bg-[#9E6B73] hover:bg-[#86545C] text-white px-6 py-3 rounded-xl font-bold text-sm transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:scale-[0.98]">
+                        <a href="/inventory" wire:navigate class="flex shrink-0 items-center gap-2 bg-plum hover:bg-plum-dark text-white px-6 py-3 rounded-xl font-bold text-sm transition shadow-lg shadow-plum/20 transform hover:-translate-y-0.5 active:scale-[0.98]">
                             <span class="material-symbols-rounded text-lg">edit_square</span> Manage Products
                         </a>
                     </div>
@@ -141,16 +152,16 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">SMTP Host</label>
-                        <input type="text" value="{{ config('mail.mailers.smtp.host') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-[#9E6B73] focus:border-[#9E6B73] block p-3 outline-none transition-colors" disabled>
+                        <input type="text" value="{{ config('mail.mailers.smtp.host') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-plum focus:border-plum block p-3 outline-none transition-colors" disabled>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">Port</label>
-                            <input type="number" value="{{ config('mail.mailers.smtp.port') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-[#9E6B73] focus:border-[#9E6B73] block p-3 outline-none transition-colors" disabled>
+                            <input type="number" value="{{ config('mail.mailers.smtp.port') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-plum focus:border-plum block p-3 outline-none transition-colors" disabled>
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">Encryption</label>
-                            <select class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-[#9E6B73] focus:border-[#9E6B73] block p-3 outline-none transition-colors appearance-none" disabled>
+                            <select class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-plum focus:border-plum block p-3 outline-none transition-colors appearance-none" disabled>
                                 <option value="tls" {{ config('mail.mailers.smtp.encryption') == 'tls' ? 'selected' : '' }}>TLS</option>
                                 <option value="ssl" {{ config('mail.mailers.smtp.encryption') == 'ssl' ? 'selected' : '' }}>SSL</option>
                             </select>
@@ -158,15 +169,15 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">Username (Email)</label>
-                        <input type="email" value="{{ config('mail.mailers.smtp.username') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-[#9E6B73] focus:border-[#9E6B73] block p-3 outline-none transition-colors" disabled>
+                        <input type="email" value="{{ config('mail.mailers.smtp.username') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-plum focus:border-plum block p-3 outline-none transition-colors" disabled>
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">App Password (Temporary)</label>
-                        <input type="password" value="{{ config('mail.mailers.smtp.password') }}" placeholder="********" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-[#9E6B73] focus:border-[#9E6B73] block p-3 outline-none transition-colors" disabled>
+                        <input type="password" value="{{ config('mail.mailers.smtp.password') }}" placeholder="********" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-plum focus:border-plum block p-3 outline-none transition-colors" disabled>
                     </div>
 
-                    <button type="button" wire:click="testSmtp" wire:loading.attr="disabled" class="w-full py-3 bg-[#9E6B73] hover:bg-[#86545C] text-white text-sm font-bold rounded-xl transition-all duration-300 mt-3 flex items-center justify-center gap-2 shadow-lg shadow-black/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100">
+                    <button type="button" wire:click="testSmtp" wire:loading.attr="disabled" class="w-full py-3 bg-plum hover:bg-plum-dark text-white text-sm font-bold rounded-xl transition-all duration-300 mt-3 flex items-center justify-center gap-2 shadow-lg shadow-plum/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100">
                         <span wire:loading.remove wire:target="testSmtp">Test Connection</span>
                         <span wire:loading wire:target="testSmtp">Sending Test Email...</span>
                     </button>
@@ -188,7 +199,16 @@
                     <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-700">
                         <span class="block text-xs text-slate-400 mb-2">App Environment</span>
                         <div class="relative">
-                            <select wire:change="changeEnvironment($event.target.value)" class="w-full bg-slate-800 border border-slate-600 font-bold rounded-xl {{ $envColor }} focus:ring-[#9E6B73] focus:border-[#9E6B73] p-3 outline-none transition-colors appearance-none cursor-pointer">
+                            <select
+                                x-data
+                                @change="$dispatch('open-modal', { 
+                                    title: 'Change Environment?', 
+                                    message: 'Changing the environment can affect database connections and error reporting. Proceed?', 
+                                    type: 'warning', 
+                                    event: 'execute-change-environment',
+                                    params: $event.target.value
+                                }); $event.target.value = '{{ $currentEnv }}';"
+                                class="w-full bg-slate-800 border border-slate-600 font-bold rounded-xl {{ $envColor }} focus:ring-plum focus:border-plum p-3 outline-none transition-colors appearance-none cursor-pointer">
                                 <option value="development" class="text-amber-400" {{ $currentEnv === 'local' || $currentEnv === 'development' ? 'selected' : '' }}>Development Environment</option>
                                 <option value="staging" class="text-blue-400" {{ $currentEnv === 'staging' ? 'selected' : '' }}>Staging Environment</option>
                                 <option value="production" class="text-emerald-400" {{ $currentEnv === 'production' ? 'selected' : '' }}>Production Environment</option>
@@ -206,13 +226,18 @@
                         </div>
                     </div>
 
-                    <form action="/logout" method="POST" class="w-full mt-2">
-                        @csrf
-                        <button type="submit" class="w-full py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 text-sm font-bold rounded-xl transition-colors flex justify-center items-center gap-2">
-                            <span class="material-symbols-rounded text-lg">logout</span>
-                            Force Logout All Sessions
-                        </button>
-                    </form>
+                    <button type="button"
+                        x-data
+                        @click="$dispatch('open-modal', { 
+                            title: 'Force Logout All Sessions?', 
+                            message: 'This will instantly log out every user on all devices. You will need to log back in immediately. Proceed?', 
+                            type: 'danger', 
+                            event: 'execute-force-logout' 
+                        })"
+                        class="w-full mt-2 py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 text-sm font-bold rounded-xl transition-colors flex justify-center items-center gap-2">
+                        <span class="material-symbols-rounded text-lg">logout</span>
+                        Force Logout All Sessions
+                    </button>
                 </div>
             </div>
 
