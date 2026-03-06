@@ -32,13 +32,14 @@
     @livewireScripts
 
     <script>
-        window.addEventListener('notify', (event) => {
+        // Changed to 'show-toast' to match your Livewire component dispatches
+        window.addEventListener('show-toast', (event) => {
 
-            const data = Array.isArray(event.detail) ? event.detail[0] : event.detail;
-            const message = data.message || 'Action completed.';
-            const type = data.type || 'success';
+            // Livewire 3 handles dispatched event details slightly differently depending on the array structure
+            const data = event.detail;
+            const message = data.message || (Array.isArray(data) && data[0] ? data[0].message : 'Action completed.');
+            const type = data.type || (Array.isArray(data) && data[0] ? data[0].type : 'success');
 
-            // Changed this to use your much better showToast function!
             if (typeof showToast === 'function') {
                 showToast(message, type);
             } else if (typeof showAlert === 'function') {

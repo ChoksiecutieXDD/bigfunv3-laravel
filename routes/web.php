@@ -1,13 +1,22 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Livewire\Booking\Inventory;
+use App\Livewire\System\SystemSettings;
+use App\Livewire\System\DatabaseViewer;
 
+// ==========================================
+// PUBLIC ROUTES
+// ==========================================
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/settings', function () {
-    return view('system.settings');
-});
+// ==========================================
+// SYSTEM & ADMIN ROUTES
+// ==========================================
 
-Route::view('/system/db-view', 'system.db_view');
+// Routing directly to Livewire components
+Route::get('/settings', SystemSettings::class);
+Route::get('/system/db-view', DatabaseViewer::class);
+Route::get('/inventory', Inventory::class);

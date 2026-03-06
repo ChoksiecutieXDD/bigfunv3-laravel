@@ -1,4 +1,26 @@
-<div>
+<div class="p-4 md:p-6">
+    <style>
+        /* Your custom scrollbars */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 10px;
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0F172A;
+            border-radius: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 relative z-10 w-full max-w-7xl mx-auto">
         <div>
             <h1 class="text-2xl font-bold text-white flex items-center gap-3">

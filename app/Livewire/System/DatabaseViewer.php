@@ -1,11 +1,14 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\System;
 
 use Livewire\Component;
+use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
+// Apply your system settings layout shell to this page
+#[Layout('components.system.settings-layout')]
 class DatabaseViewer extends Component
 {
     public $tables = [];
@@ -49,7 +52,8 @@ class DatabaseViewer extends Component
 
     public function render()
     {
-        return view('livewire.database-viewer', [
+        // Points directly to resources/views/livewire/system/database-viewer.blade.php
+        return view('livewire.system.database-viewer', [
             'dbName' => env('DB_DATABASE', 'bigfun') // Get DB name from .env
         ]);
     }

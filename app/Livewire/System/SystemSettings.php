@@ -1,12 +1,14 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\System;
 
 use Livewire\Component;
+use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
 
+#[Layout('components.system.settings-layout')]
 class SystemSettings extends Component
 {
     public $isMaintenance;
@@ -23,7 +25,7 @@ class SystemSettings extends Component
     // ==========================================
     public function exportDb()
     {
-        $this->dispatch('notify', message: 'Preparing database backup...', type: 'success');
+        $this->dispatch('show-toast', message: 'Preparing database backup...', type: 'success');
 
         $dbName = env('DB_DATABASE', 'bigfun_backup');
         $date = now()->format('Y-m-d_H-i-s');
@@ -77,9 +79,9 @@ class SystemSettings extends Component
             Artisan::call('route:clear');
             Artisan::call('config:clear');
 
-            $this->dispatch('notify', message: 'System cache cleared successfully.', type: 'success');
+            $this->dispatch('show-toast', message: 'System cache cleared successfully.', type: 'success');
         } catch (\Exception $e) {
-            $this->dispatch('notify', message: 'Error: ' . $e->getMessage(), type: 'error');
+            $this->dispatch('show-toast', message: 'Error: ' . $e->getMessage(), type: 'error');
         }
     }
 
@@ -92,18 +94,18 @@ class SystemSettings extends Component
             if ($this->isMaintenance) {
                 Artisan::call('up');
                 $this->isMaintenance = false;
-                $this->dispatch('notify', message: 'Maintenance mode turned OFF.', type: 'success');
+                $this->dispatch('show-toast', message: 'Maintenance mode turned OFF.', type: 'success');
             } else {
                 // Generates the Laravel maintenance file. 
                 // You can bypass the lock screen by visiting: yoursite.com/bigfun-admin
                 Artisan::call('down', ['--secret' => 'bigfun-admin']);
                 $this->isMaintenance = true;
-                $this->dispatch('notify', message: 'Maintenance mode turned ON.', type: 'info');
+                $this->dispatch('show-toast', message: 'Maintenance mode turned ON.', type: 'info');
             }
         } catch (\Exception $e) {
             // If it fails, revert the toggle property so the UI checkbox unchecks itself
             $this->isMaintenance = app()->isDownForMaintenance();
-            $this->dispatch('notify', message: 'Connection error. Check console for details.', type: 'error');
+            $this->dispatch('show-toast', message: 'Connection error. Check console for details.', type: 'error');
         }
     }
 
@@ -123,10 +125,10 @@ class SystemSettings extends Component
                     file_put_contents($path, $envContent);
 
                     $this->currentEnv = $env;
-                    $this->dispatch('notify', message: 'Environment set to ' . strtoupper($env), type: 'success');
+                    $this->dispatch('show-toast', message: 'Environment set to ' . strtoupper($env), type: 'success');
                 }
             } catch (\Exception $e) {
-                $this->dispatch('notify', message: 'Failed to save the environment setting.', type: 'error');
+                $this->dispatch('show-toast', message: 'Failed to save the environment setting.', type: 'error');
             }
         }
     }
@@ -159,14 +161,15 @@ class SystemSettings extends Component
                     ");
             });
 
-            $this->dispatch('notify', message: 'Test email sent! Please check your Gmail inbox.', type: 'success');
+            $this->dispatch('show-toast', message: 'Test email sent! Please check your Gmail inbox.', type: 'success');
         } catch (\Exception $e) {
-            $this->dispatch('notify', message: "Failed to connect to server. Check console for details.", type: 'error');
+            $this->dispatch('show-toast', message: "Failed to connect to server. Check console for details.", type: 'error');
         }
     }
 
     public function render()
     {
-        return view('livewire.system-settings');
+        // Updated to reflect the folder path
+        return view('livewire.system.system-settings');
     }
 }
