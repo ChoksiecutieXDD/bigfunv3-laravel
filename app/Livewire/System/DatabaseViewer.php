@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 // Apply your system settings layout shell to this page
-#[Layout('components.system.settings-layout')]
+#[Layout('layouts.system.settings-layout')]
 class DatabaseViewer extends Component
 {
     public $tables = [];

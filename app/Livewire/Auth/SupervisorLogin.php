@@ -6,7 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
 
-#[Layout('components.auth.auth-layout')]
+#[Layout('layouts.auth.auth-layout')]
 class SupervisorLogin extends Component
 {
     public $email = '';

@@ -35,7 +35,7 @@
 
             @if(!$mailSent)
             <div class="mb-12 animate-enter text-center flex flex-col items-center">
-                <a href="/home" class="inline-block hover:scale-105 transition-transform duration-300">
+                <a href="/" class="inline-block hover:scale-105 transition-transform duration-300">
                     <img src="{{ asset('assets/icon/bgfunlogo.png') }}" alt="Logo" class="h-16 w-auto mb-6 mx-auto">
                 </a>
                 <h1 class="text-4xl font-bold text-gray-800">Forgot Password?</h1>
