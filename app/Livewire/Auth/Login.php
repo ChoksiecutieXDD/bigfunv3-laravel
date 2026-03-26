@@ -7,7 +7,7 @@ use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
 
 // 👇 Here is the fixed layout path!
-#[Layout('layouts.auth-layout')]
+#[Layout('components.layouts.auth-layout')]
 class Login extends Component
 {
     public $role = '';
@@ -66,11 +66,11 @@ class Login extends Component
 
             // --- 5. EXACT REDIRECTS ---
             if ($db_role === 'Administrator' || $db_role === 'Admin') {
-                return redirect()->intended('/admin/dashboard');
+                return redirect('/admin/dashboard');
             } elseif ($db_role === 'Supervisor') {
-                return redirect()->intended('/supervisor/calendar');
+                return redirect('/supervisor/calendar');
             } else {
-                return redirect()->intended('/staff/dashboard');
+                return redirect('/staff/dashboard');
             }
         }
 

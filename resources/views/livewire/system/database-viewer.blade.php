@@ -30,7 +30,7 @@
             <p class="text-slate-400 mt-1 text-sm">Viewing schema: <span class="text-emerald-400 font-mono">{{ $dbName }}</span></p>
         </div>
         <div class="flex gap-3">
-            <a href="/settings" wire:navigate class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center gap-2 text-sm font-semibold shadow-sm">
+            <a href="{{ route('system.settings') }}" wire:navigate class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center gap-2 text-sm font-semibold shadow-sm">
                 <span class="material-symbols-rounded text-lg">settings</span>
                 Back to Settings
             </a>

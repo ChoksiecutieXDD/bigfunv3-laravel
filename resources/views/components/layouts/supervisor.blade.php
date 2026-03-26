@@ -76,16 +76,15 @@
         </nav>
 
         <div class="p-4 border-t border-gray-100 whitespace-nowrap overflow-hidden bg-white shrink-0">
-            <a href="/profile" class="nav-item flex items-center gap-3 p-2 rounded-xl transition-all group {{ request()->is('profile*') ? 'bg-[#FDF2F4] ring-1 ring-[#9E6B73]/20' : 'hover:bg-gray-50' }}" :class="isCollapsed ? 'justify-center' : ''">
-                <div class="w-9 h-9 rounded-full bg-[#9E6B73] text-white flex items-center justify-center shrink-0 font-bold shadow-sm">
-                    <span class="material-symbols-rounded text-lg">person</span>
+            <a href="{{ route('profile') }}" wire:navigate class="nav-item flex items-center gap-3 p-2 rounded-xl transition-all group {{ request()->routeIs('profile') ? 'bg-[#FDF2F4] ring-1 ring-[#9E6B73]/20' : 'hover:bg-gray-50' }}" :class="isCollapsed ? 'justify-center' : ''">
+                <div class="w-9 h-9 rounded-full bg-[#9E6B73] text-white flex items-center justify-center shrink-0 font-bold shadow-sm text-[13px] tracking-wide">
+                    {{ strtoupper(substr(auth()->user()->first_name ?? 'U', 0, 1) . substr(auth()->user()->last_name ?? '', 0, 1)) }}
                 </div>
                 <div class="profile-details overflow-hidden transition-all duration-300" x-show="!isCollapsed">
-                    <p class="font-bold text-xs text-gray-700 truncate profile-name">Supervisor</p>
-                    <p class="text-[10px] text-gray-400 truncate">Edit Profile</p>
+                    <p class="font-bold text-xs text-gray-700 truncate profile-name">{{ auth()->user()->first_name }} {{ auth()->user()->last_name }}</p>
+                    <p class="text-[10px] text-[#9E6B73] font-semibold truncate">{{ auth()->user()->role ?? 'Edit Profile' }}</p>
                 </div>
             </a>
-
             <form method="POST" action="/logout" class="mt-2">
                 @csrf
                 <button type="submit" class="w-full nav-item flex items-center gap-3 p-2 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-50 transition-all" :class="isCollapsed ? 'justify-center' : ''">
@@ -97,6 +96,7 @@
     </aside>
 
     <main id="mainContent"
+        x-cloak
         :class="{ 'lg:ml-20': isCollapsed, 'lg:ml-72': !isCollapsed }"
         class="flex-1 transition-all duration-300 ease-in-out min-h-screen pt-16 lg:pt-0 flex flex-col">
 

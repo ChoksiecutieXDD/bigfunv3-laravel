@@ -30,6 +30,7 @@ class User extends Authenticatable
         'gender',
         'contact_no',
         'is_active', // Included based on your login logic
+        'change_passtime', // <-- ADD THIS
     ];
 
     /**

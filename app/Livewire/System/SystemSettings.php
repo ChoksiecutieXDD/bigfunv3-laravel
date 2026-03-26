@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 
-#[Layout('layouts.settings-layout')]
+#[Layout('components.layouts.settings-layout')]
 class SystemSettings extends Component
 {
     public $isMaintenance;

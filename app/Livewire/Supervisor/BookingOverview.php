@@ -10,7 +10,7 @@ use App\Models\BookingPayment;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-#[Layout('layouts.plain')] // Make sure this uses your plain layout!
+#[Layout('components.layouts.plain')] // Make sure this uses your plain layout!
 class BookingOverview extends Component
 {
     public Booking $booking;

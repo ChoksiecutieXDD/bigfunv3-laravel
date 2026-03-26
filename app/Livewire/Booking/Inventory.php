@@ -15,7 +15,7 @@ use App\Models\DropdownOption;
 use App\Models\DeliveryZone;
 use App\Models\DurationPrice;
 
-#[Layout('layouts.booking-layout')]
+#[Layout('components.layouts.booking-layout')]
 class Inventory extends Component
 {
     #[Url]

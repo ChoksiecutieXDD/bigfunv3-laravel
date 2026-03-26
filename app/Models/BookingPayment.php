@@ -9,7 +9,18 @@ class BookingPayment extends Model
 {
     use HasFactory;
 
-    protected $guarded = [];
+    // ADD THIS LINE: Tells Laravel this table doesn't use created_at / updated_at
+    public $timestamps = false;
+
+    protected $fillable = [
+        'booking_id',
+        'amount',
+        'payment_method',
+        'payment_type',
+        'payment_date',
+        'reference',
+        'notes',
+    ];
 
     // This creates the inverse relationship back to the Booking
     public function booking()

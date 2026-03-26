@@ -8,7 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 
-#[Layout('layouts.auth-layout')]
+#[Layout('components.layouts.auth-layout')]
 class ResetPassword extends Component
 {
     public $token;
@@ -58,12 +58,12 @@ class ResetPassword extends Component
             Auth::login($user);
 
             // Redirect based on role logic from your earlier files
-            if ($user->role === 'Administrator') {
-                return redirect()->intended('/admin/dashboard');
+            if ($user->role === 'Administrator' || $user->role === 'Admin') {
+                return redirect()->intended('/system/settings');
             } elseif ($user->role === 'Supervisor') {
-                return redirect()->intended('/calendar');
+                return redirect('/supervisor/calendar');
             } else {
-                return redirect()->intended('/staff/dashboard');
+                return redirect()->intended('/enquiries');
             }
         }
 

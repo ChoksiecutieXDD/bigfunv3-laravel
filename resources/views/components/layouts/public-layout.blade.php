@@ -99,7 +99,7 @@
         </div>
     </footer>
 
-    <a href="/settings" class="fixed bottom-0 right-0 w-10 h-10 opacity-0 z-[9999] cursor-default"></a>
+    <a href="/system/settings" class="fixed bottom-0 right-0 w-10 h-10 opacity-0 z-[9999] cursor-default"></a>
 
     <script>
         const navbar = document.getElementById('navbar');

@@ -32,7 +32,7 @@
                 </div>
                 <span class="font-bold text-text-main tracking-wider uppercase text-sm">System Management</span>
             </div>
-            <a href="/settings" wire:navigate class="text-sm font-semibold text-slate-500 hover:text-plum transition-colors flex items-center gap-1">
+            <a href="{{ route('system.settings') }}" wire:navigate class="text-sm font-semibold text-slate-500 hover:text-plum transition-colors flex items-center gap-1">
                 <span class="material-symbols-rounded text-[20px]">arrow_back</span> Back
             </a>
         </div>

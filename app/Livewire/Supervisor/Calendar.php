@@ -8,7 +8,7 @@ use App\Models\Booking;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
-#[Layout('layouts.supervisor')]
+#[Layout('components.layouts.supervisor')]
 class Calendar extends Component
 {
     // 1. FIXED: Remove strict types (int, string, bool) to prevent Livewire crashes

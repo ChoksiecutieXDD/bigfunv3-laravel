@@ -10,7 +10,7 @@ use App\Models\BookingItem;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-#[Layout('layouts.plain')]
+#[Layout('components.layouts.plain')]
 class EditBooking extends Component
 {
     use WithFileUploads;
