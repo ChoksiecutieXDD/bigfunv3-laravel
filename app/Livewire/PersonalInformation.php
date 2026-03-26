@@ -9,7 +9,6 @@ use Illuminate\Validation\ValidationException;
 
 use Livewire\Attributes\Layout;
 
-#[Layout('components.layouts.app')]
 class PersonalInformation extends Component
 {
     // Profile Fields
@@ -36,9 +35,9 @@ class PersonalInformation extends Component
         $role = Auth::user()->role;
 
         if (in_array($role, ['Staff', 'Operator', 'Deliverer'])) {
-            return '/staff/dashboard';
+            return route('staff.dashboard');
         } elseif ($role === 'Administrator') {
-            return '/admin/dashboard';
+            return route('admin.dashboard');
         } else {
             return route('supervisor.calendar');
         }
@@ -110,6 +109,11 @@ class PersonalInformation extends Component
 
     public function render()
     {
-        return view('livewire.personal-information');
+        return view('livewire.personal-information')
+            ->layout('components.layouts.profile')
+            ->layoutData([
+                'backLink' => $this->backLink,
+                'initials' => $this->initials,
+            ]);
     }
 }

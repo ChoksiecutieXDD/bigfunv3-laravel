@@ -1,48 +1,14 @@
 <div>
-    <!-- Redesigned Header -->
-    <nav class="bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-30 shadow-sm transition-all duration-300">
-        <div class="max-w-[1660px] mx-auto px-4 md:px-8">
-            <div class="flex items-center justify-between py-4 md:py-6">
-                <div class="flex items-center gap-6">
-                    <a href="{{ $this->backLink }}" wire:navigate class="group flex items-center justify-center p-3 rounded-2xl text-gray-400 hover:text-[#9E6B73] hover:bg-[#FDF2F4] border border-transparent hover:border-[#9E6B73]/20 transition-all duration-400 shadow-sm hover:shadow-md" title="Go Back">
-                        <span class="material-symbols-rounded text-2xl group-hover:-translate-x-1.5 transition-transform duration-300">arrow_back</span>
-                    </a>
-                    
-                    <div class="flex flex-col">
-                        <div class="flex items-center gap-3">
-                            <h1 class="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 tracking-tight leading-none">Account Settings</h1>
-                            <span class="hidden sm:inline-block px-3 py-1 rounded-lg bg-[#FDF2F4] text-[#9E6B73] text-[10px] font-bold uppercase border border-[#9E6B73]/10 tracking-widest">Profile</span>
-                        </div>
-                        <p class="text-sm font-semibold text-gray-500 mt-1.5 opacity-80">Manage your profile & security</p>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-4">
-                    <div class="hidden md:flex flex-col items-end">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active Role</span>
-                        <span class="text-sm font-black text-[#9E6B73]">{{ auth()->user()->role ?: 'User' }}</span>
-                    </div>
-                    <div class="h-10 w-px bg-gray-100 mx-2 hidden md:block"></div>
-                    <div class="w-12 h-12 rounded-2xl bg-gray-900 text-white flex items-center justify-center text-xl font-black shadow-lg shadow-gray-200">
-                        {{ $this->initials }}
-                    </div>
-                </div>
-            </div>
+    @if (session()->has('profile_message'))
+    <div class="mb-8 p-5 rounded-3xl border flex items-center gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 {{ session('profile_type') === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800' }}">
+        <div class="w-10 h-10 rounded-2xl {{ session('profile_type') === 'success' ? 'bg-green-100 border-green-200' : 'bg-red-100 border-red-200' }} flex items-center justify-center border shrink-0">
+            <span class="material-symbols-rounded text-xl leading-none">{{ session('profile_type') === 'success' ? 'check_circle' : 'error' }}</span>
         </div>
-    </nav>
+        <span class="font-extrabold text-sm md:text-base tracking-tight">{{ session('profile_message') }}</span>
+    </div>
+    @endif
 
-    <div class="max-w-[1660px] mx-auto px-4 md:px-8 py-10">
-
-        @if (session()->has('profile_message'))
-        <div class="mb-8 p-5 rounded-3xl border flex items-center gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 {{ session('profile_type') === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800' }}">
-            <div class="w-10 h-10 rounded-2xl {{ session('profile_type') === 'success' ? 'bg-green-100 border-green-200' : 'bg-red-100 border-red-200' }} flex items-center justify-center border shrink-0">
-                <span class="material-symbols-rounded text-xl leading-none">{{ session('profile_type') === 'success' ? 'check_circle' : 'error' }}</span>
-            </div>
-            <span class="font-extrabold text-sm md:text-base tracking-tight">{{ session('profile_message') }}</span>
-        </div>
-        @endif
-
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
 
             <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-32">
                 <div class="bg-white border border-gray-100 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-gray-200/50 transition-all hover:shadow-gray-300/50">
