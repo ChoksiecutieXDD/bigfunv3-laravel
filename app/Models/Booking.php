@@ -12,6 +12,9 @@ class Booking extends Model
     // This tells Laravel which table to look at (optional if your table is named 'bookings')
     protected $table = 'bookings';
 
+    // 👇 THE FIX: Tells Laravel to stop trying to update the missing 'updated_at' column
+    const UPDATED_AT = null;
+
     // This allows mass assignment for your fields
     protected $guarded = [];
 

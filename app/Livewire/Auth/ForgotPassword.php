@@ -8,7 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
-#[Layout('layouts.auth.auth-layout')]
+#[Layout('layouts.auth-layout')]
 class ForgotPassword extends Component
 {
     public $email = '';

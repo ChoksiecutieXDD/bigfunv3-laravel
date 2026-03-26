@@ -8,7 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 
-#[Layout('layouts.auth.auth-layout')]
+#[Layout('layouts.auth-layout')]
 class ResetPassword extends Component
 {
     public $token;

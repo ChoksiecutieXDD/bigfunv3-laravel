@@ -6,13 +6,23 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
 
-#[Layout('layouts.auth.auth-layout')]
+// 👇 Here is the fixed layout path!
+#[Layout('layouts.auth-layout')]
 class Login extends Component
 {
     public $role = '';
     public $email = '';
     public $password = '';
     public $remember = false;
+
+    // This allows you to set the role when the component loads
+    public function mount()
+    {
+        // If they visited /supervisor/login, set the role automatically
+        if (request()->routeIs('supervisor.login')) {
+            $this->role = 'Supervisor';
+        }
+    }
 
     public function login()
     {
@@ -24,7 +34,8 @@ class Login extends Component
         ]);
 
         // 2. Database Verification & Attempt
-        // Auth::attempt handles password_verify(), session generation, and the remember_me cookie!
+        // We still use 'password' here in the array because Laravel translates it 
+        // to 'password_hash' behind the scenes using the User model override.
         if (Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
 
             $user = Auth::user();
@@ -32,8 +43,8 @@ class Login extends Component
             $requested_role = $this->role;
 
             // --- 3. ACCOUNT STATUS CHECK ---
-            if ((int)$user->is_active === 0) {
-                Auth::logout(); // Log them out immediately
+            if (isset($user->is_active) && (int)$user->is_active === 0) {
+                Auth::logout();
                 $this->addError('auth', 'Account is inactive. Please contact the Administrator.');
                 return;
             }
@@ -41,41 +52,40 @@ class Login extends Component
             // --- 4. ROLE & ACCESS CONTROL CHECK ---
             $access_granted = false;
 
-            // Exact match (e.g., Admin -> Admin, Staff -> Staff)
             if ($requested_role === $db_role) {
                 $access_granted = true;
-            }
-            // Grouped match: Operators and Deliverers use the "Staff" dropdown option
-            elseif ($requested_role === 'Staff' && in_array($db_role, ['Operator', 'Deliverer'])) {
+            } elseif ($requested_role === 'Staff' && in_array($db_role, ['Operator', 'Deliverer'])) {
                 $access_granted = true;
             }
 
             if (!$access_granted) {
-                Auth::logout(); // Log them out immediately
+                Auth::logout();
                 $this->addError('auth', 'This account does not have ' . $requested_role . ' privileges.');
                 return;
             }
 
-            // --- 5. LOGIN SUCCESSFUL ---
-            // session()->regenerate() is handled securely by Laravel on login
-
-            if ($db_role === 'Administrator') {
+            // --- 5. EXACT REDIRECTS ---
+            if ($db_role === 'Administrator' || $db_role === 'Admin') {
                 return redirect()->intended('/admin/dashboard');
+            } elseif ($db_role === 'Supervisor') {
+                return redirect()->intended('/supervisor/calendar');
             } else {
-                // This covers Staff, Operator, and Deliverer
                 return redirect()->intended('/staff/dashboard');
             }
         }
 
         // --- 6. INVALID CREDENTIALS ---
         $this->addError('auth', 'Invalid credentials. Please try again.');
-
-        // Clear the password field on failure for security
         $this->reset('password');
     }
 
     public function render()
     {
+        // Dynamically return the view based on the role to keep logic in one component
+        if ($this->role === 'Supervisor') {
+            return view('livewire.auth.supervisor-login');
+        }
+
         return view('livewire.auth.login');
     }
 }

@@ -1,4 +1,4 @@
-<x-layouts.landing.public-layout>
+<x-layouts.public-layout>
 
     <div class="flex flex-col gap-16 lg:gap-24">
 
@@ -236,4 +236,4 @@
         <script src="/assets/js/landing.js"></script>
         </x-slot>
 
-</x-layouts.landing.public-layout>
+</x-layouts.public-layout>

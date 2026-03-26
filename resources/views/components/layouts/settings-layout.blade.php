@@ -20,9 +20,9 @@
 
 <body class="min-h-screen relative overflow-x-hidden bg-slate-900 {{ $bodyClass ?? '' }}">
 
-    @include('partials.toast')
-    @include('partials.alert')
-    @include('partials.confirm')
+    @include('components.ui.toast')
+    @include('components.ui.alert')
+    @include('components.ui.confirm')
 
     {{ $slot }}
 

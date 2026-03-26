@@ -3,26 +3,30 @@
 namespace App\Livewire\Supervisor;
 
 use Livewire\Component;
+use Livewire\Attributes\Layout;
 use App\Models\Booking;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
+#[Layout('layouts.supervisor')]
 class Calendar extends Component
 {
-    // Public properties bound to the view (wire:model.live)
+    // 1. FIXED: Remove strict types (int, string, bool) to prevent Livewire crashes
     public $currentMonth;
     public $currentYear;
     public $statusFilter = 'All';
+    public $showOnlyBooked = false;
 
     public function mount()
     {
-        $this->currentMonth = (int) now()->month;
-        $this->currentYear = (int) now()->year;
+        $this->currentMonth = now()->month;
+        $this->currentYear = now()->year;
     }
 
     public function nextMonth()
     {
-        if ($this->currentMonth === 12) {
+        // 2. FIXED: Use == instead of === so string "12" from dropdowns still works
+        if ($this->currentMonth == 12) {
             $this->currentMonth = 1;
             $this->currentYear++;
         } else {
@@ -32,7 +36,8 @@ class Calendar extends Component
 
     public function previousMonth()
     {
-        if ($this->currentMonth === 1) {
+        // 2. FIXED: Use == instead of ===
+        if ($this->currentMonth == 1) {
             $this->currentMonth = 12;
             $this->currentYear--;
         } else {
@@ -42,17 +47,21 @@ class Calendar extends Component
 
     public function goToToday()
     {
-        $this->currentMonth = (int) now()->month;
-        $this->currentYear = (int) now()->year;
+        $this->currentMonth = now()->month;
+        $this->currentYear = now()->year;
         $this->statusFilter = 'All';
+        $this->showOnlyBooked = false;
     }
 
     public function render()
     {
-        // 1. Fetch Bookings for the selected Month/Year using Eloquent
+        // 3. FIXED: Cast to integer right before querying the database
+        $searchMonth = (int) $this->currentMonth;
+        $searchYear = (int) $this->currentYear;
+
         $query = Booking::with(['items', 'payments'])
-            ->whereYear('event_date', $this->currentYear)
-            ->whereMonth('event_date', $this->currentMonth)
+            ->whereYear('event_date', $searchYear)
+            ->whereMonth('event_date', $searchMonth)
             ->orderBy('event_date', 'asc')
             ->orderBy('start_time', 'asc');
 
@@ -62,7 +71,6 @@ class Calendar extends Component
 
         $rawBookings = $query->get();
 
-        // 2. Initialize Stats Variables
         $stats = [
             'monthBookings' => 0,
             'monthRevenue' => 0,
@@ -76,36 +84,29 @@ class Calendar extends Component
             'urgentAlertsCount' => 0,
         ];
 
-        // 3. Process Bookings & Apply Visual Logic
         $processedBookings = $rawBookings->map(function ($booking) use (&$stats) {
-            // Calculate actual paid from the payments relationship
             $realPaid = $booking->payments->sum('amount');
             $totalAmount = (float) $booking->total_amount;
             $balanceDue = $totalAmount - $realPaid;
 
-            // Extract services into a comma-separated string
             $services = $booking->items->pluck('item_name')->unique()->implode(', ');
 
-            // Monthly Stats Calculation (excluding drafts/cancelled)
             if (!in_array($booking->status, ['Cancelled', 'Draft'])) {
                 $stats['monthBookings']++;
                 $stats['monthRevenue'] += $totalAmount;
                 $stats['monthCollected'] += $realPaid;
 
-                // Check if it's a Saturday
                 if (Carbon::parse($booking->event_date)->isSaturday()) {
                     $stats['saturdayBookings']++;
                     $stats['saturdayRevenue'] += $totalAmount;
                 }
             }
 
-            // Status Visual Logic
             $paymentColor = 'red';
             $paymentStatusLabel = 'No Deposit';
 
             if ($totalAmount > 0) {
                 $percent = ($realPaid / $totalAmount) * 100;
-
                 if ($percent >= 100) {
                     $paymentColor = 'green';
                     $paymentStatusLabel = 'Paid';
@@ -132,10 +133,9 @@ class Calendar extends Component
                 $paymentStatusLabel = 'Draft Mode';
             }
 
-            // Map standard properties plus our newly calculated ones
             return (object) [
                 'id' => $booking->id,
-                'event_date' => $booking->event_date,
+                'event_date' => Carbon::parse($booking->event_date)->toDateString(),
                 'start_time' => $booking->start_time,
                 'customer_first_name' => $booking->customer_first_name,
                 'customer_last_name' => $booking->customer_last_name,
@@ -150,17 +150,14 @@ class Calendar extends Component
             ];
         });
 
-        // 4. Calculate Final Aggregates
         $stats['monthBalance'] = $stats['monthRevenue'] - $stats['monthCollected'];
 
-        // Count actual Saturdays in the given month (for the UI label)
-        $stats['saturdayCount'] = Carbon::create($this->currentYear, $this->currentMonth)->daysInMonth;
-        $stats['saturdayCount'] = collect(range(1, $stats['saturdayCount']))->filter(function ($day) {
-            return Carbon::create($this->currentYear, $this->currentMonth, $day)->isSaturday();
+        $stats['saturdayCount'] = Carbon::create($searchYear, $searchMonth)->daysInMonth;
+        $stats['saturdayCount'] = collect(range(1, $stats['saturdayCount']))->filter(function ($day) use ($searchYear, $searchMonth) {
+            return Carbon::create($searchYear, $searchMonth, $day)->isSaturday();
         })->count();
 
-        // YTD Query (Optimized aggregate)
-        $ytdData = Booking::whereYear('event_date', $this->currentYear)
+        $ytdData = Booking::whereYear('event_date', $searchYear)
             ->whereNotIn('status', ['Cancelled', 'Draft'])
             ->selectRaw('COUNT(*) as count, SUM(total_amount) as revenue')
             ->first();
@@ -168,7 +165,6 @@ class Calendar extends Component
         $stats['ytdBookings'] = $ytdData->count ?? 0;
         $stats['ytdRevenue'] = $ytdData->revenue ?? 0;
 
-        // Global Outstanding Balance (Optimized)
         $globalRevenue = Booking::whereNotIn('status', ['Cancelled', 'Draft'])->sum('total_amount');
         $globalCollected = DB::table('booking_payments')
             ->whereIn('booking_id', function ($q) {
@@ -177,22 +173,33 @@ class Calendar extends Component
 
         $globalOutstandingBalance = $globalRevenue - $globalCollected;
 
-        // 5. Sidebar Reminders Data
         $upcomingEvents = Booking::where('event_date', '>=', now()->toDateString())
             ->where('event_date', '<=', now()->addDays(7)->toDateString())
             ->whereNotIn('status', ['Cancelled', 'Draft'])
             ->orderBy('event_date', 'asc')
             ->get();
 
-        // 6. Group by Date for the View
         $groupedBookings = $processedBookings->groupBy('event_date');
+        $calendarDays = [];
+        $daysInMonth = Carbon::create($searchYear, $searchMonth)->daysInMonth;
+
+        for ($day = 1; $day <= $daysInMonth; $day++) {
+            $dateString = Carbon::create($searchYear, $searchMonth, $day)->toDateString();
+            $dayBookings = $groupedBookings->get($dateString, collect());
+
+            if ($this->showOnlyBooked && $dayBookings->isEmpty()) {
+                continue;
+            }
+
+            $calendarDays[$dateString] = $dayBookings;
+        }
 
         return view('livewire.supervisor.calendar', [
-            'groupedBookings' => $groupedBookings,
+            'calendarDays' => $calendarDays,
             'stats' => $stats,
             'globalOutstandingBalance' => $globalOutstandingBalance,
             'upcomingEvents' => $upcomingEvents,
-            'urgentAlerts' => [], // You can add your urgent alerts logic here
+            'urgentAlerts' => [],
             'yearRange' => range(now()->year - 2, now()->year + 5),
         ]);
     }
