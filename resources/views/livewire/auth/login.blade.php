@@ -44,7 +44,6 @@
                 <div class="input-group">
                     <select wire:model="role" required class="modern-input custom-select w-full py-4 pl-14 pr-12 bg-gray-50 rounded-2xl text-gray-700 shadow-sm outline-none appearance-none font-medium cursor-pointer border border-gray-100 focus:bg-white">
                         <option value="" disabled selected>Select Role</option>
-                        <option value="Supervisor">Supervisor</option>
                         <option value="Administrator">Administrator</option>
                         <option value="Staff">Staff</option>
                     </select>
@@ -77,7 +76,7 @@
                 <span class="text-red-500 text-sm font-semibold block text-center mt-2">{{ $message }}</span>
                 @enderror
 
-                <button type="submit" class="w-full py-4 bg-[#9E6B73] text-white font-bold rounded-2xl text-lg hover:bg-[#86545C] hover:shadow-lg hover:shadow-[#9E6B73]/30 hover:-translate-y-1 transition-all duration-300 animate-enter delay-300 mt-4 flex justify-center items-center gap-2">
+                <button type="submit" wire:loading.attr="disabled" wire:target="login" class="w-full py-4 bg-[#9E6B73] text-white font-bold rounded-2xl text-lg hover:bg-[#86545C] hover:shadow-lg hover:shadow-[#9E6B73]/30 hover:-translate-y-1 transition-all duration-300 animate-enter delay-300 mt-4 flex justify-center items-center gap-2 disabled:opacity-75 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none">
                     <span wire:loading.remove wire:target="login">Sign In</span>
                     <span wire:loading wire:target="login">Signing In...</span>
                 </button>
@@ -86,6 +85,16 @@
             <p class="mt-8 text-center text-xs text-gray-400 animate-enter delay-300 pb-4">
                 © {{ date('Y') }} BigFun Management System
             </p>
+        </div>
+    </div>
+
+    <!-- FULL SCREEN LOADING MODAL -->
+    <div wire:loading.flex wire:target="login" class="fixed inset-0 z-[100] items-center justify-center bg-gray-900/60 backdrop-blur-sm transition-opacity" style="display: none;">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm w-full mx-4 animate-enter">
+            <div class="w-16 h-16 border-4 border-[#9E6B73]/20 border-t-[#9E6B73] rounded-full animate-spin mb-6"></div>
+
+            <h3 class="text-2xl font-bold text-gray-800 mb-2 text-center">Authenticating...</h3>
+            <p class="text-gray-500 text-center text-sm">Verifying credentials and preparing your workspace.</p>
         </div>
     </div>
 </div>

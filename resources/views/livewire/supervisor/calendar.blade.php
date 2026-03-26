@@ -6,7 +6,7 @@
             <p class="text-white/80 mt-1 text-sm font-medium">Overview of appointments and financials.</p>
         </div>
 
-        <a href="/bookings/create" class="hidden md:flex bg-plum hover:bg-plum-dark text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-pink-900/20 items-center gap-2 transition transform hover:scale-105 active:scale-95 text-sm">
+        <a href="/supervisor/bookings/create" class="hidden md:flex bg-plum hover:bg-plum-dark text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-pink-900/20 items-center gap-2 transition transform hover:scale-105 active:scale-95 text-sm">
             <span class="material-symbols-rounded text-lg">add</span> New Booking
         </a>
     </div>
@@ -226,7 +226,7 @@
         @endif
     </button>
 
-    <a href="/bookings/create" class="lg:hidden fixed bottom-6 right-6 w-14 h-14 bg-plum text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-plum-dark transition transform active:scale-90 border-4 border-white z-30">
+    <a href="/supervisor/bookings/create" class="lg:hidden fixed bottom-6 right-6 w-14 h-14 bg-plum text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-plum-dark transition transform active:scale-90 border-4 border-white z-30">
         <span class="material-symbols-rounded text-2xl">add</span>
     </a>
 
