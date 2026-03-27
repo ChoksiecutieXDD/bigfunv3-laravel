@@ -106,7 +106,7 @@
                 <p class="text-sm text-gray-600">You have <span class="font-bold text-yellow-700">{{ $enquiriesCount }}</span> enquiry pending follow-up.</p>
             </div>
         </div>
-        <a href="/enquiries" class="px-6 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-yellow-500/30 transition transform active:scale-95 whitespace-nowrap">View Enquiries</a>
+        <a href="{{ route('supervisor.enquiries') }}" class="px-6 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-yellow-500/30 transition transform active:scale-95 whitespace-nowrap">View Enquiries</a>
     </div>
     @endif
 
@@ -155,7 +155,8 @@
                                 <div class="font-bold text-gray-800 text-sm">{{ $row->customer_first_name }} {{ $row->customer_last_name }}</div>
                                 <div class="text-xs text-gray-500 font-medium">{{ $row->customer_organization }}</div>
                                 <div class="mt-2 flex items-center gap-2">
-                                    <a href="{{ route('booking.overview', $row->id) }}" class="bg-gray-100 text-gray-600 hover:bg-[#9E6B73] hover:text-white transition text-[10px] font-bold px-2 py-0.5 rounded border border-gray-200 no-underline">ID: #{{ $row->id }}</a>
+                                    <a href="{{ route('supervisor.bookings.overview', ['id' => $row->id, 'back' => route('supervisor.logistics')]) }}"
+ class="bg-gray-100 text-gray-600 hover:bg-[#9E6B73] hover:text-white transition text-[10px] font-bold px-2 py-0.5 rounded border border-gray-200 no-underline">ID: #{{ $row->id }}</a>
                                     <span class="text-[10px] text-gray-400">{{ \Carbon\Carbon::parse($row->event_date)->format('d/m/y') }}</span>
                                 </div>
                             </div>
@@ -362,7 +363,7 @@
                         </td>
                         <td class="p-4 align-top text-left"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Confirmed</span></td>
                         <td class="p-4 text-right align-top">
-                            <a href="{{ route('booking.overview', $ord->id) }}" class="inline-flex items-center gap-1 bg-[#9E6B73] text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-md hover:bg-[#86545C] transition transform active:scale-95 no-underline">
+                            <a href="{{ route('supervisor.bookings.overview', ['id' => $ord->id, 'back' => route('supervisor.logistics')]) }}" class="inline-flex items-center gap-1 bg-[#9E6B73] text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-md hover:bg-[#86545C] transition transform active:scale-95 no-underline">
                                 <span class="material-symbols-rounded text-sm text-white">visibility</span> View
                             </a>
                         </td>
@@ -429,7 +430,7 @@
                             <div class="text-[10px] text-gray-400">{{ \Carbon\Carbon::parse($deb->event_date)->format('d/m/y') }}</div>
                         </td>
                         <td class="p-4 align-middle text-right">
-                            <a href="{{ route('booking.overview', $deb->id) }}" class="bg-[#9E6B73] hover:bg-[#86545C] text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-md transition transform active:scale-95 inline-flex items-center gap-1 no-underline">
+                            <a href="{{ route('supervisor.bookings.overview', ['id' => $deb->id, 'back' => route('supervisor.logistics')]) }}" class="bg-[#9E6B73] hover:bg-[#86545C] text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-md transition transform active:scale-95 inline-flex items-center gap-1 no-underline">
                                 <span class="material-symbols-rounded text-sm text-white">visibility</span> View
                             </a>
                         </td>

@@ -160,7 +160,7 @@
         </div>
 
         <!-- ✅ New Booking Href Attached Here -->
-        <a href="{{ route('booking.create') }}" wire:navigate class="hidden md:flex bg-[#9E6B73] hover:bg-[#86545C] text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-pink-900/20 items-center gap-2 transition transform hover:scale-105 active:scale-95 text-sm">
+        <a href="{{ route('admin.bookings.create') }}" wire:navigate class="hidden md:flex bg-[#9E6B73] hover:bg-[#86545C] text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-pink-900/20 items-center gap-2 transition transform hover:scale-105 active:scale-95 text-sm">
             <span class="material-symbols-rounded text-lg">add</span> New Booking
         </a>
     </div>
@@ -312,7 +312,7 @@
                 @endphp
 
                 <!-- ✅ Wrapped card in an Anchor Tag -->
-                <a href="{{ route('booking.overview', $b->id) }}" wire:navigate class="booking-card rounded-xl card-{{ $v['color'] }} mb-3">
+                <a href="{{ route('booking.overview', ['id' => $b->id, 'back' => route('admin.calendar')]) }}" wire:navigate class="booking-card rounded-xl card-{{ $v['color'] }} mb-3">
                     <div class="w-full min-w-0">
                         <span class="booking-label">Time & Location</span>
                         <div class="booking-value">{{ \Carbon\Carbon::parse($b->start_time)->format('g:i A') }} - {{ $b->end_time ? \Carbon\Carbon::parse($b->end_time)->format('g:i A') : 'TBD' }}</div>

@@ -7,8 +7,6 @@ use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-// We use a blank/app layout here instead of the admin layout because 
-// this booking page is a full-screen "Focus Mode" page with its own nav bar.
 #[Layout('components.layouts.plain')]
 class NewBooking extends Component
 {

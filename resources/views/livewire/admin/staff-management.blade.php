@@ -6,8 +6,8 @@
 
     <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4 lg:gap-18">
         <div>
-            <div class="text-[38px] leading-[1.1] font-extrabold text-white tracking-[.2px]">Staff Management</div>
-            <div class="text-white/85 mt-1.5 font-medium">Manage administrators, supervisors, and general staff.</div>
+            <h1 class="text-3xl font-extrabold text-white drop-shadow-sm">Staff Management</h1>
+            <p class="text-white/90 font-medium mt-1">Manage administrators, supervisors, and general staff.</p>
         </div>
 
         <button type="button" @click="addModal = true"
@@ -78,7 +78,7 @@
                     Edit
                 </button>
 
-                <a href="{{ route('supervisor.staff.profile', $u->user_id) }}"
+                <a href="{{ route('admin.staff.profile', $u->user_id) }}" wire:navigate
                     class="flex-1 rounded-[10px] px-[12px] py-[10px] font-black border border-transparent bg-[#9E6B73] text-white cursor-pointer text-center hover:bg-[#86545C]">
                     Profile
                 </a>

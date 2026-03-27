@@ -25,9 +25,11 @@ class BookingOverview extends Component
     public $balance = 0.00;
     public $address_line_1;
     public $address_line_2;
-
+    public $from_url;
+ 
     public function mount($id)
     {
+        $this->from_url = request()->query('back');
         $booking = Booking::findOrFail($id);
         $this->booking = $booking->toArray();
 

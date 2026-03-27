@@ -14,10 +14,10 @@
     @livewireStyles
 </head>
 
-<body class="bg-[var(--color-bg-custom)] block lg:flex text-gray-700"
-    x-data="{ isCollapsed: false, isMobileOpen: false }"
+<body class="bg-[var(--color-bg-custom)] block lg:flex text-gray-700 font-poppins"
+    x-data="{ isCollapsed: false, isMobileOpen: false, logoutModal: false }"
     @resize.window="if(window.innerWidth >= 1024) isMobileOpen = false"
-    :class="{ 'overflow-hidden': isMobileOpen }">
+    :class="{ 'overflow-hidden': isMobileOpen || logoutModal }">
 
     <div x-show="isMobileOpen"
         x-transition.opacity
@@ -57,7 +57,8 @@
                 </div>
                 <div class="space-y-1">
                     <x-sidebar.link href="/supervisor/calendar" icon="calendar_month" :active="request()->is('supervisor/calendar*')">Calendar View</x-sidebar.link>
-                    <x-sidebar.link href="/history" icon="history" :active="request()->is('history*')">Booking History</x-sidebar.link>
+                    <x-sidebar.link href="/supervisor/bookings/create" icon="add_circle" :active="request()->is('supervisor/bookings/create*')">New Booking</x-sidebar.link>
+                    <x-sidebar.link href="/supervisor/history" icon="history" :active="request()->is('supervisor/history*')">Booking History</x-sidebar.link>
                 </div>
             </div>
 
@@ -66,10 +67,10 @@
                     Management
                 </div>
                 <div class="space-y-1">
-                    <x-sidebar.link href="/logistics" icon="inbox" :active="request()->is('logistics*')">Logistics Inbox</x-sidebar.link>
-                    <x-sidebar.link href="/enquiries" icon="contact_mail" :active="request()->is('enquiries*')">Manage Enquiries</x-sidebar.link>
-                    <x-sidebar.link href="/staff" icon="group" :active="request()->is('staff*')">Staff & Deliverers</x-sidebar.link>
-                    <x-sidebar.link href="/reports" icon="bar_chart" :active="request()->is('reports*')">Financial Reports</x-sidebar.link>
+                    <x-sidebar.link href="/supervisor/logistics" icon="inbox" :active="request()->is('supervisor/logistics*')">Logistics Inbox</x-sidebar.link>
+                    <x-sidebar.link href="/supervisor/enquiries" icon="contact_mail" :active="request()->is('supervisor/enquiries*')">Manage Enquiries</x-sidebar.link>
+                    <x-sidebar.link href="/supervisor/staff" icon="group" :active="request()->is('supervisor/staff*')">Staff & Deliverers</x-sidebar.link>
+                    <x-sidebar.link href="/supervisor/reports" icon="bar_chart" :active="request()->is('supervisor/reports*')">Financial Reports</x-sidebar.link>
                 </div>
             </div>
 
@@ -85,13 +86,11 @@
                     <p class="text-[10px] text-[#9E6B73] font-semibold truncate">{{ auth()->user()->role ?? 'Edit Profile' }}</p>
                 </div>
             </a>
-            <form method="POST" action="/logout" class="mt-2">
-                @csrf
-                <button type="submit" class="w-full nav-item flex items-center gap-3 p-2 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-50 transition-all" :class="isCollapsed ? 'justify-center' : ''">
-                    <span class="material-symbols-rounded text-xl shrink-0 group-hover:scale-110 transition-transform">logout</span>
-                    <span class="nav-text text-xs font-bold uppercase" x-show="!isCollapsed">Log Out</span>
-                </button>
-            </form>
+            
+            <button type="button" @click="logoutModal = true" class="w-full mt-2 nav-item flex items-center gap-3 p-2 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-50 transition-all border-none outline-none" :class="isCollapsed ? 'justify-center' : ''">
+                <span class="material-symbols-rounded text-xl shrink-0 group-hover:scale-110 transition-transform">logout</span>
+                <span class="nav-text text-xs font-bold uppercase" x-show="!isCollapsed">Log Out</span>
+            </button>
         </div>
     </aside>
 
@@ -112,6 +111,55 @@
         </div>
 
     </main>
+
+    <!-- Logout Confirmation Modal -->
+    <div x-show="logoutModal" 
+        x-cloak 
+        class="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true">
+        
+        <div x-show="logoutModal" 
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            @click="logoutModal = false" 
+            class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+
+        <div x-show="logoutModal"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-8 scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+            x-transition:leave-end="opacity-0 translate-y-8 scale-95"
+            class="relative bg-white rounded-[2.5rem] shadow-2xl p-8 max-w-sm w-full text-center overflow-hidden">
+            
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-400 to-[#9E6B73]"></div>
+            
+            <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500 ring-8 ring-red-50/50">
+                <span class="material-symbols-rounded text-4xl">logout</span>
+            </div>
+
+            <h3 class="text-2xl font-black text-slate-800 mb-2">Sign Out?</h3>
+            <p class="text-slate-500 text-sm mb-8 leading-relaxed">Are you sure you want to end your session? You'll need to sign back in to access the portal.</p>
+
+            <div class="flex flex-col gap-3">
+                <form method="POST" action="/logout">
+                    @csrf
+                    <button type="submit" class="w-full py-4 bg-[#9E6B73] text-white rounded-2xl font-bold hover:bg-[#86545C] shadow-lg shadow-[#9E6B73]/20 transition-all active:scale-[0.98]">
+                        Yes, Sign Me Out
+                    </button>
+                </form>
+                <button @click="logoutModal = false" class="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all">
+                    Stay Logged In
+                </button>
+            </div>
+        </div>
+    </div>
 
     @livewireScripts
 </body>

@@ -69,8 +69,9 @@
         }
     </style>
 
-    <!-- Top Overview & Stats -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-6">
+    <div class="max-w-[1600px] mx-auto">
+        <!-- Top Overview & Stats -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-6">
         <div class="w-full md:w-auto">
             <h1 class="text-2xl md:text-3xl font-extrabold text-white drop-shadow-sm">Hello, {{ $firstNameOnly }}! 👋</h1>
             <p class="text-white/90 font-medium mt-1 text-sm md:text-base">Here is your operational overview.</p>
@@ -334,4 +335,5 @@
             @endif
         </div>
     </div>
+</div>
 </div>

@@ -2,22 +2,22 @@
 
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-            <h2 class="text-3xl font-extrabold text-white">Financial Overview</h2>
-            <p class="text-white/90 mt-1 text-sm font-medium">Analytics for: <span class="underline decoration-white">{{ $periodLabel }}</span></p>
+            <h1 class="text-3xl font-extrabold text-white drop-shadow-sm">Financial Overview</h1>
+            <p class="text-white/90 font-medium mt-1">Analytics for: <span class="underline decoration-white">{{ $periodLabel }}</span></p>
         </div>
 
-        <div class="flex flex-wrap md:flex-nowrap gap-2 bg-white/10 backdrop-blur-sm p-1 rounded-xl items-center">
+        <div class="flex flex-wrap md:flex-nowrap gap-2 bg-gray-100 p-1 rounded-xl items-center">
 
             <div class="gap-2 items-center mr-2 transition-all duration-300 {{ $period === 'custom' ? 'flex' : 'hidden' }}">
-                <input type="date" wire:model="customStart" class="bg-white/90 text-gray-700 text-sm px-2 py-2 rounded-lg border-none focus:ring-2 focus:ring-[#9E6B73] h-10">
-                <span class="text-white font-bold">-</span>
-                <input type="date" wire:model="customEnd" class="bg-white/90 text-gray-700 text-sm px-2 py-2 rounded-lg border-none focus:ring-2 focus:ring-[#9E6B73] h-10">
+                <input type="date" wire:model="customStart" class="bg-white text-gray-700 text-sm px-2 py-2 rounded-lg border-none focus:ring-2 focus:ring-[#9E6B73] h-10 shadow-sm">
+                <span class="text-gray-400 font-bold">-</span>
+                <input type="date" wire:model="customEnd" class="bg-white text-gray-700 text-sm px-2 py-2 rounded-lg border-none focus:ring-2 focus:ring-[#9E6B73] h-10 shadow-sm">
                 <button wire:click="applyCustomDate" class="bg-[#9E6B73] hover:bg-[#86545C] text-white h-10 w-10 flex items-center justify-center rounded-lg shadow-sm transition">
                     <span class="material-symbols-rounded text-lg">arrow_forward</span>
                 </button>
             </div>
 
-            <select wire:model.live="period" class="bg-white/90 text-gray-700 text-sm font-bold px-4 py-2 rounded-lg border-none focus:ring-2 focus:ring-[#9E6B73] cursor-pointer hover:bg-white transition h-10">
+            <select wire:model.live="period" class="bg-white text-gray-700 text-sm font-bold px-4 py-2 rounded-lg border-none focus:ring-2 focus:ring-[#9E6B73] cursor-pointer hover:bg-white transition h-10 shadow-sm">
                 <option value="this_month">This Month</option>
                 <option value="last_month">Last Month</option>
                 <option value="last_3_months">Last 3 Months</option>
@@ -82,11 +82,9 @@
                  const revCanvas = document.getElementById('revenueChart');
                  const catCanvas = document.getElementById('categoryChart');
 
-                 // BUG FIX: Destroy existing charts so Livewire can redraw them cleanly
                  if (Chart.getChart(revCanvas)) Chart.getChart(revCanvas).destroy();
                  if (Chart.getChart(catCanvas)) Chart.getChart(catCanvas).destroy();
 
-                 // 1. Draw Revenue Chart
                  const ctxRev = revCanvas.getContext('2d');
                  const gradientRev = ctxRev.createLinearGradient(0, 0, 0, 400);
                  gradientRev.addColorStop(0, 'rgba(158, 107, 115, 0.5)');
@@ -106,7 +104,6 @@
                      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { border: { display: false }, beginAtZero: true } } }
                  });
 
-                 // 2. Draw Category Chart
                  const ctxCat = catCanvas.getContext('2d');
                  new Chart(ctxCat, {
                      type: 'doughnut',
@@ -173,7 +170,7 @@
                             <td class="px-6 py-4 text-right text-gray-500" x-text="'$' + u.total_amount.toFixed(2)"></td>
                             <td class="px-6 py-4 text-right text-green-600 font-medium" x-text="'$' + u.paid_amount.toFixed(2)"></td>
                             <td class="px-6 py-4 text-right font-bold text-red-500" x-text="'$' + u.balance.toFixed(2)"></td>
-                            <td class="px-6 py-4 text-center"><a :href="'/supervisor/bookings/' + u.id" class="text-xs font-bold text-blue-500 hover:underline">View</a></td>
+                            <td class="px-6 py-4 text-center"><a :href="'/bookings/' + u.id" class="text-xs font-bold text-blue-500 hover:underline">View</a></td>
                         </tr>
                     </template>
                     <tr x-show="items.length === 0">
@@ -212,7 +209,7 @@
                             <td class="px-6 py-4 font-bold text-gray-700" x-text="p.name"></td>
                             <td class="px-6 py-4"><span class="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs" x-text="p.event_type"></span></td>
                             <td class="px-6 py-4 text-right font-bold text-green-600" x-text="'$' + p.total_amount.toFixed(2)"></td>
-                            <td class="px-6 py-4 text-center"><a :href="'/supervisor/bookings/' + p.id" class="text-xs font-bold text-blue-500 hover:underline">View</a></td>
+                            <td class="px-6 py-4 text-center"><a :href="'/bookings/' + p.id" class="text-xs font-bold text-blue-500 hover:underline">View</a></td>
                         </tr>
                     </template>
                     <tr x-show="items.length === 0">
@@ -261,5 +258,3 @@
     </div>
 
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

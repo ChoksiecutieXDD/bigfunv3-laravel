@@ -379,7 +379,13 @@ class EditBooking extends Component
         }
 
         $this->dispatch('notify', title: 'Saved!', message: 'Booking successfully updated.', type: 'success');
-        return redirect()->route('booking.overview', $this->booking->id);
+        
+        // Determine the redirect based on the route name/prefix
+        if (request()->routeIs('supervisor.*')) {
+            return redirect()->route('supervisor.bookings.overview', $this->booking->id);
+        } else {
+            return redirect()->route('booking.overview', $this->booking->id);
+        }
     }
 
     public function render()

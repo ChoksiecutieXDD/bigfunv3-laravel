@@ -946,12 +946,18 @@ window.finalizeBooking = async function() {
         const json = await res.json();
 
         if (!json.success) throw new Error(json.message || "Failed to save booking");
-
+ 
         showToast("Success", "Booking Confirmed & Saved!", "success");
         setTimeout(() => {
-            window.location.href = window.location.pathname.startsWith('/supervisor') 
-                ? '/supervisor/calendar' 
-                : '/admin/calendar';
+            // Check if we're in supervisor mode or admin
+            if (window.location.pathname.includes('/supervisor/')) {
+                window.location.href = '/supervisor/calendar';
+            } else if (window.location.pathname.includes('/admin/')) {
+                window.location.href = '/admin/calendar';
+            } else {
+                // Fallback for prefix-less or other cases
+                window.location.href = '/admin/calendar';
+            }
         }, 1000);
     } catch (e) {
         showToast("Error", e.message, "error");
@@ -960,7 +966,7 @@ window.finalizeBooking = async function() {
         isProceeding = false;
     }
 };
-
+ 
 window.deleteAndExit = function() {
     isProceeding = true;
     const bookingIdEl = document.getElementById('booking_id');
@@ -971,9 +977,16 @@ window.deleteAndExit = function() {
         fd.append('_token', window.bookingAppData.csrfToken);
         navigator.sendBeacon('/api/bookings/handler', fd);
     }
-    window.location.href = window.location.pathname.startsWith('/supervisor') 
-        ? '/supervisor/calendar' 
-        : '/admin/calendar';
+    
+    // Check if we're in supervisor mode or admin
+    if (window.location.pathname.includes('/supervisor/')) {
+        window.location.href = '/supervisor/calendar';
+    } else if (window.location.pathname.includes('/admin/')) {
+        window.location.href = '/admin/calendar';
+    } else {
+        // Fallback for prefix-less or other cases
+        window.location.href = '/admin/calendar';
+    }
 };
 
 // --- DOM READY ---

@@ -1,4 +1,4 @@
-<div class="flex w-full h-full">
+<div class="flex w-full h-full" x-data="{ showLogoutModal: @json(session('logged_out')) }">
     <div class="hidden lg:flex w-7/12 bg-login-image relative items-center justify-center overflow-hidden h-full">
         <div class="absolute inset-0 bg-gradient-to-tr from-[#86545C]/90 to-[#9E6B73]/40 mix-blend-multiply"></div>
 
@@ -81,4 +81,24 @@
             <p class="text-gray-500 text-center text-sm">Verifying credentials and preparing your workspace.</p>
         </div>
     </div>
+
+    <!-- LOGOUT NOTIFICATION MODAL -->
+    <template x-if="showLogoutModal">
+        <div class="fixed inset-0 z-[110] flex items-center justify-center px-4">
+            <div x-transition.opacity @click="showLogoutModal = false" class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"></div>
+            
+            <div x-transition.scale.origin.bottom class="bg-white rounded-[2.5rem] p-8 shadow-2xl relative z-10 max-w-sm w-full border border-gray-100 flex flex-col items-center text-center animate-enter">
+                <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-6">
+                    <span class="material-symbols-rounded text-green-500 text-4xl animate-bounce">check_circle</span>
+                </div>
+                
+                <h3 class="text-2xl font-black text-gray-800 mb-2">Logged Out</h3>
+                <p class="text-gray-500 font-medium mb-8">You've been safely signed out. See you again soon!</p>
+                
+                <button @click="showLogoutModal = false" class="w-full py-4 bg-gray-900 text-white font-bold rounded-2xl hover:bg-[#9E6B73] transition-all shadow-lg hover:shadow-[#9E6B73]/20 active:scale-95">
+                    Got it, thanks!
+                </button>
+            </div>
+        </div>
+    </template>
 </div>

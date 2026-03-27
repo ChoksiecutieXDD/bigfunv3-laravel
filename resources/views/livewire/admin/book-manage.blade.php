@@ -62,12 +62,13 @@
         }
     </style>
 
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
-        <div>
-            <h1 class="text-2xl lg:text-3xl font-extrabold text-white drop-shadow-sm">Book Manage</h1>
-            <p class="text-white/90 font-medium mt-1 text-sm lg:text-base">Track schedule and review requests.</p>
+    <div class="max-w-[1600px] mx-auto w-full space-y-6 pb-12">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+            <div>
+                <h1 class="text-3xl font-extrabold text-white drop-shadow-sm">Book Manage</h1>
+                <p class="text-white/90 font-medium mt-1">Track schedule and review requests.</p>
+            </div>
         </div>
-    </div>
 
     <section class="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden mb-10">
         <div class="p-5 sm:p-6 border-b border-gray-50 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
@@ -255,4 +256,5 @@
             @endif
         </div>
     </section>
-</div>
+    </div>
+</div>

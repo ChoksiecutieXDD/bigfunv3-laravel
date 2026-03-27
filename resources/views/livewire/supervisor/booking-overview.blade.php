@@ -13,15 +13,21 @@
 
     <!-- Header & Title -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Booking #{{ $booking->id }}</h1>
-            <span class="{{ $statusColor }} px-3 py-1 rounded-full text-xs md:text-sm font-bold uppercase tracking-wider border w-fit">
-                {{ $booking->status }}
-            </span>
+        <div class="flex items-center gap-4">
+            <a href="{{ route('supervisor.calendar') }}" wire:navigate class="bg-white hover:bg-gray-50 text-slate-600 p-2.5 rounded-xl border border-gray-200 transition shadow-sm flex items-center justify-center">
+                <span class="material-symbols-rounded text-2xl">arrow_back</span>
+            </a>
+            <div>
+                <h1 class="text-3xl font-extrabold text-[#1E293B]">Booking #{{ $booking->id }}</h1>
+                <p class="text-slate-500 font-medium mt-1 uppercase tracking-wide text-[10px]">Current Status: <span class="font-black underline">{{ $booking->status }}</span></p>
+            </div>
         </div>
         <div class="flex flex-wrap items-center gap-4">
-            <button @click="deleteModal = true" class="flex items-center gap-1 text-xs font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 hover:bg-red-100 transition shadow-sm">
-                <span class="material-symbols-rounded text-base">delete</span> Delete
+            <span class="{{ $statusColor }} px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border shadow-md bg-white">
+                {{ $booking->status }}
+            </span>
+            <button @click="deleteModal = true" class="flex items-center gap-1.5 text-xs font-black text-red-500 bg-white px-4 py-2 rounded-xl border border-red-100 hover:bg-red-50 transition shadow-lg">
+                <span class="material-symbols-rounded text-lg">delete</span> DELETE
             </button>
         </div>
     </div>
@@ -92,9 +98,9 @@
                 <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                     <span class="text-[10px] font-extrabold text-gray-300 uppercase tracking-widest mr-1">Manage:</span>
                     <!-- UPDATED LINKS BELOW -->
-                    <a href="/customers/{{ $booking->id }}" class="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline transition"><i class="fa-regular fa-eye"></i> View Customer</a>
+                    <a href="#" class="flex items-center gap-1 text-xs font-bold text-gray-400 cursor-not-allowed transition"><i class="fa-regular fa-eye"></i> View Customer (TBD)</a>
                     <span class="text-gray-200 hidden sm:inline">|</span>
-                    <a href="/bookings/{{ $booking->id }}/edit" class="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline transition"><i class="fa-solid fa-pen-to-square"></i> Edit Booking</a>
+                    <a href="{{ route('supervisor.bookings.edit', $booking->id) }}" wire:navigate class="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline transition"><i class="fa-solid fa-pen-to-square"></i> Edit Booking</a>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">

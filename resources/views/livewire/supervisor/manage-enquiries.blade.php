@@ -73,7 +73,7 @@
                 <span class="material-symbols-rounded text-6xl text-gray-300 mb-4">link_off</span>
                 <h3 class="text-xl font-bold text-gray-600 mb-2">Gmail Disconnected</h3>
                 <p class="text-sm text-gray-400 mb-6 max-w-sm">{{ $syncError }}</p>
-                <a href="/google/setup" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition flex items-center gap-2">
+                <a href="{{ route('google.setup') }}" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition flex items-center gap-2">
                     <span class="material-symbols-rounded">login</span> Reconnect Account
                 </a>
             </div>

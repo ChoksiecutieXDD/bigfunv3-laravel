@@ -1,6 +1,6 @@
 <div class="max-w-[800px] mx-auto py-[40px] px-[20px] w-full">
 
-    <a href="/supervisor/staff" wire:navigate class="inline-flex items-center gap-[8px] text-slate-500 font-semibold mb-[20px] transition-colors duration-200 no-underline bg-slate-100 px-[16px] py-[8px] rounded-[12px] hover:text-slate-800 hover:bg-slate-200 w-max">
+    <a href="/admin/staff" wire:navigate class="inline-flex items-center gap-[8px] text-slate-500 font-semibold mb-[20px] transition-colors duration-200 no-underline bg-slate-100 px-[16px] py-[8px] rounded-[12px] hover:text-slate-800 hover:bg-slate-200 w-max">
         <span class="material-symbols-rounded text-lg">arrow_back</span> Back to List
     </a>
 

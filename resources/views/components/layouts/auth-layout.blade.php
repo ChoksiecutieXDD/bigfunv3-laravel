@@ -21,7 +21,7 @@
 
     <div class="blob bg-[#E3D5CA] w-96 h-96 rounded-full fixed top-0 left-0 -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
     <div class="blob bg-[#ffe4e6] w-96 h-96 rounded-full fixed bottom-0 right-0 translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
-
+    
     <div class="w-full h-screen flex shadow-2xl overflow-hidden relative z-10">
         {{ $slot }}
     </div>

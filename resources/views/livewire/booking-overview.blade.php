@@ -103,9 +103,15 @@
 
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 no-print">
         <div class="flex items-center gap-3 md:gap-4 w-full md:w-auto">
-            <a href="javascript:history.back()" class="bg-white/20 hover:bg-white/30 text-white p-2 md:p-3 btn-rounded backdrop-blur-sm transition shadow-sm shrink-0">
-                <span class="material-symbols-rounded text-xl md:text-2xl">arrow_back</span>
-            </a>
+            @if($from_url)
+                <a href="{{ $from_url }}" wire:navigate class="bg-white/20 hover:bg-white/30 text-white p-2 md:p-3 btn-rounded backdrop-blur-sm transition shadow-sm shrink-0">
+                    <span class="material-symbols-rounded text-xl md:text-2xl">arrow_back</span>
+                </a>
+            @else
+                <a href="javascript:history.back()" class="bg-white/20 hover:bg-white/30 text-white p-2 md:p-3 btn-rounded backdrop-blur-sm transition shadow-sm shrink-0">
+                    <span class="material-symbols-rounded text-xl md:text-2xl">arrow_back</span>
+                </a>
+            @endif
             <div class="flex-1">
                 <div class="flex flex-wrap items-center gap-2 md:gap-4">
                     <h1 class="text-2xl md:text-4xl font-extrabold text-white drop-shadow-sm">Booking #{{ $booking['id'] }}</h1>

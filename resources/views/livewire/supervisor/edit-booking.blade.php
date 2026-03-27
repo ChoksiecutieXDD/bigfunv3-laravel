@@ -4,30 +4,27 @@
         showCustomDelivery: @entangle('form.delivery_area').live === 'custom' || (@entangle('form.delivery_area').live !== '' && !@js($deliveryOptions->pluck('zone_name')->contains($form['delivery_area'] ?? ''))),
         showCustomDuration: @entangle('form.duration').live === 'custom'
     }"
-    class="min-h-screen flex flex-col bg-[#F8FAFC] text-[#1E293B] font-[Poppins]">
-    <!-- Top Navigation -->
-    <nav class="fixed top-0 left-0 w-full h-16 bg-white z-50 shadow-sm border-b border-gray-100 px-6 flex items-center justify-between">
-        <div class="flex items-center gap-3"><img src="{{ asset('assets/icon/bgfunlogo.png') }}" alt="BigFun" class="h-8"></div>
-        <div class="flex items-center gap-3">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider hidden sm:block">Invoice #{{ $booking->invoice_number ?? $booking->id }}</span>
-            <a href="{{ route('booking.overview', $booking->id) }}" class="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition text-xs uppercase tracking-wide">
-                <span class="material-symbols-rounded text-lg">arrow_back</span> <span class="hidden sm:inline">Cancel</span>
-            </a>
-        </div>
-    </nav>
+    class="w-full">
 
-    <!-- Content Container: Reduced pt-24 to pt-20 to fix dead space above title -->
-    <!-- Increased max-w-6xl to max-w-[1400px] for better edge-to-edge usage -->
-    <main class="w-full max-w-[1400px] mx-auto px-4 lg:px-10 pb-20 transition-all duration-300">
+    <!-- Content Container -->
+    <main class="w-full max-w-[1600px] mx-auto pb-20 transition-all duration-300">
 
         <!-- Header -->
-        <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-            <div class="flex-1">
-                <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Edit Booking</h1>
-                <p class="text-xs md:text-sm text-slate-500 mt-0.5">Modifying booking ID #{{ $booking->id }} • {{ \Carbon\Carbon::parse($booking->event_date)->format('d M Y') }}</p>
+        <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+            <div class="flex items-center gap-4">
+                @php
+                    $backRoute = request()->routeIs('supervisor.*') ? 'supervisor.bookings.overview' : 'booking.overview';
+                @endphp
+                <a href="{{ route($backRoute, $booking->id) }}" wire:navigate class="bg-white hover:bg-gray-50 text-slate-600 p-2.5 rounded-xl border border-gray-200 transition shadow-sm flex items-center justify-center">
+                    <span class="material-symbols-rounded text-2xl">arrow_back</span>
+                </a>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold text-[#1E293B]">Edit Booking #{{ $booking->id }}</h1>
+                    <p class="text-xs md:text-sm text-slate-500 font-medium mt-0.5">Invoice: <span class="font-bold text-[#9D686E]">{{ $booking->invoice_number ?? $booking->id }}</span> • Event Date: {{ \Carbon\Carbon::parse($booking->event_date)->format('d M Y') }}</p>
+                </div>
             </div>
-            <button @click="saveConfirmModal = true" type="button" class="flex-1 sm:flex-none bg-[#9D686E] hover:bg-[#855359] shadow-lg shadow-[#9D686E]/30 text-white px-8 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition transform active:scale-95 whitespace-nowrap">
-                <span class="material-symbols-rounded text-lg">save</span> Save All Changes
+            <button @click="saveConfirmModal = true" type="button" class="flex-1 sm:flex-none bg-[#9D686E] hover:bg-[#855359] shadow-lg shadow-[#9D686E]/30 text-white px-8 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition transform active:scale-95 whitespace-nowrap">
+                <span class="material-symbols-rounded text-lg">save</span> SAVE CHANGES
             </button>
         </header>
 

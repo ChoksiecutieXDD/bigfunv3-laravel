@@ -1,26 +1,4 @@
 <div x-data="bookingApp" class="min-h-screen flex flex-col relative pb-8 bg-[#F8FAFC]">
-    {{-- Internal styles moved to app.css --}}
-
-    <nav class="fixed top-0 left-0 w-full h-16 bg-white/90 backdrop-blur-md z-50 shadow-sm border-b border-gray-100 px-4 md:px-6 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2 text-[#9E6B73] font-bold text-xs uppercase tracking-wide">
-                <div class="w-8 h-8 rounded-full bg-[#9E6B73] text-white flex items-center justify-center">
-                    <span class="material-symbols-rounded text-lg">event_available</span>
-                </div>
-                <span class="block">Booking Portal</span>
-            </div>
-        </div>
-        <div class="flex flex-col items-center">
-            <div class="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wider">Booking Invoice</div>
-            <div class="font-bold text-slate-800 text-xs sm:text-sm tracking-wide select-all">{{ $invoice_number }}</div>
-        </div>
-        <div class="flex items-center gap-3">
-            <button @click="modals.exit = true" type="button" class="btn-action bg-slate-100 text-slate-600 hover:bg-slate-200 !px-3 sm:!px-4">
-                <span class="material-symbols-rounded text-lg sm:mr-1">close</span> <span class="hidden sm:inline">Cancel</span>
-            </button>
-        </div>
-    </nav>
-
     <div class="fixed top-8 right-8 z-[999999] flex flex-col gap-3 pointer-events-none">
         <template x-for="toast in toasts" :key="toast.id">
             <div x-show="toast.visible" 
@@ -46,8 +24,8 @@
         </template>
     </div>
 
-    <div class="flex w-full min-h-screen pt-16 relative overflow-hidden">
-        <main class="flex-1 overflow-y-auto custom-scrollbar pt-8 pb-16 px-4 md:px-8 max-w-[1600px] mx-auto w-full">
+    <div class="flex w-full relative overflow-hidden">
+        <main class="flex-1 pt-4 pb-16 px-0 max-w-[1600px] mx-auto w-full">
 
             <form id="combinedBookingForm" onsubmit="return false;" class="form-layout-wrapper">
                 <input type="hidden" name="booking_id" id="booking_id" value="{{ $booking_id }}">
@@ -66,9 +44,14 @@
                     </div>
 
                     <header class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                        <div>
-                            <h1 class="text-3xl font-bold text-slate-800">{{ $is_edit_mode ? 'Edit Booking' : 'Create Booking' }}</h1>
-                            <p class="text-sm text-slate-500 mt-1">Fill out the details, attractions, and financials seamlessly.</p>
+                        <div class="flex items-center gap-4">
+                            <a href="{{ route('admin.calendar') }}" wire:navigate class="bg-white hover:bg-gray-50 text-slate-600 p-2.5 rounded-xl border border-gray-200 transition shadow-sm flex items-center justify-center">
+                                <span class="material-symbols-rounded text-2xl">arrow_back</span>
+                            </a>
+                            <div>
+                                <h1 class="text-3xl font-extrabold text-[#1E293B]">New Booking</h1>
+                                <p class="text-sm text-slate-500 font-medium mt-1 uppercase tracking-wide text-[10px]">Invoice: <span class="font-bold text-[#9D686E]">{{ $invoice_number }}</span></p>
+                            </div>
                         </div>
                         <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                             <button type="button" @click="modals.history = true; filteredCustomers = previousCustomers; searchHistory = ''" class="btn-action bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 flex-1 sm:flex-none justify-center">

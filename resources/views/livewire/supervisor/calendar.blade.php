@@ -157,7 +157,7 @@
                 @if(count($bookings) > 0)
                 <div class="space-y-3">
                     @foreach($bookings as $booking)
-                    <a href="{{ route('booking.overview', $booking->id) }}" class="booking-card card-{{ $booking->color_code }}">
+                    <a href="{{ route('supervisor.bookings.overview', ['id' => $booking->id, 'back' => route('supervisor.calendar')]) }}" class="booking-card card-{{ $booking->color_code }}">
                         <div>
                             <span class="booking-label">Time</span>
                             <span class="booking-value block">{{ \Carbon\Carbon::parse($booking->start_time)->format('g:i A') }}</span>

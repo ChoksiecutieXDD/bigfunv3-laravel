@@ -69,7 +69,7 @@
                             <span class="px-2.5 py-1 rounded-lg {{ $badgeClass }} text-xs font-bold border">{{ $status }}</span>
                         </td>
                         <td class="p-5 text-right">
-                            <a href="{{ route('booking.overview', $row->id) }}" class="inline-flex items-center justify-center text-gray-400 hover:text-[#9E6B73] p-1 transition rounded-full hover:bg-gray-100">
+                            <a href="{{ route('supervisor.bookings.overview', $row->id) }}" class="inline-flex items-center justify-center text-gray-400 hover:text-[#9E6B73] p-1 transition rounded-full hover:bg-gray-100">
                                 <span class="material-symbols-rounded">visibility</span>
                             </a>
                         </td>
