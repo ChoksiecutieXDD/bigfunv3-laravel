@@ -1,4 +1,4 @@
-<div x-data="{ remindersOpen: false }" class="w-full max-w-[1600px] mx-auto space-y-8 pb-12">
+<div x-data="{ remindersOpen: false }" class="w-full max-w-[1440px] mx-auto space-y-8 pb-12">
 
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -164,6 +164,28 @@
                             <span class="text-xs font-bold mt-1 text-{{ $booking->color_code }}-600 flex items-center gap-1">
                                 <span class="legend-dot dot-{{ $booking->color_code }}"></span> {{ $booking->status_label }}
                             </span>
+                            <div class="mt-2 flex flex-wrap gap-1">
+                                @php
+                                    $statusClasses = match($booking->status) {
+                                        'Confirmed', 'Booked' => 'bg-emerald-50 text-emerald-600 border-emerald-100',
+                                        'Pending', 'Draft' => 'bg-amber-50 text-amber-600 border-amber-100',
+                                        'Completed' => 'bg-blue-50 text-blue-600 border-blue-100',
+                                        'Cancelled' => 'bg-rose-50 text-rose-600 border-rose-100',
+                                        default => 'bg-gray-50 text-gray-500 border-gray-100'
+                                    };
+                                @endphp
+                                <span class="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-tight border {{ $statusClasses }}">
+                                    {{ $booking->status }}
+                                </span>
+                                <span class="pill pill-install text-[9px] bg-plum/10 text-plum border-plum/20">OP: {{ $booking->lead_operator ?: 'TBD' }}</span>
+                                <span class="pill pill-install text-[9px] bg-blue-50 text-blue-600 border-blue-100">DEL: {{ $booking->lead_deliverer ?: 'TBD' }}</span>
+                            </div>
+                            @if($booking->booked_by)
+                                <div class="mt-2 text-[10px] font-bold text-gray-400 flex items-center gap-1">
+                                    <span class="material-symbols-rounded text-xs">person_add</span>
+                                    By: {{ $booking->booked_by }}
+                                </div>
+                            @endif
                         </div>
 
                         <div>
@@ -194,11 +216,18 @@
                         </div>
 
                         <div>
-                            <span class="booking-label">Team</span>
-                            <div class="flex items-center gap-1">
-                                <span class="pill pill-install">{{ $booking->lead_operator ?? 'TBD' }}</span>
+                            <span class="booking-label">Terms & Type</span>
+                            <div class="flex flex-col gap-1 mt-1">
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-tighter {{ $booking->terms_agreed ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-red-50 text-red-600 border border-red-100' }}">
+                                    {{ $booking->terms_agreed ? 'Agreed' : 'No Terms' }}
+                                </span>
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-tighter bg-blue-50 text-blue-600 border border-blue-100">
+                                    {{ $booking->payment_type ?: 'EFT' }}
+                                </span>
                             </div>
                         </div>
+
+
                     </a>
                     @endforeach
                 </div>

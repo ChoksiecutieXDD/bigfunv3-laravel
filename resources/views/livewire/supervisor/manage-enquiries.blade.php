@@ -1,4 +1,4 @@
-<div class="max-w-[1600px] mx-auto space-y-6" wire:init="loadEnquiries">
+<div class="max-w-[1440px] mx-auto space-y-6" wire:init="loadEnquiries">
 
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

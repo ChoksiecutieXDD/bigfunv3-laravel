@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class BookingApiController extends Controller
@@ -209,23 +211,45 @@ class BookingApiController extends Controller
                         ];
                     }
 
-                    // Handle File Uploads (Uses Laravel Storage)
+                    // Combined File Size Check (Max 5MB)
+                    $totalSize = 0;
                     for ($i = 1; $i <= 5; $i++) {
                         $inputName = ($i === 1) ? 'delivery_attachment' : 'delivery_attachment_' . $i;
                         if ($request->hasFile($inputName)) {
-                            $path = $request->file($inputName)->store('uploads', 'public');
-                            $existing_files[$i - 1] = basename($path);
+                            $totalSize += $request->file($inputName)->getSize();
+                        }
+                    }
+
+                    if ($totalSize > 5 * 1024 * 1024) {
+                        return response()->json(['success' => false, 'status' => 'error', 'message' => 'Total size of attachments must not exceed 5MB.']);
+                    }
+
+                    // Handle File Uploads
+                    for ($i = 1; $i <= 5; $i++) {
+                        $suffix = ($i === 1) ? '' : "_$i";
+                        $inputName = "delivery_attachment$suffix";
+                        
+                        if ($request->hasFile($inputName)) {
+                            $file = $request->file($inputName);
+                            $destinationPath = public_path('uploads');
+                            if (!File::exists($destinationPath)) {
+                                File::makeDirectory($destinationPath, 0755, true);
+                            }
+                            $fileName = $file->hashName();
+                            $file->move($destinationPath, $fileName);
+                            $existing_files[$i-1] = $fileName;
                         }
                     }
 
                     $payment_status = $request->input('payment_status', 'Pending');
-                    $db_status = ($payment_status === 'Deposit Paid' || $payment_status === 'Paid') ? 'Confirmed' : 'Pending';
+                    $db_status = 'Confirmed'; 
 
                     $data = [
                         'event_date' => $request->input('event_date'),
                         'start_time' => $request->input('start_time'),
                         'end_time' => $request->input('end_time'),
                         'event_type' => $request->input('event_type', 'Private'),
+                        'hire_type' => $request->input('hire_type'),
                         'is_null_booking' => $request->has('is_null_booking') ? 1 : 0,
                         'expected_people' => (int)$request->input('expected_people', 0),
                         'customer_first_name' => $request->input('customer_first_name'),
@@ -271,6 +295,14 @@ class BookingApiController extends Controller
                     } else {
                         $data['invoice_number'] = $invoice_number;
                         $data['created_at'] = now();
+                        
+                        // Add Creator Attribution (Name and Role)
+                        if (Auth::check()) {
+                            $user = Auth::user();
+                            $data['created_by_user_id'] = $user->user_id;
+                            $data['booked_by'] = $user->first_name . ' ' . ($user->last_name ? substr($user->last_name, 0, 1) . '.' : '') . ' ' . $user->role;
+                        }
+                        
                         $booking_id = DB::table('bookings')->insertGetId($data);
                     }
 
@@ -307,6 +339,9 @@ class BookingApiController extends Controller
 
                     DB::commit();
                     return response()->json(['success' => true, 'status' => 'success', 'message' => 'Booking successfully finalized']);
+
+                default:
+                    return response()->json(['success' => false, 'status' => 'error', 'message' => 'Unknown action']);
             }
         } catch (\Exception $e) {
             DB::rollBack();

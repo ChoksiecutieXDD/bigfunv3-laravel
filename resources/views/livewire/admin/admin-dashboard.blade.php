@@ -1,4 +1,4 @@
-<div class="max-w-[1600px] mx-auto w-full space-y-6 pb-12">
+<div class="max-w-[1440px] mx-auto w-full space-y-6 pb-12">
     <!-- Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
@@ -245,7 +245,10 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-bold text-gray-800 truncate">{{ $act->customer_first_name }} {{ $act->customer_last_name }}</p>
-                        <p class="text-xs text-gray-400">{{ \Carbon\Carbon::parse($act->event_date)->format('M d, Y') }} • #{{ $act->id }}</p>
+                        <p class="text-xs text-gray-400">
+                            {{ \Carbon\Carbon::parse($act->event_date)->format('M d, Y') }} • #{{ $act->id }}
+                            @if($act->booked_by) • <span class="text-[#9E6B73] font-bold">By: {{ $act->booked_by }}</span> @endif
+                        </p>
                     </div>
                     <span class="text-[10px] font-bold px-2 py-1 rounded-lg {{ $stClass }}">{{ $act->status }}</span>
                 </div>

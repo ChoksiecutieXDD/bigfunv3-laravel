@@ -2,7 +2,7 @@
     @open-modal.window="if($event.detail.modal === 'addModal') addModal = true; if($event.detail.modal === 'editModal') editModal = true;"
     @close-modal.window="addModal = false; editModal = false;"
     @keydown.escape.window="addModal = false; editModal = false;"
-    class="w-full max-w-[1600px] mx-auto">
+    class="w-full max-w-[1440px] mx-auto">
 
     <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4 lg:gap-18">
         <div>

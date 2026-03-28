@@ -1,4 +1,4 @@
-<div class="max-w-[1600px] mx-auto w-full space-y-6 pb-12">
+<div class="max-w-[1440px] mx-auto w-full space-y-6 pb-12">
 
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>

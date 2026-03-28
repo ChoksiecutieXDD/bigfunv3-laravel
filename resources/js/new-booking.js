@@ -15,7 +15,9 @@
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('bookingApp', () => ({
-        paymentMethod: 'EFT',
+        paymentType: 'EFT',
+        paymentMethods: ['Direct Deposit', 'Bank Transfer', 'Osko', 'PayID'],
+        paymentMethod: 'Direct Deposit',
         paymentStatus: 'Pending',
         deliveryZone: '',
         modals: {
@@ -28,6 +30,23 @@ document.addEventListener('alpine:init', () => {
         filteredCustomers: [],
         searchHistory: '',
         cardNetwork: 'Visa',
+
+        updatePaymentMethods() {
+            if (this.paymentType === 'EFT') {
+                this.paymentMethods = ['Direct Deposit', 'Bank Transfer', 'Osko', 'PayID'];
+                this.paymentMethod = 'Direct Deposit';
+            } else {
+                this.paymentMethods = ['Credit / Debit Card'];
+                this.paymentMethod = 'Credit / Debit Card';
+            }
+            this.triggerRecalculate();
+        },
+
+        triggerRecalculate() {
+             this.$nextTick(() => {
+                if (typeof triggerRecalculate === 'function') triggerRecalculate();
+            });
+        },
 
         init() {
             // Initialize from bridge data if available
@@ -98,7 +117,8 @@ document.addEventListener('alpine:init', () => {
             if (typeof calLoad === 'function') calLoad();
             
             this.paymentStatus = 'Pending';
-            this.paymentMethod = 'EFT';
+            this.paymentType = 'EFT';
+            this.updatePaymentMethods();
             this.modals.reset = false;
             showToast("Reset Complete", "Form reset successfully.", "success");
         },
@@ -732,10 +752,10 @@ window.calculateFinalTotals = function() {
     const el = document.querySelector('[x-data="bookingApp"]');
     let type = 'EFT';
     if (el && el._x_dataStack) {
-        type = el._x_dataStack[0].paymentMethod;
+        type = el._x_dataStack[0].paymentType;
     }
 
-    let rate = (type === 'Card') ? 0.029 : 0;
+    let rate = (type === 'Card Holder') ? 0.029 : 0;
     let sur = sub * rate;
     let tot = sub + sur;
 
@@ -848,17 +868,58 @@ window.openReviewModal = function() {
 
     document.getElementById('rev_ext_cost').innerText = document.getElementById('breakdown_ext').innerText;
     document.getElementById('rev_sur_cost').innerText = document.getElementById('disp_surcharge').innerText;
-    document.getElementById('rev_total').innerText = document.getElementById('disp_total').innerText;
+    
+    const totalRaw = document.getElementById('disp_total').innerText;
+    document.getElementById('rev_total').innerText = totalRaw;
 
     const payStatus = alpine.paymentStatus;
+    const totalNum = parseFloat(totalRaw.replace(/[^0-9.-]+/g, "")) || 0;
+    let depositNum = 0;
+    
+    if (payStatus === 'Deposit Paid') {
+        depositNum = totalNum * 0.5; // Assuming 50% deposit as per UI label
+    }
+    
+    const balanceDue = totalNum - depositNum;
+    document.getElementById('rev_deposit_paid').innerText = "$" + depositNum.toFixed(2);
+    document.getElementById('rev_balance_due').innerText = "$" + balanceDue.toFixed(2);
+
+    // Handle Receipt ID
+    const receiptWrapper = document.getElementById('rev_receipt_wrapper');
+    const receiptInput = document.querySelector('input[name="payment_reference"]');
+    if (payStatus === 'Deposit Paid' && receiptInput && receiptInput.value.trim() !== "") {
+        document.getElementById('rev_receipt_id').innerText = receiptInput.value.trim();
+        if (receiptWrapper) receiptWrapper.classList.remove('hidden');
+    } else {
+        if (receiptWrapper) receiptWrapper.classList.add('hidden');
+    }
+
     const statusEl = document.getElementById('rev_status');
     statusEl.innerText = payStatus;
     statusEl.className = payStatus === 'Pending' ? 'font-bold uppercase px-2 py-1 rounded bg-amber-500/20 text-amber-400' : 'font-bold uppercase px-2 py-1 rounded bg-green-500/20 text-green-400';
 
     const attractionList = document.getElementById('rev_attractions');
     attractionList.innerHTML = '';
+    
+    // 1. Add Rides
     checkedRides.forEach(cb => {
         attractionList.innerHTML += `<li><span class="material-symbols-rounded text-[#9E6B73] text-sm align-middle mr-1">check_circle</span>${cb.value}</li>`;
+    });
+
+    // 2. Add Extras (Grouped with Attractions)
+    document.querySelectorAll('.ext-price').forEach(el => {
+        if (el.tagName === 'SELECT') {
+            const opt = el.options[el.selectedIndex];
+            const price = parseFloat(opt.dataset.price || 0);
+            if (price > 0 || el.value.includes('|yes')) {
+                const label = opt.textContent;
+                attractionList.innerHTML += `<li><span class="material-symbols-rounded text-green-500 text-sm align-middle mr-1">add_circle</span>${escapeHTML(label)}</li>`;
+            }
+        } else if (el.tagName === 'INPUT' && el.checked) {
+            const label = el.nextElementSibling.textContent;
+            const price = parseFloat(el.dataset.price || 0);
+            attractionList.innerHTML += `<li><span class="material-symbols-rounded text-green-500 text-sm align-middle mr-1">add_circle</span>${escapeHTML(label)} (+$${price.toFixed(2)})</li>`;
+        }
     });
 
     const revAttachments = document.getElementById('rev_attachments');
@@ -880,28 +941,6 @@ window.openReviewModal = function() {
         }
     }
     if (!hasFiles) revAttachments.innerHTML = '<li class="text-slate-400 italic">No attachments added.</li>';
-
-    const revExtras = document.getElementById('rev_extras');
-    revExtras.innerHTML = '';
-    let hasExtras = false;
-
-    document.querySelectorAll('.ext-price').forEach(el => {
-        if (el.tagName === 'SELECT') {
-            const opt = el.options[el.selectedIndex];
-            const price = parseFloat(opt.dataset.price || 0);
-            if (price > 0 || el.value.includes('|yes')) {
-                const label = opt.textContent;
-                revExtras.innerHTML += `<li>${escapeHTML(label)}</li>`;
-                hasExtras = true;
-            }
-        } else if (el.tagName === 'INPUT' && el.checked) {
-            const label = el.nextElementSibling.textContent;
-            const price = parseFloat(el.dataset.price || 0);
-            revExtras.innerHTML += `<li>${escapeHTML(label)} (+$${price.toFixed(2)})</li>`;
-            hasExtras = true;
-        }
-    });
-    if (!hasExtras) revExtras.innerHTML = '<li class="text-slate-400 italic">No additional extras selected.</li>';
 
     const warningBox = document.getElementById('rev_missing_warning');
     const warningList = document.getElementById('rev_missing_list');
@@ -930,9 +969,39 @@ window.finalizeBooking = async function() {
 
     try {
         const form = document.getElementById('combinedBookingForm');
+        
+        // --- 5MB Combined File Size Check ---
+        let totalSize = 0;
+        const fileInputs = form.querySelectorAll('input[type="file"]');
+        fileInputs.forEach(input => {
+            if (input.files && input.files[0]) {
+                totalSize += input.files[0].size;
+            }
+        });
+
+        if (totalSize > 5 * 1024 * 1024) {
+            showToast("Error", "Total attachment size exceeds 5MB limit.", "error");
+            btn.innerHTML = '<span class="material-symbols-rounded">check_circle</span> Confirm & Save Booking';
+            btn.disabled = false;
+            return;
+        }
+
         const fd = new FormData(form);
+        const overrideTotal = document.getElementById('override_total');
         const dispTotal = document.getElementById('disp_total');
-        if (!fd.has('final_total')) fd.append('final_total', dispTotal ? dispTotal.innerText.replace('$', '') : '0');
+        
+        let finalVal = "0";
+        if (overrideTotal && overrideTotal.value.trim() !== "") {
+            finalVal = overrideTotal.value.trim();
+        } else if (dispTotal) {
+            finalVal = dispTotal.innerText.replace(/[^0-9.-]+/g, "");
+        }
+        fd.set('final_total', finalVal);
+        
+        // Similarly handle surcharge_amount
+        const surch = document.getElementById('disp_surcharge');
+        fd.set('surcharge_amount', surch ? surch.innerText.replace(/[^0-9.-]+/g, "") : "0");
+        
         fd.append('action', 'save_full_booking');
 
         isProceeding = true;

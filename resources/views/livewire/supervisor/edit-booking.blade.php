@@ -7,7 +7,7 @@
     class="w-full">
 
     <!-- Content Container -->
-    <main class="w-full max-w-[1600px] mx-auto pb-20 transition-all duration-300">
+    <main class="w-full max-w-[1440px] mx-auto pb-20 transition-all duration-300">
 
         <!-- Header -->
         <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">

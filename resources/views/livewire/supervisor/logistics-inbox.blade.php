@@ -1,4 +1,4 @@
-<div class="max-w-[1600px] mx-auto space-y-8"
+<div class="max-w-[1440px] mx-auto space-y-8"
     x-data="{ 
          showPaymentModal: false, 
          showCardModal: false, 

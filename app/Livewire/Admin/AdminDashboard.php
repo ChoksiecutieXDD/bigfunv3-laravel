@@ -63,7 +63,7 @@ class AdminDashboard extends Component
     public function loadRecentActivities()
     {
         $this->recent_activities = DB::table('bookings')
-            ->select('id', 'customer_first_name', 'customer_last_name', 'status', 'event_date')
+            ->select('id', 'customer_first_name', 'customer_last_name', 'status', 'event_date', 'booked_by')
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get()

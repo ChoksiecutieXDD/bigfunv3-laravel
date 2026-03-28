@@ -1,4 +1,4 @@
-<div class="max-w-[1600px] mx-auto w-full">
+<div class="max-w-[1440px] mx-auto w-full">
     <style>
         .calendar-header-bar {
             background-color: #9E6B73;
@@ -349,6 +349,12 @@
                         <div class="text-[10px] text-gray-400 mt-2 flex items-center justify-start gap-1">
                             <span class="material-symbols-rounded text-[12px]">{{ $v['pay_icon'] }}</span> {{ $v['pay_label'] }}
                         </div>
+                        @if($b->booked_by)
+                        <div class="text-[10px] font-bold text-[#9E6B73]/60 mt-2 flex items-center gap-1">
+                            <span class="material-symbols-rounded text-xs">person_add</span>
+                            By: {{ $b->booked_by }}
+                        </div>
+                        @endif
                     </div>
                 </a>
                 @empty

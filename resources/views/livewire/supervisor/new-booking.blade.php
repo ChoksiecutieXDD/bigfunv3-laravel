@@ -3,12 +3,12 @@
     <div class="fixed top-8 right-8 z-[999999] flex flex-col gap-3 pointer-events-none">
         <template x-for="toast in toasts" :key="toast.id">
             <div x-show="toast.visible" 
-                x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 translate-x-12 scale-95"
+                x-transition:enter="transition ease-out duration-500"
+                x-transition:enter-start="opacity-0 translate-x-full scale-90"
                 x-transition:enter-end="opacity-100 translate-x-0 scale-100"
-                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave="transition ease-in duration-300"
                 x-transition:leave-start="opacity-100 translate-x-0 scale-100"
-                x-transition:leave-end="opacity-0 translate-x-12 scale-95"
+                x-transition:leave-end="opacity-0 translate-x-full scale-90"
                 class="pointer-events-auto min-w-[320px] max-w-[420px] bg-white border border-gray-100 rounded-2xl shadow-2xl p-4 flex items-start gap-3 border-l-4"
                 :class="{'border-l-green-500': toast.type === 'success', 'border-l-red-500': toast.type === 'error', 'border-l-amber-500': toast.type === 'warning', 'border-l-[#9E6B73]': toast.type === 'primary'}">
                 <span class="material-symbols-rounded text-xl mt-0.5"
@@ -26,7 +26,7 @@
     </div>
 
     <div class="flex w-full relative overflow-hidden">
-        <main class="flex-1 pt-4 pb-16 px-0 max-w-[1600px] mx-auto w-full">
+        <main class="flex-1 pt-4 pb-16 px-0 max-w-[1440px] mx-auto w-full">
 
             <form id="combinedBookingForm" onsubmit="return false;" class="form-layout-wrapper">
                 <input type="hidden" name="booking_id" id="booking_id" value="{{ $booking_id }}">
@@ -127,24 +127,36 @@
 
                             <div class="flex flex-col gap-4">
                                 <div class="input-group">
+                                    <label class="input-label text-slate-400 !ml-1">Payment Type</label>
+                                    <div class="relative">
+                                        <select id="main_payment_type" name="payment_type" x-model="paymentType" @change="updatePaymentMethods()" class="input-dark appearance-none cursor-pointer">
+                                            <option value="EFT">EFT / Bank Transfer</option>
+                                            <option value="Card Holder">Card Holder</option>
+                                        </select>
+                                        <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
+                                    </div>
+                                </div>
+
+                                <div class="input-group">
                                     <label class="input-label text-slate-400 !ml-1">Payment Method</label>
                                     <div class="relative">
-                                        <select id="main_payment_type" name="payment_type" x-model="paymentMethod" @change="triggerRecalculate()" class="input-dark appearance-none cursor-pointer">
-                                            <option value="EFT">EFT / Bank Transfer</option>
-                                            <option value="Card">Card (2.9% Fee)</option>
+                                        <select id="sub_payment_method" name="payment_method" x-model="paymentMethod" @change="triggerRecalculate()" class="input-dark appearance-none cursor-pointer">
+                                            <template x-for="opt in paymentMethods" :key="opt">
+                                                <option :value="opt" x-text="opt"></option>
+                                            </template>
                                         </select>
                                         <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div x-show="paymentMethod === 'Card'" x-collapse class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 mt-4 shadow-inner flex flex-col gap-4">
+                            <div x-show="paymentType === 'Card Holder'" x-collapse class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 mt-4 shadow-inner flex flex-col gap-4">
                                 <h4 class="text-xs font-bold text-[#9E6B73] uppercase flex justify-between items-center"><span>Card Details</span><span class="material-symbols-rounded text-sm">lock</span></h4>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="relative">
-                                        <select name="card_type" class="input-dark appearance-none !py-3 text-sm cursor-pointer">
-                                            <option value="Credit Card">Credit Card</option>
-                                            <option value="Debit Card">Debit Card</option>
+                                        <select name="card_category" class="input-dark appearance-none !py-3 text-sm cursor-pointer">
+                                            <option value="Credit">Credit Card</option>
+                                            <option value="Debit">Debit Card</option>
                                         </select>
                                         <span class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded text-sm">expand_more</span></span>
                                     </div>
@@ -208,7 +220,7 @@
                         <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Live Availability & Duration</h2>
                     </div>
 
-                    <div class="w-full max-w-5xl mx-auto">
+                    <div class="w-full">
                         <div class="flex items-center justify-between mb-4">
                             <div>
                                 <p class="font-extrabold text-slate-800 leading-tight">Select Date</p>
@@ -299,136 +311,147 @@
                 </div>
 
                 <div class="section-card">
-                    <div class="flex items-center gap-3 border-b border-gray-100 pb-4">
+                    <div class="flex items-center gap-3 border-b border-gray-100 pb-6">
                         <span class="material-symbols-rounded text-[#9E6B73] text-2xl">person_pin</span>
-                        <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Customer Info</h2>
+                        <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Customer & Venue</h2>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="input-group">
-                            <label class="input-label">First Name <span class="text-red-500">*</span></label>
-                            <input type="text" id="cust_first_name" name="customer_first_name" required class="input-field" value="{{ $this->getVal('customer_first_name') }}" @blur="checkDuplicates()">
-                        </div>
-                        <div class="input-group">
-                            <label class="input-label">Last Name</label>
-                            <input type="text" id="cust_last_name" name="customer_last_name" class="input-field" value="{{ $this->getVal('customer_last_name') }}" @blur="checkDuplicates()">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="input-group">
-                            <label class="input-label">Email <span class="text-red-500">*</span></label>
-                            <input type="email" id="customer_email_address" name="customer_email_address" required class="input-field" value="{{ $this->getVal('customer_email') }}" @blur="checkDuplicates()">
-                        </div>
-                        <div class="input-group">
-                            <label class="input-label">Mobile <span class="text-red-500">*</span></label>
-                            <input type="tel" id="customer_phone_mobile" name="customer_phone_mobile" required class="input-field" value="{{ $this->getVal('customer_phone') }}">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
-                        <div class="input-group">
-                            <label class="input-label">Business / Org</label>
-                            <input type="text" id="customer_organization" name="customer_organization" class="input-field" value="{{ $this->getVal('customer_organization') }}">
-                        </div>
-                        <div class="input-group">
-                            <label class="input-label">ABN</label>
-                            <input type="text" name="customer_abn" id="customer_abn" class="input-field" value="{{ $this->getVal('customer_abn') }}">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="input-group">
-                            <label class="input-label">Employer Name</label>
-                            <input type="text" name="employer_name" id="employer_name" class="input-field" value="{{ $this->getVal('employer_name') }}">
-                        </div>
-                        <div class="input-group">
-                            <label class="input-label">Business Phone</label>
-                            <input type="tel" name="customer_business_phone" id="customer_business_phone" class="input-field" value="{{ $this->getVal('customer_business_phone') }}">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
-                        <div class="input-group">
-                            <label class="input-label">Event Type</label>
-                            <div class="relative">
-                                @php $et = $this->getVal('event_type', 'Private'); @endphp
-                                <select name="event_type" id="event_type" class="input-field appearance-none cursor-pointer">
-                                    <option value="Private" {{ $et == 'Private' ? 'selected' : '' }}>Private Party</option>
-                                    <option value="Corporate" {{ $et == 'Corporate' ? 'selected' : '' }}>Corporate Event</option>
-                                    <option value="Community" {{ $et == 'Community' ? 'selected' : '' }}>Community / School</option>
-                                </select>
-                                <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-6">
+                        <!-- Left Column: CONTACT INFO -->
+                        <div class="space-y-6">
+                            <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-4">Contact Info</h3>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="input-group">
+                                    <label class="input-label">First Name <span class="text-red-500">*</span></label>
+                                    <input type="text" id="cust_first_name" name="customer_first_name" required class="input-field" value="{{ $this->getVal('customer_first_name') }}" @blur="checkDuplicates()">
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label">Last Name</label>
+                                    <input type="text" id="cust_last_name" name="customer_last_name" class="input-field" value="{{ $this->getVal('customer_last_name') }}" @blur="checkDuplicates()">
+                                </div>
                             </div>
-                        </div>
-                        <div class="input-group">
-                            <label class="input-label">Expected People</label>
-                            <input type="number" name="expected_people" id="expected_people" placeholder="e.g. 50" class="input-field" value="{{ $this->getVal('expected_people') }}">
-                        </div>
-                    </div>
-                </div>
 
-                <div class="section-card">
-                    <div class="flex items-center gap-3 border-b border-gray-100 pb-4">
-                        <span class="material-symbols-rounded text-[#9E6B73] text-2xl">local_shipping</span>
-                        <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Logistics & Venue</h2>
-                    </div>
-
-                    <div class="input-group">
-                        <label class="input-label">Event Address <span class="text-red-500">*</span></label>
-                        <input type="text" name="address_line_1" id="addr_line_1" required class="input-field" value="{{ $this->getVal('address_line_1') }}">
-                    </div>
-                    <div class="input-group">
-                        <label class="input-label">Business Address (Optional)</label>
-                        <input type="text" name="business_address" id="business_address" class="input-field" value="{{ $this->getVal('business_address') }}">
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="input-group">
-                            <label class="input-label">Suburb</label>
-                            <input type="text" name="suburb" id="addr_suburb" class="input-field" value="{{ $this->getVal('suburb') }}">
-                        </div>
-                        <div class="input-group">
-                            <label class="input-label">State</label>
-                            <div class="relative">
-                                <select name="state" id="addr_state" class="input-field appearance-none cursor-pointer">
-                                    <option value="QLD" {{ $this->getVal('state') == 'QLD' ? 'selected' : '' }}>QLD</option>
-                                    <option value="NSW" {{ $this->getVal('state') == 'NSW' ? 'selected' : '' }}>NSW</option>
-                                    <option value="VIC" {{ $this->getVal('state') == 'VIC' ? 'selected' : '' }}>VIC</option>
-                                </select>
-                                <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
-                            </div>
-                        </div>
-                        <div class="input-group">
-                            <label class="input-label">Postcode</label>
-                            <input type="text" name="postcode" id="addr_postcode" class="input-field" value="{{ $this->getVal('postcode') }}">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
-                        <div class="input-group">
-                            <label class="input-label">Delivery Zone</label>
-                            <input type="hidden" name="delivery_cost" id="delivery_cost" value="{{ $this->getVal('delivery_cost', 0) }}">
-                            <div class="relative">
-                                <select name="delivery_area" id="delivery_area_select" x-model="deliveryZone" @change="updateDeliveryCost($el)" class="input-field appearance-none cursor-pointer">
-                                    <option value="" data-price="0">-- Select Zone --</option>
-                                    @foreach ($delivery_options as $del)
-                                    <option value="{{ $del->zone_name }}" data-price="{{ $del->price }}">
-                                        {{ $del->zone_name }} (+${{ number_format($del->price, 2) }})
-                                    </option>
-                                    @endforeach
-                                    <option value="custom" data-price="0">Custom / Manual Quote</option>
-                                </select>
-                                <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
-                            </div>
-                        </div>
-
-                        <div x-show="deliveryZone === 'custom'" x-collapse>
                             <div class="input-group">
-                                <label class="input-label text-[#9E6B73]">Manual Delivery Cost</label>
-                                <div class="relative">
-                                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
-                                    <input type="number" id="delivery_area_manual" step="0.01" class="input-field input-with-icon" placeholder="0.00" value="{{ $this->getVal('delivery_cost') }}" @input="document.getElementById('delivery_cost').value = $el.value; triggerRecalculate();">
+                                <label class="input-label">Business / Org Name</label>
+                                <input type="text" id="customer_organization" name="customer_organization" class="input-field" value="{{ $this->getVal('customer_organization') }}">
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">ABN Number</label>
+                                <input type="text" name="customer_abn" id="customer_abn" placeholder="Optional" class="input-field" value="{{ $this->getVal('customer_abn') }}">
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Employer Name</label>
+                                <input type="text" name="employer_name" id="employer_name" class="input-field" value="{{ $this->getVal('employer_name') }}">
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Business Contact Number</label>
+                                <input type="tel" name="customer_business_phone" id="customer_business_phone" class="input-field" value="{{ $this->getVal('customer_business_phone') }}">
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Mobile Phone <span class="text-red-500">*</span></label>
+                                <input type="tel" id="customer_phone_mobile" name="customer_phone_mobile" required class="input-field" value="{{ $this->getVal('customer_phone') }}">
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Email Address <span class="text-red-500">*</span></label>
+                                <input type="email" id="customer_email_address" name="customer_email_address" required class="input-field" value="{{ $this->getVal('customer_email') }}" @blur="checkDuplicates()">
+                            </div>
+                        </div>
+
+                        <!-- Right Column: VENUE LOCATION -->
+                        <div class="space-y-6">
+                            <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-4">Venue Location</h3>
+
+                            <div class="input-group">
+                                <label class="input-label">Event Address Line 1 <span class="text-red-500">*</span></label>
+                                <input type="text" name="address_line_1" id="addr_line_1" required class="input-field" value="{{ $this->getVal('address_line_1') }}">
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Business Address (Optional)</label>
+                                <input type="text" name="business_address" id="business_address" class="input-field" value="{{ $this->getVal('business_address') }}">
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="input-group">
+                                    <label class="input-label">Suburb</label>
+                                    <input type="text" name="suburb" id="addr_suburb" class="input-field" value="{{ $this->getVal('suburb') }}">
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label">State</label>
+                                    <div class="relative">
+                                        <select name="state" id="addr_state" class="input-field appearance-none cursor-pointer">
+                                            <option value="QLD" {{ $this->getVal('state') == 'QLD' ? 'selected' : '' }}>QLD</option>
+                                            <option value="NSW" {{ $this->getVal('state') == 'NSW' ? 'selected' : '' }}>NSW</option>
+                                            <option value="VIC" {{ $this->getVal('state') == 'VIC' ? 'selected' : '' }}>VIC</option>
+                                        </select>
+                                        <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label">Postcode</label>
+                                    <input type="text" name="postcode" id="addr_postcode" class="input-field" value="{{ $this->getVal('postcode') }}">
+                                </div>
+                            </div>
+
+                            <div class="pt-4 border-t border-gray-100">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="input-group">
+                                        <label class="input-label">Event Type</label>
+                                        <div class="relative">
+                                            @php $et = $this->getVal('event_type', 'Private'); @endphp
+                                            <select name="event_type" id="event_type" class="input-field appearance-none cursor-pointer">
+                                                <option value="Private" {{ $et == 'Private' ? 'selected' : '' }}>Private Party</option>
+                                                <option value="Corporate" {{ $et == 'Corporate' ? 'selected' : '' }}>Corporate Event</option>
+                                                <option value="Community" {{ $et == 'Community' ? 'selected' : '' }}>Community / School</option>
+                                            </select>
+                                            <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
+                                        </div>
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="input-label">Expected People</label>
+                                        <input type="number" name="expected_people" id="expected_people" placeholder="e.g. 50" class="input-field" value="{{ $this->getVal('expected_people') }}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="pt-4 border-t border-gray-100">
+                                <div class="input-group">
+                                    <label class="input-label">Delivery Zone</label>
+                                    <input type="hidden" name="delivery_cost" id="delivery_cost" value="{{ $this->getVal('delivery_cost', 0) }}">
+                                    <div class="relative">
+                                        <select name="delivery_area" id="delivery_area_select" x-model="deliveryZone" @change="updateDeliveryCost($el)" class="input-field appearance-none cursor-pointer">
+                                            <option value="" data-price="0">-- Select Zone --</option>
+                                            @foreach ($delivery_options as $del)
+                                            <option value="{{ $del->zone_name }}" data-price="{{ $del->price }}">
+                                                {{ $del->zone_name }} (+${{ number_format($del->price, 2) }})
+                                            </option>
+                                            @endforeach
+                                            <option value="custom" data-price="0">Custom / Manual Quote</option>
+                                        </select>
+                                        <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
+                                    </div>
+                                </div>
+
+                                <div x-show="deliveryZone === 'custom'" x-collapse class="mt-4">
+                                    <div class="input-group">
+                                        <label class="input-label text-[#9E6B73]">Manual Delivery Cost</label>
+                                        <div class="relative">
+                                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
+                                            <input type="number" id="delivery_area_manual" step="0.01" class="input-field input-with-icon" placeholder="0.00" value="{{ $this->getVal('delivery_cost') }}" @input="document.getElementById('delivery_cost').value = $el.value; triggerRecalculate();">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-10 border-t border-gray-100 mt-6">
                         <div class="input-group">
                             <label class="input-label">Delivery Notes</label>
                             <textarea name="notes_delivery" id="note_delivery" rows="2" class="input-field resize-none text-xs" placeholder="Access details...">{{ $this->getVal('notes_delivery') }}</textarea>
@@ -456,7 +479,10 @@
                     </div>
 
                     <div class="pt-6 border-t border-gray-100">
-                        <label class="input-label mb-2">Delivery Attachments (Up to 5)</label>
+                        <label class="input-label mb-2 flex items-center justify-between">
+                            <span>Delivery Attachments (Up to 5)</span>
+                            <span class="text-[10px] bg-[#9E6B73]/10 text-[#9E6B73] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Max 5MB Total</span>
+                        </label>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             @for ($i = 1; $i <= 5; $i++)
                                 @php
@@ -612,18 +638,21 @@
                                 <p class="flex justify-between"><span>Delivery:</span> <span id="rev_del_cost" class="font-bold text-white"></span></p>
                                 <p class="flex justify-between"><span>Extras:</span> <span id="rev_ext_cost" class="font-bold text-white"></span></p>
                                 <p class="flex justify-between"><span>Processing Fee:</span> <span id="rev_sur_cost" class="font-bold text-white"></span></p>
-                                <div class="border-t border-slate-600 pt-3 mt-3"></div>
-                                <p class="flex justify-between font-bold items-center"><span class="text-[#9E6B73] uppercase text-xs tracking-wider">Grand Total:</span> <span id="rev_total" class="text-2xl text-white"></span></p>
-                                <div class="bg-slate-900 rounded-lg p-3 mt-3 border border-slate-700">
+                                <div class="border-t border-slate-600 pt-2 mt-2"></div>
+                                <p class="flex justify-between text-xs text-slate-400"><span>Grand Total:</span> <span id="rev_total" class="font-bold text-white text-lg"></span></p>
+                                <p class="flex justify-between text-xs text-emerald-400"><span>Deposit Paid:</span> <span id="rev_deposit_paid" class="font-bold"></span></p>
+                                <p class="flex justify-between font-bold items-center border-t border-slate-600 pt-3 mt-2"><span class="text-[#9E6B73] uppercase text-xs tracking-wider">Balance Due:</span> <span id="rev_balance_due" class="text-2xl text-white"></span></p>
+                                
+                                <div id="rev_receipt_wrapper" class="hidden bg-slate-900 rounded-lg p-3 mt-3 border border-slate-700">
+                                    <p class="flex justify-between text-[10px] items-center text-slate-400 uppercase font-bold tracking-tight"><span>Receipt Ref:</span> <span id="rev_receipt_id" class="text-white"></span></p>
+                                </div>
+
+                                <div class="bg-slate-900 rounded-lg p-3 mt-1 border border-slate-700">
                                     <p class="flex justify-between text-xs items-center"><span>Deposit Status:</span> <span id="rev_status" class="font-bold uppercase px-2 py-1 rounded"></span></p>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="border-t border-slate-600 pt-3 mt-3">
-                            <h5 class="text-[10px] font-bold text-[#9E6B73] uppercase mb-2">Selected Extras</h5>
-                            <ul id="rev_extras" class="text-xs text-slate-300 list-disc pl-4 space-y-1"></ul>
-                        </div>
                     </div>
                 </div>
 

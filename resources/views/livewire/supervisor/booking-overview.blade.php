@@ -9,7 +9,7 @@
         selectedPayment: null,
         paymentDetailsModal: false
     }"
-    class="max-w-[1600px] mx-auto space-y-6">
+    class="max-w-[1440px] mx-auto space-y-6">
 
     <!-- Header & Title -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -38,18 +38,22 @@
             <span class="material-symbols-rounded">history_edu</span>
             <span class="text-sm font-bold uppercase tracking-wide">Booking Origin & Timeline</span>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-xs">
             <div>
                 <span class="block font-bold text-gray-400 uppercase text-[10px]">Created On</span>
                 <span class="font-semibold text-gray-700 text-sm">{{ \Carbon\Carbon::parse($booking->created_at)->format('d M Y, h:i A') }}</span>
             </div>
             <div>
                 <span class="block font-bold text-gray-400 uppercase text-[10px]">Booked By</span>
-                <span class="font-semibold text-gray-700 text-sm">{{ $booking->booked_by ?? 'System' }}</span>
+                <span class="font-semibold text-gray-700 text-sm italic">{{ $booking->booked_by ?: 'System' }}</span>
             </div>
             <div>
                 <span class="block font-bold text-gray-400 uppercase text-[10px]">Current Status</span>
                 <span class="font-bold {{ $booking->status == 'Confirmed' ? 'text-green-600' : 'text-gray-700' }}">{{ strtoupper($booking->status) }}</span>
+            </div>
+            <div>
+                <span class="block font-bold text-amber-600 uppercase text-[10px]">Event Date</span>
+                <span class="font-bold text-gray-800 text-sm italic">{{ \Carbon\Carbon::parse($booking->event_date)->format('d M Y') }}</span>
             </div>
             <div>
                 <span class="block font-bold text-gray-400 uppercase text-[10px]">Invoice No</span>
@@ -58,8 +62,9 @@
         </div>
     </div>
 
+
     <!-- Moved Alert -->
-    @if(\Carbon\Carbon::parse($booking->created_at)->format('Y-m-d') !== \Carbon\Carbon::parse($booking->event_date)->format('Y-m-d'))
+    @if($booking->original_event_date && $booking->original_event_date !== $booking->event_date)
     <div class="bg-amber-50 rounded-2xl shadow-sm border border-amber-100 p-4 flex items-center gap-4 animate-[fadeIn_0.3s_ease-out_forwards]">
         <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
             <span class="material-symbols-rounded">edit_calendar</span>
@@ -67,7 +72,7 @@
         <div>
             <h4 class="text-sm font-bold text-amber-800">Booking Moved</h4>
             <p class="text-xs text-amber-700 mt-0.5">
-                Original Date: <span class="font-mono font-bold">{{ \Carbon\Carbon::parse($booking->created_at)->format('d M Y') }}</span>
+                Original Date: <span class="font-mono font-bold">{{ \Carbon\Carbon::parse($booking->original_event_date)->format('d M Y') }}</span>
                 <i class="fa-solid fa-arrow-right mx-1 opacity-50"></i>
                 Current Date: <span class="font-mono font-bold">{{ \Carbon\Carbon::parse($booking->event_date)->format('d M Y') }}</span>
             </p>
@@ -335,10 +340,21 @@
                 <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100 text-[#9D686E]">
                     <span class="material-symbols-rounded">person</span><span class="text-sm font-bold uppercase tracking-wide">Customer Details</span>
                 </div>
-                <div class="space-y-2">
+                <div class="space-y-4">
                     <div class="flex justify-between items-baseline mb-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 w-2/5 uppercase tracking-wide">Name</span><span class="text-[0.75rem] font-bold text-slate-800 w-3/5 text-left">{{ $booking->customer_first_name }} {{ $booking->customer_last_name }}</span></div>
-                    <div class="flex justify-between items-baseline mb-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 w-2/5 uppercase tracking-wide">Company</span><span class="text-[0.75rem] font-medium text-slate-800 w-3/5 text-left">{{ $booking->customer_organization ?: '-' }}</span></div>
-                    <div class="flex justify-between items-baseline mb-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 w-2/5 uppercase tracking-wide">Mobile</span><span class="text-[0.75rem] font-medium text-slate-800 w-3/5 text-left">{{ $booking->customer_phone }}</span></div>
+                    <div class="flex justify-between items-baseline mb-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 w-2/5 uppercase tracking-wide">Org / Company</span><span class="text-[0.75rem] font-medium text-slate-800 w-3/5 text-left">{{ $booking->customer_organization ?: '-' }}</span></div>
+                    <div class="flex justify-between items-baseline mb-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 w-2/5 uppercase tracking-wide">ABN No.</span><span class="text-[0.75rem] font-medium text-slate-800 w-3/5 text-left">{{ $booking->customer_abn ?: '-' }}</span></div>
+                    
+                    <div class="grid grid-cols-2 gap-4 border-b border-dotted border-gray-200 pb-1">
+                        <div class="flex flex-col"><span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Mobile</span><span class="text-[0.75rem] font-medium text-slate-800">{{ $booking->customer_phone }}</span></div>
+                        <div class="flex flex-col"><span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Business Phone</span><span class="text-[0.75rem] font-medium text-slate-800">{{ $booking->customer_business_phone ?: '-' }}</span></div>
+                    </div>
+
+                    <div class="flex flex-col mb-1 pb-1 border-b border-dotted border-gray-200">
+                        <span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Business Address</span>
+                        <span class="text-[0.75rem] font-medium text-slate-800">{{ $booking->business_address ?: 'Not provided' }}</span>
+                    </div>
+
                     <div class="mt-2 pt-2 border-t border-gray-50">
                         <span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Email</span>
                         <div class="flex justify-between items-center mt-1">

@@ -1,4 +1,4 @@
-<div class="max-w-[1600px] mx-auto w-full pb-12">
+<div class="max-w-[1440px] mx-auto w-full pb-12">
     <!-- Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-6">
         <div>

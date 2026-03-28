@@ -96,7 +96,14 @@ class BookingOverview extends Component
 
     public function moveDate()
     {
-        $this->booking->update(['event_date' => $this->newDate]);
+        // Capture original date on FIRST move only
+        if (!$this->booking->original_event_date) {
+            $this->booking->original_event_date = $this->booking->event_date;
+        }
+
+        $this->booking->event_date = $this->newDate;
+        $this->booking->save();
+
         $this->dispatch('notify', title: 'Success', message: 'Booking moved to ' . $this->newDate);
     }
 
@@ -319,7 +326,13 @@ class BookingOverview extends Component
             $timeString .= ' - ' . Carbon::parse($this->booking->end_time)->format('g:i A');
         }
 
-        $galleryFiles = collect([$this->booking->delivery_attachment, $this->booking->delivery_attachment_1, $this->booking->delivery_attachment_2, $this->booking->delivery_attachment_3, $this->booking->delivery_attachment_4])->filter()->toArray();
+        $galleryFiles = collect([
+            $this->booking->delivery_attachment,
+            $this->booking->delivery_attachment_2,
+            $this->booking->delivery_attachment_3,
+            $this->booking->delivery_attachment_4,
+            $this->booking->delivery_attachment_5
+        ])->filter()->toArray();
 
         return view('livewire.supervisor.booking-overview', compact(
             'items',

@@ -62,7 +62,7 @@
         }
     </style>
 
-    <div class="max-w-[1600px] mx-auto w-full space-y-6 pb-12">
+    <div class="max-w-[1440px] mx-auto w-full space-y-6 pb-12">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
             <div>
                 <h1 class="text-3xl font-extrabold text-white drop-shadow-sm">Book Manage</h1>
@@ -102,7 +102,15 @@
                             <p class="mt-1 font-extrabold text-gray-800 truncate">
                                 {{ trim($row->customer_first_name . ' ' . $row->customer_last_name) }}
                             </p>
-                            <p class="text-xs text-gray-500 truncate">{{ $row->event_type ?? 'Event' }}</p>
+                            <div class="flex items-center gap-2">
+                                <p class="text-xs text-gray-500 truncate">{{ $row->event_type ?? 'Event' }}</p>
+                                @if($row->booked_by)
+                                <span class="text-[9px] font-bold text-[#9E6B73]/60 italic flex items-center gap-0.5">
+                                    <span class="material-symbols-rounded text-[10px]">person_add</span>
+                                    By: {{ $row->booked_by }}
+                                </span>
+                                @endif
+                            </div>
                         </div>
                         <a href="{{ route('booking.overview', $row->id) }}" wire:navigate class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-white border border-gray-200 text-gray-500 hover:text-[#9E6B73] hover:border-[#9E6B73] transition" title="View Details">
                             <span class="material-symbols-rounded">visibility</span>
@@ -142,6 +150,7 @@
                         <th class="px-6 py-4">ID</th>
                         <th class="px-6 py-4">Date</th>
                         <th class="px-6 py-4">Customer</th>
+                        <th class="px-6 py-4">Booked By</th>
                         <th class="px-6 py-4">Amount</th>
                         <th class="px-6 py-4">Status</th>
                         <th class="px-6 py-4 text-right">Actions</th>
@@ -164,6 +173,9 @@
                                 {{ trim($row->customer_first_name . ' ' . $row->customer_last_name) }}
                             </div>
                             <div class="text-xs text-gray-400 truncate max-w-xs">{{ $row->event_type ?? 'Event' }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-[11px] font-bold text-gray-500 italic">{{ $row->booked_by ?: 'System' }}</span>
                         </td>
                         <td class="px-6 py-4 font-extrabold text-[#9E6B73]">${{ number_format($row->total_amount, 2) }}</td>
                         <td class="px-6 py-4">
@@ -233,7 +245,16 @@
                         {{ trim($b->customer_first_name . ' ' . $b->customer_last_name) }}
                     </h4>
 
-                    <p class="text-xs text-gray-500 mb-4 truncate">{{ $b->event_type ?? 'Event' }}</p>
+                    <p class="text-xs text-gray-500 mb-1 truncate">{{ $b->event_type ?? 'Event' }}</p>
+
+                    @if($b->booked_by)
+                    <div class="mb-4 text-[10px] font-bold text-[#9E6B73]/60 italic flex items-center gap-1">
+                        <span class="material-symbols-rounded text-xs">person_add</span>
+                        By: {{ $b->booked_by }}
+                    </div>
+                    @else
+                    <div class="mb-4"></div>
+                    @endif
 
                     <div class="mt-auto">
                         <a href="{{ route('booking.overview', $b->id) }}" wire:navigate class="w-full py-2.5 bg-white border border-gray-200 text-gray-700 hover:text-[#9E6B73] hover:border-[#9E6B73] hover:bg-gray-50 rounded-2xl flex items-center justify-center gap-2 transition text-xs font-extrabold shadow-sm">

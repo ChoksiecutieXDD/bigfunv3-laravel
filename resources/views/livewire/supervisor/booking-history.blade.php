@@ -1,4 +1,4 @@
-<div class="max-w-[1600px] mx-auto space-y-6">
+<div class="max-w-[1440px] mx-auto space-y-6">
 
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -40,6 +40,7 @@
                         <th class="p-5 border-b border-gray-100">Customer Name</th>
                         <th class="p-5 border-b border-gray-100">Items / Service</th>
                         <th class="p-5 border-b border-gray-100">Total</th>
+                        <th class="p-5 border-b border-gray-100">Booked By</th>
                         <th class="p-5 border-b border-gray-100">Status</th>
                         <th class="p-5 border-b border-gray-100 text-right">Actions</th>
                     </tr>
@@ -58,6 +59,9 @@
                         </td>
                         <td class="p-5 font-bold text-[#9E6B73]">
                             ${{ number_format($row->total_amount, 2) }}
+                        </td>
+                        <td class="p-5 text-[11px] font-bold text-gray-500 italic">
+                            {{ $row->booked_by ?: 'System' }}
                         </td>
                         <td class="p-5">
                             @php
@@ -108,6 +112,10 @@
                             <span>{{ \Carbon\Carbon::parse($row->event_date)->format('M d, Y') }}</span>
                             <span class="w-1 h-1 rounded-full bg-gray-300"></span>
                             <span class="font-bold text-[#9E6B73]">${{ number_format($row->total_amount, 2) }}</span>
+                            @if($row->booked_by)
+                                <span class="w-1 h-1 rounded-full bg-gray-300"></span>
+                                <span class="italic text-[10px]">{{ $row->booked_by }}</span>
+                            @endif
                         </div>
                     </div>
                     <span class="material-symbols-rounded text-gray-300">chevron_right</span>

@@ -99,6 +99,7 @@ class Calendar extends Component
                 'b.payment_type',
                 'b.terms_agreed',
                 'b.created_at',
+                'b.booked_by',
                 DB::raw("GROUP_CONCAT(DISTINCT bi.item_name SEPARATOR ', ') as services_booked"),
                 DB::raw("COALESCE(pay.total_paid, 0) as real_paid")
             )
@@ -125,6 +126,7 @@ class Calendar extends Component
                 'b.payment_type',
                 'b.terms_agreed',
                 'b.created_at',
+                'b.booked_by',
                 'pay.total_paid'
             )
             ->orderBy('b.event_date', 'ASC');

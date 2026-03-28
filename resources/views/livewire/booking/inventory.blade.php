@@ -1,6 +1,6 @@
 <div
     x-data="{ tab: @entangle('activeTab') }"
-    class="w-full py-10 px-6 lg:px-8 max-w-[1400px] mx-auto relative z-10 font-['Poppins']">
+    class="w-full py-10 px-6 lg:px-8 max-w-[1440px] mx-auto relative z-10 font-['Poppins']">
 
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-text-main tracking-tight">Booking Administration</h1>

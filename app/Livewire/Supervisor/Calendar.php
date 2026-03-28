@@ -145,8 +145,12 @@ class Calendar extends Component
                 'real_paid' => $realPaid,
                 'services_booked' => $services,
                 'lead_operator' => $booking->lead_operator,
+                'lead_deliverer' => $booking->lead_deliverer,
                 'color_code' => $paymentColor,
                 'status_label' => $paymentStatusLabel,
+                'terms_agreed' => $booking->terms_agreed,
+                'payment_type' => $booking->payment_type,
+                'booked_by' => $booking->booked_by,
             ];
         });
 
