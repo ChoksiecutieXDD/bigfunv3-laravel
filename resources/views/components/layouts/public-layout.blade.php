@@ -4,8 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $title ?? 'BigFun - Amusement Rides & Game Hire' }}</title>
-
+    <title>BigFun</title>
     <link rel="icon" type="image/png" href="/assets/icon/bfun.png">
 
     @vite(['resources/css/app.css'])

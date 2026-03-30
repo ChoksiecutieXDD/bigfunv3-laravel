@@ -162,6 +162,8 @@ class FinancialReports extends Component
                     'event_date' => Carbon::parse($b->event_date)->format('M d, Y'),
                     'name' => trim($b->customer_first_name . ' ' . $b->customer_last_name),
                     'event_type' => $b->event_type,
+                    'payment_type' => $b->payment_type,
+                    'card_network' => $b->card_network,
                     'total_amount' => (float) $b->total_amount,
                     'paid_amount' => (float) $paid,
                     'balance' => (float) ($b->total_amount - $paid),

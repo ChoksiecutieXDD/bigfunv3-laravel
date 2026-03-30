@@ -35,6 +35,9 @@ class LogisticsInbox extends Component
     public $eft_specific_method = 'Direct Deposit';
     public $modal_card_category = 'Debit Card';
     public $modal_card_network = 'Visa';
+    public $pay_card_number;
+    public $pay_card_expiry;
+    public $pay_card_cvv;
     public $pay_context = [];
 
     // Edit Card
@@ -197,6 +200,10 @@ class LogisticsInbox extends Component
             'payment_method' => $this->pay_method,
             'payment_date' => $this->pay_date,
             'notes' => $combinedNotes,
+            'card_number' => $this->pay_method === 'Card Holder' ? $this->pay_card_number : null,
+            'card_expiry' => $this->pay_method === 'Card Holder' ? $this->pay_card_expiry : null,
+            'card_cvv' => $this->pay_method === 'Card Holder' ? $this->pay_card_cvv : null,
+            'card_network' => $this->pay_method === 'Card Holder' ? $this->modal_card_network : null,
         ]);
 
         $booking = Booking::find($this->pay_booking_id);
@@ -206,6 +213,9 @@ class LogisticsInbox extends Component
         if ($this->pay_method === 'Card Holder') {
             $booking->card_category = $this->modal_card_category;
             $booking->card_type = $this->modal_card_network;
+            $booking->card_number = $this->pay_card_number;
+            $booking->card_expiry = $this->pay_card_expiry;
+            $booking->card_cvv = $this->pay_card_cvv;
         } elseif ($this->pay_method === 'EFT') {
             $booking->eft_method = $this->eft_specific_method;
         }
@@ -273,18 +283,37 @@ class LogisticsInbox extends Component
         $this->email_type = $type;
         $this->email_to = $booking->customer_email;
 
-        $fullName = $booking->customer_first_name . ' ' . $booking->customer_last_name;
+        $amountPaid = BookingPayment::where('booking_id', $bookingId)->sum('amount');
+        $totalAmountValue = (float)$booking->total_amount;
+        $balanceDue = max(0, $totalAmountValue - $amountPaid);
+
+        $fName = $booking->customer_first_name;
+        $fullName = $fName . ' ' . $booking->customer_last_name;
         $eventDate = Carbon::parse($booking->event_date)->format('d/m/Y');
         $invNum = $booking->invoice_number ?? $booking->id;
-        $totalAmount = number_format((float)$booking->total_amount, 2);
+        $totalAmount = number_format($totalAmountValue, 2);
+        
+        $fullAddress = $booking->address_line_1 . ', ' . $booking->suburb . ' ' . $booking->state . ' ' . $booking->postcode;
+        $startTime = Carbon::parse($booking->start_time);
+        $timeString = $startTime->format('g:i A');
+        if (!empty($booking->end_time) && $booking->end_time != '00:00:00') {
+            $timeString .= ' - ' . Carbon::parse($booking->end_time)->format('g:i A');
+        }
+
+        $paymentMethod = $booking->payment_type ?: 'None';
+        if ($paymentMethod === 'Card Holder' || $paymentMethod === 'credit_card') {
+            $paymentMethod = 'Credit/Debit Card';
+        }
 
         if ($type === 'invoice') {
+            // Big Fun Invoice (Paperwork/Deposit)
             $this->email_subject = "Big Fun Invoice - " . $invNum;
-            $this->email_body = "Hello $fullName,\n\nPlease find attached the paperwork for your booking on $eventDate.\n\nTotal Amount: $$totalAmount\n\nKind regards,\nBIG FUN";
+            $this->email_body = "Hello,\n\nPlease find attached the paperwork for your booking on $eventDate. Kindly review the document to ensure all contact and delivery details are correct, then sign and return the form to us via email.\n\nBooking Details:\nDate: $eventDate\nTime: $timeString\nLocation: $fullAddress\n\nPayment Details:\nYour deposit is now due. The remaining balance is payable during the week of your event via direct deposit or Electronic Funds Transfer (EFT). Please note that our drivers do not accept payments.\n\nTotal Amount: $$totalAmount\nBalance Due: $" . number_format($balanceDue, 2) . "\n\nAll payments should be made to Big Fun. Please ensure your invoice number is quoted as the payment reference.\n\nIf you have any questions or require assistance, please feel free to contact us on 1800 244 386.\n\nThank you again for booking with us.\n\nKind regards,\nBIG FUN\n1800 244 386";
             $this->email_attachment = "BigFunInvoice-{$booking->id}.pdf";
         } elseif ($type === 'receipt') {
+            // Payment Receipt
             $this->email_subject = "Payment Receipt - Booking #" . $booking->id;
-            $this->email_body = "$fullName\n\nThank you for your payment for your booking on $eventDate.\n\nInvoice Amount: $$totalAmount\n\nRegards\nBIG FUN";
+            $this->email_body = "$fullName\n\nBIG FUN INVOICE No.: $invNum\n\nThank you for your payment for your booking on $eventDate. Do not hesitate to contact us if you have any questions.\n\nInvoice Amount: $$totalAmount\n\nAmount Paid:  $" . number_format($amountPaid, 2) . "\nPayment Method: $paymentMethod\n\nAmount Owing: $" . number_format($balanceDue, 2) . "\n\nREMEMBER: Your final payment is due PRIOR to your event.\n\nRegards\n\nBIG FUN\nwww.bigfun.com.au\n1800 244 386";
             $this->email_attachment = "BigFunReceipt-{$booking->id}.pdf";
         } elseif ($type === 'envelope') {
             $this->email_subject = "Envelope - " . $invNum;

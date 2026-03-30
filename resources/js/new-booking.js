@@ -36,8 +36,9 @@ document.addEventListener('alpine:init', () => {
                 this.paymentMethods = ['Direct Deposit', 'Bank Transfer', 'Osko', 'PayID'];
                 this.paymentMethod = 'Direct Deposit';
             } else {
-                this.paymentMethods = ['Credit / Debit Card'];
-                this.paymentMethod = 'Credit / Debit Card';
+                // If Card Holder (Credit/Debit Card), we don't need sub-methods
+                this.paymentMethods = ['Credit/Debit Card'];
+                this.paymentMethod = 'Credit/Debit Card';
             }
             this.triggerRecalculate();
         },
@@ -871,6 +872,20 @@ window.openReviewModal = function() {
     
     const totalRaw = document.getElementById('disp_total').innerText;
     document.getElementById('rev_total').innerText = totalRaw;
+
+    // Handle Card Masking in Review
+    const cardInput = document.getElementById('card_number');
+    const cardMaskedEl = document.getElementById('rev_card_masked');
+    if (cardMaskedEl) {
+        if (alpine.paymentType === 'Card Holder' && cardInput && cardInput.value.trim() !== "") {
+            const raw = cardInput.value.replace(/\s/g, '');
+            const last4 = raw.slice(-4);
+            const mid4 = raw.slice(-8, -4);
+            cardMaskedEl.innerText = "**** **** " + (mid4 || "****") + " " + (last4 || "****");
+        } else {
+            cardMaskedEl.innerText = "N/A";
+        }
+    }
 
     const payStatus = alpine.paymentStatus;
     const totalNum = parseFloat(totalRaw.replace(/[^0-9.-]+/g, "")) || 0;

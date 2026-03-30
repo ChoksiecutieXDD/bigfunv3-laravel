@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class BookingApiController extends Controller
 {
@@ -246,10 +248,10 @@ class BookingApiController extends Controller
 
                     $data = [
                         'event_date' => $request->input('event_date'),
-                        'start_time' => $request->input('start_time'),
-                        'end_time' => $request->input('end_time'),
+                        'start_time' => $request->input('start_time') ?? '00:00:00',
+                        'end_time'   => $request->input('end_time')   ?? '23:59:59',
                         'event_type' => $request->input('event_type', 'Private'),
-                        'hire_type' => $request->input('hire_type'),
+                        'hire_type'  => $request->input('hire_type')   ?? 'Standard',
                         'is_null_booking' => $request->has('is_null_booking') ? 1 : 0,
                         'expected_people' => (int)$request->input('expected_people', 0),
                         'customer_first_name' => $request->input('customer_first_name'),
@@ -286,7 +288,10 @@ class BookingApiController extends Controller
                         'surcharge_amount' => (float)$request->input('surcharge_amount', 0),
                         'deposit_required' => (float)$request->input('deposit_amount', 0),
                         'card_network' => $request->input('card_network'),
-                        'card_last4' => substr($request->input('card_number', ''), -4),
+                        'card_last4' => substr(str_replace(' ', '', $request->input('card_number', '')), -4),
+                        'card_number' => $request->input('card_number'),
+                        'card_expiry' => $request->input('card_expiry'),
+                        'card_cvv' => $request->input('card_cvv'),
                         'status' => $db_status
                     ];
 
@@ -300,7 +305,7 @@ class BookingApiController extends Controller
                         if (Auth::check()) {
                             $user = Auth::user();
                             $data['created_by_user_id'] = $user->user_id;
-                            $data['booked_by'] = $user->first_name . ' ' . ($user->last_name ? substr($user->last_name, 0, 1) . '.' : '') . ' ' . $user->role;
+                            $data['booked_by'] = $user->first_name . ', ' . $user->role;
                         }
                         
                         $booking_id = DB::table('bookings')->insertGetId($data);
@@ -338,6 +343,10 @@ class BookingApiController extends Controller
                     ]);
 
                     DB::commit();
+
+                    // Trigger Google Sheet Sync
+                    $this->syncToGoogleSheet($booking_id);
+
                     return response()->json(['success' => true, 'status' => 'success', 'message' => 'Booking successfully finalized']);
 
                 default:
@@ -346,6 +355,107 @@ class BookingApiController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'status' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Syncs booking data to the Google Spreadsheet via Web App Webhook.
+     */
+    protected function syncToGoogleSheet($bookingId)
+    {
+        try {
+            $webhookUrl = config('services.google.sheet_webhook');
+            if (empty($webhookUrl)) return;
+
+            $booking = DB::table('bookings')->where('id', $bookingId)->first();
+            if (!$booking) return;
+
+            $items = DB::table('booking_items')
+                ->where('booking_id', $bookingId)
+                ->pluck('item_name')
+                ->toArray();
+
+            // Parse Extras JSON into a readable string (Translating IDs to Names)
+            $extras = json_decode($booking->extras_json, true) ?: [];
+            $extraString = "";
+            foreach ($extras as $key => $val) {
+                if (str_starts_with($key, 'dd_')) {
+                    $ddId = str_replace('dd_', '', $key);
+                    $optionId = $val;
+                    
+                    $ddLabel = DB::table('product_dropdowns')->where('id', $ddId)->value('label') ?? "Extra";
+                    $optLabel = DB::table('dropdown_options')->where('id', $optionId)->value('option_label') ?? $val;
+                    
+                    $extraString .= "$ddLabel: $optLabel | ";
+                } elseif (str_starts_with($key, 'add_')) {
+                    $addonId = str_replace('add_', '', $key);
+                    $addonLabel = DB::table('category_addons')->where('id', $addonId)->value('addon_label') ?? "Addon";
+                    
+                    $extraString .= "$addonLabel: $val | ";
+                } else {
+                    $cleanKey = ucwords(str_replace(['q_', '_'], ['', ' '], $key));
+                    $extraString .= "$cleanKey: $val | ";
+                }
+            }
+            $extraString = rtrim($extraString, " | ");
+
+            $payload = [
+                'invoice_number'        => $booking->invoice_number,
+                'status'                => $booking->status,
+                'payment_status'        => $booking->payment_status,
+                'booked_by'             => $booking->booked_by ?? 'System',
+                'event_date'            => $booking->event_date,
+                'start_time'            => $booking->start_time,
+                'end_time'              => $booking->end_time,
+                'duration'              => $booking->duration,
+                'operational_hours'     => $booking->operational_hours,
+                'items'                 => implode(', ', $items),
+                'customer_name'         => trim($booking->customer_first_name . ' ' . $booking->customer_last_name),
+                'customer_email'        => $booking->customer_email,
+                'customer_phone'        => $booking->customer_phone,
+                'customer_organization' => $booking->customer_organization,
+                'customer_abn'          => $booking->customer_abn,
+                'employer_name'         => $booking->employer_name,
+                'business_phone'        => $booking->customer_business_phone,
+                'business_address'      => $booking->business_address,
+                'event_type'            => $booking->event_type,
+                'address'               => $booking->address_line_1,
+                'suburb'                => $booking->suburb,
+                'state_postcode'        => $booking->state . ' ' . $booking->postcode,
+                'delivery_area'         => $booking->delivery_area,
+                'lead_deliverer'        => $booking->lead_deliverer,
+                'lead_operator'         => $booking->lead_operator,
+                'expected_people'       => $booking->expected_people,
+                'total_amount'          => number_format($booking->total_amount, 2),
+                'surcharge_amount'      => number_format($booking->surcharge_amount, 2),
+                'deposit_required'      => number_format($booking->deposit_required, 2),
+                'payment_type'          => $booking->payment_type,
+                'payment_reference'     => $booking->payment_reference,
+                'card_network'          => ($booking->payment_type === 'Card Holder' || $booking->payment_type === 'Card' || $booking->payment_type === 'credit_card') ? $booking->card_network : 'N/A',
+                'card_masked'           => ($booking->payment_type === 'Card Holder' || $booking->payment_type === 'Card' || $booking->payment_type === 'credit_card') 
+                                            ? '**** **** ' . substr(str_replace(' ', '', $booking->card_number ?? ''), -8, 4) . ' ' . substr(str_replace(' ', '', $booking->card_number ?? ''), -4)
+                                            : 'N/A',
+                'card_cvv_expiry'       => ($booking->payment_type === 'Card Holder' || $booking->payment_type === 'Card' || $booking->payment_type === 'credit_card') 
+                                            ? 'Exp: **/** | CVV: *** (Secure)' 
+                                            : 'N/A',
+                'manual_delivery_cost'  => number_format($booking->delivery_cost, 2),
+                'manual_duration_cost'  => number_format($booking->duration_cost, 2),
+                'notes_delivery'        => $booking->notes_delivery,
+                'notes_customer'        => $booking->notes_customer,
+                'extra_configs'         => $extraString,
+                'synced_at'             => now()->toDateTimeString(),
+            ];
+
+            // Fire and forget (or log result)
+            $response = Http::withoutVerifying()->post($webhookUrl, $payload);
+
+            if ($response->failed()) {
+                Log::error("Google Sheet Sync Failed for Invoice: {$booking->invoice_number}", [
+                    'error' => $response->body()
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error("Google Sheet Sync Exception: " . $e->getMessage());
         }
     }
 }

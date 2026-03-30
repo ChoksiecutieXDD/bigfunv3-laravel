@@ -145,7 +145,8 @@
                     $paid = (float)$row->amount_paid;
                     $outstanding = max(0, $total - $paid);
                     $isCard = stripos($row->payment_type, 'Card') !== false;
-                    $cardNum = $row->card_number ? '•••• ' . substr($row->card_number, -4) : 'N/A';
+                    $cleanNum = str_replace(' ', '', $row->card_number ?? '');
+                    $cardNum = !empty($cleanNum) ? '**** **** ' . substr($cleanNum, -8, 4) . ' ' . substr($cleanNum, -4) : 'N/A';
                     $rawNetwork = $this->getCardNetwork($row->card_number, $row->card_type);
                     $cardStyle = $this->getCardStyle($rawNetwork);
                     @endphp
@@ -183,7 +184,7 @@
                                         <div class="text-left">
                                             <div class="text-[10px] font-extrabold {{ $cardStyle['color'] }} uppercase tracking-wider">{{ $cardStyle['label'] }}</div>
                                             <div class="text-xs font-mono font-bold text-gray-700">{{ $cardNum }}</div>
-                                            <div class="text-[10px] text-gray-400">Exp: {{ $row->card_expiry ?: '--/--' }}</div>
+                                            <div class="text-[10px] text-gray-400">Exp: **/** | CVV: ***</div>
                                         </div>
                                     </div>
                                     <button wire:click="openCardModal({{ $row->id }})" class="text-gray-300 hover:text-[#9E6B73] transition p-1"><span class="material-symbols-rounded text-sm">edit_square</span></button>
@@ -225,7 +226,7 @@
                                 <div class="flex items-stretch w-full border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white focus-within:border-[#9E6B73] focus-within:ring-1 transition-all"
                                     x-data="{ method: '{{ $row->payment_type }}' }">
                                     <select x-model="method" class="flex-1 py-1.5 px-2 text-xs border-none bg-transparent text-gray-700 font-semibold outline-none cursor-pointer">
-                                        <option value="Card Holder">Card Holder</option>
+                                        <option value="Card Holder">Credit/Debit Card</option>
                                         <option value="EFT">EFT / Direct</option>
                                     </select>
                                     <button type="button" @click="confirmMessage = 'Are you sure you want to change the payment method for this booking?'; confirmAction = () => $wire.savePaymentType({{ $row->id }}, method); showConfirmModal = true;" class="bg-gray-50 hover:bg-[#9E6B73]/10 text-gray-500 hover:text-[#9E6B73] transition-colors border-l border-gray-200 px-2.5 flex items-center justify-center cursor-pointer">
@@ -550,7 +551,7 @@
                             <label class="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Payment Method</label>
                             <select wire:model.live="pay_method" class="modal-input bg-white cursor-pointer focus:ring-2 focus:ring-[#9E6B73]/20">
                                 <option value="EFT">EFT / Bank Transfer</option>
-                                <option value="Card Holder">Card Holder</option>
+                                <option value="Card Holder">Credit/Debit Card</option>
                                 <option value="Cash">Cash</option>
                             </select>
                         </div>
@@ -566,21 +567,41 @@
                             </select>
                         </div>
                         @elseif ($pay_method === 'Card Holder')
-                        <div class="grid grid-cols-2 gap-3 bg-gray-50/50 p-3 rounded-lg border border-dashed border-gray-200">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">Category</label>
-                                <select wire:model="modal_card_category" class="modal-input bg-white text-xs text-gray-600 focus:ring-1 cursor-pointer">
-                                    <option value="Debit Card">Debit Card</option>
-                                    <option value="Credit Card">Credit Card</option>
-                                </select>
-                            </div>
+                        <div class="grid grid-cols-1 gap-3 bg-gray-50/50 p-3 rounded-lg border border-dashed border-gray-200">
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">Network</label>
                                 <select wire:model="modal_card_network" class="modal-input bg-white text-xs text-gray-600 focus:ring-1 cursor-pointer">
                                     <option value="Visa">Visa</option>
-                                    <option value="MasterCard">MasterCard</option>
-                                    <option value="Amex">Amex</option>
+                                    <option value="Mastercard">Mastercard</option>
+                                    <option value="American Express">American Express</option>
+                                    <option value="Discover">Discover</option>
+                                    <option value="Bankcard">Bankcard</option>
+                                    <option value="Bartercard">Bartercard</option>
                                 </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">Card Number</label>
+                                <input type="text" wire:model="pay_card_number" 
+                                    x-on:input="$el.value = $el.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()"
+                                    maxlength="19" 
+                                    class="modal-input text-xs font-mono" placeholder="0000 0000 0000 0000">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">Expiry</label>
+                                    <input type="text" wire:model="pay_card_expiry" 
+                                        x-on:input="
+                                            let v = $el.value.replace(/\D/g, '');
+                                            if (v.length > 2) v = v.substring(0,2) + '/' + v.substring(2,4);
+                                            $el.value = v;
+                                        "
+                                        maxlength="5" 
+                                        class="modal-input text-xs text-center font-mono" placeholder="MM/YY">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">CVV</label>
+                                    <input type="text" wire:model="pay_card_cvv" maxlength="4" class="modal-input text-xs text-center font-mono" placeholder="123">
+                                </div>
                             </div>
                         </div>
                         @endif
@@ -617,31 +638,35 @@
                         <button type="button" @click="showCardModal = false" class="text-gray-400 hover:text-gray-600"><span class="material-symbols-rounded">close</span></button>
                     </div>
                     <form wire:submit.prevent="saveCardDetails" class="space-y-3">
-                        <div>
-                            <label class="text-xs font-bold text-gray-500">Category</label>
-                            <select wire:model="edit_card_category" class="modal-input bg-white cursor-pointer">
-                                <option value="Debit Card">Debit Card</option>
-                                <option value="Credit Card">Credit Card</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold text-gray-500">Card Network</label>
-                            <select wire:model="edit_card_type" class="modal-input bg-white cursor-pointer">
-                                <option value="Visa">Visa</option>
-                                <option value="MasterCard">MasterCard</option>
-                                <option value="Amex">Amex</option>
-                                <option value="Discover">Discover</option>
-                                <option value="Bartercard">Bartercard</option>
-                            </select>
+                        <div class="grid grid-cols-1 gap-3">
+                            <div>
+                                <label class="text-xs font-bold text-gray-500">Card Network</label>
+                                <select wire:model="edit_card_type" class="modal-input bg-white cursor-pointer">
+                                    <option value="Visa">Visa</option>
+                                    <option value="Mastercard">Mastercard</option>
+                                    <option value="American Express">American Express</option>
+                                    <option value="Discover">Discover</option>
+                                    <option value="Bankcard">Bankcard</option>
+                                    <option value="Bartercard">Bartercard</option>
+                                </select>
+                            </div>
                         </div>
                         <div>
                             <label class="text-xs font-bold text-gray-500">Number</label>
-                            <input type="text" wire:model="edit_card_number" class="modal-input" placeholder="0000 0000 0000 0000" maxlength="19">
+                            <input type="text" wire:model="edit_card_number" 
+                                x-on:input="$el.value = $el.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()"
+                                class="modal-input" placeholder="0000 0000 0000 0000" maxlength="19">
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="text-xs font-bold text-gray-500">Expiry</label>
-                                <input type="text" wire:model="edit_card_expiry" class="modal-input text-center" placeholder="MM/YY" maxlength="5">
+                                <input type="text" wire:model="edit_card_expiry" 
+                                    x-on:input="
+                                        let v = $el.value.replace(/\D/g, '');
+                                        if (v.length > 2) v = v.substring(0,2) + '/' + v.substring(2,4);
+                                        $el.value = v;
+                                    "
+                                    class="modal-input text-center" placeholder="MM/YY" maxlength="5">
                             </div>
                             <div>
                                 <label class="text-xs font-bold text-gray-500">CVV</label>
@@ -763,14 +788,26 @@
                         @if ($view_payment_details)
                         <div class="flex justify-between"><span class="font-bold text-gray-500">Amount:</span> <span class="text-green-600 font-bold">${{ number_format($view_payment_details->amount, 2) }}</span></div>
                         <div class="flex justify-between"><span class="font-bold text-gray-500">Date:</span> <span class="font-medium">{{ \Carbon\Carbon::parse($view_payment_details->payment_date)->format('d/m/Y') }}</span></div>
-                        <div class="flex justify-between"><span class="font-bold text-gray-500">Method:</span> <span class="font-medium">{{ $view_payment_details->payment_method }}</span></div>
+                        <div class="flex justify-between"><span class="font-bold text-gray-500">Method:</span> <span class="font-medium">{{ $view_payment_details->payment_method === 'Card Holder' ? 'Credit/Debit Card' : $view_payment_details->payment_method }}</span></div>
 
                         @if ($view_payment_details->payment_method === 'Card Holder')
-                        <div class="flex justify-between items-center">
-                            <span class="font-bold text-gray-500">Card:</span>
-                            <span class="font-mono bg-gray-50 px-1.5 py-0.5 rounded border text-xs text-gray-600">
-                                {{ $view_payment_details->booking->card_type ?? 'Card' }} *{{ substr($view_payment_details->booking->card_number ?? '0000', -4) }}
-                            </span>
+                        <div class="flex flex-col gap-1.5 mt-2 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-bold text-gray-400 uppercase text-[10px]">Method:</span>
+                                <span class="font-bold text-gray-700">{{ $view_payment_details->booking->card_type ?? 'Card' }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-bold text-gray-400 uppercase text-[10px]">Card:</span>
+                                <span class="font-mono font-bold text-gray-700">**** **** {{ !empty($view_payment_details->booking->card_number) ? substr(str_replace(' ', '', $view_payment_details->booking->card_number), -8, 4) . ' ' . substr(str_replace(' ', '', $view_payment_details->booking->card_number), -4) : 'N/A' }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-bold text-gray-400 uppercase text-[10px]">Expiry:</span>
+                                <span class="font-bold text-gray-700">**/**</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-bold text-gray-400 uppercase text-[10px]">CVV:</span>
+                                <span class="font-bold text-gray-700">***</span>
+                            </div>
                         </div>
                         @elseif ($view_payment_details->payment_method === 'EFT')
                         <div class="flex justify-between"><span class="font-bold text-gray-500">Via:</span> <span class="font-medium">{{ $view_payment_details->booking->eft_method ?? 'Direct Deposit' }}</span></div>

@@ -47,7 +47,7 @@
                                 <div class="relative">
                                     <select wire:model.live="form.payment_type" class="w-full pt-5 pb-2 px-4 bg-[#1e293b] border border-slate-700 rounded-xl text-sm font-medium text-white appearance-none outline-none focus:border-[#9D686E] focus:ring-1 focus:ring-[#9D686E]">
                                         <option value="EFT">EFT / Bank Transfer</option>
-                                        <option value="Card Holder">Card Holder</option>
+                                        <option value="Card Holder">Credit/Debit Card</option>
                                     </select>
                                     <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></div>
                                 </div>
@@ -72,33 +72,50 @@
                             @endif
 
                             @if(in_array(($form['payment_type'] ?? ''), ['Card Holder', 'credit_card']))
-                            <div class="bg-slate-800/80 rounded-2xl p-6 border border-slate-700 shadow-inner animate-[fadeIn_0.2s_ease-in]">
-                                <h3 class="text-xs font-bold text-[#9D686E] uppercase mb-5 flex justify-between items-center">
-                                    <span>Card Holder Details</span>
+                            <div class="bg-slate-800/80 rounded-2xl p-6 border border-slate-700 shadow-inner animate-[fadeIn_0.2s_ease-in] space-y-4">
+                                <h3 class="text-xs font-bold text-[#9D686E] uppercase mb-1 flex justify-between items-center">
+                                    <span>Card Details</span>
                                     <span class="material-symbols-rounded text-slate-500 text-sm">lock</span>
                                 </h3>
 
-                                <div class="grid grid-cols-2 gap-4 mb-5">
-                                    <div>
-                                        <label class="text-[10px] text-slate-500 uppercase font-bold mb-1 block">Network</label>
-                                        <select wire:model="form.card_network" class="w-full py-2 px-3 bg-[#1e293b] border border-slate-700 rounded-xl text-xs md:text-sm text-white outline-none">
-                                            <option value="Visa">Visa</option>
-                                            <option value="Mastercard">Mastercard</option>
-                                            <option value="AMEX">American Express</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] text-slate-500 uppercase font-bold mb-1 block">Category</label>
-                                        <select wire:model="form.card_category" class="w-full py-2 px-3 bg-[#1e293b] border border-slate-700 rounded-xl text-xs md:text-sm text-white outline-none">
-                                            <option value="Credit">Credit</option>
-                                            <option value="Debit">Debit</option>
-                                        </select>
-                                    </div>
+                                <div>
+                                    <label class="text-[10px] text-slate-500 uppercase font-bold mb-1 block">Network</label>
+                                    <select wire:model="form.card_network" class="w-full py-2 px-3 bg-[#1e293b] border border-slate-700 rounded-xl text-xs md:text-sm text-white outline-none">
+                                        <option value="Visa">Visa</option>
+                                        <option value="Mastercard">Mastercard</option>
+                                        <option value="American Express">American Express</option>
+                                        <option value="Discover">Discover</option>
+                                        <option value="Bankcard">Bankcard</option>
+                                        <option value="Bartercard">Bartercard</option>
+                                    </select>
                                 </div>
 
                                 <div class="relative">
-                                    <input type="text" wire:model="form.card_number" placeholder="**** **** **** {{ $form['card_last4'] ?? '1234' }}" class="w-full pt-5 pb-2 px-4 bg-[#1e293b] border border-slate-700 rounded-xl font-mono tracking-widest text-lg text-white outline-none focus:border-[#9D686E]">
+                                    <input type="text" wire:model="form.card_number" 
+                                        x-on:input="$el.value = $el.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()"
+                                        maxlength="19"
+                                        placeholder="0000 0000 0000 0000" 
+                                        class="w-full pt-5 pb-2 px-4 bg-[#1e293b] border border-slate-700 rounded-xl font-mono tracking-widest text-lg text-white outline-none focus:border-[#9D686E]">
                                     <label class="absolute top-2 left-4 text-[0.65rem] font-bold text-[#9D686E]">Card Number</label>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="relative">
+                                        <input type="text" wire:model="form.card_expiry" 
+                                            x-on:input="
+                                                let v = $el.value.replace(/\D/g, '');
+                                                if (v.length > 2) v = v.substring(0,2) + '/' + v.substring(2,4);
+                                                $el.value = v;
+                                            "
+                                            maxlength="5"
+                                            placeholder="MM/YY" 
+                                            class="w-full pt-5 pb-2 px-4 bg-[#1e293b] border border-slate-700 rounded-xl font-mono text-center text-sm text-white outline-none focus:border-[#9D686E]">
+                                        <label class="absolute top-2 left-0 w-full text-center text-[0.65rem] font-bold text-[#9D686E]">Expiry</label>
+                                    </div>
+                                    <div class="relative">
+                                        <input type="text" wire:model="form.card_cvv" maxlength="4" placeholder="***" class="w-full pt-5 pb-2 px-4 bg-[#1e293b] border border-slate-700 rounded-xl font-mono text-center text-sm text-white outline-none focus:border-[#9D686E]">
+                                        <label class="absolute top-2 left-0 w-full text-center text-[0.65rem] font-bold text-[#9D686E]">CVV</label>
+                                    </div>
                                 </div>
                             </div>
                             @endif

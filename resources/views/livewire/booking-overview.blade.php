@@ -81,10 +81,36 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Payment Method</span>
-                <p class="text-lg font-black text-slate-800 capitalize">{{ $booking->payment_type ?: 'Not Defined' }}</p>
-            </div>
+             <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-between">
+                 <div>
+                     <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Payment Method</span>
+                     @php
+                         $displayType = $booking->payment_type === 'Card Holder' ? 'Credit/Debit Card' : ($booking->payment_type ?: 'Not Defined');
+                         $network = strtolower($booking->card_network ?? '');
+                         $networkIcon = '';
+                         if (str_contains($network, 'visa')) $networkIcon = '<i class="fa-brands fa-cc-visa text-blue-600"></i>';
+                         elseif (str_contains($network, 'mastercard')) $networkIcon = '<i class="fa-brands fa-cc-mastercard text-orange-500"></i>';
+                         elseif (str_contains($network, 'amex') || str_contains($network, 'american express')) $networkIcon = '<i class="fa-brands fa-cc-amex text-blue-400"></i>';
+                         elseif (str_contains($network, 'discover')) $networkIcon = '<i class="fa-brands fa-cc-discover text-orange-400"></i>';
+                         elseif (str_contains($network, 'diners')) $networkIcon = '<i class="fa-brands fa-cc-diners-club text-blue-800"></i>';
+                         else $networkIcon = '<i class="fa-solid fa-credit-card text-gray-400"></i>';
+                     @endphp
+                     <p class="text-lg font-black text-slate-800 flex items-center gap-2">
+                         {!! $booking->payment_type === 'Card Holder' ? $networkIcon : '' !!}
+                         {{ $displayType }}
+                     </p>
+                 </div>
+                 @if($booking->payment_type === 'Card Holder')
+                 <div class="mt-2 pt-2 border-t border-gray-200">
+                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Card:</span>
+                    @php
+                        $cleanNum = str_replace(' ', '', $booking->card_number ?? '');
+                        $masked = !empty($cleanNum) ? '**** **** ' . substr($cleanNum, -8, 4) . ' ' . substr($cleanNum, -4) : 'N/A';
+                    @endphp
+                    <span class="text-[11px] font-mono font-bold text-gray-600 ml-1">{{ $masked }} | Exp: **/** | CVV: ***</span>
+                 </div>
+                 @endif
+             </div>
             <div class="bg-[#9D686E]/5 p-4 rounded-xl border border-[#9D686E]/10">
                 <span class="text-[10px] font-black text-[#9D686E] uppercase tracking-widest block mb-1">Grand Total</span>
                 <p class="text-3xl font-black text-[#9D686E] tracking-tighter leading-none">${{ number_format($totalAmount, 2) }}</p>
@@ -122,8 +148,11 @@
                     <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Lead Contact</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->customer_first_name }} {{ $booking->customer_last_name }}</span></div>
                     <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Service Date</span><span class="text-[0.8rem] font-bold text-slate-800">{{ \Carbon\Carbon::parse($booking->event_date)->format('l, d M Y') }}</span></div>
                     <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Operations Window</span><span class="text-[0.8rem] font-black text-[#9D686E]">{{ $timeString }}</span></div>
-                    <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Shift Duration</span><span class="text-[0.8rem] font-bold text-gray-800">{{ $booking->duration ?: 'no note' }}</span></div>
-                    <div class="flex justify-between mb-1 pb-1"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Expected Pax</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->expected_people }}</span></div>
+                    <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Shift Duration</span><span class="text-[0.8rem] font-bold text-gray-800">{{ $booking->duration ?: 'no note' }} @if($booking->duration_cost > 0) <span class="text-[#9D686E] ml-1">(${{ number_format($booking->duration_cost, 2) }})</span> @endif</span></div>
+                    <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Operational Hours</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->operational_hours ?: 'Standard' }}</span></div>
+                    <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Hire Type</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->hire_type ?: 'Standard' }}</span></div>
+                    <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Delivery</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->delivery_area ?: 'Not Set' }} <span class="text-[#9D686E] ml-1">(${{ number_format($deliveryCost, 2) }})</span></span></div>
+                    <div class="flex justify-between mb-1 pb-1 text-slate-400 uppercase"><span class="text-[0.7rem] font-bold">Expected Pax</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->expected_people }}</span></div>
                 </div>
 
                 @if($calculatedExtrasTotal > 0)

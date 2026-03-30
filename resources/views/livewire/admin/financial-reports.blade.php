@@ -156,6 +156,7 @@
                     <tr>
                         <th class="px-6 py-4">Event Date</th>
                         <th class="px-6 py-4">Customer</th>
+                        <th class="px-6 py-4">Method</th>
                         <th class="px-6 py-4 text-right">Total</th>
                         <th class="px-6 py-4 text-right">Paid</th>
                         <th class="px-6 py-4 text-right">Balance Due</th>
@@ -167,6 +168,23 @@
                         <tr class="hover:bg-red-50/30 transition">
                             <td class="px-6 py-4 text-gray-500" x-text="u.event_date"></td>
                             <td class="px-6 py-4 font-bold text-gray-700" x-text="u.name"></td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <template x-if="u.payment_type === 'Card Holder'">
+                                        <div class="flex items-center gap-1.5">
+                                            <i class="fa-brands fa-cc-visa text-blue-600" x-show="u.card_network?.toLowerCase().includes('visa')"></i>
+                                            <i class="fa-brands fa-cc-mastercard text-orange-500" x-show="u.card_network?.toLowerCase().includes('mastercard')"></i>
+                                            <i class="fa-brands fa-cc-amex text-blue-400" x-show="u.card_network?.toLowerCase().includes('amex') || u.card_network?.toLowerCase().includes('american express')"></i>
+                                            <i class="fa-brands fa-cc-discover text-orange-400" x-show="u.card_network?.toLowerCase().includes('discover')"></i>
+                                            <i class="fa-solid fa-credit-card text-gray-400" x-show="!u.card_network?.toLowerCase().includes('visa') && !u.card_network?.toLowerCase().includes('mastercard') && !u.card_network?.toLowerCase().includes('amex') && !u.card_network?.toLowerCase().includes('american express') && !u.card_network?.toLowerCase().includes('discover')"></i>
+                                            <span class="text-[10px] font-bold text-gray-600 uppercase">Card</span>
+                                        </div>
+                                    </template>
+                                    <template x-if="u.payment_type !== 'Card Holder'">
+                                        <span class="text-[10px] font-bold text-gray-400 uppercase" x-text="u.payment_type || 'N/A'"></span>
+                                    </template>
+                                </div>
+                            </td>
                             <td class="px-6 py-4 text-right text-gray-500" x-text="'$' + u.total_amount.toFixed(2)"></td>
                             <td class="px-6 py-4 text-right text-green-600 font-medium" x-text="'$' + u.paid_amount.toFixed(2)"></td>
                             <td class="px-6 py-4 text-right font-bold text-red-500" x-text="'$' + u.balance.toFixed(2)"></td>
@@ -174,7 +192,7 @@
                         </tr>
                     </template>
                     <tr x-show="items.length === 0">
-                        <td colspan="6" class="px-6 py-8 text-center text-gray-400 italic">No outstanding payments for this period!</td>
+                        <td colspan="7" class="px-6 py-8 text-center text-gray-400 italic">No outstanding payments for this period!</td>
                     </tr>
                 </tbody>
             </table>
@@ -197,6 +215,7 @@
                     <tr>
                         <th class="px-6 py-4">Event Date</th>
                         <th class="px-6 py-4">Customer</th>
+                        <th class="px-6 py-4">Method</th>
                         <th class="px-6 py-4">Type</th>
                         <th class="px-6 py-4 text-right">Total Paid</th>
                         <th class="px-6 py-4 text-center">Action</th>
@@ -207,13 +226,30 @@
                         <tr class="hover:bg-green-50/30 transition">
                             <td class="px-6 py-4 text-gray-500" x-text="p.event_date"></td>
                             <td class="px-6 py-4 font-bold text-gray-700" x-text="p.name"></td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <template x-if="p.payment_type === 'Card Holder'">
+                                        <div class="flex items-center gap-1.5">
+                                            <i class="fa-brands fa-cc-visa text-blue-600" x-show="p.card_network?.toLowerCase().includes('visa')"></i>
+                                            <i class="fa-brands fa-cc-mastercard text-orange-500" x-show="p.card_network?.toLowerCase().includes('mastercard')"></i>
+                                            <i class="fa-brands fa-cc-amex text-blue-400" x-show="p.card_network?.toLowerCase().includes('amex') || p.card_network?.toLowerCase().includes('american express')"></i>
+                                            <i class="fa-brands fa-cc-discover text-orange-400" x-show="p.card_network?.toLowerCase().includes('discover')"></i>
+                                            <i class="fa-solid fa-credit-card text-gray-400" x-show="!p.card_network?.toLowerCase().includes('visa') && !p.card_network?.toLowerCase().includes('mastercard') && !p.card_network?.toLowerCase().includes('amex') && !p.card_network?.toLowerCase().includes('american express') && !p.card_network?.toLowerCase().includes('discover')"></i>
+                                            <span class="text-[10px] font-bold text-gray-600 uppercase">Card</span>
+                                        </div>
+                                    </template>
+                                    <template x-if="p.payment_type !== 'Card Holder'">
+                                        <span class="text-[10px] font-bold text-gray-400 uppercase" x-text="p.payment_type || 'N/A'"></span>
+                                    </template>
+                                </div>
+                            </td>
                             <td class="px-6 py-4"><span class="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs" x-text="p.event_type"></span></td>
                             <td class="px-6 py-4 text-right font-bold text-green-600" x-text="'$' + p.total_amount.toFixed(2)"></td>
                             <td class="px-6 py-4 text-center"><a :href="'/bookings/' + p.id" class="text-xs font-bold text-blue-500 hover:underline">View</a></td>
                         </tr>
                     </template>
                     <tr x-show="items.length === 0">
-                        <td colspan="5" class="px-6 py-8 text-center text-gray-400 italic">No paid bookings found.</td>
+                        <td colspan="6" class="px-6 py-8 text-center text-gray-400 italic">No paid bookings found.</td>
                     </tr>
                 </tbody>
             </table>
@@ -236,6 +272,7 @@
                     <tr>
                         <th class="px-6 py-4">Date</th>
                         <th class="px-6 py-4">Customer</th>
+                        <th class="px-6 py-4">Method</th>
                         <th class="px-6 py-4">Type</th>
                         <th class="px-6 py-4 text-right">Amount</th>
                     </tr>
@@ -245,13 +282,28 @@
                         <tr class="hover:bg-gray-50/50 transition">
                             <td class="px-6 py-4 text-gray-500" x-text="t.event_date"></td>
                             <td class="px-6 py-4 font-bold text-gray-700" x-text="t.name"></td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <template x-if="t.payment_type === 'Card Holder'">
+                                        <div class="flex items-center gap-1.5">
+                                            <i class="fa-brands fa-cc-visa text-blue-600" x-show="t.card_network?.toLowerCase().includes('visa')"></i>
+                                            <i class="fa-brands fa-cc-mastercard text-orange-500" x-show="t.card_network?.toLowerCase().includes('mastercard')"></i>
+                                            <i class="fa-brands fa-cc-amex text-blue-400" x-show="t.card_network?.toLowerCase().includes('amex') || t.card_network?.toLowerCase().includes('american express')"></i>
+                                            <i class="fa-brands fa-cc-discover text-orange-400" x-show="t.card_network?.toLowerCase().includes('discover')"></i>
+                                            <i class="fa-solid fa-credit-card text-gray-400" x-show="!t.card_network?.toLowerCase().includes('visa') && !t.card_network?.toLowerCase().includes('mastercard') && !t.card_network?.toLowerCase().includes('amex') && !t.card_network?.toLowerCase().includes('american express') && !t.card_network?.toLowerCase().includes('discover')"></i>
+                                            <span class="text-[10px] font-bold text-gray-600 uppercase">Card</span>
+                                        </div>
+                                    </template>
+                                    <template x-if="t.payment_type !== 'Card Holder'">
+                                        <span class="text-[10px] font-bold text-gray-400 uppercase" x-text="t.payment_type || 'N/A'"></span>
+                                    </template>
+                                </div>
+                            </td>
                             <td class="px-6 py-4"><span class="px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs font-bold" x-text="t.event_type"></span></td>
                             <td class="px-6 py-4 text-right font-bold text-green-600" x-text="'+$' + t.total_amount.toFixed(2)"></td>
                         </tr>
                     </template>
                     <tr x-show="items.length === 0">
-                        <td colspan="4" class="px-6 py-8 text-center text-gray-400 italic">No transactions found.</td>
-                    </tr>
                 </tbody>
             </table>
         </div>

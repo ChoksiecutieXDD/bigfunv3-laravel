@@ -103,7 +103,7 @@ class BookingOverview extends Component
             $baseAmount = $totalAmount / 1.029;
         }
 
-        $deliveryCost = $this->booking->delivery_fee ?? $this->booking->delivery_cost ?? 0;
+        $deliveryCost = $this->booking->delivery_cost ?? $this->booking->delivery_fee ?? 0;
         $ridesCost = max(0, $baseAmount - $calculatedExtrasTotal - $deliveryCost);
 
         $statusColor = match ($this->booking->status) {

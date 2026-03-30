@@ -128,18 +128,18 @@
                                 <div class="input-group">
                                     <label class="input-label text-slate-400 !ml-1">Payment Type</label>
                                     <div class="relative">
-                                        <select id="main_payment_type" name="payment_type" x-model="paymentType" @change="updatePaymentMethods()" class="input-dark appearance-none cursor-pointer">
+                                        <select name="payment_type" x-model="paymentType" @change="updatePaymentMethods()" class="input-dark appearance-none cursor-pointer">
                                             <option value="EFT">EFT / Bank Transfer</option>
-                                            <option value="Card Holder">Card Holder</option>
+                                            <option value="Card Holder">Credit/Debit Card</option>
                                         </select>
                                         <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
                                     </div>
                                 </div>
 
-                                <div class="input-group">
+                                <div class="input-group" x-show="paymentType === 'EFT'" x-transition>
                                     <label class="input-label text-slate-400 !ml-1">Payment Method</label>
                                     <div class="relative">
-                                        <select id="sub_payment_method" name="payment_method" x-model="paymentMethod" @change="triggerRecalculate()" class="input-dark appearance-none cursor-pointer">
+                                        <select name="payment_method" x-model="paymentMethod" @change="triggerRecalculate()" class="input-dark appearance-none cursor-pointer">
                                             <template x-for="opt in paymentMethods" :key="opt">
                                                 <option :value="opt" x-text="opt"></option>
                                             </template>
@@ -151,35 +151,39 @@
 
                             <div x-show="paymentType === 'Card Holder'" x-collapse class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 mt-4 shadow-inner flex flex-col gap-4">
                                 <h4 class="text-xs font-bold text-[#9E6B73] uppercase flex justify-between items-center"><span>Card Details</span><span class="material-symbols-rounded text-sm">lock</span></h4>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div class="relative">
-                                        <select name="card_category" class="input-dark appearance-none !py-3 text-sm cursor-pointer">
-                                            <option value="Credit">Credit Card</option>
-                                            <option value="Debit">Debit Card</option>
-                                        </select>
-                                        <span class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded text-sm">expand_more</span></span>
-                                    </div>
+                                <div class="grid grid-cols-1 gap-4">
                                     <div class="relative">
                                         <select name="card_network" id="card_network" x-model="cardNetwork" class="input-dark appearance-none !py-3 text-sm cursor-pointer">
                                             <option value="Visa">Visa</option>
                                             <option value="Mastercard">Mastercard</option>
-                                            <option value="AMEX">AMEX</option>
+                                            <option value="American Express">American Express</option>
+                                            <option value="Discover">Discover</option>
+                                            <option value="Bankcard">Bankcard</option>
+                                            <option value="Bartercard">Bartercard</option>
                                         </select>
                                         <span class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded text-sm">expand_more</span></span>
                                     </div>
                                 </div>
 
                                 <div class="relative">
-                                    <input type="text" name="card_number" id="card_number" placeholder=" " maxlength="19" class="input-dark font-mono text-lg tracking-widest">
+                                    <input type="text" name="card_number" id="card_number" placeholder=" " maxlength="19" 
+                                        x-on:input="$el.value = $el.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()"
+                                        class="input-dark font-mono text-lg tracking-widest">
                                     <label class="input-floating-label">Card Number</label>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="relative">
-                                        <input type="text" name="card_expiry" id="card_expiry" placeholder=" " maxlength="5" class="input-dark text-center font-mono">
+                                        <input type="text" name="card_expiry" id="card_expiry" placeholder=" " maxlength="5" 
+                                            x-on:input="
+                                                let v = $el.value.replace(/\D/g, '');
+                                                if (v.length > 2) v = v.substring(0,2) + '/' + v.substring(2,4);
+                                                $el.value = v;
+                                            "
+                                            class="input-dark text-center font-mono">
                                         <label class="input-floating-label">MM/YY</label>
                                     </div>
                                     <div class="relative">
-                                        <input type="text" name="card_cvv" placeholder=" " :maxlength="cardNetwork === 'AMEX' ? 4 : 3" class="input-dark text-center font-mono">
+                                        <input type="text" name="card_cvv" id="card_cvv" placeholder=" " :maxlength="['American Express', 'AMEX'].includes(cardNetwork) ? 4 : 3" class="input-dark text-center font-mono">
                                         <label class="input-floating-label">CVV</label>
                                     </div>
                                 </div>
@@ -639,6 +643,10 @@
                                 <p class="flex justify-between"><span>Processing Fee:</span> <span id="rev_sur_cost" class="font-bold text-white"></span></p>
                                 <div class="border-t border-slate-600 pt-2 mt-2"></div>
                                 <p class="flex justify-between text-xs text-slate-400"><span>Grand Total:</span> <span id="rev_total" class="font-bold text-white text-lg"></span></p>
+                                <div x-show="paymentType === 'Card Holder'" class="mt-2 p-3 bg-slate-900/50 rounded-xl border border-slate-700 space-y-1">
+                                    <div class="flex justify-between text-[10px]"><span class="text-slate-500 uppercase">Card:</span> <span class="font-mono text-white" id="rev_card_masked">**** **** **** ****</span></div>
+                                    <div class="flex justify-between text-[10px]"><span class="text-slate-500 uppercase">Exp/CVV:</span> <span class="font-mono text-white">** / ** | ***</span></div>
+                                </div>
                                 <p class="flex justify-between text-xs text-emerald-400"><span>Deposit Paid:</span> <span id="rev_deposit_paid" class="font-bold"></span></p>
                                 <p class="flex justify-between font-bold items-center border-t border-slate-600 pt-3 mt-2"><span class="text-[#9E6B73] uppercase text-xs tracking-wider">Balance Due:</span> <span id="rev_balance_due" class="text-2xl text-white"></span></p>
                                 

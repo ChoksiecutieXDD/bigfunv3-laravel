@@ -25,6 +25,8 @@ class BookingOverview extends Component
     public $payMethod = 'EFT';
     public $eftMethod = 'Direct Deposit';
     public $cardNum;
+    public $cardExpiry;
+    public $cardCvv;
     public $cardCategory = 'Debit Card';
     public $cardNetwork = 'Visa';
     public $payDate;
@@ -164,6 +166,10 @@ class BookingOverview extends Component
             'payment_date' => $this->payDate,
             'reference' => $this->payRef,
             'notes' => $this->payNotes,
+            'card_number' => $this->payMethod === 'Card Holder' ? $this->cardNum : null,
+            'card_expiry' => $this->payMethod === 'Card Holder' ? $this->cardExpiry : null,
+            'card_cvv' => $this->payMethod === 'Card Holder' ? $this->cardCvv : null,
+            'card_network' => $this->payMethod === 'Card Holder' ? $this->cardNetwork : null,
         ]);
 
         $this->reset(['payAmount', 'payRef', 'payNotes']);
@@ -183,18 +189,34 @@ class BookingOverview extends Component
         $fName = $this->booking->customer_first_name;
         $fullName = $fName . ' ' . $this->booking->customer_last_name;
         $eventDate = Carbon::parse($this->booking->event_date)->format('d/m/Y');
+        $invNum = $this->booking->invoice_number ?? $this->booking->id;
+        $fullAddress = $this->booking->address_line_1 . ', ' . $this->booking->suburb . ' ' . $this->booking->state . ' ' . $this->booking->postcode;
+        
+        $startTime = Carbon::parse($this->booking->start_time);
+        $timeString = $startTime->format('g:i A');
+        if (!empty($this->booking->end_time) && $this->booking->end_time != '00:00:00') {
+            $timeString .= ' - ' . Carbon::parse($this->booking->end_time)->format('g:i A');
+        }
+
+        $paymentMethod = $this->booking->payment_type ?: 'None';
+        if ($paymentMethod === 'Card Holder' || $paymentMethod === 'credit_card') {
+            $paymentMethod = 'Credit/Debit Card';
+        }
 
         if ($type === 'receipt') {
+            // Payment Receipt
             $this->emailSubject = "Payment Receipt - Booking #{$this->booking->id}";
-            $this->emailBody = "$fullName\n\nThank you for your payment for your booking on $eventDate.\n\nInvoice Amount: $" . number_format($totalAmount, 2) . "\nAmount Paid: $" . number_format($amountPaid, 2) . "\nAmount Owing: $" . number_format($balanceDue, 2) . "\n\nRegards\nBIG FUN";
+            $this->emailBody = "$fullName\n\nBIG FUN INVOICE No.: $invNum\n\nThank you for your payment for your booking on $eventDate. Do not hesitate to contact us if you have any questions.\n\nInvoice Amount: $" . number_format($totalAmount, 2) . "\n\nAmount Paid:  $" . number_format($amountPaid, 2) . "\nPayment Method: $paymentMethod\n\nAmount Owing: $" . number_format($balanceDue, 2) . "\n\nREMEMBER: Your final payment is due PRIOR to your event.\n\nRegards\n\nBIG FUN\nwww.bigfun.com.au\n1800 244 386";
             $this->emailAttachment = "BigFunReceipt-{$this->booking->id}.pdf";
         } elseif ($type === 'po') {
+            // Purchase Order Reference
             $this->emailSubject = "Purchase Order Reference - Booking #{$this->booking->id}";
-            $this->emailBody = "Hello $fName,\n\nPlease find attached the Purchase Order Reference / Quotation for your internal approval process.\n\nTotal Proposed Cost: $" . number_format($totalAmount, 2) . "\n\nKind regards,\nBIG FUN";
+            $this->emailBody = "Hello $fName,\n\nThank you for your inquiry regarding the event on $eventDate.\n\nPlease find attached the Purchase Order Reference / Quotation for your internal approval process. This document outlines the rides, logistics, and total costs associated with your request.\n\nThis document serves as a reference to help you decide if you wish to proceed with the booking. It is not a demand for payment.\n\nBooking Proposal:\nDate: $eventDate\nTime: $timeString\nLocation: $fullAddress\n\nFinancial Summary:\nTotal Proposed Cost: $" . number_format($totalAmount, 2) . "\n\nIf you decide to proceed, please let us know so we can finalize the details and issue a formal invoice.\n\nIf you have any questions or require assistance, please feel free to contact us on 1800 244 386.\n\nKind regards,\nBIG FUN\n1800 244 386";
             $this->emailAttachment = "BigFunPurchaseOrder-{$this->booking->id}.pdf";
         } else {
-            $this->emailSubject = "Big Fun Invoice - Booking #{$this->booking->id}";
-            $this->emailBody = "Hello,\n\nPlease find attached the paperwork for your booking on $eventDate. Kindly review the document to ensure all contact and delivery details are correct.\n\nTotal Amount: $" . number_format($totalAmount, 2) . "\nBalance Due: $" . number_format($balanceDue, 2) . "\n\nKind regards,\nBIG FUN";
+            // Big Fun Invoice (Paperwork/Deposit)
+            $this->emailSubject = "Big Fun Invoice - $invNum";
+            $this->emailBody = "Hello,\n\nPlease find attached the paperwork for your booking on $eventDate. Kindly review the document to ensure all contact and delivery details are correct, then sign and return the form to us via email.\n\nBooking Details:\nDate: $eventDate\nTime: $timeString\nLocation: $fullAddress\n\nPayment Details:\nYour deposit is now due. The remaining balance is payable during the week of your event via direct deposit or Electronic Funds Transfer (EFT). Please note that our drivers do not accept payments.\n\nTotal Amount: $" . number_format($totalAmount, 2) . "\nBalance Due: $" . number_format($balanceDue, 2) . "\n\nAll payments should be made to Big Fun. Please ensure your invoice number is quoted as the payment reference.\n\nIf you have any questions or require assistance, please feel free to contact us on 1800 244 386.\n\nThank you again for booking with us.\n\nKind regards,\nBIG FUN\n1800 244 386";
             $this->emailAttachment = "BigFunInvoice-{$this->booking->id}.pdf";
         }
 
@@ -309,7 +331,7 @@ class BookingOverview extends Component
             $surcharge = $totalAmount - $baseAmount;
         }
 
-        $deliveryCost = $this->booking->delivery_fee ?? $this->booking->delivery_cost ?? 0;
+        $deliveryCost = $this->booking->delivery_cost ?? $this->booking->delivery_fee ?? 0;
         $ridesCost = max(0, $baseAmount - $calculatedExtrasTotal - $deliveryCost);
 
         $statusColor = match ($this->booking->status) {

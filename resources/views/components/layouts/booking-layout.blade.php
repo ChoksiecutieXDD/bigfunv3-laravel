@@ -6,8 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $title ?? 'Booking Administration - BigFun' }}</title>
-
+    <title>BigFun</title>
     <link rel="icon" type="image/png" href="/assets/icon/bfun.png">
 
     @vite(['resources/css/app.css'])

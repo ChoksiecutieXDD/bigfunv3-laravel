@@ -132,6 +132,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/bookings/create', SupervisorNewBooking::class)->name('bookings.create');
         Route::get('/bookings/{id}', \App\Livewire\Supervisor\BookingOverview::class)->name('bookings.overview');
         Route::get('/bookings/{id}/edit', \App\Livewire\Supervisor\EditBooking::class)->name('bookings.edit');
+        Route::get('/customer/{id}', \App\Livewire\Supervisor\CustomerProfile::class)->name('customer.profile');
         Route::get('/history', BookingHistory::class)->name('history');
         Route::get('/logistics', LogisticsInbox::class)->name('logistics');
         Route::get('/enquiries', ManageEnquiries::class)->name('enquiries');
