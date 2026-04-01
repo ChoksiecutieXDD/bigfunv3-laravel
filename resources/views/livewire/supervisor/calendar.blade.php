@@ -282,10 +282,17 @@
                 </h4>
                 <div class="space-y-2">
                     @forelse($urgentAlerts ?? [] as $alert)
-                    <div class="p-3 bg-red-50 border border-red-100 rounded-lg text-sm">
-                        <p class="font-bold text-red-700">{{ $alert->customer_first_name }}</p>
-                        <p class="text-red-600">Balance due: ${{ $alert->balance }}</p>
-                    </div>
+                    <a href="{{ route('supervisor.bookings.overview', $alert->id) }}" class="block p-3 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg text-sm transition shadow-sm group">
+                        <div class="flex justify-between items-start">
+                            <p class="font-bold text-red-700 group-hover:text-red-800 transition">{{ $alert->customer_first_name }} {{ $alert->customer_last_name }}</p>
+                            <span class="text-[10px] font-bold text-red-500 bg-red-100 px-1.5 py-0.5 rounded">{{ \Carbon\Carbon::parse($alert->event_date)->format('M d') }}</span>
+                        </div>
+                        <p class="text-xs text-red-600/80 font-medium mt-0.5">INV-{{ $alert->invoice_number ?? $alert->id }}</p>
+                        <p class="text-red-600 font-bold mt-1.5 flex items-center justify-between">
+                            <span>Balance due:</span>
+                            <span class="text-base">${{ number_format($alert->balance, 2) }}</span>
+                        </p>
+                    </a>
                     @empty
                     <div class="text-xs text-gray-400 italic">No urgent alerts.</div>
                     @endforelse
@@ -294,15 +301,42 @@
 
             <div>
                 <h4 class="text-xs font-bold text-gray-400 uppercase mb-3 tracking-wider flex items-center gap-1">
-                    <span class="material-symbols-rounded text-sm">event_upcoming</span> Upcoming (7 Days)
+                    <span class="material-symbols-rounded text-sm">event_upcoming</span> Upcoming (Next 7 Days)
                 </h4>
                 <div class="space-y-2">
                     @forelse($upcomingEvents ?? [] as $event)
-                    <div class="p-3 bg-gray-50 border border-gray-100 rounded-lg text-sm">
-                        <p class="font-bold text-gray-700">{{ \Carbon\Carbon::parse($event->event_date)->format('M d') }} - {{ $event->customer_first_name }}</p>
-                    </div>
+                    @php
+                        $isUrgent = \Carbon\Carbon::parse($event->event_date)->startOfDay()->diffInDays(now()->startOfDay(), true) <= 3;
+                    @endphp
+                    <a href="{{ route('supervisor.bookings.overview', $event->id) }}" class="block p-3 border rounded-lg text-sm transition shadow-sm group {{ $isUrgent ? 'bg-orange-50 hover:bg-orange-100 border-orange-200' : 'bg-gray-50 hover:bg-white border-gray-100 hover:border-[#9D686E]/40' }}">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="font-bold transition {{ $isUrgent ? 'text-orange-700 group-hover:text-orange-800' : 'text-gray-700 group-hover:text-[#9D686E]' }}">{{ \Carbon\Carbon::parse($event->event_date)->format('l, M d') }}</p>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded {{ $isUrgent ? 'text-orange-600 bg-orange-200/50' : 'text-gray-500 bg-gray-200/50' }}">{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }}</span>
+                        </div>
+                        <p class="font-bold {{ $isUrgent ? 'text-orange-900' : 'text-gray-800' }}">{{ $event->customer_first_name }} {{ $event->customer_last_name }}</p>
+                        <p class="text-xs {{ $isUrgent ? 'text-orange-600/80' : 'text-gray-500' }} mt-1 truncate">{{ $event->suburb ?? 'No Address' }}</p>
+                    </a>
                     @empty
                     <div class="text-xs text-gray-400 italic">No upcoming events.</div>
+                    @endforelse
+                </div>
+            </div>
+
+            <div>
+                <h4 class="text-xs font-bold text-orange-500 uppercase mb-3 tracking-wider flex items-center gap-1">
+                    <span class="material-symbols-rounded text-sm">pending_actions</span> Pending Completion
+                </h4>
+                <div class="space-y-2">
+                    @forelse($pendingCompletionAlerts ?? [] as $alert)
+                    <a href="{{ route('supervisor.bookings.overview', $alert->id) }}" class="block p-3 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg text-sm transition shadow-sm group">
+                        <div class="flex justify-between items-start">
+                            <p class="font-bold text-red-700 group-hover:text-red-800 transition">{{ $alert->customer_first_name }} {{ $alert->customer_last_name }}</p>
+                            <span class="text-[10px] font-bold text-red-500 bg-red-100 px-1.5 py-0.5 rounded">{{ \Carbon\Carbon::parse($alert->event_date)->format('M d') }}</span>
+                        </div>
+                        <p class="text-[11px] text-red-600/80 font-bold mt-0.5">Still listed as '{{ $alert->status }}'</p>
+                    </a>
+                    @empty
+                    <div class="text-xs text-gray-400 italic">No pending completions.</div>
                     @endforelse
                 </div>
             </div>

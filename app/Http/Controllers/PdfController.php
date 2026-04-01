@@ -11,7 +11,7 @@ class PdfController extends Controller
     // Helper to get the base64 logo string
     private function getLogoData()
     {
-        $logoPath = public_path('picture/bgfile.png');
+        $logoPath = public_path('assets/icon/bgfile.png');
         if (file_exists($logoPath)) {
             $type = pathinfo($logoPath, PATHINFO_EXTENSION);
             $data = file_get_contents($logoPath);
@@ -84,5 +84,25 @@ class PdfController extends Controller
         ])->setPaper([0, 0, 623.62, 311.81], 'landscape'); // DL Size in points
 
         return $pdf->stream('Envelope-' . $booking->id . '.pdf');
+    }
+
+    public function generateDebt($id)
+    {
+        $booking = Booking::with(['items', 'payments'])->findOrFail($id);
+
+        $amountPaid = $booking->payments->sum('amount');
+        $totalAmount = $booking->total_amount;
+        $balanceDue = max(0, $totalAmount - $amountPaid);
+
+        $pdf = Pdf::loadView('pdf.debt', [
+            'booking' => $booking,
+            'items' => $booking->items,
+            'amountPaid' => $amountPaid,
+            'totalAmount' => $totalAmount,
+            'balanceDue' => $balanceDue,
+            'logoData' => $this->getLogoData()
+        ]);
+
+        return $pdf->stream('Debt-' . ($booking->invoice_number ?? $booking->id) . '.pdf');
     }
 }

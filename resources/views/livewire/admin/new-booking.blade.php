@@ -94,6 +94,10 @@
                                 <span class="font-bold" id="breakdown_del">$0.00</span>
                             </div>
                             <div class="flex justify-between items-center text-sm text-slate-300">
+                                <span>Attractions Cost</span>
+                                <span class="font-bold" id="breakdown_attractions">$0.00</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm text-slate-300">
                                 <span>Extras Cost</span>
                                 <span class="font-bold" id="breakdown_ext">$0.00</span>
                             </div>
@@ -536,17 +540,30 @@
                                     $countsAgainst = !empty($product['counts_against']) ? $product['counts_against'] : $catName;
                                     $isChecked = in_array($pName, $selected_products);
                                     @endphp
-                                    <label class="product-card group {{ $isChecked ? 'selected' : '' }}" data-name="{{ $pName }}" data-category="{{ $catName }}" data-counts-against="{{ $countsAgainst }}" data-daily-limit="{{ (int)$product['daily_limit'] }}" data-product-sold-out="false">
-                                        <div class="flex justify-between items-start gap-2 mb-2 w-full">
+                                    <div class="product-card group {{ $isChecked ? 'selected' : '' }} cursor-pointer" 
+                                        @click="let cb = $el.querySelector('.ride-checkbox'); if(cb && !cb.disabled) { cb.checked = !cb.checked; handleSelection(cb); }"
+                                        data-name="{{ $pName }}" 
+                                        data-category="{{ $catName }}" 
+                                        data-counts-against="{{ $countsAgainst }}" 
+                                        data-daily-limit="{{ (int)$product['daily_limit'] }}" 
+                                        data-specification="{{ $product['specification'] ?? '' }}"
+                                        data-price="{{ $product['price'] ?? 0 }}"
+                                        data-product-sold-out="false">
+                                        <div class="flex justify-between items-start gap-2 mb-2 w-full relative">
                                             <div class="pr-2 w-full">
-                                                <h4 class="font-bold text-slate-800 text-sm leading-snug group-hover:text-[#9E6B73]">{{ $pName }}</h4>
+                                                <div class="flex items-center gap-2">
+                                                    <h4 class="font-bold text-slate-800 text-sm leading-snug group-hover:text-[#9E6B73]">{{ $pName }}</h4>
+                                                    <button type="button" @click.stop="openProductDetails($event.currentTarget.closest('.product-card'))" class="text-slate-300 hover:text-[#9E6B73] transition-colors p-1 rounded-full hover:bg-slate-100 flex items-center justify-center">
+                                                        <span class="material-symbols-rounded text-lg">info</span>
+                                                    </button>
+                                                </div>
                                                 <div class="mt-2 status-wrapper"><span class="status-badge status-checking">Checking...</span></div>
                                             </div>
                                             <div class="custom-checkbox"></div>
-                                            <input type="checkbox" name="products[]" value="{{ $pName }}" class="ride-checkbox hidden" @change="handleSelection($event.target)" {{ $isChecked ? 'checked' : '' }}>
+                                            <input type="checkbox" name="products[]" value="{{ $pName }}" class="ride-checkbox hidden" @change="handleSelection($event.target)" {{ $isChecked ? 'checked' : '' }} @click.stop>
                                         </div>
                                         <div class="text-[10px] text-slate-400 font-medium action-text mt-auto">Click to select</div>
-                                    </label>
+                                    </div>
                                     @endforeach
                                 </div>
                             </div>
@@ -639,6 +656,7 @@
                             <div class="space-y-2 text-sm text-slate-300">
                                 <p class="flex justify-between"><span>Duration:</span> <span id="rev_dur_cost" class="font-bold text-white"></span></p>
                                 <p class="flex justify-between"><span>Delivery:</span> <span id="rev_del_cost" class="font-bold text-white"></span></p>
+                                <p class="flex justify-between"><span>Attractions:</span> <span id="rev_attractions_cost" class="font-bold text-white"></span></p>
                                 <p class="flex justify-between"><span>Extras:</span> <span id="rev_ext_cost" class="font-bold text-white"></span></p>
                                 <p class="flex justify-between"><span>Processing Fee:</span> <span id="rev_sur_cost" class="font-bold text-white"></span></p>
                                 <div class="border-t border-slate-600 pt-2 mt-2"></div>
@@ -736,13 +754,83 @@
             </div>
         </div>
     </div>
+
+    <!-- Category Limit Modal -->
+    <div id="categoryLimitModal" x-show="modals.limitExceeded" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10002]">
+        <div x-show="modals.limitExceeded" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.limitExceeded = false"></div>
+        <div x-show="modals.limitExceeded" x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-600">
+                <span class="material-symbols-rounded text-4xl">warning</span>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-3 uppercase tracking-tight">Category Limit Reached</h3>
+            <p class="text-sm text-slate-600 mb-8 leading-relaxed">
+                You have reached the maximum limit of <span class="font-bold text-slate-800" x-text="limitExceededLimit"></span> items for the 
+                <span class="font-extrabold text-[#9E6B73] underline decoration-2 underline-offset-4" x-text="limitExceededCategory"></span> category. 
+                Please deselect an item before adding a new one.
+            </p>
+            <button type="button" @click="modals.limitExceeded = false" class="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition shadow-lg shadow-slate-200 uppercase tracking-widest text-xs">
+                I Understand
+            </button>
+        </div>
+    </div>
     <div id="booking-data-bridge"
         class="hidden"
         data-config='@json($this->config)'
         data-categories='@json($this->categories)'
         data-extras='@json($this->saved_extras)'
+        data-customers='@json($this->past_customers)'
         data-csrf="{{ csrf_token() }}"
         data-id="{{ $this->booking_id }}"
         data-invoice="{{ $this->invoice_number }}">
+    </div>
+
+    <!-- Product Details Modal -->
+    <div x-show="productDetails.visible" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[20000]">
+        <div x-show="productDetails.visible" x-transition.opacity class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="productDetails.visible = false"></div>
+        <div x-show="productDetails.visible" x-transition class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="p-6 bg-slate-800 text-white flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-rounded text-[#9E6B73] text-2xl">info</span>
+                    <h3 class="text-xl font-bold" x-text="productDetails.name">Product Specification</h3>
+                </div>
+                <button type="button" @click="productDetails.visible = false" class="text-slate-400 hover:text-white transition">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="p-8 space-y-6">
+                <div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Costing Overview</span>
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-3xl font-black text-slate-800">$</span>
+                        <span class="text-4xl font-black text-slate-800 tracking-tighter" x-text="Number(productDetails.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})">0.00</span>
+                        <span class="text-sm font-bold text-slate-400 ml-1">per session</span>
+                    </div>
+                </div>
+
+                <div class="h-px bg-slate-100"></div>
+
+                <div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Key Specifications</span>
+                    <div class="bg-slate-50/50 rounded-xl p-5 border border-slate-100 min-h-[100px]">
+                        <template x-if="productDetails.spec">
+                            <ul class="space-y-3">
+                                <template x-for="line in productDetails.spec.split('\n').filter(l => l.trim())">
+                                    <li class="flex items-start gap-3">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-[#9E6B73] mt-1.5 shrink-0"></span>
+                                        <span class="text-sm text-slate-600 font-medium leading-relaxed" x-text="line"></span>
+                                    </li>
+                                </template>
+                            </ul>
+                        </template>
+                        <template x-if="!productDetails.spec">
+                            <p class="text-sm text-slate-400 italic">No specific instructions or features listed for this product.</p>
+                        </template>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-gray-100 flex justify-end">
+                <button type="button" @click="productDetails.visible = false" class="px-6 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200">Got it, close</button>
+            </div>
+        </div>
     </div>
 </div>

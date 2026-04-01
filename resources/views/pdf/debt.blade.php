@@ -11,8 +11,7 @@
 
     // --- FINANCIALS ---
     $total_amount = (float)($booking->total_amount ?? 0);
-    // Handle payments which might be a relationship or missing
-    $amount_paid = isset($amount_paid) ? (float)$amount_paid : (isset($booking->amount_paid) ? (float)$booking->amount_paid : (float)($booking->payments ? $booking->payments->sum('amount') : 0));
+    $amount_paid = isset($amountPaid) ? (float)$amountPaid : (isset($booking->amount_paid) ? (float)$booking->amount_paid : (float)($booking->payments ? $booking->payments->sum('amount') : 0));
     $balance_due  = $total_amount - $amount_paid;
 
     // Payment Type Logic
@@ -27,8 +26,19 @@
         $surcharge  = $total_amount - $baseAmount;
     }
 
-    // PAID stamp check (If balance is roughly 0)
-    $isFullyPaid = ($balance_due <= 0.01);
+    // Invoice Number Logic
+    $invNo = !empty($booking->invoice_number) ? $booking->invoice_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT);
+
+    // Event date
+    $eventDate = !empty($booking->event_date) ? date('d/m/Y', strtotime($booking->event_date)) : '-';
+    $eventMidnight = \Carbon\Carbon::parse($booking->event_date)->startOfDay();
+    $todayMidnight = now()->startOfDay();
+    $daysPast = $eventMidnight->isPast() ? (int) $todayMidnight->diffInDays($eventMidnight) : 0;
+
+    // Time Range
+    $start = !empty($booking->start_time) ? date('h:i A', strtotime($booking->start_time)) : '-';
+    $end   = (!empty($booking->end_time) && $booking->end_time !== '00:00:00') ? date('h:i A', strtotime($booking->end_time)) : '';
+    $timeRange = $end ? ($start . ' - ' . $end) : $start;
 
     // --- Attraction Costing Logic ---
     $include_attraction_cost = $booking->include_attraction_cost ?? true;
@@ -52,22 +62,14 @@
     if (!$include_attraction_cost) {
         $total_amount -= $attraction_subtotal;
         $balance_due -= $attraction_subtotal;
-        $isFullyPaid = ($balance_due <= 0.01);
+        // Recalculate base/surcharge if card
+        if ($isCard && $total_amount > 0) {
+            $baseAmount = $total_amount / 1.029;
+            $surcharge  = $total_amount - $baseAmount;
+        }
     }
+ @endphp
 
-
-    // Receipt Number Logic (Invoice No + -REC suffix)
-    $invNo = !empty($booking->invoice_number) ? $booking->invoice_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT);
-    $receiptNo = $invNo . '-REC';
-
-    // Event date
-    $eventDate = !empty($booking->event_date) ? date('d/m/Y', strtotime($booking->event_date)) : '-';
-
-    // FIXED: TIME RANGE (Replaced special dash to fix "???")
-    $start = !empty($booking->start_time) ? date('h:i A', strtotime($booking->start_time)) : '-';
-    $end   = (!empty($booking->end_time) && $booking->end_time !== '00:00:00') ? date('h:i A', strtotime($booking->end_time)) : '';
-    $timeRange = $end ? ($start . ' - ' . $end) : $start;
-@endphp
 <!DOCTYPE html>
 <html>
 
@@ -100,28 +102,28 @@
         .invoice-title {
             float: right;
             text-align: right;
+            color: #d9534f;
         }
 
         .invoice-title h1 {
             margin: 0;
             font-size: 22px;
-            color: #000;
             text-transform: uppercase;
         }
 
         /* Watermark Stamp */
-        .paid-stamp {
+        .overdue-stamp {
             position: absolute;
-            top: 180px;
-            right: 60px;
-            border: 4px solid #28a745;
-            color: #28a745;
+            top: 350px;
+            right: 80px;
+            border: 4px solid #d9534f;
+            color: #d9534f;
             font-size: 45px;
             font-weight: bold;
             padding: 10px 30px;
             text-transform: uppercase;
             transform: rotate(-15deg);
-            opacity: 0.25;
+            opacity: 0.12;
             z-index: -1;
         }
 
@@ -140,6 +142,21 @@
             float: right;
             width: 45%;
             text-align: right;
+        }
+
+        .reminder-box {
+            background-color: #fdf2f2;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .reminder-box h3 {
+            margin-top: 0;
+            margin-bottom: 5px;
+            font-size: 14px;
         }
 
         /* Items Table */
@@ -177,10 +194,10 @@
         }
 
         .total-row {
-            background-color: #eee;
+            background-color: #ffeaea;
             font-weight: bold;
+            color: #d9534f;
             border-top: 1px solid #000 !important;
-            /* Force border on total row */
         }
 
         .note {
@@ -208,7 +225,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 40px;
+            height: 60px;
             font-size: 10px;
             text-align: center;
             border-top: 1px solid #ccc;
@@ -220,9 +237,7 @@
 
 <body>
 
-    @if($isFullyPaid)
-        <div class="paid-stamp">PAID</div>
-    @endif
+    <div class="overdue-stamp">OVERDUE</div>
 
     <div class="header">
         <div style="float:left;">
@@ -234,8 +249,8 @@
         </div>
 
         <div class="invoice-title">
-            <h1>Official Receipt</h1>
-            <span style="font-size: 12px; color: #555;">Receipt #: {{ $receiptNo }}</span><br>
+            <h1>Debt Reminder</h1>
+            <span style="font-size: 12px; color: #555;">Invoice #: {{ $invNo }}</span><br>
             <span style="font-size: 12px; color: #555;">Date: {{ date('F d, Y') }}</span>
         </div>
         <div class="clear"></div>
@@ -243,38 +258,51 @@
 
     <div class="row">
         <div class="col-left">
-            <span style="font-size: 10px; color: #777; text-transform: uppercase; font-weight: bold;">Received From:</span><br>
+            <span style="font-size: 10px; color: #777; text-transform: uppercase; font-weight: bold;">Billed To:</span><br>
             <strong>{{ $booking->customer_organization ?? '' }}</strong><br>
             {{ trim(($booking->customer_first_name ?? 'Valued') . ' ' . ($booking->customer_last_name ?? 'Customer')) }}<br>
             {{ !empty($booking->customer_phone) ? 'Ph: ' . $booking->customer_phone : '' }}
         </div>
 
         <div class="col-right">
-            <span style="font-size: 10px; color: #777; text-transform: uppercase; font-weight: bold;">Payment For:</span><br>
+            <span style="font-size: 10px; color: #777; text-transform: uppercase; font-weight: bold;">Event Details:</span><br>
             Booking #{{ $booking->id ?? '' }}<br>
             Event Date: {{ $eventDate }}<br>
-
-            <div class="note" style="text-align:right;">
-                <strong>Method:</strong> {{ $isCard ? 'Credit Card' : 'Cash / EFT' }}
-            </div>
+            Time: {{ $timeRange }}
         </div>
-
         <div class="clear"></div>
     </div>
 
-    <div style="margin-top: 20px; margin-bottom: 20px;">
-        <h3>Payment Summary</h3>
-        <p>This document confirms that we have received payment for the following items:</p>
+    @if($balance_due > 0)
+    <div class="reminder-box">
+        <h3>Friendly Reminder: Outstanding Account</h3>
+        @if($daysPast > 0)
+        <p style="margin: 0; line-height: 1.4;">
+            Our records indicate that there is an outstanding balance of <strong>{{ money($balance_due) }}</strong> for your event on {{ $eventDate }}.<br>This invoice is currently <strong>{{ $daysPast }} day(s) past due</strong>.
+        </p>
+        @else
+        <p style="margin: 0; line-height: 1.4;">
+            Our records indicate that there is an outstanding balance of <strong>{{ money($balance_due) }}</strong> for your recent event.<br>Please arrange payment as soon as possible.
+        </p>
+        @endif
+        <p style="margin-top: 10px; margin-bottom: 0; font-size: 11px;">
+            If you have already made a payment, please disregard this notice or contact us to confirm receipt.
+        </p>
+    </div>
+    @endif
+
+    <div style="margin-bottom: 10px;">
+        <strong>Statement of Account:</strong>
     </div>
 
     <table>
         <thead>
             <tr>
-                <th width="{{ $include_attraction_cost ? '40%' : '50%' }}">Ride / Equipment:</th>
-                <th width="{{ $include_attraction_cost ? '30%' : '40%' }}">Specifications:</th>
-                <th width="10%" class="text-center">Qty:</th>
+                <th width="{{ $include_attraction_cost ? '40%' : '50%' }}">Item / Service</th>
+                <th width="{{ $include_attraction_cost ? '30%' : '40%' }}">Specifications</th>
+                <th width="10%">Qty</th>
                 @if($include_attraction_cost)
-                <th width="20%" class="text-right">Price:</th>
+                <th width="20%" style="text-align:right;">Price</th>
                 @else
                 <th width="0%"></th>
                 @endif
@@ -289,14 +317,14 @@
                     @endphp
                     <tr>
                         <td>
-                            <span class="bold">{!! $name !!}</span>
+                            <span class="bold uppercase">{!! $name !!}</span>
                             @if(!empty($item->is_custom))
                                 <br><span class='mini' style='color:#666;'>(Additional Service)</span>
                             @endif
                         </td>
                         <td>
                             @if($item->specification)
-                                <div class="mini" style="color: #666; line-height: 1.2;">
+                                <div style="font-size: 10px; color: #666; line-height: 1.1;">
                                     @foreach(explode("\n", str_replace(["\r\n", "\r"], "\n", $item->specification)) as $line)
                                         @if(trim($line))
                                             &bull; {{ trim($line) }}<br>
@@ -307,9 +335,9 @@
                                 -
                             @endif
                         </td>
-                        <td class="text-center">{{ $qty }}</td>
+                        <td>{{ $qty }}</td>
                         @if($include_attraction_cost)
-                        <td class="text-right">
+                        <td style="text-align:right;">
                             @if(!$item->is_custom && $item->unit_price > 0)
                                 {{ money($item->unit_price * $qty) }}
                             @else
@@ -340,11 +368,6 @@
                 <td><strong>Total Invoice Amount:</strong></td>
                 <td style="text-align:right;"><strong>{{ money($total_amount) }}</strong></td>
             </tr>
-            <tr>
-                <td colspan="2" class="note" style="border-top:1px solid #ddd;">
-                    Total includes card surcharge.
-                </td>
-            </tr>
         @else
             <tr>
                 <td>Total Invoice Amount:</td>
@@ -358,21 +381,24 @@
         </tr>
 
         <tr class="total-row">
-            <td>Remaining Balance:</td>
+            <td>Amount Outstanding:</td>
             <td style="text-align:right;">{{ money($balance_due) }}</td>
         </tr>
     </table>
 
     <div class="clear"></div>
 
-    <div style="margin-top: 40px; text-align: center; font-style: italic; color: #777;">
-        Thank you for your business!
+    <div style="margin-top: 40px; font-size: 11px; line-height: 1.5;">
+        <strong>Payment Instructions:</strong><br>
+        All payments should be made via Electronic Funds Transfer (EFT) to Big Fun.<br>
+        Please quote Invoice No <strong>{{ $invNo }}</strong> as the payment reference.<br>
+        If you have any questions or to discuss this account, please phone our office on 1800 244 386.
     </div>
 
     <div class="footer">
         <strong>Big Fun Queensland</strong> | ABN: 20 956 190 125 <br>
-        145 Ferguson Rd Seven Hills, 4170 QLD<br>
-        This is a computer-generated receipt and requires no signature.
+        145 Ferguson Rd Seven Hills, 4170 QLD | 1800 244 386<br>
+        This is an automatically generated document.
     </div>
 
 </body>

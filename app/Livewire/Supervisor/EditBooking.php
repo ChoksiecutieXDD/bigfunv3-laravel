@@ -20,6 +20,7 @@ class EditBooking extends Component
     public $form = [];
     public $selectedItems = [];
     public $dynamicExtras = [];
+    public $search = '';
 
     public $subtotal = 0;
     public $surchargeAmount = 0;
@@ -35,6 +36,10 @@ class EditBooking extends Component
     public $newAttachments = [];
     public $deletedAttachments = [];
 
+    public $config = [];
+    public $categories = [];
+    public $saved_extras = [];
+
     public function mount($id)
     {
         $this->booking = Booking::findOrFail($id);
@@ -48,37 +53,42 @@ class EditBooking extends Component
             $this->selectedItems[strtolower(trim($item->item_name))] = (int) $item->qty;
         }
 
-        // --- REVERSE MAP EXTRAS ---
-        $genExt = json_decode($this->booking->general_extra ?? '[]', true) ?? [];
-        $specExt = json_decode($this->booking->specific_extra ?? '[]', true) ?? [];
-        $allExt = array_merge($genExt, $specExt);
+        // --- LOADING EXTRAS ---
+        $this->dynamicExtras = json_decode($this->booking->extras_json ?? '[]', true) ?? [];
 
-        $addons = DB::table('category_addons')->get();
-        foreach ($addons as $a) {
-            if (isset($allExt[$a->addon_label]) || isset($allExt[$a->category_target . ': ' . $a->addon_label])) {
-                $this->dynamicExtras['add_' . $a->id] = true;
-            }
-        }
+        if (empty($this->dynamicExtras)) {
+            // --- FALLBACK: REVERSE MAP EXTRAS ---
+            $genExt = json_decode($this->booking->general_extra ?? '[]', true) ?? [];
+            $specExt = json_decode($this->booking->specific_extra ?? '[]', true) ?? [];
+            $allExt = array_merge($genExt, $specExt);
 
-        $dropdowns = DB::table('product_dropdowns')->get();
-        $options = DB::table('dropdown_options')->get();
-        foreach ($dropdowns as $d) {
-            foreach ($options->where('dropdown_id', $d->id) as $o) {
-                $search1 = $d->label . ' - ' . $o->option_label;
-                $search2 = $d->category_target . ': ' . $search1;
-                if (isset($allExt[$search1]) || isset($allExt[$search2])) {
-                    $this->dynamicExtras['dd_' . $d->id] = $o->id;
+            $addons = DB::table('category_addons')->get();
+            foreach ($addons as $a) {
+                if (isset($allExt[$a->addon_label]) || isset($allExt[$a->category_target . ': ' . $a->addon_label])) {
+                    $this->dynamicExtras['add_' . $a->id] = true;
                 }
             }
-        }
 
-        $questions = DB::table('product_extras')->get();
-        foreach ($questions as $q) {
-            foreach ($allExt as $extKey => $extVal) {
-                if (str_contains($extKey, $q->question_text)) {
-                    $isYes = str_contains(strtolower($extKey), '(yes)') || str_contains(strtolower($extKey), '(Yes)');
-                    $valToSet = $isYes ? $q->yes_price . '|yes' : $q->no_price . '|no';
-                    $this->dynamicExtras['q_' . $q->id] = $valToSet;
+            $dropdowns = DB::table('product_dropdowns')->get();
+            $options = DB::table('dropdown_options')->get();
+            foreach ($dropdowns as $d) {
+                foreach ($options->where('dropdown_id', $d->id) as $o) {
+                    $search1 = $d->label . ' - ' . $o->option_label;
+                    $search2 = $d->category_target . ': ' . $search1;
+                    if (isset($allExt[$search1]) || isset($allExt[$search2])) {
+                        $this->dynamicExtras['dd_' . $d->id] = $o->id;
+                    }
+                }
+            }
+
+            $questions = DB::table('product_extras')->get();
+            foreach ($questions as $q) {
+                foreach ($allExt as $extKey => $extVal) {
+                    if (str_contains(strtolower($extKey), strtolower($q->question_text))) {
+                        $isYes = str_contains(strtolower($extKey), '(yes)');
+                        $valToSet = $isYes ? $q->yes_price . '|yes' : $q->no_price . '|no';
+                        $this->dynamicExtras['q_' . $q->id] = $valToSet;
+                    }
                 }
             }
         }
@@ -139,13 +149,20 @@ class EditBooking extends Component
         $this->calculateTotals();
     }
 
-    public function toggleItem($itemName)
+    public function toggleItem($itemName, $isChecked = null)
     {
         $key = strtolower(trim($itemName));
-        if (isset($this->selectedItems[$key])) {
+        if ($isChecked === true) {
+            $this->selectedItems[$key] = 1;
+        } elseif ($isChecked === false) {
             unset($this->selectedItems[$key]);
         } else {
-            $this->selectedItems[$key] = 1;
+            // Traditional toggle if no state provided
+            if (isset($this->selectedItems[$key])) {
+                unset($this->selectedItems[$key]);
+            } else {
+                $this->selectedItems[$key] = 1;
+            }
         }
         $this->updatedSelectedItems();
     }
@@ -359,6 +376,7 @@ class EditBooking extends Component
 
         $saveData['general_extra'] = json_encode($generalExtras);
         $saveData['specific_extra'] = json_encode($specificExtras);
+        $saveData['extras_json'] = json_encode($this->dynamicExtras);
 
         // --- SAVE TO DB ---
         $this->booking->update($saveData);
@@ -390,22 +408,35 @@ class EditBooking extends Component
 
     public function render()
     {
-        $categories = [];
+        // Bridge Data
+        $this->categories = [];
         $catRes = DB::table('product_categories')->orderBy('sort_order')->get();
+        $catMap = [];
         foreach ($catRes as $c) {
-            $categories[$c->category_name] = ['limit' => $c->daily_limit, 'products' => []];
+            $catKey = strtolower(trim($c->category_name));
+            $this->categories[$c->category_name] = ['limit' => (int)$c->daily_limit, 'products' => []];
+            $catMap[$catKey] = $c->category_name;
         }
 
-        $products = DB::table('products')->where('is_active', 1)->orderBy('category')->orderBy('name')->get();
-        $productCategoryMap = [];
+        $products = DB::table('products')
+            ->where('is_active', 1)
+            ->when($this->search, function($q) {
+                return $q->where('name', 'like', '%' . $this->search . '%');
+            })
+            ->orderBy('category')
+            ->orderBy('name')
+            ->get();
 
+        $productCategoryMap = [];
         foreach ($products as $p) {
             $productCategoryMap[strtolower(trim($p->name))] = $p->counts_against ?: $p->category;
-            if (isset($categories[$p->category])) {
-                $categories[$p->category]['products'][] = $p;
+            $pCatKey = strtolower(trim($p->category));
+            
+            if (isset($catMap[$pCatKey])) {
+                $this->categories[$catMap[$pCatKey]]['products'][] = (array)$p;
             } else {
-                if (!isset($categories['Other'])) $categories['Other'] = ['limit' => 0, 'products' => []];
-                $categories['Other']['products'][] = $p;
+                if (!isset($this->categories['Other'])) $this->categories['Other'] = ['limit' => 0, 'products' => []];
+                $this->categories['Other']['products'][] = (array)$p;
             }
         }
 
@@ -420,17 +451,25 @@ class EditBooking extends Component
         }
         $activeCategories = array_unique($activeCategories);
 
-        $addons = DB::table('category_addons')->whereIn('category_target', $activeCategories)->get()->groupBy('category_target');
-        $questions = DB::table('product_extras')->whereIn('category_target', $activeCategories)->get()->groupBy('category_target');
+        // Fetch configs for dynamicExtras matching new-booking logic 
+        $this->config = [
+            'addons' => DB::table('category_addons')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { return $g->toArray(); })->toArray(),
+            'questions' => DB::table('product_extras')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { return $g->toArray(); })->toArray(),
+            'dropdowns' => []
+        ];
 
-        $rawDropdowns = DB::table('product_dropdowns')->whereIn('category_target', $activeCategories)->orderBy('sort_order')->get();
-        $rawOptions = DB::table('dropdown_options')->get()->groupBy('dropdown_id');
-        $dropdowns = [];
+        
+        $rawDropdowns = DB::table('product_dropdowns')->orderBy('sort_order')->get();
+        $rawOpts = DB::table('dropdown_options')->get()->groupBy('dropdown_id');
         foreach ($rawDropdowns as $dd) {
-            $dd->options = $rawOptions->get($dd->id) ?? collect([]);
-            $dropdowns[$dd->category_target][] = $dd;
+            $ddArray = (array)$dd;
+            $opts = $rawOpts->get($dd->id) ?? collect([]);
+            $ddArray['options'] = $opts->map(function($o) { return (array)$o; })->toArray();
+            $this->config['dropdowns'][$dd->category_target][] = $ddArray;
         }
+        $this->saved_extras = empty($this->dynamicExtras) ? [] : $this->dynamicExtras;
 
-        return view('livewire.supervisor.edit-booking', compact('categories', 'deliveryOptions', 'durationOptions', 'addons', 'dropdowns', 'questions', 'activeCategories'));
+        // Note: passing just other standard variables.
+        return view('livewire.supervisor.edit-booking', compact('deliveryOptions', 'durationOptions', 'activeCategories'));
     }
 }

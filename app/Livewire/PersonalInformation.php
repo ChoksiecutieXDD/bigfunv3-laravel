@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Computed;
 
 class PersonalInformation extends Component
 {
@@ -30,7 +31,8 @@ class PersonalInformation extends Component
     }
 
     // Dynamically determines where the "Back" button goes based on role
-    public function getBackLinkProperty()
+    #[Computed]
+    public function backLink()
     {
         $role = Auth::user()->role;
 
@@ -43,7 +45,8 @@ class PersonalInformation extends Component
         }
     }
 
-    public function getInitialsProperty()
+    #[Computed]
+    public function initials()
     {
         $first = mb_substr(trim($this->first_name ?? ''), 0, 1);
         $last = mb_substr(trim($this->last_name ?? ''), 0, 1);
@@ -110,8 +113,7 @@ class PersonalInformation extends Component
     public function render()
     {
         return view('livewire.personal-information')
-            ->layout('components.layouts.profile')
-            ->layoutData([
+            ->layout('components.layouts.profile', [
                 'backLink' => $this->backLink,
                 'initials' => $this->initials,
             ]);

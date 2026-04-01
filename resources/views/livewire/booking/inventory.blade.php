@@ -175,6 +175,11 @@
                     </div>
                 </div>
 
+                <div class="mb-6">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Specification <span class="text-slate-400 normal-case tracking-normal font-normal">(Each line will be bulleted)</span></label>
+                    <textarea wire:model="prod_specification" rows="3" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" placeholder="e.g. 5m x 5m area needed&#10;Power required within 20m"></textarea>
+                </div>
+
                 <div class="flex justify-between items-center pt-6 border-t border-slate-100">
                     <div class="flex items-center gap-3">
                         <input type="checkbox" wire:model="is_active" id="prod_active" class="w-5 h-5 rounded text-red-500 border-slate-300 focus:ring-red-500 shadow-sm cursor-pointer transition-colors">
@@ -224,6 +229,19 @@
                                 <span class="inline-flex items-center gap-1 bg-[#FDF2F4] text-[#B07079] border border-[#F9E1E5] px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">
                                     <span class="material-symbols-rounded text-[14px]">link</span> Target: {{ $prod->counts_against }}
                                 </span>
+                                @endif
+
+                                @if($prod->specification)
+                                <div class="w-full mt-2 space-y-1">
+                                    @foreach(explode("\n", str_replace("\r", "", $prod->specification)) as $line)
+                                        @if(trim($line))
+                                        <div class="flex items-start gap-2 text-[11px] text-slate-500 font-medium">
+                                            <span class="text-plum mt-0.5">&bull;</span>
+                                            <span>{{ trim($line) }}</span>
+                                        </div>
+                                        @endif
+                                    @endforeach
+                                </div>
                                 @endif
                             </div>
                         </td>
@@ -304,6 +322,15 @@
                                     @endforeach
                                 </select>
                             </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Counts Against Target</label>
+                                <select wire:model="addon_counts_against" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors">
+                                    <option value="">-- Same as Target Category --</option>
+                                    @foreach ($categories as $c)
+                                    <option value="{{ $c->category_name }}">{{ $c->category_name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                             @foreach($addonRows as $index => $row)
                             <div class="relative space-y-4 pt-4 {{ $index > 0 ? 'border-t border-dashed border-slate-200' : '' }}">
                                 @if($index > 0)
@@ -349,7 +376,16 @@
                         <tbody class="divide-y divide-slate-50">
                             @foreach($extras_addons as $addon)
                             <tr class="hover:bg-slate-50 transition-colors">
-                                <td class="py-5 pl-6 text-[12px] font-bold text-slate-500 uppercase tracking-wider">{{ $addon->category_target }}</td>
+                                <td class="py-5 pl-6 text-[12px] font-bold text-slate-500 uppercase tracking-wider">
+                                    {{ $addon->category_target }}
+                                    @if($addon->counts_against && $addon->counts_against !== $addon->category_target)
+                                    <div class="mt-1">
+                                        <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-100 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest">
+                                            Limit: {{ $addon->counts_against }}
+                                        </span>
+                                    </div>
+                                    @endif
+                                </td>
                                 <td class="py-5 text-[15px] font-medium text-text-main">{{ $addon->addon_label }}</td>
                                 <td class="py-5 font-bold text-text-main">
                                     @if($addon->addon_price > 0) ${{ number_format($addon->addon_price, 2) }} @else <span class="text-emerald-600 uppercase text-[11px]">Free</span> @endif
@@ -399,6 +435,15 @@
                                 </select>
                             </div>
                             <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Counts Against Target</label>
+                                <select wire:model="dd_counts_against" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors">
+                                    <option value="">-- Same as Target Category --</option>
+                                    @foreach ($categories as $c)
+                                    <option value="{{ $c->category_name }}">{{ $c->category_name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Dropdown Label</label>
                                 <input type="text" wire:model="dd_label" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum px-4 py-3 transition-colors" placeholder="e.g. Hire Type" required>
                             </div>
@@ -442,7 +487,16 @@
                         <tbody class="divide-y divide-slate-50">
                             @foreach($dropdowns as $dd)
                             <tr class="hover:bg-slate-50 transition-colors">
-                                <td class="py-5 pl-6 text-[12px] font-bold text-slate-500 uppercase tracking-wider align-top">{{ $dd->category_target }}</td>
+                                <td class="py-5 pl-6 text-[12px] font-bold text-slate-500 uppercase tracking-wider align-top">
+                                    {{ $dd->category_target }}
+                                    @if($dd->counts_against && $dd->counts_against !== $dd->category_target)
+                                    <div class="mt-1">
+                                        <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-100 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest">
+                                            Limit: {{ $dd->counts_against }}
+                                        </span>
+                                    </div>
+                                    @endif
+                                </td>
                                 <td class="py-5 align-top">
                                     <div class="font-bold text-text-main text-[15px] mb-2">{{ $dd->label }}</div>
                                     @foreach($dd->options as $opt)

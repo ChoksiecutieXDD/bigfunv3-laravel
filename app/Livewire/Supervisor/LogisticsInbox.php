@@ -61,6 +61,8 @@ class LogisticsInbox extends Component
     public $email_subject;
     public $email_body;
     public $email_attachment;
+    public $is_sent_successfully = false;
+
 
     // View Details (from model directly)
     public $view_payment_details = null;
@@ -319,26 +321,46 @@ class LogisticsInbox extends Component
             $this->email_subject = "Envelope - " . $invNum;
             $this->email_body = "Hello,\n\nPlease find attached the envelope document for your booking on $eventDate.\n\nRegards,\nBIG FUN";
             $this->email_attachment = "BigFunEnvelope-{$booking->id}.pdf";
+        } elseif ($type === 'debt') {
+            $eventMidnight = Carbon::parse($booking->event_date)->startOfDay();
+            $todayMidnight = now()->startOfDay();
+            $daysPast = $eventMidnight->isPast() ? $todayMidnight->diffInDays($eventMidnight) : 0;
+            $this->email_subject = "Outstanding Balance Reminder - Booking #{$booking->id}";
+            $this->email_body = "Hello $fName,\n\nThis is a friendly reminder that your event on $eventDate is currently $daysPast days past due with an outstanding balance of $" . number_format($balanceDue, 2) . ".\n\nPlease find attached the debt reminder invoice which provides an overview of your booking and the outstanding amount.\n\nAll payments should be made to Big Fun quoting your invoice number as the payment reference.\n\nPlease contact us on 1800 244 386 if you wish to discuss this account.\n\nKind regards,\nBIG FUN\n1800 244 386";
+            $this->email_attachment = "BigFunDebt-{$booking->id}.pdf";
         }
 
         $this->dispatch('open-modal', 'emailModal');
     }
 
-    public function sendEmail()
+    public function sendEmail(\App\Services\MailService $mailService)
     {
-        DB::table('email_logs')->insert([
-            'booking_id' => $this->email_booking_id,
-            'type' => $this->email_type,
-            'sent_to' => $this->email_to,
-            'sent_at' => now()
+        $result = $mailService->sendEmail($this->email_booking_id, [
+            'email_to' => $this->email_to,
+            'email_cc' => $this->email_cc,
+            'email_bcc' => $this->email_bcc,
+            'email_subject' => $this->email_subject,
+            'email_body' => $this->email_body,
+            'email_type' => $this->email_type,
+            'attachments' => [$this->email_attachment]
         ]);
 
-        if ($this->email_type === 'invoice') {
-            Booking::where('id', $this->email_booking_id)->update(['invoice_emailed' => 1]);
-        }
+        if ($result['success']) {
+            $this->is_sent_successfully = true;
+            $this->dispatch('close-modal', 'emailModal');
+            $this->dispatch('open-modal', 'sentSuccessModal');
 
-        $this->dispatch('close-modal', 'emailModal');
-        $this->dispatch('open-modal', 'successModal');
+            if ($this->email_type === 'invoice') {
+                Booking::where('id', $this->email_booking_id)->update(['invoice_emailed' => 1]);
+            }
+        } else {
+            $this->dispatch('notify', title: 'Error', message: $result['message']);
+        }
+    }
+
+    public function resetEmailState()
+    {
+        $this->is_sent_successfully = false;
     }
 
     public function render()
@@ -378,7 +400,7 @@ class LogisticsInbox extends Component
         }
         $orders = $ordersQuery->orderBy('event_date', 'asc')->paginate(10, ['*'], 'page_ord');
 
-        $debtorsQuery = Booking::where('status', 'Completed')->whereColumn('total_amount', '>', 'amount_paid');
+        $debtorsQuery = Booking::with('payments')->where('status', 'Completed')->whereColumn('total_amount', '>', 'amount_paid');
         if ($this->search_deb) {
             $debtorsQuery->where(function ($q) {
                 $q->where('customer_first_name', 'like', "%{$this->search_deb}%")

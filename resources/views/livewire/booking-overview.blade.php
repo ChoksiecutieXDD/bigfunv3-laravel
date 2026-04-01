@@ -236,19 +236,51 @@
                         <thead class="bg-gray-50/50 text-[9px] text-gray-400 font-black uppercase tracking-widest border-b border-gray-100">
                             <tr>
                                 <th class="p-4 rounded-tl-xl text-[10px]">Identified Item</th>
-                                <th class="p-4 rounded-tr-xl text-center text-[10px]">Qty</th>
+                                <th class="p-4 text-[10px]">Specification</th>
+                                <th class="p-4 text-center text-[10px]">Qty</th>
+                                <th class="p-4 rounded-tr-xl text-right text-[10px]">Price</th>
                             </tr>
                         </thead>
                         <tbody class="text-xs divide-y divide-gray-100">
                             @forelse ($items as $s)
                             <tr class="hover:bg-gray-50/50 transition border-b border-dotted border-gray-50 last:border-0">
-                                <td class="p-4 font-black text-gray-800 tracking-tight leading-tight">{{ $s->item_name }}</td>
+                                <td class="p-4 font-black text-[#9D686E] tracking-tight leading-tight py-4">
+                                    <div class="flex flex-col">
+                                        <span class="text-sm uppercase tracking-tight">{{ $s->item_name }}</span>
+                                        @if($s->is_custom)
+                                            <span class="text-[9px] font-bold text-amber-500 uppercase">Custom Item</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="p-4 py-4">
+                                    @if($s->specification)
+                                        <div class="text-[10px] text-gray-500 space-y-0.5">
+                                            @foreach(explode("\n", str_replace(["\r\n", "\r"], "\n", $s->specification)) as $line)
+                                                @if(trim($line))
+                                                    <div class="flex items-start gap-1">
+                                                        <span class="mt-1 w-1 h-1 rounded-full bg-[#9D686E] shrink-0"></span>
+                                                        <span>{{ trim($line) }}</span>
+                                                    </div>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <span class="text-[10px] text-gray-400 italic">No specs</span>
+                                    @endif
+                                </td>
                                 <td class="p-4 text-center">
                                     <span class="px-3 py-1 bg-gray-100 rounded-lg font-black text-gray-900 border border-gray-200 text-[10px]">{{ $s->total_qty }}</span>
                                 </td>
+                                <td class="p-4 text-right font-black text-[#9D686E] py-4">
+                                    @if($s->unit_price > 0)
+                                        ${{ number_format($s->unit_price * $s->total_qty, 2) }}
+                                    @else
+                                        -
+                                    @endif
+                                </td>
                             </tr>
                             @empty
-                            <tr><td colspan="2" class="p-10 text-center italic text-gray-300 font-bold uppercase tracking-widest">no assets catalogued</td></tr>
+                            <tr><td colspan="4" class="p-10 text-center italic text-gray-300 font-bold uppercase tracking-widest">no assets catalogued</td></tr>
                             @endforelse
                         </tbody>
                     </table>

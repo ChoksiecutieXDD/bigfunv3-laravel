@@ -58,6 +58,9 @@
                             <button type="button" @click="modals.history = true; filteredCustomers = previousCustomers; searchHistory = ''" class="btn-action bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 flex-1 sm:flex-none justify-center">
                                 <span class="material-symbols-rounded mr-2 text-lg">history</span> Past Customer
                             </button>
+                            <button type="button" @click="gmailModalVisible = true" class="btn-action bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 flex-1 sm:flex-none justify-center">
+                                <span class="material-symbols-rounded mr-2 text-lg">mail</span> Import from Gmail
+                            </button>
                             <button type="button" @click="modals.reset = true" class="btn-action bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 flex-1 sm:flex-none justify-center">
                                 <span class="material-symbols-rounded mr-2 text-lg">restart_alt</span> Reset Form
                             </button>
@@ -93,6 +96,10 @@
                             <div class="flex justify-between items-center text-sm text-slate-300">
                                 <span>Delivery Zone Cost</span>
                                 <span class="font-bold" id="breakdown_del">$0.00</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm text-slate-300">
+                                <span>Attractions Cost</span>
+                                <span class="font-bold" id="breakdown_attractions">$0.00</span>
                             </div>
                             <div class="flex justify-between items-center text-sm text-slate-300">
                                 <span>Extras Cost</span>
@@ -537,17 +544,30 @@
                                     $countsAgainst = !empty($product['counts_against']) ? $product['counts_against'] : $catName;
                                     $isChecked = in_array($pName, $selected_products);
                                     @endphp
-                                    <label class="product-card group {{ $isChecked ? 'selected' : '' }}" data-name="{{ $pName }}" data-category="{{ $catName }}" data-counts-against="{{ $countsAgainst }}" data-daily-limit="{{ (int)$product['daily_limit'] }}" data-product-sold-out="false">
-                                        <div class="flex justify-between items-start gap-2 mb-2 w-full">
+                                    <div class="product-card group {{ $isChecked ? 'selected' : '' }} cursor-pointer" 
+                                        @click="let cb = $el.querySelector('.ride-checkbox'); if(cb && !cb.disabled) { cb.checked = !cb.checked; handleSelection(cb); }"
+                                        data-name="{{ $pName }}" 
+                                        data-category="{{ $catName }}" 
+                                        data-counts-against="{{ $countsAgainst }}" 
+                                        data-daily-limit="{{ (int)$product['daily_limit'] }}" 
+                                        data-specification="{{ $product['specification'] ?? '' }}"
+                                        data-price="{{ $product['price'] ?? 0 }}"
+                                        data-product-sold-out="false">
+                                        <div class="flex justify-between items-start gap-2 mb-2 w-full relative">
                                             <div class="pr-2 w-full">
-                                                <h4 class="font-bold text-slate-800 text-sm leading-snug group-hover:text-[#9E6B73]">{{ $pName }}</h4>
+                                                <div class="flex items-center gap-2">
+                                                    <h4 class="font-bold text-slate-800 text-sm leading-snug group-hover:text-[#9E6B73]">{{ $pName }}</h4>
+                                                    <button type="button" @click.stop="openProductDetails($event.currentTarget.closest('.product-card'))" class="text-slate-300 hover:text-[#9E6B73] transition-colors p-1 rounded-full hover:bg-slate-100 flex items-center justify-center">
+                                                        <span class="material-symbols-rounded text-lg">info</span>
+                                                    </button>
+                                                </div>
                                                 <div class="mt-2 status-wrapper"><span class="status-badge status-checking">Checking...</span></div>
                                             </div>
                                             <div class="custom-checkbox"></div>
-                                            <input type="checkbox" name="products[]" value="{{ $pName }}" class="ride-checkbox hidden" @change="handleSelection($event.target)" {{ $isChecked ? 'checked' : '' }}>
+                                            <input type="checkbox" name="products[]" value="{{ $pName }}" class="ride-checkbox hidden" @change="handleSelection($event.target)" {{ $isChecked ? 'checked' : '' }} @click.stop>
                                         </div>
                                         <div class="text-[10px] text-slate-400 font-medium action-text mt-auto">Click to select</div>
-                                    </label>
+                                    </div>
                                     @endforeach
                                 </div>
                             </div>
@@ -640,6 +660,7 @@
                             <div class="space-y-2 text-sm text-slate-300">
                                 <p class="flex justify-between"><span>Duration:</span> <span id="rev_dur_cost" class="font-bold text-white"></span></p>
                                 <p class="flex justify-between"><span>Delivery:</span> <span id="rev_del_cost" class="font-bold text-white"></span></p>
+                                <p class="flex justify-between"><span>Attractions:</span> <span id="rev_attractions_cost" class="font-bold text-white"></span></p>
                                 <p class="flex justify-between"><span>Extras:</span> <span id="rev_ext_cost" class="font-bold text-white"></span></p>
                                 <p class="flex justify-between"><span>Processing Fee:</span> <span id="rev_sur_cost" class="font-bold text-white"></span></p>
                                 <div class="border-t border-slate-600 pt-2 mt-2"></div>
@@ -737,13 +758,172 @@
             </div>
         </div>
     </div>
+
+    <!-- Category Limit Modal -->
+    <div id="categoryLimitModal" x-show="modals.limitExceeded" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10002]">
+        <div x-show="modals.limitExceeded" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.limitExceeded = false"></div>
+        <div x-show="modals.limitExceeded" x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-600">
+                <span class="material-symbols-rounded text-4xl">warning</span>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-3 uppercase tracking-tight">Category Limit Reached</h3>
+            <p class="text-sm text-slate-600 mb-8 leading-relaxed">
+                You have reached the maximum limit of <span class="font-bold text-slate-800" x-text="limitExceededLimit"></span> items for the 
+                <span class="font-extrabold text-[#9E6B73] underline decoration-2 underline-offset-4" x-text="limitExceededCategory"></span> category. 
+                Please deselect an item before adding a new one.
+            </p>
+            <button type="button" @click="modals.limitExceeded = false" class="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition shadow-lg shadow-slate-200 uppercase tracking-widest text-xs">
+                I Understand
+            </button>
+        </div>
+    </div>
+
+    <!-- FAB BUTTON FOR EMAIL PREVIEW -->
+    <button type="button" @click="previewSidebarVisible = !previewSidebarVisible" class="fixed bottom-6 right-6 w-14 h-14 bg-[#9E6B73] text-white rounded-full shadow-lg shadow-[#9E6B73]/30 flex items-center justify-center hover:bg-[#855359] hover:-translate-y-1 transition-all z-40 group" title="Toggle Email Preview">
+        <span class="material-symbols-rounded text-2xl group-hover:scale-110 transition-transform">visibility</span>
+    </button>
+
+    <!-- EMAIL PREVIEW SIDEBAR -->
+    <aside :class="previewSidebarVisible ? 'translate-x-0' : 'translate-x-full'" class="fixed top-0 right-0 h-full w-full md:w-[500px] bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.1)] border-l border-gray-200 z-50 flex flex-col transition-transform duration-300 ease-in-out" x-cloak>
+        <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <div>
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <span class="material-symbols-rounded text-[#9E6B73]">visibility</span> Email Preview
+                </h3>
+                <p class="text-[10px] text-slate-500 uppercase tracking-wide">Reference while editing</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" @click="previewZoomLevel = Math.max(0.5, previewZoomLevel - 0.1)" class="w-8 h-8 rounded hover:bg-white border border-transparent hover:border-gray-200 flex items-center justify-center text-slate-500 transition shadow-sm"><span class="material-symbols-rounded text-sm">remove</span></button>
+                <button type="button" @click="previewZoomLevel = 1.0" class="w-8 h-8 rounded hover:bg-white border border-transparent hover:border-gray-200 flex items-center justify-center text-slate-500 transition shadow-sm"><span class="material-symbols-rounded text-sm">restart_alt</span></button>
+                <button type="button" @click="previewZoomLevel = Math.min(2.0, previewZoomLevel + 0.1)" class="w-8 h-8 rounded hover:bg-white border border-transparent hover:border-gray-200 flex items-center justify-center text-slate-500 transition shadow-sm"><span class="material-symbols-rounded text-sm">add</span></button>
+                <div class="w-px h-6 bg-gray-200 mx-1"></div>
+                <button type="button" @click="previewSidebarVisible = false" class="text-slate-400 hover:text-slate-600 p-1 flex items-center justify-center rounded-lg hover:bg-white border border-transparent hover:border-gray-200 transition"><span class="material-symbols-rounded text-lg">close</span></button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-auto custom-scrollbar p-6 bg-white text-slate-800 relative">
+            <template x-if="selectedEmailBody">
+                <div class="origin-top-left transition-transform duration-200 ease-out h-full" :style="'transform: scale(' + previewZoomLevel + ')'" x-html="selectedEmailBody"></div>
+            </template>
+            <template x-if="!selectedEmailBody">
+                <div class="flex flex-col items-center justify-center h-full text-slate-300 mt-20">
+                    <span class="material-symbols-rounded text-4xl mb-2">mark_email_unread</span>
+                    <p class="text-sm">No email selected</p>
+                </div>
+            </template>
+        </div>
+        <div class="p-4 border-t border-gray-100 bg-gray-50">
+            <button type="button" @click="extractEmailData()" class="w-full py-3 bg-[#9E6B73] text-white font-bold rounded-xl hover:bg-[#855359] shadow-lg shadow-[#9E6B73]/20 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="!selectedEmailData">
+                <span class="material-symbols-rounded">integration_instructions</span> Extract Data
+            </button>
+        </div>
+    </aside>
+
+    <!-- GMAIL SEARCH MODAL -->
+    <div x-show="gmailModalVisible" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[9999]" x-cloak>
+        <div x-show="gmailModalVisible" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="gmailModalVisible = false"></div>
+        <div x-show="gmailModalVisible" x-transition class="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl flex flex-col max-h-[85vh] z-10 overflow-hidden border border-slate-200">
+            <div class="p-6 border-b border-gray-100 flex flex-col gap-4 bg-[#9E6B73] text-white">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-bold flex items-center gap-2"><span class="material-symbols-rounded">mail</span> Import from Gmail</h3>
+                    <button type="button" @click="gmailModalVisible = false" class="text-white/70 hover:text-white p-2 rounded-full hover:bg-white/20 transition"><span class="material-symbols-rounded text-lg">close</span></button>
+                </div>
+                <div class="flex gap-3">
+                    <div class="relative flex-1">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400"><span class="material-symbols-rounded text-lg">search</span></span>
+                        <input type="text" x-model="gmailSearchQuery" @keyup.enter="fetchEmails()" placeholder="Search subject (e.g. Quote #123)..." class="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/95 text-gray-800 text-sm focus:bg-white outline-none transition border-none shadow-inner placeholder:text-gray-400">
+                    </div>
+                    <button type="button" @click="fetchEmails()" class="bg-white text-[#9E6B73] px-6 py-3.5 rounded-xl font-bold hover:bg-gray-50 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" :disabled="isFetchingEmails">
+                        <span x-text="isFetchingEmails ? 'Searching...' : 'Search'"></span>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-3 bg-slate-50">
+                <template x-if="emailList.length === 0 && !isFetchingEmails">
+                    <div class="flex flex-col items-center justify-center h-48">
+                        <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-3"><span class="material-symbols-rounded text-3xl">inbox</span></div>
+                        <p class="text-sm font-medium text-gray-500">Enter a search term to find quotes.</p>
+                    </div>
+                </template>
+                <template x-for="(email, index) in emailList" :key="email.id">
+                    <div @click="selectEmail(email)" class="p-4 bg-white border border-gray-100 rounded-2xl hover:border-[#9E6B73]/50 hover:bg-[#FFF5F7]/30 cursor-pointer flex justify-between items-start transition group shadow-sm">
+                        <div class="flex-1 min-w-0 pr-4">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="material-symbols-rounded text-slate-400 text-[16px]">person</span>
+                                <span class="font-extrabold text-sm text-slate-800 truncate" x-text="email.name"></span>
+                                <span class="text-xs text-slate-400 truncate" x-text="'<' + email.email + '>'"></span>
+                            </div>
+                            <h4 class="font-bold text-[#9E6B73] text-sm mb-1.5 truncate" x-text="email.subject || '(No Subject)'"></h4>
+                            <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed" x-text="email.snippet"></p>
+                        </div>
+                        <div class="flex flex-col items-end gap-3 min-w-[80px]">
+                            <span class="text-[10px] font-bold text-slate-400 tracking-wider uppercase bg-slate-100 px-2 py-1 rounded-md" x-text="email.date"></span>
+                            <div class="bg-[#9E6B73]/10 text-[#9E6B73] text-[10px] font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                                Select Email
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
     <div id="booking-data-bridge"
         class="hidden"
         data-config='@json($this->config)'
         data-categories='@json($this->categories)'
         data-extras='@json($this->saved_extras)'
+        data-customers='@json($this->past_customers)'
         data-csrf="{{ csrf_token() }}"
         data-id="{{ $this->booking_id }}"
         data-invoice="{{ $this->invoice_number }}">
+    </div>
+    <!-- Product Details Modal -->
+    <div x-show="productDetails.visible" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[20000]">
+        <div x-show="productDetails.visible" x-transition.opacity class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="productDetails.visible = false"></div>
+        <div x-show="productDetails.visible" x-transition class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="p-6 bg-slate-800 text-white flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-rounded text-[#9E6B73] text-2xl">info</span>
+                    <h3 class="text-xl font-bold" x-text="productDetails.name">Product Specification</h3>
+                </div>
+                <button type="button" @click="productDetails.visible = false" class="text-slate-400 hover:text-white transition">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="p-8 space-y-6">
+                <div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Costing Overview</span>
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-3xl font-black text-slate-800">$</span>
+                        <span class="text-4xl font-black text-slate-800 tracking-tighter" x-text="Number(productDetails.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})">0.00</span>
+                        <span class="text-sm font-bold text-slate-400 ml-1">per session</span>
+                    </div>
+                </div>
+
+                <div class="h-px bg-slate-100"></div>
+
+                <div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Key Specifications</span>
+                    <div class="bg-slate-50/50 rounded-xl p-5 border border-slate-100 min-h-[100px]">
+                        <template x-if="productDetails.spec">
+                            <ul class="space-y-3">
+                                <template x-for="line in productDetails.spec.split('\n').filter(l => l.trim())">
+                                    <li class="flex items-start gap-3">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-[#9E6B73] mt-1.5 shrink-0"></span>
+                                        <span class="text-sm text-slate-600 font-medium leading-relaxed" x-text="line"></span>
+                                    </li>
+                                </template>
+                            </ul>
+                        </template>
+                        <template x-if="!productDetails.spec">
+                            <p class="text-sm text-slate-400 italic">No specific instructions or features listed for this product.</p>
+                        </template>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-gray-100 flex justify-end">
+                <button type="button" @click="productDetails.visible = false" class="px-6 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200">Got it, close</button>
+            </div>
+        </div>
     </div>
 </div>

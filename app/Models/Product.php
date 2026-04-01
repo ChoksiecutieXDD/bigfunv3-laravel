@@ -15,7 +15,8 @@ class Product extends Model
         'price',
         'daily_limit',
         'sort_order',
-        'is_active'
+        'is_active',
+        'specification'
     ];
 
     // Cast is_active to boolean so the checkbox works perfectly with Livewire

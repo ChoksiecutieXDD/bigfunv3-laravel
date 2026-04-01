@@ -64,6 +64,13 @@ class BookingOverview extends Component
         $this->dispatch('open-modal', 'emailModal');
     }
 
+    public function toggleAttractionCost()
+    {
+        $this->booking->include_attraction_cost = !$this->booking->include_attraction_cost;
+        $this->booking->save();
+        $this->dispatch('notify', title: 'Success', message: 'Attraction costing display updated.');
+    }
+
     public function sendEmail()
     {
         DB::table('email_logs')->insert([
@@ -80,8 +87,12 @@ class BookingOverview extends Component
     public function render()
     {
         $items = BookingItem::where('booking_id', $this->booking->id)
-            ->selectRaw('item_name, is_custom, SUM(qty) as total_qty')
-            ->groupBy('item_name', 'is_custom')
+            ->leftJoin('products', function($join) {
+                $join->on('booking_items.item_name', '=', 'products.name')
+                     ->where('booking_items.is_custom', '=', 0);
+            })
+            ->selectRaw('booking_items.item_name, booking_items.is_custom, SUM(booking_items.qty) as total_qty, products.specification, products.price as unit_price')
+            ->groupBy('booking_items.item_name', 'booking_items.is_custom', 'products.specification', 'products.price')
             ->get();
 
         $payments = BookingPayment::where('booking_id', $this->booking->id)->orderBy('payment_date', 'asc')->get();

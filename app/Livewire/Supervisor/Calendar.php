@@ -183,6 +183,17 @@ class Calendar extends Component
             ->orderBy('event_date', 'asc')
             ->get();
 
+        $upcomingEvents3Days = Booking::where('event_date', '>=', now()->toDateString())
+            ->where('event_date', '<=', now()->addDays(3)->toDateString())
+            ->whereNotIn('status', ['Cancelled', 'Draft'])
+            ->orderBy('event_date', 'asc')
+            ->get();
+
+        $pendingCompletionAlerts = Booking::whereIn('status', ['Booked', 'Confirmed'])
+            ->where('event_date', '<=', now()->addDays(1)->toDateString())
+            ->orderBy('event_date', 'desc')
+            ->get();
+
         $groupedBookings = $processedBookings->groupBy('event_date');
         $calendarDays = [];
         $daysInMonth = Carbon::create($searchYear, $searchMonth)->daysInMonth;
@@ -198,12 +209,29 @@ class Calendar extends Component
             $calendarDays[$dateString] = $dayBookings;
         }
 
+        $rawUrgentAlerts = Booking::with('payments')
+            ->where('status', 'Completed')
+            ->where('event_date', '>=', now()->subDays(60)->toDateString())
+            ->where('event_date', '<=', now()->addDays(7)->toDateString())
+            ->get();
+            
+        $urgentAlerts = $rawUrgentAlerts->map(function ($b) {
+            $b->balance = $b->total_amount - $b->payments->sum('amount');
+            return $b;
+        })->filter(function ($b) {
+            return $b->balance > 0;
+        })->sortBy('event_date')->take(10);
+        
+        $stats['urgentAlertsCount'] = $urgentAlerts->count() + $pendingCompletionAlerts->count();
+
         return view('livewire.supervisor.calendar', [
             'calendarDays' => $calendarDays,
             'stats' => $stats,
             'globalOutstandingBalance' => $globalOutstandingBalance,
             'upcomingEvents' => $upcomingEvents,
-            'urgentAlerts' => [],
+            'upcomingEvents3Days' => $upcomingEvents3Days,
+            'pendingCompletionAlerts' => $pendingCompletionAlerts,
+            'urgentAlerts' => $urgentAlerts,
             'yearRange' => range(now()->year - 2, now()->year + 5),
         ]);
     }

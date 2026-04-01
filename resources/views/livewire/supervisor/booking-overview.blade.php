@@ -5,9 +5,11 @@
         historyModal: false,
         calendarModal: false,
         draftModal: false,
+        statusConfirmModal: false,
         payMethod: @entangle('payMethod'),
         selectedPayment: null,
-        paymentDetailsModal: false
+        paymentDetailsModal: false,
+        sentSuccessModal: false
     }"
     class="max-w-[1440px] mx-auto space-y-6">
 
@@ -23,6 +25,11 @@
             </div>
         </div>
         <div class="flex flex-wrap items-center gap-4">
+            @if($balanceDue > 0 && $booking->status === 'Completed')
+            <span class="bg-red-50 text-red-600 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border border-red-200 shadow-sm flex items-center gap-1">
+                <span class="material-symbols-rounded text-sm">warning</span> Debt: ${{ number_format($balanceDue, 2) }}
+            </span>
+            @endif
             <span class="{{ $statusColor }} px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border shadow-md bg-white">
                 {{ $booking->status }}
             </span>
@@ -89,6 +96,9 @@
                     <button wire:click="openEmailModal('receipt')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E]"><i class="fa-regular fa-envelope"></i> Email Receipt</button>
                     <button wire:click="openEmailModal('invoice')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E]"><i class="fa-regular fa-envelope"></i> Email Invoice</button>
                     <button wire:click="openEmailModal('po')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E]"><i class="fa-regular fa-file-lines"></i> Email PO</button>
+                    @if($balanceDue > 0 && $booking->status === 'Completed')
+                    <button wire:click="openEmailModal('debt')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition whitespace-nowrap bg-red-600 border border-red-600 text-white shadow-sm hover:bg-white hover:text-red-600"><i class="fa-solid fa-file-invoice-dollar"></i> Email Debt</button>
+                    @endif
                     <button @click="historyModal = true" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E]"><i class="fa-solid fa-clock-rotate-left"></i> History</button>
                 </div>
                 <div class="h-6 w-px bg-gray-200 mx-2 hidden lg:block"></div>
@@ -96,6 +106,9 @@
                     <a href="{{ route('pdf.invoice', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E]"><i class="fa-solid fa-print"></i> Invoice</a>
                     <a href="{{ route('pdf.envelope', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E]"><i class="fa-solid fa-envelope-open-text"></i> Envelope</a>
                     <a href="{{ route('pdf.po', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E]"><i class="fa-solid fa-file-invoice"></i> PO/Quote</a>
+                    @if($balanceDue > 0 && $booking->status === 'Completed')
+                    <a href="{{ route('pdf.debt', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition whitespace-nowrap bg-red-600 border border-red-600 text-white shadow-sm hover:bg-white hover:text-red-600"><i class="fa-solid fa-file-invoice-dollar"></i> Debt Reminder</a>
+                    @endif
                 </div>
             </div>
 
@@ -106,6 +119,14 @@
                     <a href="{{ route('supervisor.customer.profile', $booking->id) }}" wire:navigate class="flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-[#9D686E] hover:underline transition"><i class="fa-regular fa-eye"></i> View Customer</a>
                     <span class="text-gray-200 hidden sm:inline">|</span>
                     <a href="{{ route('supervisor.bookings.edit', $booking->id) }}" wire:navigate class="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline transition"><i class="fa-solid fa-pen-to-square"></i> Edit Booking</a>
+                    <span class="text-gray-200 hidden sm:inline">|</span>
+                    <div class="flex items-center gap-2">
+                        <label for="attraction_cost_toggle" class="text-[10px] font-bold text-slate-500 uppercase cursor-pointer">PDF Price:</label>
+                        <button wire:click="toggleAttractionCost" id="attraction_cost_toggle" class="relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $booking->include_attraction_cost ? 'bg-[#9D686E]' : 'bg-gray-200' }}">
+                            <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $booking->include_attraction_cost ? 'translate-x-5' : 'translate-x-0' }}"></span>
+                        </button>
+                        <span class="text-[10px] font-black {{ $booking->include_attraction_cost ? 'text-[#9D686E]' : 'text-gray-400' }} uppercase">{{ $booking->include_attraction_cost ? 'Included' : 'Excluded' }}</span>
+                    </div>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
@@ -117,7 +138,10 @@
                                 <span class="material-symbols-rounded text-sm">calendar_month</span>
                             </button>
                         </div>
-                        <button wire:click="moveDate" class="bg-white text-gray-600 border border-gray-200 text-[10px] uppercase font-bold px-3 py-1.5 rounded shadow-sm hover:bg-gray-100 transition ml-1">Move</button>
+                        <button wire:click="moveDate" class="bg-white text-gray-600 border border-gray-200 text-[10px] uppercase font-bold px-3 py-1.5 rounded shadow-sm hover:bg-gray-100 transition ml-1">
+                            <span wire:loading.remove wire:target="moveDate">Move</span>
+                            <span wire:loading wire:target="moveDate">Moving...</span>
+                        </button>
                     </div>
 
                     <div class="flex items-center gap-2 bg-gray-50 p-1.5 rounded-lg border border-gray-100 flex-1 lg:flex-none">
@@ -130,7 +154,10 @@
                             <option value="Cancelled">Cancelled</option>
                             <option value="Draft">Draft</option>
                         </select>
-                        <button wire:click="updateStatus" class="bg-white text-[#9D686E] border border-gray-200 text-[10px] uppercase font-bold px-3 py-1.5 rounded shadow-sm hover:bg-gray-50 transition">Update</button>
+                        <button wire:click="updateStatus" class="bg-white text-[#9D686E] border border-gray-200 text-[10px] uppercase font-bold px-3 py-1.5 rounded shadow-sm hover:bg-gray-50 transition">
+                            <span wire:loading.remove wire:target="updateStatus">Update</span>
+                            <span wire:loading wire:target="updateStatus">Updating...</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -266,24 +293,58 @@
                     <div class="flex justify-between items-baseline mb-1 pb-1"><span class="text-[0.7rem] font-bold text-slate-500 w-2/5 uppercase tracking-wide">Booked By</span><span class="text-[0.75rem] font-medium text-slate-800 w-3/5 text-left">{{ $booking->booked_by ?? 'System' }}</span></div>
                 </div>
 
-                @if($calculatedExtrasTotal > 0)
+                @php
+                    $gen = json_decode($booking->general_extra ?? '[]', true) ?? [];
+                    $spec = json_decode($booking->specific_extra ?? '[]', true) ?? [];
+                    $hasAnyExtras = !empty($gen) || !empty($spec) || !empty($booking->logistics_surfaces) || $calculatedExtrasTotal > 0;
+                @endphp
+
+                @if($hasAnyExtras)
                 <div class="mt-4 pt-3 border-t border-gray-100">
                     <span class="text-[0.7rem] font-bold text-[#9D686E] w-full uppercase tracking-wide">Extras & Logistics</span>
-                    <div class="w-full text-xs text-gray-600 mt-2 space-y-1 bg-gray-50 p-3 rounded-lg">
-                        @php
-                        $gen = json_decode($booking->general_extra ?? '[]', true) ?? [];
-                        $spec = json_decode($booking->specific_extra ?? '[]', true) ?? [];
-                        $mergedExtras = array_merge($gen, $spec);
-                        @endphp
+                    
+                    <div class="w-full text-xs text-gray-600 mt-2 space-y-3">
+                        {{-- General Logistics Grouping --}}
+                        @if(!empty($gen) || !empty($booking->logistics_surfaces) || (empty($gen) && empty($spec) && $calculatedExtrasTotal > 0))
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                            <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-2 border-b border-gray-200 pb-1">General Logistic Extras</span>
+                            
+                            @if(!empty($booking->logistics_surfaces))
+                            <div class="flex justify-between border-b border-dotted border-gray-200 pb-1 mb-1">
+                                <span>&bull; Logistics Surface: <span class="font-bold text-gray-700">{{ $booking->logistics_surfaces }}</span></span>
+                                <span class="font-bold text-gray-400">-</span>
+                            </div>
+                            @endif
 
-                        @forelse($mergedExtras as $name => $cost)
-                        <div class="flex justify-between border-b border-dotted border-gray-200 pb-1">
-                            <span>&bull; {{ $name }}</span>
-                            <span class="font-bold text-gray-700">${{ number_format($cost, 2) }}</span>
+                            @foreach($gen as $name => $cost)
+                            <div class="flex justify-between border-b border-dotted border-gray-200 pb-1 mb-1 last:border-0 last:mb-0">
+                                <span>&bull; {{ $name }}</span>
+                                <span class="font-bold text-gray-700">${{ number_format($cost, 2) }}</span>
+                            </div>
+                            @endforeach
+
+                            {{-- Fallback for manual legacy cost if no specific extras listed --}}
+                            @if(empty($gen) && empty($spec) && $calculatedExtrasTotal > 0)
+                            <div class="flex justify-between border-b border-dotted border-gray-200 pb-1 last:border-0">
+                                <span>&bull; General Logistics Charge</span>
+                                <span class="font-bold text-gray-700">${{ number_format($calculatedExtrasTotal, 2) }}</span>
+                            </div>
+                            @endif
                         </div>
-                        @empty
-                        <div class="italic text-gray-400">Logistics Surface: {{ $booking->logistics_surfaces ?? 'None' }}</div>
-                        @endforelse
+                        @endif
+
+                        {{-- Specific Extras Grouping --}}
+                        @if(!empty($spec))
+                        <div class="bg-[#9D686E]/5 p-3 rounded-lg border border-[#9D686E]/10">
+                            <span class="text-[9px] font-black text-[#9D686E]/40 uppercase tracking-widest block mb-2 border-b border-[#9D686E]/10 pb-1">Specific Extras</span>
+                            @foreach($spec as $name => $cost)
+                            <div class="flex justify-between border-b border-dotted border-[#9D686E]/10 pb-1 mb-1 last:border-0 last:mb-0">
+                                <span>&bull; {{ $name }}</span>
+                                <span class="font-bold text-[#9D686E]">${{ number_format($cost, 2) }}</span>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endif
                     </div>
                 </div>
                 @endif
@@ -398,20 +459,50 @@
                         <thead class="bg-gray-50 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
                             <tr>
                                 <th class="p-2 rounded-l-lg">Ride / Item</th>
-                                <th class="p-2">Type</th>
-                                <th class="p-2 rounded-r-lg text-center">Qty</th>
+                                <th class="p-2">Specification</th>
+                                <th class="p-2 text-center">Qty</th>
+                                <th class="p-2 rounded-r-lg text-right">Price</th>
                             </tr>
                         </thead>
                         <tbody class="text-xs divide-y divide-gray-50">
                             @forelse ($items as $s)
-                            <tr class="hover:bg-gray-50 transition">
-                                <td class="p-2 font-medium text-gray-700">{{ $s->item_name }}</td>
-                                <td class="p-2 text-gray-500">{{ $s->is_custom ? 'Custom' : 'Standard' }}</td>
-                                <td class="p-2 text-center font-bold text-[#9D686E]">{{ $s->total_qty }}</td>
+                            <tr class="hover:bg-gray-50 transition border-b border-gray-50 last:border-0">
+                                <td class="p-2 font-black text-[#9D686E] py-4">
+                                    <div class="flex flex-col">
+                                        <span class="text-sm uppercase tracking-tight">{{ $s->item_name }}</span>
+                                        @if($s->is_custom)
+                                            <span class="text-[9px] font-bold text-amber-500 uppercase">Custom Item</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="p-2 py-4">
+                                    @if($s->specification)
+                                        <div class="text-[10px] text-gray-500 space-y-0.5">
+                                            @foreach(explode("\n", str_replace(["\r\n", "\r"], "\n", $s->specification)) as $line)
+                                                @if(trim($line))
+                                                    <div class="flex items-start gap-1">
+                                                        <span class="mt-1 w-1 h-1 rounded-full bg-[#9D686E] shrink-0"></span>
+                                                        <span>{{ trim($line) }}</span>
+                                                    </div>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <span class="text-[10px] text-gray-400 italic">No specs</span>
+                                    @endif
+                                </td>
+                                <td class="p-2 text-center font-black text-gray-800 py-4">{{ $s->total_qty }}</td>
+                                <td class="p-2 text-right font-black text-[#9D686E] py-4">
+                                    @if($s->unit_price > 0)
+                                        ${{ number_format($s->unit_price * $s->total_qty, 2) }}
+                                    @else
+                                        -
+                                    @endif
+                                </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="3" class="p-3 text-center italic text-gray-400">No specific items listed.</td>
+                                <td colspan="4" class="p-3 text-center italic text-gray-400">No specific items listed.</td>
                             </tr>
                             @endforelse
                         </tbody>
@@ -457,7 +548,7 @@
     <!-- DELETE MODAL -->
     <div x-show="deleteModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
         <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" @click="deleteModal = false"></div>
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="deleteModal = false"></div>
             <div x-show="deleteModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10 text-center">
                 <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600"><span class="material-symbols-rounded text-3xl">delete_forever</span></div>
                 <h3 class="text-xl font-bold text-gray-800 mb-2">Delete Booking?</h3>
@@ -473,7 +564,7 @@
     <!-- DRAFT MODAL -->
     <div x-show="draftModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
         <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" @click="draftModal = false"></div>
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="draftModal = false"></div>
             <div x-show="draftModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10 text-center">
                 <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 text-orange-600">
                     <span class="material-symbols-rounded text-3xl">warning</span>
@@ -490,10 +581,30 @@
         </div>
     </div>
 
+    <!-- STATUS CONFIRM MODAL -->
+    <div x-show="statusConfirmModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="statusConfirmModal = false"></div>
+            <div x-show="statusConfirmModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10 text-center">
+                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+                    <span class="material-symbols-rounded text-3xl">info</span>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Confirm Status Change</h3>
+                <p class="text-sm text-gray-500 mb-6">
+                    You are changing the status from <strong class="text-gray-700">{{ $booking->status }}</strong> to <strong class="text-[#9D686E]">{{ $newStatus }}</strong>. Are you sure you want to proceed?
+                </p>
+                <div class="flex justify-center gap-3">
+                    <button @click="statusConfirmModal = false" class="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-bold transition">Cancel</button>
+                    <button wire:click="executeStatusUpdate" class="px-5 py-2.5 rounded-xl bg-blue-500 text-white hover:bg-blue-600 text-sm font-bold shadow-lg shadow-blue-200 transition">Confirm Change</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- PAYMENT MODAL (RESTORED WITH ALL DROPDOWNS) -->
     <div x-show="paymentModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
         <div class="flex items-center justify-center min-h-screen px-4 py-8">
-            <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" @click="paymentModal = false"></div>
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="paymentModal = false"></div>
             <div x-show="paymentModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-10 flex flex-col">
                 <div class="flex justify-between items-center mb-5">
                     <h3 class="text-xl font-bold text-gray-800">Record Payment</h3>
@@ -618,7 +729,7 @@
     <!-- EMAIL MODAL -->
     <div x-show="emailModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
         <div class="flex items-center justify-center min-h-screen px-4 py-8">
-            <div class="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" @click="emailModal = false"></div>
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="emailModal = false"></div>
             <div x-show="emailModal" x-transition class="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl z-10 flex flex-col">
                 <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white rounded-t-xl">
                     <div class="flex items-center gap-2 text-[#9D686E]"><span class="material-symbols-rounded text-xl">mail</span>
@@ -663,7 +774,7 @@
     <!-- HISTORY MODAL -->
     <div x-show="historyModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
         <div class="flex items-center justify-center min-h-screen px-4 py-8">
-            <div class="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" @click="historyModal = false"></div>
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="historyModal = false"></div>
             <div x-show="historyModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-10 flex flex-col">
                 <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
                     <h3 class="text-lg font-bold text-gray-800">Email History</h3>
@@ -713,7 +824,7 @@
     <!-- CALENDAR MODAL -->
     <div x-show="calendarModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
         <div class="flex items-center justify-center min-h-screen px-4 py-8">
-            <div class="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" @click="calendarModal = false"></div>
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="calendarModal = false"></div>
             <div x-show="calendarModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg z-10">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="font-bold text-gray-800 text-xl">Check Availability</h3>
@@ -777,7 +888,7 @@
     <!-- PAYMENT DETAILS MODAL -->
     <div x-show="paymentDetailsModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
         <div class="flex items-center justify-center min-h-screen px-4 py-8">
-            <div class="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" @click="paymentDetailsModal = false"></div>
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="paymentDetailsModal = false"></div>
             <div x-show="paymentDetailsModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-10">
                 <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
                     <h3 class="text-lg font-bold text-gray-800">Transaction Details</h3>
@@ -811,14 +922,42 @@
         </div>
     </div>
 
-    <!-- Modal Listeners (Listens to Livewire dispatches) -->
+    <!-- SENT SUCCESS MODAL -->
+    <div x-show="sentSuccessModal" class="fixed inset-0 z-[10001] overflow-y-auto" x-cloak>
+        <div class="flex items-center justify-center min-h-screen px-4 py-8">
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="sentSuccessModal = false; $wire.resetEmailState()"></div>
+            <div x-show="sentSuccessModal" 
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 class="relative bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-sm z-10 text-center">
+                
+                <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 text-green-500 ring-8 ring-green-50/50">
+                    <span class="material-symbols-rounded text-4xl">check_circle</span>
+                </div>
+
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">Email Sent!</h3>
+                <p class="text-gray-500 text-sm mb-8">
+                    The <span class="font-bold text-[#9D686E]">{{ $emailType === 'po' ? 'Purchase Order' : ($emailType === 'receipt' ? 'Receipt' : 'Invoice') }}</span> has been successfully sent to <span class="font-bold">{{ $emailTo }}</span>.
+                </p>
+
+                <button @click="sentSuccessModal = false; $wire.resetEmailState()" class="w-full py-4 bg-[#9D686E] text-white rounded-2xl font-bold hover:bg-[#855359] shadow-lg shadow-[#9D686E]/20 transition-all active:scale-[0.98]">
+                    Great, thanks!
+                </button>
+            </div>
+        </div>
+    </div>
+
+
     <div
-        x-on:close-modal.window="paymentModal = false; emailModal = false; deleteModal = false; calendarModal = false; paymentDetailsModal = false; draftModal = false;"
+        x-on:close-modal.window="paymentModal = false; emailModal = false; deleteModal = false; calendarModal = false; paymentDetailsModal = false; draftModal = false; statusConfirmModal = false;"
         x-on:open-modal.window="
             let modalToOpen = typeof $event.detail === 'string' ? $event.detail : $event.detail[0];
             if (modalToOpen === 'paymentModal') paymentModal = true;
             if (modalToOpen === 'emailModal') emailModal = true;
             if (modalToOpen === 'calendarModal') calendarModal = true;
             if (modalToOpen === 'draftModal') draftModal = true;
+            if (modalToOpen === 'statusConfirmModal') statusConfirmModal = true;
+            if (modalToOpen === 'sentSuccessModal') sentSuccessModal = true;
         "></div>
 </div>

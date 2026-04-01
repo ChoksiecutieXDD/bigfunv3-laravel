@@ -11,6 +11,7 @@ class CategoryAddon extends Model
     protected $fillable = [
         'category_target',
         'addon_label',
-        'addon_price'
+        'addon_price',
+        'counts_against'
     ];
 }

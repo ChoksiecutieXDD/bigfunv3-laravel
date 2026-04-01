@@ -41,6 +41,8 @@ class BookingOverview extends Component
     public $emailSubject;
     public $emailBody;
     public $emailAttachment;
+    public $isSentSuccessfully = false;
+
 
     // --- Calendar Modals Properties ---
     public $calMonth;
@@ -62,24 +64,32 @@ class BookingOverview extends Component
     // --- Core Updates ---
     public function updateStatus()
     {
-        // 1. If it is currently a draft, pop open the warning modal instead of saving
         if ($this->booking->status === 'Draft' && $this->newStatus !== 'Draft') {
             $this->dispatch('open-modal', 'draftModal');
             return;
         }
 
-        // 2. If it's not a draft, just update it normally
+        if (
+            ($this->booking->status !== 'Cancelled' && $this->newStatus === 'Cancelled') ||
+            ($this->booking->status === 'Cancelled' && $this->newStatus !== 'Cancelled')
+        ) {
+            $this->dispatch('open-modal', 'statusConfirmModal');
+            return;
+        }
+
         $this->executeStatusUpdate();
     }
 
     public function executeStatusUpdate()
     {
         $this->booking->update(['status' => $this->newStatus]);
-
-        // Refresh the component state so the UI colors change immediately
         $this->booking->refresh();
 
+        // Sync to Google Sheet
+        app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
+
         $this->dispatch('close-modal', 'draftModal');
+        $this->dispatch('close-modal', 'statusConfirmModal');
         $this->dispatch('notify', title: 'Success', message: 'Status updated to ' . $this->newStatus);
     }
 
@@ -96,15 +106,25 @@ class BookingOverview extends Component
         $this->dispatch('notify', title: 'Success', message: 'Terms agreement updated.');
     }
 
+    public function toggleAttractionCost()
+    {
+        $this->booking->include_attraction_cost = !$this->booking->include_attraction_cost;
+        $this->booking->save();
+        $this->dispatch('notify', title: 'Success', message: 'Attraction costing display updated.');
+    }
+
     public function moveDate()
     {
         // Capture original date on FIRST move only
-        if (!$this->booking->original_event_date) {
-            $this->booking->original_event_date = $this->booking->event_date;
+        if (empty($this->booking->original_event_date)) {
+            $this->booking->original_event_date = $this->booking->getOriginal('event_date') ?? $this->booking->event_date;
         }
 
         $this->booking->event_date = $this->newDate;
         $this->booking->save();
+
+        // Sync to Google Sheet (Moving event date)
+        app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
 
         $this->dispatch('notify', title: 'Success', message: 'Booking moved to ' . $this->newDate);
     }
@@ -172,6 +192,9 @@ class BookingOverview extends Component
             'card_network' => $this->payMethod === 'Card Holder' ? $this->cardNetwork : null,
         ]);
 
+        // Sync to Google Sheet (Update debt info)
+        app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
+
         $this->reset(['payAmount', 'payRef', 'payNotes']);
         $this->dispatch('close-modal', 'paymentModal');
         $this->dispatch('notify', title: 'Success', message: 'Payment recorded.');
@@ -213,6 +236,14 @@ class BookingOverview extends Component
             $this->emailSubject = "Purchase Order Reference - Booking #{$this->booking->id}";
             $this->emailBody = "Hello $fName,\n\nThank you for your inquiry regarding the event on $eventDate.\n\nPlease find attached the Purchase Order Reference / Quotation for your internal approval process. This document outlines the rides, logistics, and total costs associated with your request.\n\nThis document serves as a reference to help you decide if you wish to proceed with the booking. It is not a demand for payment.\n\nBooking Proposal:\nDate: $eventDate\nTime: $timeString\nLocation: $fullAddress\n\nFinancial Summary:\nTotal Proposed Cost: $" . number_format($totalAmount, 2) . "\n\nIf you decide to proceed, please let us know so we can finalize the details and issue a formal invoice.\n\nIf you have any questions or require assistance, please feel free to contact us on 1800 244 386.\n\nKind regards,\nBIG FUN\n1800 244 386";
             $this->emailAttachment = "BigFunPurchaseOrder-{$this->booking->id}.pdf";
+        } elseif ($type === 'debt') {
+            // Debt Reminder
+            $eventMidnight = Carbon::parse($this->booking->event_date)->startOfDay();
+            $todayMidnight = now()->startOfDay();
+            $daysPast = $eventMidnight->isPast() ? $todayMidnight->diffInDays($eventMidnight) : 0;
+            $this->emailSubject = "Outstanding Balance Reminder - Booking #{$this->booking->id}";
+            $this->emailBody = "Hello $fName,\n\nThis is a friendly reminder that your event on $eventDate is currently $daysPast days past due with an outstanding balance of $" . number_format($balanceDue, 2) . ".\n\nPlease find attached the debt reminder invoice which provides an overview of your booking and the outstanding amount.\n\nAll payments should be made to Big Fun quoting your invoice number as the payment reference.\n\nPlease contact us on 1800 244 386 if you wish to discuss this account.\n\nKind regards,\nBIG FUN\n1800 244 386";
+            $this->emailAttachment = "BigFunDebt-{$this->booking->id}.pdf";
         } else {
             // Big Fun Invoice (Paperwork/Deposit)
             $this->emailSubject = "Big Fun Invoice - $invNum";
@@ -223,18 +254,33 @@ class BookingOverview extends Component
         $this->dispatch('open-modal', 'emailModal');
     }
 
-    public function sendEmail()
+    public function sendEmail(\App\Services\MailService $mailService)
     {
-        // Mock sending email - connect this to your mail logic later
-        DB::table('email_logs')->insert([
-            'booking_id' => $this->booking->id,
-            'type' => $this->emailType,
-            'sent_to' => $this->emailTo,
-            'sent_at' => now()
+        $result = $mailService->sendEmail($this->booking->id, [
+            'email_to' => $this->emailTo,
+            'email_cc' => $this->emailCc,
+            'email_bcc' => $this->emailBcc,
+            'email_subject' => $this->emailSubject,
+            'email_body' => $this->emailBody,
+            'email_type' => $this->emailType,
+            'attachments' => [$this->emailAttachment]
         ]);
 
-        $this->dispatch('close-modal', 'emailModal');
-        $this->dispatch('notify', title: 'Success', message: 'Email sent successfully!');
+        if ($result['success']) {
+            $this->isSentSuccessfully = true;
+            $this->dispatch('close-modal', 'emailModal');
+            $this->dispatch('open-modal', 'sentSuccessModal');
+            
+            // Re-fetch email logs to show the new one
+            $this->booking->refresh();
+        } else {
+            $this->dispatch('notify', title: 'Error', message: $result['message']);
+        }
+    }
+
+    public function resetEmailState()
+    {
+        $this->isSentSuccessfully = false;
     }
 
     // --- Live Calendar Logic ---
@@ -305,8 +351,12 @@ class BookingOverview extends Component
     public function render()
     {
         $items = BookingItem::where('booking_id', $this->booking->id)
-            ->selectRaw('item_name, is_custom, SUM(qty) as total_qty')
-            ->groupBy('item_name', 'is_custom')
+            ->leftJoin('products', function($join) {
+                $join->on('booking_items.item_name', '=', 'products.name')
+                     ->where('booking_items.is_custom', '=', 0);
+            })
+            ->selectRaw('booking_items.item_name, booking_items.is_custom, SUM(booking_items.qty) as total_qty, products.specification, products.price as unit_price')
+            ->groupBy('booking_items.item_name', 'booking_items.is_custom', 'products.specification', 'products.price')
             ->get();
 
         $payments = BookingPayment::where('booking_id', $this->booking->id)->orderBy('payment_date', 'asc')->get();

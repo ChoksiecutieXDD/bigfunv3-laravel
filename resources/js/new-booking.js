@@ -8,7 +8,8 @@
             savedExtras: bridge.dataset.extras ? JSON.parse(bridge.dataset.extras) : [],
             csrfToken: bridge.dataset.csrf,
             bookingId: bridge.dataset.id,
-            invoiceNumber: bridge.dataset.invoice
+            invoiceNumber: bridge.dataset.invoice,
+            pastCustomers: bridge.dataset.customers ? JSON.parse(bridge.dataset.customers) : [],
         };
     }
 })();
@@ -24,12 +25,38 @@ document.addEventListener('alpine:init', () => {
             review: false,
             history: false,
             exit: false,
-            reset: false
+            reset: false,
+            limitExceeded: false
         },
+        limitExceededCategory: '',
+        limitExceededLimit: 0,
         previousCustomers: [],
         filteredCustomers: [],
         searchHistory: '',
         cardNetwork: 'Visa',
+        productDetails: {
+            visible: false,
+            name: '',
+            spec: '',
+            price: 0
+        },
+
+        openProductDetails(card) {
+            this.productDetails.name = card.dataset.name;
+            this.productDetails.spec = card.dataset.specification || '';
+            this.productDetails.price = parseFloat(card.dataset.price || 0);
+            this.productDetails.visible = true;
+        },
+        
+        // Gmail State
+        gmailModalVisible: false,
+        previewSidebarVisible: false,
+        isFetchingEmails: false,
+        gmailSearchQuery: '',
+        emailList: [],
+        selectedEmailData: null,
+        selectedEmailBody: '',
+        previewZoomLevel: 1.0,
 
         updatePaymentMethods() {
             if (this.paymentType === 'EFT') {
@@ -97,8 +124,65 @@ document.addEventListener('alpine:init', () => {
         togglePaymentStatus() {
             this.paymentStatus = (this.paymentStatus === 'Pending') ? 'Deposit Paid' : 'Pending';
             this.$nextTick(() => {
-                if (typeof triggerRecalculate === 'function') triggerRecalculate();
+                if(typeof triggerRecalculate === 'function') triggerRecalculate();
             });
+        },
+
+        // Gmail Functions
+        async fetchEmails() {
+            this.isFetchingEmails = true;
+            this.emailList = [];
+            this.selectedEmailData = null;
+            this.selectedEmailBody = '';
+            
+            try {
+                const url = '/google/fetch-emails' + (this.gmailSearchQuery ? '?q=' + encodeURIComponent(this.gmailSearchQuery) : '');
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (data.error) {
+                    if (typeof showToast !== 'undefined') showToast('Gmail Error', data.error, 'error');
+                } else {
+                    this.emailList = data;
+                }
+            } catch (err) {
+                if (typeof showToast !== 'undefined') showToast('Network Error', 'Failed to fetch emails.', 'error');
+            } finally {
+                this.isFetchingEmails = false;
+            }
+        },
+
+        selectEmail(email) {
+            this.selectedEmailData = email;
+            this.selectedEmailBody = email.body;
+            this.previewSidebarVisible = true;
+            this.gmailModalVisible = false;
+        },
+
+        extractEmailData() {
+            if (!this.selectedEmailData) return;
+            
+            const email = this.selectedEmailData;
+            
+            if (email.name) {
+                const parts = email.name.split(' ');
+                const elFirst = document.getElementById('cust_first_name');
+                const elLast = document.getElementById('cust_last_name');
+                if (elFirst) elFirst.value = parts[0] || '';
+                if (elLast) elLast.value = parts.slice(1).join(' ') || '';
+            }
+            
+            const elEmail = document.getElementById('customer_email_address');
+            if (elEmail) elEmail.value = email.email || '';
+            
+            const phoneMatch = email.body.match(/(?:\+?61|0)[2-478](?:[ \-]?[0-9]){8}/);
+            if (phoneMatch) {
+                const elPhone = document.getElementById('customer_phone_mobile');
+                if (elPhone) elPhone.value = phoneMatch[0];
+            }
+            
+            if (typeof showToast !== 'undefined') showToast("Data Extracted", "Customer details populated from quote.", "success");
+            this.previewSidebarVisible = false;
         },
 
         performReset() {
@@ -395,22 +479,40 @@ window.updateCategoryLimitsUI = function() {
         usage[limitCategory] = (usage[limitCategory] || 0) + 1;
     });
 
+    // Also count Extras (Addons & Dropdowns) that count against category limits
+    document.querySelectorAll('.ext-price[data-counts-against]').forEach(el => {
+        const countsAgainst = (el.dataset.countsAgainst || '').trim();
+        if (!countsAgainst) return;
+
+        if (el.type === 'checkbox') {
+            if (el.checked) usage[countsAgainst] = (usage[countsAgainst] || 0) + 1;
+        } else if (el.tagName === 'SELECT') {
+            if (el.value !== '' && el.value !== '0' && !el.value.includes('|no')) {
+                usage[countsAgainst] = (usage[countsAgainst] || 0) + 1;
+            }
+        }
+    });
+
     document.querySelectorAll('.category-section').forEach(section => {
         const catNameTrimmed = (section.dataset.category || '').trim();
         const catData = categories[section.dataset.category];
 
         if (catData && catData.limit > 0) {
             const used = usage[catNameTrimmed] || 0;
-            const remaining = catData.limit - used;
+            const remaining = Math.max(0, catData.limit - used);
             const badge = section.querySelector('.cat-limit-badge');
             if (badge) {
                 badge.innerText = `Limit: ${catData.limit} (Left: ${remaining})`;
-                if (remaining <= 0) badge.className = 'cat-limit-badge text-[10px] bg-red-100 text-red-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide';
-                else badge.className = 'cat-limit-badge text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide';
+                if (remaining <= 0) {
+                    badge.className = 'cat-limit-badge text-[10px] bg-red-500 text-white px-3 py-1 rounded-lg font-bold uppercase tracking-wide border border-red-600';
+                } else {
+                    badge.className = 'cat-limit-badge text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide border border-amber-200';
+                }
             }
         }
     });
 
+    // Disable/Enable main Attraction checkboxes
     document.querySelectorAll('.ride-checkbox').forEach(cb => {
         const card = cb.closest('.product-card');
         const targetCat = (card.dataset.countsAgainst || '').trim();
@@ -435,6 +537,33 @@ window.updateCategoryLimitsUI = function() {
             }
         }
     });
+
+    // Disable/Enable Extra (Addons/Dropdowns) elements
+    document.querySelectorAll('.ext-price[data-counts-against]').forEach(el => {
+        const targetCat = (el.dataset.countsAgainst || '').trim();
+        if (!targetCat) return;
+
+        let targetData = null;
+        for (let key in categories) {
+            if (key.trim() === targetCat) {
+                targetData = categories[key];
+                break;
+            }
+        }
+
+        if (targetData && targetData.limit > 0) {
+            const used = usage[targetCat] || 0;
+            const isSelected = (el.type === 'checkbox' ? el.checked : (el.value !== '' && el.value !== '0' && !el.value.includes('|no')));
+            
+            if (!isSelected && used >= targetData.limit) {
+                el.disabled = true;
+                if (el.type === 'checkbox') el.closest('label').classList.add('opacity-50', 'pointer-events-none');
+            } else {
+                el.disabled = false;
+                if (el.type === 'checkbox') el.closest('label').classList.remove('opacity-50', 'pointer-events-none');
+            }
+        }
+    });
 };
 
 window.handleSelection = function(checkbox) {
@@ -452,12 +581,31 @@ window.handleSelection = function(checkbox) {
         }
 
         if (limitCategory && catLimit > 0) {
-            let count = globalCategoryBooked[limitCategory] || 0;
+            // Calculate usage manually to see if this addition is okay
+            let currentUsage = (globalCategoryBooked[limitCategory] || 0);
+            
             document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
-                if ((cb.closest('.product-card').dataset.countsAgainst || '').trim() === limitCategory) count++;
+                if (cb !== checkbox && (cb.closest('.product-card').dataset.countsAgainst || '').trim() === limitCategory) {
+                    currentUsage++;
+                }
             });
-            if (count > catLimit) {
-                showToast("Limit Reached", `Max ${catLimit} items for ${limitCategory}.`, "warning");
+
+            document.querySelectorAll('.ext-price[data-counts-against]').forEach(el => {
+                if ((el.dataset.countsAgainst || '').trim() === limitCategory) {
+                    if (el.type === 'checkbox' && el.checked) currentUsage++;
+                    else if (el.tagName === 'SELECT' && el.value !== '' && el.value !== '0' && !el.value.includes('|no')) currentUsage++;
+                }
+            });
+
+            if (currentUsage + 1 > catLimit) {
+                const alpine = document.querySelector('[x-data="bookingApp"]').__x.$data;
+                if (alpine) {
+                    alpine.limitExceededCategory = limitCategory;
+                    alpine.limitExceededLimit = catLimit;
+                    alpine.modals.limitExceeded = true;
+                } else {
+                    showToast("Limit Reached", `Max ${catLimit} items for ${limitCategory}.`, "warning");
+                }
                 checkbox.checked = false;
                 return;
             }
@@ -467,9 +615,67 @@ window.handleSelection = function(checkbox) {
         card.classList.remove('selected');
     }
 
-    updateCategoryLimitsUI();
-    // Use a small timeout to ensure DOM is ready or just call immediately
+    triggerRecalculate();
+    saveCurrentExtrasState();
     updateDynamicExtras();
+    updateCategoryLimitsUI();
+};
+
+window.handleExtraSelection = function(element) {
+    const limitCategory = (element.dataset.countsAgainst || '').trim();
+    const categories = window.bookingAppData.categories;
+
+    const isSelected = (element.type === 'checkbox' ? element.checked : (element.value !== '' && element.value !== '0' && !element.value.includes('|no')));
+
+    if (isSelected) {
+        let catLimit = 0;
+        for (let key in categories) {
+            if (key.trim() === limitCategory) {
+                catLimit = categories[key].limit;
+                break;
+            }
+        }
+
+        if (limitCategory && catLimit > 0) {
+            let currentUsage = (globalCategoryBooked[limitCategory] || 0);
+            
+            document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
+                if ((cb.closest('.product-card').dataset.countsAgainst || '').trim() === limitCategory) {
+                    currentUsage++;
+                }
+            });
+
+            document.querySelectorAll('.ext-price[data-counts-against]').forEach(el => {
+                if (el !== element && (el.dataset.countsAgainst || '').trim() === limitCategory) {
+                    if (el.type === 'checkbox' && el.checked) currentUsage++;
+                    else if (el.tagName === 'SELECT' && el.value !== '' && el.value !== '0' && !el.value.includes('|no')) currentUsage++;
+                }
+            });
+
+            if (currentUsage + 1 > catLimit) {
+                const alpine = document.querySelector('[x-data="bookingApp"]').__x.$data;
+                if (alpine) {
+                    alpine.limitExceededCategory = limitCategory;
+                    alpine.limitExceededLimit = catLimit;
+                    alpine.modals.limitExceeded = true;
+                } else {
+                    showToast("Limit Reached", `Max ${catLimit} items for ${limitCategory}.`, "warning");
+                }
+                
+                // Revert
+                if (element.type === 'checkbox') {
+                    element.checked = false;
+                } else {
+                    element.value = '';
+                }
+                return;
+            }
+        }
+    }
+
+    triggerRecalculate();
+    saveCurrentExtrasState();
+    updateCategoryLimitsUI();
 };
 
 window.finalizeBooking = async function() {
@@ -526,7 +732,23 @@ window.filterRides = function() {
     });
 };
 
+window.saveCurrentExtrasState = function() {
+    if (!window.bookingAppData) return;
+    const container = document.getElementById('dynamicExtrasContainer');
+    if (!container) return;
+
+    container.querySelectorAll('.ext-price').forEach(el => {
+        if (el.type === 'checkbox') {
+            window.bookingAppData.savedExtras[el.name] = el.checked ? "1" : "0";
+        } else if (el.tagName === 'SELECT') {
+            window.bookingAppData.savedExtras[el.name] = el.value;
+        }
+    });
+};
+
 window.updateDynamicExtras = function() {
+    saveCurrentExtrasState();
+
     const activeCategories = new Set();
     document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
         activeCategories.add(cb.closest('.product-card').dataset.category);
@@ -585,8 +807,10 @@ function renderCategoryBlockHTML(catName) {
         config.dropdowns[catName].forEach(dd => {
             let key = `dd_${dd.id}`;
             let val = savedExtras[key] || '';
-            let opts = dd.options.map(o => `<option value="${o.id}" data-price="${o.option_price}" ${val == o.id ? 'selected' : ''}>${o.option_label} (+$${o.option_price})</option>`).join('');
-            catHtml += `<div class="mt-3"><label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 ml-1">${dd.label}</label><select name="${key}" class="input-field !py-2 text-sm ext-price bg-white cursor-pointer" onchange="triggerRecalculate()">${opts}</select></div>`;
+            let countsAgainst = (dd.counts_against || '').trim();
+            let placeholder = `<option value="" data-price="0" ${val == '' ? 'selected' : ''}>-- Select Option --</option>`;
+            let opts = placeholder + dd.options.map(o => `<option value="${o.id}" data-price="${o.option_price}" ${val == o.id ? 'selected' : ''}>${o.option_label} (+$${o.option_price})</option>`).join('');
+            catHtml += `<div class="mt-3"><label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 ml-1">${dd.label}</label><select name="${key}" data-counts-against="${countsAgainst}" class="input-field !py-2 text-sm ext-price bg-white cursor-pointer" onchange="handleExtraSelection(this)">${opts}</select></div>`;
         });
     }
 
@@ -596,8 +820,8 @@ function renderCategoryBlockHTML(catName) {
             let val = savedExtras[key] || '';
             let yesSel = (val == (q.yes_price + '|yes')) ? 'selected' : '';
             let noSel = (val == (q.no_price + '|no')) ? 'selected' : '';
-            if (!yesSel && !noSel) noSel = 'selected';
-            catHtml += `<div class="mt-3"><label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 ml-1">${q.question_text}</label><select name="${key}" class="input-field !py-2 text-sm ext-price bg-white cursor-pointer" onchange="triggerRecalculate()"><option value="${q.yes_price}|yes" data-price="${q.yes_price}" ${yesSel}>${q.yes_label} (+$${q.yes_price})</option><option value="${q.no_price}|no" data-price="${q.no_price}" ${noSel}>${q.no_label} (+$${q.no_price})</option></select></div>`;
+            let placeholderSel = (!yesSel && !noSel) ? 'selected' : '';
+            catHtml += `<div class="mt-3"><label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 ml-1">${q.question_text}</label><select name="${key}" class="input-field !py-2 text-sm ext-price bg-white cursor-pointer" onchange="handleExtraSelection(this)"><option value="" data-price="0" ${placeholderSel}>-- Select Choice --</option><option value="${q.yes_price}|yes" data-price="${q.yes_price}" ${yesSel}>${q.yes_label} (+$${q.yes_price})</option><option value="${q.no_price}|no" data-price="${q.no_price}" ${noSel}>${q.no_label} (+$${q.no_price})</option></select></div>`;
         });
     }
 
@@ -605,7 +829,8 @@ function renderCategoryBlockHTML(catName) {
         config.addons[catName].forEach(addon => {
             let key = `add_${addon.id}`;
             let isChecked = (savedExtras[key] == '1');
-            catHtml += `<label class="flex items-center gap-3 mt-3 p-3 bg-white border border-slate-200 rounded-xl hover:border-[#9E6B73] cursor-pointer transition shadow-sm h-[42px]"><input type="checkbox" name="${key}" value="1" class="ext-price w-4 h-4 text-[#9E6B73] focus:ring-[#9E6B73]" data-price="${addon.addon_price}" ${isChecked ? 'checked' : ''} onchange="triggerRecalculate()"><span class="text-sm font-bold text-slate-700 flex-1">${addon.addon_label}</span><span class="text-xs font-bold text-[#9E6B73] bg-[#9E6B73]/10 px-2 py-1 rounded-lg">+$${addon.addon_price}</span></label>`;
+            let countsAgainst = (addon.counts_against || '').trim();
+            catHtml += `<label class="flex items-center gap-3 mt-3 p-3 bg-white border border-slate-200 rounded-xl hover:border-[#9E6B73] cursor-pointer transition shadow-sm h-[42px]"><input type="checkbox" name="${key}" value="1" class="ext-price w-4 h-4 text-[#9E6B73] focus:ring-[#9E6B73]" data-price="${addon.addon_price}" data-counts-against="${countsAgainst}" ${isChecked ? 'checked' : ''} onchange="handleExtraSelection(this)"><span class="text-sm font-bold text-slate-700 flex-1">${addon.addon_label}</span><span class="text-xs font-bold text-[#9E6B73] bg-[#9E6B73]/10 px-2 py-1 rounded-lg">+$${addon.addon_price}</span></label>`;
         });
     }
 
@@ -721,6 +946,16 @@ window.triggerRecalculate = function() {
     const breakDel = document.getElementById('breakdown_del');
     if (breakDel) breakDel.innerText = '$' + delCost.toFixed(2);
 
+    let attractionsCost = 0;
+    document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
+        const card = cb.closest('.product-card');
+        if (card) {
+            attractionsCost += parseFloat(card.dataset.price || 0);
+        }
+    });
+    const breakAttractions = document.getElementById('breakdown_attractions');
+    if (breakAttractions) breakAttractions.innerText = '$' + attractionsCost.toFixed(2);
+
     let extCost = 0;
     document.querySelectorAll('.ext-price').forEach(el => {
         if (el.tagName === 'SELECT') {
@@ -738,11 +973,12 @@ window.triggerRecalculate = function() {
     const breakExt = document.getElementById('breakdown_ext');
     if (breakExt) breakExt.innerText = '$' + extCost.toFixed(2);
 
-    let sub = durCost + delCost + extCost;
+    let sub = durCost + delCost + extCost + attractionsCost;
     const calcSub = document.getElementById('calc_subtotal');
     if (calcSub) calcSub.value = sub.toFixed(2);
 
     calculateFinalTotals();
+    updateCategoryLimitsUI();
 };
 
 window.calculateFinalTotals = function() {
@@ -868,6 +1104,7 @@ window.openReviewModal = function() {
     document.getElementById('rev_del_cost').innerText = displayDelZone;
 
     document.getElementById('rev_ext_cost').innerText = document.getElementById('breakdown_ext').innerText;
+    document.getElementById('rev_attractions_cost').innerText = document.getElementById('breakdown_attractions').innerText;
     document.getElementById('rev_sur_cost').innerText = document.getElementById('disp_surcharge').innerText;
     
     const totalRaw = document.getElementById('disp_total').innerText;

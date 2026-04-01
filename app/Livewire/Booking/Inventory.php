@@ -26,15 +26,16 @@ class Inventory extends Component
     public $cat_id, $category_name, $cat_daily_limit = 0;
 
     // --- Product State ---
-    public $prod_id, $prod_name, $prod_category, $counts_against, $prod_price, $prod_limit = 0, $is_active = true;
+    public $prod_id, $prod_name, $prod_category, $counts_against, $prod_specification, $prod_price, $prod_limit = 0, $is_active = true;
 
     // --- Add-on State ---
     public $addon_id;
     public $addon_category = 'General Logistics';
+    public $addon_counts_against;
     public $addonRows = [['label' => '', 'price' => '']];
 
     // --- Dropdown State ---
-    public $dd_id, $dd_category = 'General Logistics', $dd_label;
+    public $dd_id, $dd_category = 'General Logistics', $dd_label, $dd_counts_against;
     public $dropdownRows = [['label' => '', 'price' => '']];
 
     // --- Delivery State ---
@@ -84,6 +85,7 @@ class Inventory extends Component
         $this->cat_id = $cat->id;
         $this->category_name = $cat->category_name;
         $this->cat_daily_limit = $cat->daily_limit;
+        $this->dispatchToast("Editing '{$cat->category_name}' category.");
     }
 
     #[On('execute-delete-category')]
@@ -165,6 +167,7 @@ class Inventory extends Component
                 'name' => $this->prod_name,
                 'category' => $this->prod_category,
                 'counts_against' => $this->counts_against ?: $this->prod_category,
+                'specification' => $this->prod_specification,
                 'price' => $this->prod_price ?: 0,
                 'daily_limit' => $this->prod_limit ?: 0,
                 'sort_order' => $sortOrder,
@@ -183,9 +186,11 @@ class Inventory extends Component
         $this->prod_name = $prod->name;
         $this->prod_category = $prod->category;
         $this->counts_against = $prod->counts_against;
+        $this->prod_specification = $prod->specification;
         $this->prod_price = $prod->price;
         $this->prod_limit = $prod->daily_limit;
         $this->is_active = $prod->is_active;
+        $this->dispatchToast("Editing '{$prod->name}' product.");
     }
 
     #[On('execute-delete-product')]
@@ -234,7 +239,7 @@ class Inventory extends Component
 
     public function resetProductForm()
     {
-        $this->reset(['prod_id', 'prod_name', 'prod_category', 'counts_against', 'prod_price', 'prod_limit']);
+        $this->reset(['prod_id', 'prod_name', 'prod_category', 'counts_against', 'prod_specification', 'prod_price', 'prod_limit']);
         $this->is_active = true;
     }
 
@@ -260,7 +265,8 @@ class Inventory extends Component
                 CategoryAddon::where('id', $this->addon_id)->update([
                     'category_target' => $this->addon_category,
                     'addon_label' => $row['label'],
-                    'addon_price' => floatval($row['price']) ?: 0
+                    'addon_price' => floatval($row['price']) ?: 0,
+                    'counts_against' => $this->addon_counts_against ?: $this->addon_category
                 ]);
             }
             $msg = 'Add-on updated.';
@@ -270,7 +276,8 @@ class Inventory extends Component
                     CategoryAddon::create([
                         'category_target' => $this->addon_category,
                         'addon_label' => $row['label'],
-                        'addon_price' => floatval($row['price']) ?: 0
+                        'addon_price' => floatval($row['price']) ?: 0,
+                        'counts_against' => $this->addon_counts_against ?: $this->addon_category
                     ]);
                 }
             }
@@ -286,7 +293,9 @@ class Inventory extends Component
         $addon = CategoryAddon::findOrFail($id);
         $this->addon_id = $addon->id;
         $this->addon_category = $addon->category_target;
+        $this->addon_counts_against = $addon->counts_against;
         $this->addonRows = [['label' => $addon->addon_label, 'price' => $addon->addon_price]];
+        $this->dispatchToast("Editing '{$addon->addon_label}' add-on.");
     }
 
     #[On('execute-delete-addon')]
@@ -299,7 +308,7 @@ class Inventory extends Component
 
     public function resetAddonForm()
     {
-        $this->reset(['addon_id']);
+        $this->reset(['addon_id', 'addon_counts_against']);
         $this->addonRows = [['label' => '', 'price' => '']];
     }
 
@@ -326,7 +335,11 @@ class Inventory extends Component
 
         $dropdown = ProductDropdown::updateOrCreate(
             ['id' => $this->dd_id],
-            ['category_target' => $this->dd_category, 'label' => $this->dd_label]
+            [
+                'category_target' => $this->dd_category, 
+                'label' => $this->dd_label,
+                'counts_against' => $this->dd_counts_against ?: $this->dd_category
+            ]
         );
 
         if ($this->dd_id) {
@@ -353,6 +366,7 @@ class Inventory extends Component
         $this->dd_id = $dd->id;
         $this->dd_category = $dd->category_target;
         $this->dd_label = $dd->label;
+        $this->dd_counts_against = $dd->counts_against;
 
         $this->dropdownRows = [];
         foreach ($dd->options as $opt) {
@@ -362,6 +376,7 @@ class Inventory extends Component
         if (empty($this->dropdownRows)) {
             $this->addDropdownRow();
         }
+        $this->dispatchToast("Editing '{$dd->label}' dropdown.");
     }
 
     #[On('execute-delete-dropdown')]
@@ -374,7 +389,7 @@ class Inventory extends Component
 
     public function resetDropdownForm()
     {
-        $this->reset(['dd_id', 'dd_label']);
+        $this->reset(['dd_id', 'dd_label', 'dd_counts_against']);
         $this->dropdownRows = [['label' => '', 'price' => '']];
     }
 
@@ -400,6 +415,7 @@ class Inventory extends Component
         $this->del_id = $zone->id;
         $this->zone_name = $zone->zone_name;
         $this->del_price = $zone->price;
+        $this->dispatchToast("Editing '{$zone->zone_name}' delivery zone.");
     }
 
     #[On('execute-delete-delivery')]
@@ -437,6 +453,7 @@ class Inventory extends Component
         $this->dur_label = $dur->label;
         $this->dur_hours = $dur->hours;
         $this->dur_price = $dur->price;
+        $this->dispatchToast("Editing '{$dur->label}' duration.");
     }
 
     #[On('execute-delete-duration')]

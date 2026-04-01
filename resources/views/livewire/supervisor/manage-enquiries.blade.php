@@ -1,48 +1,54 @@
-<div class="max-w-[1440px] mx-auto space-y-6" wire:init="loadEnquiries">
+<div class="w-full max-w-[1440px] mx-auto space-y-8 pb-12" wire:init="loadEnquiries">
 
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <h2 class="text-3xl font-bold text-gray-800">Enquiries</h2>
-            <p class="text-gray-500 mt-1 text-sm font-medium">Respond to customer questions via Gmail.</p>
+            <h2 class="text-3xl font-bold text-white drop-shadow-sm">Enquiries</h2>
+            <p class="text-white/80 mt-1 text-sm font-medium">Respond to customer questions via Gmail.</p>
         </div>
-        <div class="flex gap-2">
-            <button wire:click="loadEnquiries" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-[#9E6B73] border border-[#9E6B73]/20 px-4 py-2.5 rounded-xl font-bold shadow-sm transition flex items-center gap-2 text-sm">
-                <span class="material-symbols-rounded" wire:loading.class="animate-spin" wire:target="loadEnquiries">refresh</span>
+        <div class="flex flex-wrap items-center gap-3">
+            <button wire:click="loadEnquiries" class="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 px-6 py-3 rounded-2xl font-bold shadow-lg transition-all flex items-center gap-2 text-sm hover:scale-105 active:scale-95 group">
+                <span class="material-symbols-rounded group-hover:rotate-180 transition-transform duration-500" wire:loading.class="animate-spin" wire:target="loadEnquiries">refresh</span>
                 <span wire:loading.remove wire:target="loadEnquiries">Refresh Inbox</span>
                 <span wire:loading wire:target="loadEnquiries">Syncing...</span>
             </button>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white p-6 rounded-[2rem] shadow-lg relative overflow-hidden bg-orange-50">
-            <div class="bg-orange-100 text-orange-500 rounded-xl w-12 h-12 flex items-center justify-center mb-2">
-                <span class="material-symbols-rounded text-2xl">mark_email_unread</span>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-gray-100 relative overflow-hidden group hover:shadow-orange-200/20 transition-all duration-500">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-700"></div>
+            <div class="bg-orange-100 text-orange-600 rounded-2xl w-14 h-14 flex items-center justify-center mb-6 relative z-10 shadow-sm">
+                <span class="material-symbols-rounded text-3xl">mark_email_unread</span>
             </div>
-            <div class="relative z-10 pt-1">
-                <p class="text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Inbox (Recent)</p>
-                <h3 class="text-3xl font-extrabold text-[#2D3748] mt-2">
-                    <span wire:loading.remove wire:target="loadEnquiries">{{ count($emails) }}</span>
-                    <span wire:loading wire:target="loadEnquiries" class="animate-pulse">--</span>
-                </h3>
-            </div>
-        </div>
-        <div class="bg-white p-6 rounded-[2rem] shadow-lg relative overflow-hidden bg-blue-50">
-            <div class="bg-blue-100 text-blue-500 rounded-xl w-12 h-12 flex items-center justify-center mb-2">
-                <span class="material-symbols-rounded text-2xl">check_circle</span>
-            </div>
-            <div class="relative z-10 pt-1">
-                <p class="text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Sync Status</p>
-                <h3 class="text-lg font-bold mt-2 {{ $syncStatus === 'Active' ? 'text-green-500' : ($syncStatus === 'Waiting to sync...' ? 'text-[#2D3748]' : 'text-red-500') }}">{{ $syncStatus }}</h3>
+            <div class="relative z-10">
+                <p class="text-[10px] font-extrabold text-slate-400 mb-1 uppercase tracking-[0.15em]">Recent Inbox</p>
+                <div class="flex items-baseline gap-2">
+                    <h3 class="text-4xl font-extrabold text-[#1E293B] tracking-tight">
+                        <span wire:loading.remove wire:target="loadEnquiries">{{ count($emails) }}</span>
+                        <span wire:loading wire:target="loadEnquiries" class="animate-pulse">--</span>
+                    </h3>
+                    <span class="text-xs font-bold text-orange-500">Unread</span>
+                </div>
             </div>
         </div>
-        <div class="bg-white p-6 rounded-[2rem] shadow-lg relative overflow-hidden bg-pink-50">
-            <div class="bg-[#9E6B73]/10 text-[#9E6B73] rounded-xl w-12 h-12 flex items-center justify-center mb-2">
-                <span class="material-symbols-rounded text-2xl">inbox</span>
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-gray-100 relative overflow-hidden group hover:shadow-blue-200/20 transition-all duration-500">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-700"></div>
+            <div class="bg-blue-100 text-blue-600 rounded-2xl w-14 h-14 flex items-center justify-center mb-6 relative z-10 shadow-sm">
+                <span class="material-symbols-rounded text-3xl">cloud_sync</span>
             </div>
-            <div class="relative z-10 pt-1">
-                <p class="text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Total Fetched</p>
-                <h3 class="text-3xl font-extrabold text-[#9E6B73] mt-2">
+            <div class="relative z-10">
+                <p class="text-[10px] font-extrabold text-slate-400 mb-1 uppercase tracking-[0.15em]">Sync Status</p>
+                <h3 class="text-xl font-extrabold mt-2 tracking-tight {{ $syncStatus === 'Active' ? 'text-green-500' : ($syncStatus === 'Waiting to sync...' ? 'text-[#1E293B]' : 'text-red-500') }}">{{ $syncStatus }}</h3>
+            </div>
+        </div>
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-gray-100 relative overflow-hidden group hover:shadow-pink-200/20 transition-all duration-500">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-pink-50 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-700"></div>
+            <div class="bg-pink-100 text-pink-600 rounded-2xl w-14 h-14 flex items-center justify-center mb-6 relative z-10 shadow-sm">
+                <span class="material-symbols-rounded text-3xl">inbox_customize</span>
+            </div>
+            <div class="relative z-10">
+                <p class="text-[10px] font-extrabold text-slate-400 mb-1 uppercase tracking-[0.15em]">Total Fetched</p>
+                <h3 class="text-4xl font-extrabold text-[#1E293B] mt-2 tracking-tight">
                     <span wire:loading.remove wire:target="loadEnquiries">{{ count($emails) }}</span>
                     <span wire:loading wire:target="loadEnquiries" class="animate-pulse">--</span>
                 </h3>
@@ -50,22 +56,35 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-[2.5rem] shadow-xl shadow-black-200/50 border border-gray-100 flex flex-col h-[700px]">
-        <div class="p-5 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-50/50 rounded-t-[2.5rem] gap-4">
-            <div class="flex items-center gap-3">
-                <span class="material-symbols-rounded text-[#9E6B73] text-3xl">mail</span>
-                <h3 class="text-lg font-bold text-[#2D3748]">Gmail Inbox</h3>
+    <div class="bg-white rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col h-[750px] overflow-hidden">
+        <div class="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white rounded-t-[3rem] gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-[#9E6B73]/10 flex items-center justify-center text-[#9E6B73]">
+                    <span class="material-symbols-rounded text-2xl">mail</span>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-[#1E293B]">Gmail Inbox</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Direct sync with bigfun.qld.au@gmail.com</p>
+                </div>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="text-xs font-bold text-gray-400">bigfun.qld.au@gmail.com</span>
+            <div class="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span class="text-xs font-bold text-slate-500">Live Status</span>
             </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-5 space-y-4 bg-gray-50/30 overflow-x-hidden custom-scrollbar">
+        <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50 overflow-x-hidden custom-scrollbar">
 
-            <div wire:loading.flex wire:target="loadEnquiries" class="flex-col items-center justify-center h-full w-full">
-                <div class="animate-spin rounded-full h-10 w-10 border-4 border-gray-200 border-t-[#9E6B73]"></div>
-                <p class="text-sm text-gray-400 mt-3 font-medium">Syncing with Google...</p>
+            <div wire:loading.flex wire:target="loadEnquiries" class="flex flex-col items-center justify-center h-full w-full py-20">
+                <div class="relative w-20 h-20 mb-6">
+                    <div class="absolute inset-0 border-4 border-[#9E6B73]/10 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-[#9E6B73] rounded-full border-t-transparent animate-spin"></div>
+                    <div class="absolute inset-4 bg-[#9E6B73]/5 rounded-full animate-pulse flex items-center justify-center">
+                        <span class="material-symbols-rounded text-[#9E6B73] text-xl">sync</span>
+                    </div>
+                </div>
+                <p class="text-sm text-[#1E293B] font-extrabold uppercase tracking-[0.2em] animate-pulse">Synchronizing</p>
+                <p class="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wider">Accessing Gmail Securely...</p>
             </div>
 
             @if ($syncError)
@@ -85,28 +104,34 @@
             <div wire:loading.remove wire:target="loadEnquiries" class="space-y-4">
                 @foreach ($emails as $email)
                 <div wire:click="openReplyModal('{{ $email['id'] }}', '{{ addslashes($email['name']) }}', '{{ $email['email'] }}', '{{ addslashes($email['subject']) }}', '{{ addslashes($email['snippet']) }}')"
-                    class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all group cursor-pointer relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-1.5 h-full bg-orange-400"></div>
-                    <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                        <div class="flex items-start gap-4 w-full">
-                            <div class="w-12 h-12 rounded-2xl bg-[#9E6B73] text-white flex items-center justify-center font-bold text-lg shrink-0">
+                    class="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-[#9E6B73]/5 hover:-translate-y-1 transition-all duration-300 group cursor-pointer relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1.5 h-full bg-[#9E6B73] opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center">
+                        <div class="flex items-start gap-5 w-full">
+                            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#9E6B73] to-[#86545C] text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-[#9E6B73]/20 shrink-0">
                                 {{ strtoupper(substr($email['name'], 0, 1)) }}
                             </div>
                             <div class="min-w-0 flex-1">
-                                <div class="flex items-center justify-between mb-1">
-                                    <h4 class="font-bold text-[#2D3748] text-lg truncate pr-2">{{ $email['name'] }}</h4>
-                                    <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-lg text-orange-500 bg-orange-50 flex items-center gap-1 shrink-0">
-                                        <span class="material-symbols-rounded text-xs">mark_email_unread</span> Inbox
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <h4 class="font-extrabold text-[#1E293B] text-lg truncate pr-3">{{ $email['name'] }}</h4>
+                                    <span class="text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full text-amber-600 bg-amber-50 border border-amber-100 flex items-center gap-1.5 shrink-0">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> New Enquiry
                                     </span>
                                 </div>
-                                <p class="text-xs text-gray-400 font-medium mb-1"><span>{{ $email['email'] }}</span> • <span>{{ $email['date'] }}</span></p>
-                                <p class="text-sm text-gray-600 font-medium line-clamp-1 group-hover:text-[#9E6B73] transition-colors">{{ $email['subject'] }}</p>
-                                <p class="text-xs text-gray-400 line-clamp-1 mt-1 italic">"{{ $email['snippet'] }}"</p>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xs text-slate-400 font-bold">{{ $email['email'] }}</span>
+                                    <span class="w-1 h-1 rounded-full bg-slate-200"></span>
+                                    <span class="text-[10px] text-slate-400 font-extrabold uppercase tracking-tight">{{ $email['date'] }}</span>
+                                </div>
+                                <p class="text-sm text-slate-700 font-bold line-clamp-1 group-hover:text-[#9E6B73] transition-colors leading-tight">{{ $email['subject'] }}</p>
+                                <p class="text-xs text-slate-400 line-clamp-1 mt-1.5 italic font-medium opacity-80">"{{ $email['snippet'] }}"</p>
                             </div>
                         </div>
-                        <button class="hidden sm:flex w-10 h-10 rounded-xl bg-gray-50 items-center justify-center text-gray-400 group-hover:bg-[#9E6B73] group-hover:text-white transition shrink-0">
-                            <span class="material-symbols-rounded">reply</span>
-                        </button>
+                        <div class="flex items-center gap-4 w-full lg:w-auto mt-4 lg:mt-0 border-t lg:border-t-0 pt-4 lg:pt-0">
+                             <button class="flex-1 lg:flex-none px-6 py-2.5 rounded-xl bg-slate-50 text-[#9E6B73] text-xs font-bold hover:bg-[#9E6B73] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2">
+                                <span class="material-symbols-rounded text-sm">reply</span> Reply
+                             </button>
+                        </div>
                     </div>
                 </div>
                 @endforeach

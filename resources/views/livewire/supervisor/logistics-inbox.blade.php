@@ -7,6 +7,7 @@
          showPaymentDetailsModal: false,
          showSuccessModal: false,
          showPaymentSuccessModal: false,
+         sentSuccessModal: false,
          showConfirmModal: false,
          confirmMessage: '',
          confirmAction: null
@@ -20,6 +21,7 @@
         if(modal === 'paymentDetailsModal') showPaymentDetailsModal = true;
         if(modal === 'successModal') showSuccessModal = true;
         if(modal === 'paymentSuccessModal') showPaymentSuccessModal = true;
+        if(modal === 'sentSuccessModal') sentSuccessModal = true;
      "
     @close-modal.window="
         let modal = typeof $event.detail === 'string' ? $event.detail : ($event.detail.name || $event.detail[0]);
@@ -30,6 +32,7 @@
         if(modal === 'paymentDetailsModal') showPaymentDetailsModal = false;
         if(modal === 'successModal') showSuccessModal = false;
         if(modal === 'paymentSuccessModal') showPaymentSuccessModal = false;
+        if(modal === 'sentSuccessModal') sentSuccessModal = false;
      ">
 
     <style>
@@ -347,6 +350,7 @@
                         <th class="p-4 font-bold text-left">Customer</th>
                         <th class="p-4 font-bold text-left">Lead Operator</th>
                         <th class="p-4 font-bold text-left">Lead Deliverer</th>
+                        <th class="p-4 font-bold text-left">Booked By</th>
                         <th class="p-4 font-bold text-left">Status</th>
                         <th class="p-4 font-bold text-right">Action</th>
                     </tr>
@@ -361,6 +365,9 @@
                         </td>
                         <td class="p-4 text-xs align-top text-left">
                             <span class="{{ !$ord->lead_deliverer ? 'text-gray-400 italic' : 'text-orange-600 font-bold bg-orange-50 px-2 py-0.5 rounded' }}">{{ $ord->lead_deliverer ?: 'Unassigned' }}</span>
+                        </td>
+                        <td class="p-4 text-xs align-top text-left">
+                            <span class="text-gray-600 font-bold">{{ $ord->booked_by ?: 'N/A' }}</span>
                         </td>
                         <td class="p-4 align-top text-left"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Confirmed</span></td>
                         <td class="p-4 text-right align-top">
@@ -397,14 +404,15 @@
             </div>
         </div>
         <div class="overflow-x-auto custom-scrollbar" style="max-height: 500px;">
-            <table class="w-full text-left text-sm border-collapse relative">
+            <table class="w-full text-left text-sm border-collapse relative min-w-[800px]">
                 <thead class="sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10 shadow-sm">
                     <tr class="text-xs text-gray-400 uppercase tracking-wider border-b border-gray-200">
                         <th class="p-4 font-bold text-left">Customer</th>
                         <th class="p-4 font-bold text-left">Financials</th>
                         <th class="p-4 font-bold text-left">Method</th>
                         <th class="p-4 font-bold text-left">Contact</th>
-                        <th class="p-4 font-bold text-right w-40">Actions</th>
+                        <th class="p-4 font-bold text-left w-48">Payment History</th>
+                        <th class="p-4 font-bold text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50 bg-white">
@@ -430,15 +438,36 @@
                             <div>{{ $deb->customer_phone }}</div>
                             <div class="text-[10px] text-gray-400">{{ \Carbon\Carbon::parse($deb->event_date)->format('d/m/y') }}</div>
                         </td>
-                        <td class="p-4 align-middle text-right">
-                            <a href="{{ route('supervisor.bookings.overview', ['id' => $deb->id, 'back' => route('supervisor.logistics')]) }}" class="bg-[#9E6B73] hover:bg-[#86545C] text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-md transition transform active:scale-95 inline-flex items-center gap-1 no-underline">
-                                <span class="material-symbols-rounded text-sm text-white">visibility</span> View
-                            </a>
+                        <td class="p-4 align-top text-xs w-48">
+                            @forelse ($deb->payments as $index => $hist)
+                            <div class="border-b border-gray-100 last:border-0 pb-1.5 last:pb-0 mb-1.5">
+                                <div class="flex justify-between items-center mb-0.5">
+                                    <span class="font-bold text-[#9E6B73]">Payment {{ $index + 1 }}</span>
+                                    <span class="font-bold text-green-600">${{ number_format($hist->amount, 2) }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-400 text-[10px]">{{ \Carbon\Carbon::parse($hist->payment_date)->format('d M Y') }}</span>
+                                    <button wire:click="viewPaymentDetails({{ $hist->id }})" class="text-[10px] text-blue-500 hover:text-blue-700 hover:underline">Details</button>
+                                </div>
+                            </div>
+                            @empty
+                            <span class="text-gray-400 italic">No payments yet</span>
+                            @endforelse
+                        </td>
+                        <td class="p-4 align-top text-right">
+                            <div class="flex gap-2 justify-end flex-wrap">
+                                <button wire:click="prepareEmail({{ $deb->id }}, 'debt')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition transform active:scale-95 inline-flex items-center justify-center gap-1">
+                                    <span class="material-symbols-rounded text-sm">mail</span> Send Debt
+                                </button>
+                                <a href="{{ route('supervisor.bookings.overview', ['id' => $deb->id, 'back' => route('supervisor.logistics')]) }}" class="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition transform active:scale-95 inline-flex items-center justify-center gap-1 no-underline">
+                                    <span class="material-symbols-rounded text-sm text-gray-500">visibility</span> View
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="p-6 text-center text-gray-400 italic">No debtors found.</td>
+                        <td colspan="6" class="p-6 text-center text-gray-400 italic">No debtors found.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -854,5 +883,33 @@
             </div>
         </div>
     </template>
+    
+    <!-- SENT SUCCESS MODAL (PREMIUM) -->
+    <template x-teleport="body">
+        <div x-show="sentSuccessModal" class="fixed inset-0 z-[10001] overflow-y-auto" x-cloak>
+            <div class="flex items-center justify-center min-h-screen px-4 py-8">
+                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="sentSuccessModal = false; $wire.resetEmailState()"></div>
+                <div x-show="sentSuccessModal" 
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     class="relative bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-sm z-10 text-center">
+                    
+                    <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 text-green-500 ring-8 ring-green-50/50">
+                        <span class="material-symbols-rounded text-4xl">check_circle</span>
+                    </div>
+
+                    <h3 class="text-2xl font-bold text-gray-800 mb-2">Email Sent!</h3>
+                    <p class="text-gray-500 text-sm mb-8">The email has been successfully delivered to the customer.</p>
+
+                    <button @click="sentSuccessModal = false; $wire.resetEmailState()" class="w-full py-4 bg-[#9E6B73] text-white rounded-2xl font-bold hover:bg-[#86545C] shadow-lg shadow-[#9E6B73]/20 transition-all active:scale-[0.98]">
+                        Great, thanks!
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+
 
 </div>

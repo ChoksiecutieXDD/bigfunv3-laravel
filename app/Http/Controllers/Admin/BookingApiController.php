@@ -330,22 +330,74 @@ class BookingApiController extends Controller
                         if (!empty($insertItems)) DB::table('booking_items')->insert($insertItems);
                     }
 
-                    // Save JSON Extras
+                    // Save JSON Extras (Raw and Formatted)
                     $raw_extras = [];
+                    $general_extra = [];
+                    $specific_extra = [];
+
+                    $allAddons = DB::table('category_addons')->get()->keyBy('id');
+                    $allDropdowns = DB::table('product_dropdowns')->get()->keyBy('id');
+                    $allOptions = DB::table('dropdown_options')->get()->keyBy('id');
+                    $allQuestions = DB::table('product_extras')->get()->keyBy('id');
+
                     foreach ($request->all() as $key => $val) {
-                        if ((str_starts_with($key, 'dd_') || str_starts_with($key, 'add_') || str_starts_with($key, 'q_')) && $val !== '') {
-                            $raw_extras[$key] = $val;
+                        if (str_starts_with($key, 'dd_') || str_starts_with($key, 'add_') || str_starts_with($key, 'q_')) {
+                            // Raw storage
+                            if (str_starts_with($key, 'add_')) {
+                                if ((string)$val === '1') $raw_extras[$key] = $val;
+                            } elseif ($val !== '') {
+                                $raw_extras[$key] = $val;
+                            }
+
+                            // Formatted for Overview/Sync
+                            if (str_starts_with($key, 'add_') && (string)$val === '1') {
+                                $id = str_replace('add_', '', $key);
+                                if ($addon = $allAddons->get($id)) {
+                                    if ($addon->category_target === 'General Logistics') {
+                                        $general_extra[$addon->addon_label] = (float)$addon->addon_price;
+                                    } else {
+                                        $specific_extra[$addon->category_target . ': ' . $addon->addon_label] = (float)$addon->addon_price;
+                                    }
+                                }
+                            }
+                            if (str_starts_with($key, 'dd_') && $val !== '') {
+                                $ddId = str_replace('dd_', '', $key);
+                                if (($dd = $allDropdowns->get($ddId)) && ($opt = $allOptions->get($val))) {
+                                    $label = $dd->label . ' - ' . $opt->option_label;
+                                    if ($dd->category_target === 'General Logistics') {
+                                        $general_extra[$label] = (float)$opt->option_price;
+                                    } else {
+                                        $specific_extra[$dd->category_target . ': ' . $label] = (float)$opt->option_price;
+                                    }
+                                }
+                            }
+                            if (str_starts_with($key, 'q_') && $val !== '') {
+                                $qId = str_replace('q_', '', $key);
+                                if ($q = $allQuestions->get($qId)) {
+                                    $parts = explode('|', $val);
+                                    $price = (float)($parts[0] ?? 0);
+                                    $answer = $parts[1] ?? 'yes';
+                                    $label = $q->question_text . ' (' . ucfirst($answer) . ')';
+                                    if ($q->category_target === 'General Logistics') {
+                                        $general_extra[$label] = $price;
+                                    } else {
+                                        $specific_extra[$q->category_target . ': ' . $label] = $price;
+                                    }
+                                }
+                            }
                         }
                     }
 
                     DB::table('bookings')->where('id', $booking_id)->update([
-                        'extras_json' => json_encode($raw_extras)
+                        'extras_json' => json_encode($raw_extras),
+                        'general_extra' => json_encode($general_extra),
+                        'specific_extra' => json_encode($specific_extra)
                     ]);
 
                     DB::commit();
 
                     // Trigger Google Sheet Sync
-                    $this->syncToGoogleSheet($booking_id);
+                    $this->syncToGoogleSheet($booking_id, !$is_update);
 
                     return response()->json(['success' => true, 'status' => 'success', 'message' => 'Booking successfully finalized']);
 
@@ -361,101 +413,8 @@ class BookingApiController extends Controller
     /**
      * Syncs booking data to the Google Spreadsheet via Web App Webhook.
      */
-    protected function syncToGoogleSheet($bookingId)
+    protected function syncToGoogleSheet($bookingId, $isNew = false)
     {
-        try {
-            $webhookUrl = config('services.google.sheet_webhook');
-            if (empty($webhookUrl)) return;
-
-            $booking = DB::table('bookings')->where('id', $bookingId)->first();
-            if (!$booking) return;
-
-            $items = DB::table('booking_items')
-                ->where('booking_id', $bookingId)
-                ->pluck('item_name')
-                ->toArray();
-
-            // Parse Extras JSON into a readable string (Translating IDs to Names)
-            $extras = json_decode($booking->extras_json, true) ?: [];
-            $extraString = "";
-            foreach ($extras as $key => $val) {
-                if (str_starts_with($key, 'dd_')) {
-                    $ddId = str_replace('dd_', '', $key);
-                    $optionId = $val;
-                    
-                    $ddLabel = DB::table('product_dropdowns')->where('id', $ddId)->value('label') ?? "Extra";
-                    $optLabel = DB::table('dropdown_options')->where('id', $optionId)->value('option_label') ?? $val;
-                    
-                    $extraString .= "$ddLabel: $optLabel | ";
-                } elseif (str_starts_with($key, 'add_')) {
-                    $addonId = str_replace('add_', '', $key);
-                    $addonLabel = DB::table('category_addons')->where('id', $addonId)->value('addon_label') ?? "Addon";
-                    
-                    $extraString .= "$addonLabel: $val | ";
-                } else {
-                    $cleanKey = ucwords(str_replace(['q_', '_'], ['', ' '], $key));
-                    $extraString .= "$cleanKey: $val | ";
-                }
-            }
-            $extraString = rtrim($extraString, " | ");
-
-            $payload = [
-                'invoice_number'        => $booking->invoice_number,
-                'status'                => $booking->status,
-                'payment_status'        => $booking->payment_status,
-                'booked_by'             => $booking->booked_by ?? 'System',
-                'event_date'            => $booking->event_date,
-                'start_time'            => $booking->start_time,
-                'end_time'              => $booking->end_time,
-                'duration'              => $booking->duration,
-                'operational_hours'     => $booking->operational_hours,
-                'items'                 => implode(', ', $items),
-                'customer_name'         => trim($booking->customer_first_name . ' ' . $booking->customer_last_name),
-                'customer_email'        => $booking->customer_email,
-                'customer_phone'        => $booking->customer_phone,
-                'customer_organization' => $booking->customer_organization,
-                'customer_abn'          => $booking->customer_abn,
-                'employer_name'         => $booking->employer_name,
-                'business_phone'        => $booking->customer_business_phone,
-                'business_address'      => $booking->business_address,
-                'event_type'            => $booking->event_type,
-                'address'               => $booking->address_line_1,
-                'suburb'                => $booking->suburb,
-                'state_postcode'        => $booking->state . ' ' . $booking->postcode,
-                'delivery_area'         => $booking->delivery_area,
-                'lead_deliverer'        => $booking->lead_deliverer,
-                'lead_operator'         => $booking->lead_operator,
-                'expected_people'       => $booking->expected_people,
-                'total_amount'          => number_format($booking->total_amount, 2),
-                'surcharge_amount'      => number_format($booking->surcharge_amount, 2),
-                'deposit_required'      => number_format($booking->deposit_required, 2),
-                'payment_type'          => $booking->payment_type,
-                'payment_reference'     => $booking->payment_reference,
-                'card_network'          => ($booking->payment_type === 'Card Holder' || $booking->payment_type === 'Card' || $booking->payment_type === 'credit_card') ? $booking->card_network : 'N/A',
-                'card_masked'           => ($booking->payment_type === 'Card Holder' || $booking->payment_type === 'Card' || $booking->payment_type === 'credit_card') 
-                                            ? '**** **** ' . substr(str_replace(' ', '', $booking->card_number ?? ''), -8, 4) . ' ' . substr(str_replace(' ', '', $booking->card_number ?? ''), -4)
-                                            : 'N/A',
-                'card_cvv_expiry'       => ($booking->payment_type === 'Card Holder' || $booking->payment_type === 'Card' || $booking->payment_type === 'credit_card') 
-                                            ? 'Exp: **/** | CVV: *** (Secure)' 
-                                            : 'N/A',
-                'manual_delivery_cost'  => number_format($booking->delivery_cost, 2),
-                'manual_duration_cost'  => number_format($booking->duration_cost, 2),
-                'notes_delivery'        => $booking->notes_delivery,
-                'notes_customer'        => $booking->notes_customer,
-                'extra_configs'         => $extraString,
-                'synced_at'             => now()->toDateTimeString(),
-            ];
-
-            // Fire and forget (or log result)
-            $response = Http::withoutVerifying()->post($webhookUrl, $payload);
-
-            if ($response->failed()) {
-                Log::error("Google Sheet Sync Failed for Invoice: {$booking->invoice_number}", [
-                    'error' => $response->body()
-                ]);
-            }
-        } catch (\Exception $e) {
-            Log::error("Google Sheet Sync Exception: " . $e->getMessage());
-        }
+        app(\App\Services\GoogleSheetService::class)->sync($bookingId, $isNew);
     }
 }

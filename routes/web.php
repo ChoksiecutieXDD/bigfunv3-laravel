@@ -167,12 +167,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/purchase_order_pdf/{id}', [PdfController::class, 'generatePurchaseOrder'])->name('po');
         Route::get('/receipt_pdf/{id}', [PdfController::class, 'generateReceipt'])->name('receipt');
         Route::get('/envelope_pdf/{id}', [PdfController::class, 'generateEnvelope'])->name('envelope');
+        Route::get('/debt_pdf/{id}', [PdfController::class, 'generateDebt'])->name('debt');
     });
 
     // ==========================================
     // GOOGLE GMAIL OAUTH
     // ==========================================
     Route::prefix('google')->name('google.')->group(function () {
+        Route::get('/fetch-emails', [App\Http\Controllers\GmailImportController::class, 'fetchEmails'])->name('fetch-emails');
+        
         Route::get('/setup', function () {
             $client = new GoogleClient();
             $client->setHttpClient(new GuzzleClient(['verify' => false]));

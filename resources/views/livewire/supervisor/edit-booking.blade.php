@@ -1,560 +1,671 @@
-<div x-data="{ 
-        calendarModal: false,
-        saveConfirmModal: false,
-        showCustomDelivery: @entangle('form.delivery_area').live === 'custom' || (@entangle('form.delivery_area').live !== '' && !@js($deliveryOptions->pluck('zone_name')->contains($form['delivery_area'] ?? ''))),
-        showCustomDuration: @entangle('form.duration').live === 'custom'
-    }"
-    class="w-full">
+<div x-data="bookingApp" 
+    x-init="
+        showCustomDelivery = @entangle('form.delivery_area').live === 'custom' || (@entangle('form.delivery_area').live !== '' && !@js($deliveryOptions->pluck('zone_name')->contains($form['delivery_area'] ?? '')));
+        showCustomDuration = @entangle('form.duration').live === 'custom';
+        $watch('modals.history', val => { if(val) loadPreviousCustomers(); });
+    "
+    class="w-full relative pb-8">
 
-    <!-- Content Container -->
-    <main class="w-full max-w-[1440px] mx-auto pb-20 transition-all duration-300">
+    <div class="flex w-full relative overflow-hidden">
+        <main class="flex-1 pt-4 pb-16 px-0 max-w-[1440px] mx-auto w-full">
+            <div class="form-layout-wrapper">
 
-        <!-- Header -->
-        <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
-            <div class="flex items-center gap-4">
-                @php
-                    $backRoute = request()->routeIs('supervisor.*') ? 'supervisor.bookings.overview' : 'booking.overview';
-                @endphp
-                <a href="{{ route($backRoute, $booking->id) }}" wire:navigate class="bg-white hover:bg-gray-50 text-slate-600 p-2.5 rounded-xl border border-gray-200 transition shadow-sm flex items-center justify-center">
-                    <span class="material-symbols-rounded text-2xl">arrow_back</span>
-                </a>
-                <div>
-                    <h1 class="text-2xl md:text-3xl font-extrabold text-[#1E293B]">Edit Booking #{{ $booking->id }}</h1>
-                    <p class="text-xs md:text-sm text-slate-500 font-medium mt-0.5">Invoice: <span class="font-bold text-[#9D686E]">{{ $booking->invoice_number ?? $booking->id }}</span> • Event Date: {{ \Carbon\Carbon::parse($booking->event_date)->format('d M Y') }}</p>
+                <div class="flex flex-col gap-6 mb-8">
+                    <header class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                        <div class="flex items-center gap-4">
+                            @php
+                                $backRoute = request()->routeIs('supervisor.*') ? 'supervisor.bookings.overview' : 'booking.overview';
+                            @endphp
+                            <a href="{{ route($backRoute, $booking->id) }}" wire:navigate class="bg-white hover:bg-gray-50 text-slate-600 p-2.5 rounded-xl border border-gray-200 transition shadow-sm flex items-center justify-center">
+                                <span class="material-symbols-rounded text-2xl">arrow_back</span>
+                            </a>
+                            <div>
+                                <h1 class="text-3xl font-extrabold text-[#1E293B]">Edit Booking</h1>
+                                <p class="text-sm text-slate-500 font-medium mt-1 uppercase tracking-wide text-[10px]">Invoice: <span class="font-bold text-[#9D686E]">{{ $booking->invoice_number ?? $booking->id }}</span></p>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                            <button @click="saveConfirmModal = true" type="button" class="btn-action bg-[#9E6B73] text-white hover:bg-[#86545C] flex-1 sm:flex-none justify-center shadow-md shadow-[#9E6B73]/20">
+                                <span class="material-symbols-rounded text-lg mr-2">save</span> SAVE CHANGES
+                            </button>
+                        </div>
+                    </header>
                 </div>
-            </div>
-            <button @click="saveConfirmModal = true" type="button" class="flex-1 sm:flex-none bg-[#9D686E] hover:bg-[#855359] shadow-lg shadow-[#9D686E]/30 text-white px-8 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition transform active:scale-95 whitespace-nowrap">
-                <span class="material-symbols-rounded text-lg">save</span> SAVE CHANGES
-            </button>
-        </header>
 
-        <div class="space-y-6">
-            <!-- Financial Overview (Dark Box) -->
-            <div class="bg-[#0F172A] text-white rounded-3xl p-6 md:p-10 shadow-xl relative overflow-hidden border border-slate-800">
-                <div class="absolute top-0 right-0 w-[400px] h-[400px] bg-[#9D686E]/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+                <div class="financial-panel">
+                    <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-[#9E6B73]/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
 
-                <div class="relative z-10">
-                    <div class="flex items-center gap-3 mb-8 border-b border-slate-700 pb-4">
-                        <span class="material-symbols-rounded text-[#9D686E] text-2xl">account_balance_wallet</span>
-                        <h2 class="text-lg font-bold text-white uppercase tracking-wide">Financial Overview</h2>
+                    <div class="flex items-center justify-between border-b border-slate-700 pb-4 relative z-10">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-rounded text-[#9E6B73] text-3xl">account_balance_wallet</span>
+                            <h2 class="text-xl font-bold text-white uppercase tracking-wide">Financials & Payment</h2>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Total Amount</p>
+                            <p class="text-4xl font-extrabold tracking-tighter text-white">${{ number_format($totalAmount, 2) }}</p>
+                        </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
-                        <!-- Left Side: Payment Config -->
-                        <div class="space-y-6">
-                            <div>
-                                <label class="text-[10px] text-slate-400 uppercase font-bold mb-1.5 ml-1 block">Payment Type</label>
-                                <div class="relative">
-                                    <select wire:model.live="form.payment_type" class="w-full pt-5 pb-2 px-4 bg-[#1e293b] border border-slate-700 rounded-xl text-sm font-medium text-white appearance-none outline-none focus:border-[#9D686E] focus:ring-1 focus:ring-[#9D686E]">
-                                        <option value="EFT">EFT / Bank Transfer</option>
-                                        <option value="Card Holder">Credit/Debit Card</option>
-                                    </select>
-                                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
+                        <div class="space-y-4">
+                            <h3 class="text-sm font-bold text-[#9E6B73] uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Cost Breakdown</h3>
+
+                            <div class="flex justify-between items-center text-sm text-slate-300">
+                                <span>Duration Cost</span>
+                                <span class="font-bold">${{ number_format($form['duration_cost'] ?? 0, 2) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm text-slate-300">
+                                <span>Delivery Zone Cost</span>
+                                <span class="font-bold">${{ number_format($form['delivery_cost'] ?? 0, 2) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm text-slate-300">
+                                <span>Extras Cost</span>
+                                <span class="font-bold">${{ number_format($form['extra_logistics_cost'] ?? 0, 2) }}</span>
+                            </div>
+
+                            <div class="h-px bg-slate-700 my-3"></div>
+
+                            <div class="flex justify-between items-center text-sm font-bold text-white">
+                                <span>Subtotal</span>
+                                <div class="flex items-center gap-1 text-lg">
+                                    $ <input type="number" wire:model.live.debounce.500ms="subtotal" readonly class="bg-transparent text-right w-24 outline-none border-none pointer-events-none text-white font-bold">
                                 </div>
                             </div>
 
-                            @if(($form['payment_type'] ?? '') === 'EFT')
-                            <div class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 shadow-inner animate-[fadeIn_0.2s_ease-in]">
-                                <h3 class="text-xs font-bold text-[#9D686E] uppercase mb-4 flex justify-between items-center">
-                                    <span>EFT Details</span>
-                                    <span class="material-symbols-rounded text-slate-500 text-sm">account_balance</span>
-                                </h3>
-                                <div>
-                                    <label class="text-[10px] text-slate-500 uppercase font-bold mb-1 block">Specific Method</label>
-                                    <select wire:model="form.eft_method" class="w-full py-2 px-3 bg-[#1e293b] border border-slate-700 rounded-xl text-sm text-white outline-none">
-                                        <option value="Direct Deposit">Direct Deposit</option>
-                                        <option value="Bank Transfer">Bank Transfer</option>
-                                        <option value="Osko">Osko</option>
-                                        <option value="PayID">PayID</option>
-                                    </select>
+                            <div class="flex justify-between items-center text-sm mt-2">
+                                <span class="text-slate-400">Processing Fee ({{ in_array(($form['payment_type'] ?? ''), ['Card Holder', 'credit_card']) ? '2.9%' : '0%' }})</span>
+                                <span class="font-medium text-slate-300">${{ number_format($surchargeAmount, 2) }}</span>
+                            </div>
+
+                            <div class="bg-slate-800/50 rounded-xl p-4 mt-6 border border-slate-700">
+                                <label class="text-[10px] text-slate-400 uppercase font-bold mb-2 block">Override Final Total (Optional)</label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 font-bold">$</span>
+                                    <input type="number" wire:model.live.debounce.500ms="totalAmount" placeholder="Leave empty to use calculated sum" class="input-dark input-with-icon !py-3">
                                 </div>
                             </div>
-                            @endif
+                        </div>
+
+                        <div class="space-y-5">
+                            <h3 class="text-sm font-bold text-[#9E6B73] uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Payment Configuration</h3>
+
+                            <div class="flex flex-col gap-4">
+                                <div class="input-group">
+                                    <label class="input-label text-slate-400 !ml-1">Payment Type</label>
+                                    <div class="relative">
+                                        <select wire:model.live="form.payment_type" class="input-dark appearance-none cursor-pointer">
+                                            <option value="EFT">EFT / Bank Transfer</option>
+                                            <option value="Card Holder">Credit/Debit Card</option>
+                                        </select>
+                                        <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
+                                    </div>
+                                </div>
+
+                                @if(($form['payment_type'] ?? '') === 'EFT')
+                                <div class="input-group animate-[fadeIn_0.2s_ease-in]">
+                                    <label class="input-label text-slate-400 !ml-1">Specific Method</label>
+                                    <div class="relative">
+                                        <select wire:model="form.eft_method" class="input-dark appearance-none cursor-pointer">
+                                            <option value="Direct Deposit">Direct Deposit</option>
+                                            <option value="Bank Transfer">Bank Transfer</option>
+                                            <option value="Osko">Osko</option>
+                                            <option value="PayID">PayID</option>
+                                        </select>
+                                        <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
+                                    </div>
+                                </div>
+                                @endif
+                            </div>
 
                             @if(in_array(($form['payment_type'] ?? ''), ['Card Holder', 'credit_card']))
-                            <div class="bg-slate-800/80 rounded-2xl p-6 border border-slate-700 shadow-inner animate-[fadeIn_0.2s_ease-in] space-y-4">
-                                <h3 class="text-xs font-bold text-[#9D686E] uppercase mb-1 flex justify-between items-center">
-                                    <span>Card Details</span>
-                                    <span class="material-symbols-rounded text-slate-500 text-sm">lock</span>
-                                </h3>
-
-                                <div>
-                                    <label class="text-[10px] text-slate-500 uppercase font-bold mb-1 block">Network</label>
-                                    <select wire:model="form.card_network" class="w-full py-2 px-3 bg-[#1e293b] border border-slate-700 rounded-xl text-xs md:text-sm text-white outline-none">
-                                        <option value="Visa">Visa</option>
-                                        <option value="Mastercard">Mastercard</option>
-                                        <option value="American Express">American Express</option>
-                                        <option value="Discover">Discover</option>
-                                        <option value="Bankcard">Bankcard</option>
-                                        <option value="Bartercard">Bartercard</option>
-                                    </select>
+                            <div class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 mt-4 shadow-inner flex flex-col gap-4 animate-[fadeIn_0.2s_ease-in]">
+                                <h4 class="text-xs font-bold text-[#9E6B73] uppercase flex justify-between items-center"><span>Card Details</span><span class="material-symbols-rounded text-sm">lock</span></h4>
+                                <div class="grid grid-cols-1 gap-4">
+                                    <div class="relative">
+                                        <select wire:model="form.card_network" class="input-dark appearance-none !py-3 text-sm cursor-pointer">
+                                            <option value="Visa">Visa</option>
+                                            <option value="Mastercard">Mastercard</option>
+                                            <option value="American Express">American Express</option>
+                                            <option value="Discover">Discover</option>
+                                            <option value="Bankcard">Bankcard</option>
+                                            <option value="Bartercard">Bartercard</option>
+                                        </select>
+                                        <span class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded text-sm">expand_more</span></span>
+                                    </div>
                                 </div>
 
                                 <div class="relative">
-                                    <input type="text" wire:model="form.card_number" 
+                                    <input type="text" wire:model="form.card_number" placeholder=" " maxlength="19" 
                                         x-on:input="$el.value = $el.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()"
-                                        maxlength="19"
-                                        placeholder="0000 0000 0000 0000" 
-                                        class="w-full pt-5 pb-2 px-4 bg-[#1e293b] border border-slate-700 rounded-xl font-mono tracking-widest text-lg text-white outline-none focus:border-[#9D686E]">
-                                    <label class="absolute top-2 left-4 text-[0.65rem] font-bold text-[#9D686E]">Card Number</label>
+                                        class="input-dark font-mono text-lg tracking-widest">
+                                    <label class="input-floating-label">Card Number</label>
                                 </div>
-
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="relative">
-                                        <input type="text" wire:model="form.card_expiry" 
+                                        <input type="text" wire:model="form.card_expiry" placeholder=" " maxlength="5" 
                                             x-on:input="
                                                 let v = $el.value.replace(/\D/g, '');
                                                 if (v.length > 2) v = v.substring(0,2) + '/' + v.substring(2,4);
                                                 $el.value = v;
                                             "
-                                            maxlength="5"
-                                            placeholder="MM/YY" 
-                                            class="w-full pt-5 pb-2 px-4 bg-[#1e293b] border border-slate-700 rounded-xl font-mono text-center text-sm text-white outline-none focus:border-[#9D686E]">
-                                        <label class="absolute top-2 left-0 w-full text-center text-[0.65rem] font-bold text-[#9D686E]">Expiry</label>
+                                            class="input-dark text-center font-mono">
+                                        <label class="input-floating-label">MM/YY</label>
                                     </div>
                                     <div class="relative">
-                                        <input type="text" wire:model="form.card_cvv" maxlength="4" placeholder="***" class="w-full pt-5 pb-2 px-4 bg-[#1e293b] border border-slate-700 rounded-xl font-mono text-center text-sm text-white outline-none focus:border-[#9D686E]">
-                                        <label class="absolute top-2 left-0 w-full text-center text-[0.65rem] font-bold text-[#9D686E]">CVV</label>
+                                        <input type="text" wire:model="form.card_cvv" placeholder=" " maxlength="4" class="input-dark text-center font-mono">
+                                        <label class="input-floating-label">CVV</label>
                                     </div>
                                 </div>
                             </div>
                             @endif
-                        </div>
 
-                        <!-- Right Side: Calculations -->
-                        <div class="space-y-4">
-                            <div class="bg-[#1E293B] p-8 rounded-2xl border border-slate-700 space-y-4">
-                                <div class="flex justify-between items-center border-b border-slate-700 pb-4">
-                                    <span class="text-slate-300 font-medium text-sm">Subtotal (Pre-Tax/Fee)</span>
-                                    <div class="flex items-center gap-1">
-                                        <span class="text-slate-500 text-sm">$</span>
-                                        <input type="number" wire:model.live.debounce.500ms="subtotal" step="0.01" class="w-28 bg-transparent text-right text-xl font-semibold text-white focus:outline-none">
-                                    </div>
-                                </div>
-
-                                <div class="flex justify-between items-center text-sm">
-                                    <span class="text-slate-400">Processing Fee ({{ in_array(($form['payment_type'] ?? ''), ['Card Holder', 'credit_card']) ? '2.9%' : '0%' }})</span>
-                                    <span class="font-medium text-slate-300">${{ number_format($surchargeAmount, 2) }}</span>
-                                </div>
-
-                                <div class="bg-slate-950/50 rounded-xl p-5 mt-6 border border-slate-800 flex justify-between items-end">
-                                    <div>
-                                        <span class="block text-[#9D686E] text-[10px] font-bold uppercase mb-1">Grand Total</span>
-                                        <input type="number" wire:model.live.debounce.500ms="totalAmount" placeholder="Override" class="bg-transparent border border-transparent hover:border-slate-700 rounded px-1 text-[10px] text-slate-500 focus:border-[#9D686E] outline-none w-20">
-                                    </div>
-                                    <span class="block text-4xl font-extrabold tracking-tighter text-white">${{ number_format($totalAmount, 2) }}</span>
-                                </div>
-
-                                <div class="flex items-center justify-between px-2 pt-2">
-                                    <span class="text-slate-500 text-[10px] uppercase font-bold">Recommended Deposit (50%)</span>
-                                    <span class="text-white font-bold text-lg">${{ number_format($depositRequired, 2) }}</span>
-                                </div>
+                            <div class="flex items-center justify-between bg-[#9E6B73]/20 rounded-xl p-4 border border-[#9E6B73]/30 mt-4">
+                                <span class="text-slate-300 text-xs uppercase font-bold">Req. Deposit (50%)</span>
+                                <span class="text-white font-bold text-xl">${{ number_format($depositRequired, 2) }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Event Details -->
-            <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-200">
-                <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-                    <span class="material-symbols-rounded text-[#9D686E] text-2xl">event</span>
-                    <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Event Details</h2>
-                </div>
+                <div class="section-card">
+                    <div class="flex items-center gap-3 border-b border-gray-100 pb-4">
+                        <span class="material-symbols-rounded text-[#9E6B73] text-2xl">calendar_month</span>
+                        <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Live Availability & Duration</h2>
+                    </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                    <div class="space-y-6">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Event Date</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6 border-t border-gray-100 mt-4">
+                        <div class="input-group">
+                            <label class="input-label">Event Date</label>
                             <div class="flex gap-2">
-                                <input type="date" wire:model.live="form.event_date" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#9D686E]">
-                                <button wire:click="loadCalendar(); $dispatch('open-modal', 'calendarModal')" type="button" class="bg-[#9D686E] text-white px-4 rounded-xl flex items-center justify-center hover:bg-[#855359] transition">
+                                <input type="date" wire:model.live="form.event_date" class="input-field">
+                                <button wire:click="loadCalendar(); $dispatch('open-modal', 'calendarModal')" type="button" class="bg-[#9E6B73] text-white px-4 rounded-xl flex items-center justify-center hover:bg-[#855359] transition">
                                     <span class="material-symbols-rounded">calendar_month</span>
                                 </button>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Start Time</label><input type="time" wire:model="form.start_time" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]"></div>
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">End Time</label><input type="time" wire:model="form.end_time" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]"></div>
+                        <div class="input-group lg:col-span-1">
+                            <label class="input-label">Operational Hours</label>
+                            <input type="text" wire:model="form.operational_hours" placeholder="e.g. 9am to 5pm or TBC" class="input-field">
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Operational Hours</label>
-                            <input type="text" wire:model="form.operational_hours" placeholder="e.g. 9am to 5pm" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]">
+                        <div class="input-group">
+                            <label class="input-label">Start Time</label>
+                            <input type="time" wire:model="form.start_time" class="input-field">
                         </div>
-                        <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Expected People (Pax)</label><input type="number" wire:model="form.expected_people" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]"></div>
-                    </div>
-
-                    <div class="space-y-6">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Delivery Zone</label>
-                            <select wire:model.live="form.delivery_area" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]">
-                                <option value="">-- Select Zone --</option>
-                                @foreach($deliveryOptions as $del)
-                                <option value="{{ $del->zone_name }}">{{ $del->zone_name }} (+${{ number_format($del->price, 2) }})</option>
-                                @endforeach
-                                <option value="custom">Custom / Manual Quote</option>
-                            </select>
-
-                            <div x-show="showCustomDelivery" x-transition class="mt-3">
-                                <label class="block text-xs font-bold text-[#9D686E] uppercase mb-1">Manual Delivery Cost</label>
-                                <div class="relative">
-                                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
-                                    <input type="number" wire:model.live="form.delivery_cost" step="0.01" class="w-full p-3 pl-8 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Lead Operator</label><input type="text" wire:model="form.lead_operator" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]"></div>
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Lead Deliverer</label><input type="text" wire:model="form.lead_deliverer" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]"></div>
+                        <div class="input-group">
+                            <label class="input-label">End Time</label>
+                            <input type="time" wire:model="form.end_time" class="input-field">
                         </div>
                     </div>
-                </div>
 
-                <div class="mt-8 pt-6 border-t border-gray-100">
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-3">Duration Selection</label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                        @foreach($durationOptions as $dur)
-                        <label class="border {{ ($form['duration'] ?? '') === $dur->label ? 'border-[#9D686E] bg-pink-50' : 'border-slate-200 hover:bg-slate-50' }} rounded-xl p-3 cursor-pointer transition flex items-center gap-2">
-                            <input type="radio" wire:model.live="form.duration" value="{{ $dur->label }}" class="w-4 h-4 text-[#9D686E] focus:ring-[#9D686E]">
-                            <span class="text-sm font-bold text-slate-600 flex-1">{{ $dur->label }}</span>
-                            <span class="text-xs font-bold text-[#9D686E]">${{ number_format($dur->price, 2) }}</span>
-                        </label>
-                        @endforeach
-
-                        <label class="border {{ ($form['duration'] ?? '') === 'custom' ? 'border-[#9D686E] bg-pink-50' : 'border-slate-200 hover:bg-slate-50' }} rounded-xl p-3 cursor-pointer transition flex items-center gap-2">
-                            <input type="radio" wire:model.live="form.duration" value="custom" class="w-4 h-4 text-[#9D686E] focus:ring-[#9D686E]">
-                            <span class="text-sm font-bold text-slate-600 flex-1">Custom / Manual</span>
-                        </label>
-                    </div>
-
-                    @if(($form['duration'] ?? '') === 'custom')
-                    <div class="mt-4 p-5 bg-slate-50 rounded-2xl border border-slate-200 animate-[fadeIn_0.2s_ease-in]">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Custom Duration Label</label>
-                                <input type="text" wire:model.live="form.custom_duration_text" placeholder="e.g. 2 Days, Full Weekend" class="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-[#9D686E] uppercase mb-1.5">Manual Duration Cost</label>
-                                <div class="relative">
-                                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
-                                    <input type="number" wire:model.live="form.duration_cost" step="0.01" class="w-full p-3 pl-8 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    @endif
-                </div>
-            </div>
-
-            <!-- Rides & Attractions -->
-            <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-200">
-                <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-                    <span class="material-symbols-rounded text-[#9D686E] text-2xl">attractions</span>
-                    <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Rides & Attractions</h2>
-                </div>
-
-                <div class="space-y-10">
-                    @php $catIndex = 0; @endphp
-                    @foreach($categories as $catName => $catData)
-                    @if(empty($catData['products'])) @continue @endif
-                    @php $catIndex++; @endphp
-
-                    <div>
-                        <div class="flex items-center gap-3 border-b border-gray-100 pb-3 mb-4">
-                            <span class="w-6 h-6 rounded bg-[#9D686E]/10 text-[#9D686E] flex items-center justify-center font-bold text-[10px]">{{ $catIndex }}</span>
-                            <h3 class="text-sm font-bold text-slate-700 uppercase tracking-widest">{{ $catName }}</h3>
-                            @if(($catData['limit'] ?? 0) > 0)
-                            <span class="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded border border-amber-200 font-bold uppercase tracking-wide">
-                                Limit: {{ $catData['limit'] }}
-                            </span>
-                            @endif
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-                            @foreach($catData['products'] as $p)
+                    <div class="pt-6 border-t border-gray-100 mt-6">
+                        <label class="input-label mb-3">Duration Pricing</label>
+                        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                            @foreach($durationOptions as $dur)
                             @php
-                            $cleanName = strtolower(trim($p->name));
-                            $isSelected = isset($selectedItems[$cleanName]);
-                            $qty = $isSelected ? $selectedItems[$cleanName] : 1;
-                            $availInfo = $availability[$cleanName] ?? ['left' => 99, 'sold_out' => false];
-
-                            $cardClass = $isSelected ? 'border-[#9D686E] bg-[#FFF5F7] ring-2 ring-[#9D686E]/20' : 'border-slate-200 hover:border-slate-300';
-                            if (!$isSelected && $availInfo['sold_out']) $cardClass = 'opacity-60 bg-slate-50 border-slate-200';
+                            $isSelected = (($form['duration'] ?? '') === $dur->label);
+                            $activeClass = $isSelected ? 'duration-active border-[#9E6B73] bg-pink-50' : 'border-slate-200 hover:bg-slate-50';
                             @endphp
-
-                            <div class="bg-white rounded-2xl p-4 border {{ $cardClass }} flex flex-col justify-between min-h-[130px] transition cursor-pointer" wire:click="toggleItem('{{ $p->name }}')">
-                                <div class="flex justify-between items-start gap-2 mb-2 w-full">
-                                    <div class="pr-2 w-full">
-                                        <h4 class="font-bold text-slate-800 text-sm leading-snug line-clamp-2 min-h-[40px]">{{ $p->name }}</h4>
-                                        <div class="mt-2">
-                                            @if($availInfo['sold_out'] && !$isSelected)
-                                            <span class="text-[0.65rem] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full border border-red-200 uppercase tracking-wider">Sold Out</span>
-                                            @elseif($isSelected)
-                                            <span class="text-[0.65rem] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full border border-green-200 uppercase tracking-wider">Booked</span>
-                                            @else
-                                            <span class="text-[0.65rem] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-200 uppercase tracking-wider">{{ $availInfo['left'] }} Available</span>
-                                            @endif
-                                        </div>
-                                    </div>
-
-                                    <div class="w-5 h-5 rounded border-2 flex items-center justify-center transition {{ $isSelected ? 'bg-[#9D686E] border-[#9D686E]' : 'border-slate-300 bg-white' }}">
-                                        @if($isSelected) <span class="text-white text-xs font-bold">✓</span> @endif
-                                    </div>
-                                </div>
-
-                                <div class="flex items-center justify-between mt-auto pt-2" @click.stop>
-                                    <span class="text-[10px] text-slate-400 font-medium">{{ $isSelected ? 'Selected' : 'Click to select' }}</span>
-
-                                    @if($isSelected)
-                                    <div class="flex items-center bg-white border border-[#9D686E] rounded-lg overflow-hidden">
-                                        <button wire:click.stop="updateItemQty('{{ $p->name }}', -1)" class="w-7 h-7 flex items-center justify-center bg-[#FFF5F7] text-[#9D686E] font-bold hover:bg-[#9D686E] hover:text-white transition">-</button>
-                                        <input type="text" readonly value="{{ $qty }}" class="w-8 text-center border-none text-xs font-bold text-slate-700 bg-transparent pointer-events-none">
-                                        <button wire:click.stop="updateItemQty('{{ $p->name }}', 1)" class="w-7 h-7 flex items-center justify-center bg-[#FFF5F7] text-[#9D686E] font-bold hover:bg-[#9D686E] hover:text-white transition">+</button>
-                                    </div>
-                                    @endif
-                                </div>
-                            </div>
-                            @endforeach
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-
-            <!-- Extras & Logistics Section -->
-            @php
-            $hasAnyExtras = false;
-            foreach($activeCategories as $cat) {
-            if(($addons[$cat] ?? collect([]))->isNotEmpty() || isset($dropdowns[$cat]) || ($questions[$cat] ?? collect([]))->isNotEmpty()) {
-            $hasAnyExtras = true; break;
-            }
-            }
-            @endphp
-
-            @if($hasAnyExtras)
-            <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-200 animate-[fadeIn_0.3s_ease-out]">
-                <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-                    <span class="material-symbols-rounded text-[#9D686E] text-2xl">format_list_bulleted_add</span>
-                    <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Extras & Logistics</h2>
-                </div>
-
-                <div class="space-y-8">
-                    @foreach(['General Logistics', ...array_diff($activeCategories, ['General Logistics'])] as $catName)
-                    @php
-                    $catAddons = $addons[$catName] ?? collect([]);
-                    $catQuestions = $questions[$catName] ?? collect([]);
-                    $catDropdowns = $dropdowns[$catName] ?? [];
-                    @endphp
-
-                    @if($catAddons->isNotEmpty() || count($catDropdowns) > 0 || $catQuestions->isNotEmpty())
-                    <div class="bg-slate-50 rounded-3xl border border-gray-200 p-6 md:p-8">
-                        <div class="flex items-center gap-2 mb-6 border-b border-gray-200 pb-3">
-                            <span class="material-symbols-rounded text-[#9D686E] text-sm">add_circle</span>
-                            <h3 class="font-bold text-slate-800 text-sm tracking-wide">{{ $catName }} Extras</h3>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {{-- Questions --}}
-                            @foreach($catQuestions as $q)
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">{{ $q->question_text }}</label>
-                                <select wire:model.live="dynamicExtras.q_{{ $q->id }}" class="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E] cursor-pointer shadow-sm">
-                                    <option value="">-- Select --</option>
-                                    <option value="{{ $q->yes_price }}|yes">{{ $q->yes_label }} (+${{ number_format($q->yes_price, 2) }})</option>
-                                    <option value="{{ $q->no_price }}|no">{{ $q->no_label }} (+${{ number_format($q->no_price, 2) }})</option>
-                                </select>
-                            </div>
-                            @endforeach
-
-                            {{-- Dropdowns --}}
-                            @foreach($catDropdowns as $dd)
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">{{ $dd->label }}</label>
-                                <select wire:model.live="dynamicExtras.dd_{{ $dd->id }}" class="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E] cursor-pointer shadow-sm">
-                                    <option value="">-- Select --</option>
-                                    @foreach($dd->options as $opt)
-                                    <option value="{{ $opt->id }}">{{ $opt->option_label }} (+${{ number_format($opt->option_price, 2) }})</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            @endforeach
-                        </div>
-
-                        {{-- Addons --}}
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-                            @foreach($catAddons as $addon)
-                            <label class="flex items-center gap-3 p-4 border border-slate-200 rounded-xl hover:bg-slate-100 cursor-pointer bg-white transition shadow-sm">
-                                <input type="checkbox" wire:model.live="dynamicExtras.add_{{ $addon->id }}" class="w-4 h-4 text-[#9D686E] rounded focus:ring-[#9D686E]">
-                                <span class="text-sm font-bold text-slate-700 flex-1">{{ $addon->addon_label }}</span>
-                                <span class="text-xs font-bold text-[#9D686E]">+${{ number_format($addon->addon_price, 2) }}</span>
+                            <label class="duration-card flex flex-col items-center justify-center p-3 border rounded-xl cursor-pointer transition text-center {{ $activeClass }}">
+                                <input type="radio" wire:model.live="form.duration" value="{{ $dur->label }}" class="hidden">
+                                <span class="font-bold text-slate-700 text-xs">{{ $dur->label }}</span>
+                                <span class="text-[#9E6B73] text-sm font-extrabold mt-1">${{ number_format($dur->price, 2) }}</span>
                             </label>
                             @endforeach
-                        </div>
-                    </div>
-                    @endif
-                    @endforeach
-                </div>
-            </div>
-            @endif
 
-            <!-- Customer Details -->
-            <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-200">
-                <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-                    <span class="material-symbols-rounded text-[#9D686E] text-2xl">person</span>
-                    <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Customer Details</h2>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                    <div class="space-y-6">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-2">Personal Info</h3>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">First Name</label><input type="text" wire:model="form.customer_first_name" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]"></div>
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Last Name</label><input type="text" wire:model="form.customer_last_name" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]"></div>
+                            <label class="duration-card flex flex-col items-center justify-center p-3 border {{ ($form['duration'] ?? '') === 'custom' ? 'border-[#9E6B73] bg-pink-50 duration-active' : 'border-slate-200 hover:bg-slate-50' }} rounded-xl cursor-pointer transition text-center">
+                                <input type="radio" wire:model.live="form.duration" value="custom" class="hidden">
+                                <span class="font-bold text-slate-700 text-xs uppercase tracking-wide">Custom</span>
+                                <span class="text-[#9E6B73] text-[10px] font-extrabold mt-1">Manual Quote</span>
+                            </label>
                         </div>
-                        <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Primary Email</label><input type="email" wire:model="form.customer_email" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]"></div>
-                        <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Primary Phone</label><input type="tel" wire:model="form.customer_phone" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]"></div>
-                    </div>
 
-                    <div class="space-y-6">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-2">Business Info</h3>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Employer Name / Point of Contact</label>
-                            <input type="text" wire:model="form.employer_name" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]">
+                        @if(($form['duration'] ?? '') === 'custom')
+                        <div class="mt-4 p-5 bg-slate-50 rounded-2xl border border-slate-200 animate-[fadeIn_0.2s_ease-in] grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="input-group">
+                                <label class="input-label">Custom Duration Label</label>
+                                <input type="text" wire:model.live="form.custom_duration_text" placeholder="e.g. 2 Days, Full Weekend" class="input-field bg-white">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label text-[#9E6B73]">Manual Duration Cost</label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
+                                    <input type="number" wire:model.live="form.duration_cost" step="0.01" class="input-field bg-white pl-8" placeholder="0.00">
+                                </div>
+                            </div>
                         </div>
-                        <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Company Name</label><input type="text" wire:model="form.customer_organization" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]"></div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">ABN</label><input type="text" wire:model="form.customer_abn" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]"></div>
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Business Phone</label><input type="tel" wire:model="form.customer_business_phone" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]"></div>
-                        </div>
-                        <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Business Address</label><input type="text" wire:model="form.business_address" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E]"></div>
+                        @endif
                     </div>
                 </div>
-            </div>
 
-            <!-- Notes & Attachments -->
-            <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-200">
-                <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-                    <span class="material-symbols-rounded text-[#9D686E] text-2xl">description</span>
-                    <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Final Details</h2>
-                </div>
-
-                <div class="space-y-8">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Customer Specific Notes</label><textarea wire:model="form.notes_customer" rows="4" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E] resize-none"></textarea></div>
-                        <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Delivery & Logistics Notes</label><textarea wire:model="form.notes_delivery" rows="4" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#9D686E] resize-none"></textarea></div>
+                <div class="section-card">
+                    <div class="flex items-center gap-3 border-b border-gray-100 pb-6">
+                        <span class="material-symbols-rounded text-[#9E6B73] text-2xl">person_pin</span>
+                        <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Customer & Venue</h2>
                     </div>
 
-                    <div class="pt-6 border-t border-gray-100">
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-4">Attachments (Uploaded Documents/Images)</label>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-6">
+                        <!-- Left Column: CONTACT INFO -->
+                        <div class="space-y-6">
+                            <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-4">Contact Info</h3>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="input-group">
+                                    <label class="input-label">First Name <span class="text-red-500">*</span></label>
+                                    <input type="text" wire:model="form.customer_first_name" class="input-field">
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label">Last Name</label>
+                                    <input type="text" wire:model="form.customer_last_name" class="input-field">
+                                </div>
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Business / Org Name</label>
+                                <input type="text" wire:model="form.customer_organization" class="input-field">
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">ABN Number</label>
+                                <input type="text" wire:model="form.customer_abn" class="input-field" placeholder="Optional">
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Employer Name</label>
+                                <input type="text" wire:model="form.employer_name" class="input-field">
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Business Contact Number</label>
+                                <input type="tel" wire:model="form.customer_business_phone" class="input-field">
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Mobile Phone <span class="text-red-500">*</span></label>
+                                <input type="tel" wire:model="form.customer_phone" class="input-field">
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Email Address <span class="text-red-500">*</span></label>
+                                <input type="email" wire:model="form.customer_email" class="input-field">
+                            </div>
+                        </div>
+
+                        <!-- Right Column: VENUE LOCATION -->
+                        <div class="space-y-6">
+                            <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-4">Venue Location</h3>
+
+                            <div class="input-group">
+                                <label class="input-label">Event Address Line 1 <span class="text-red-500">*</span></label>
+                                <input type="text" wire:model="form.address_line_1" class="input-field" placeholder="Street Address">
+                            </div>
+
+                            <div class="input-group">
+                                <label class="input-label">Business Address (Optional)</label>
+                                <input type="text" wire:model="form.business_address" class="input-field" placeholder="e.g. Suite 123">
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="input-group">
+                                    <label class="input-label">Suburb</label>
+                                    <input type="text" wire:model="form.suburb" class="input-field">
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label">State</label>
+                                    <div class="relative">
+                                        <select wire:model="form.state" class="input-field appearance-none cursor-pointer">
+                                            <option value="QLD">QLD</option>
+                                            <option value="NSW">NSW</option>
+                                            <option value="VIC">VIC</option>
+                                        </select>
+                                        <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label">Postcode</label>
+                                    <input type="text" wire:model="form.postcode" class="input-field">
+                                </div>
+                            </div>
+
+                            <div class="pt-4 border-t border-gray-100">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="input-group">
+                                        <label class="input-label">Event Type</label>
+                                        <div class="relative">
+                                            <select wire:model="form.event_type" class="input-field appearance-none cursor-pointer">
+                                                <option value="Private">Private Party</option>
+                                                <option value="Corporate">Corporate Event</option>
+                                                <option value="Community">Community / School</option>
+                                            </select>
+                                            <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
+                                        </div>
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="input-label">Expected People</label>
+                                        <input type="number" wire:model="form.expected_people" placeholder="e.g. 50" class="input-field">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="pt-4 border-t border-gray-100">
+                                <div class="input-group">
+                                    <label class="input-label">Delivery Zone</label>
+                                    <div class="relative">
+                                        <select wire:model.live="form.delivery_area" class="input-field appearance-none cursor-pointer">
+                                            <option value="">-- Select Zone --</option>
+                                            @foreach($deliveryOptions as $del)
+                                            <option value="{{ $del->zone_name }}">{{ $del->zone_name }} (+${{ number_format($del->price, 2) }})</option>
+                                            @endforeach
+                                            <option value="custom">Custom / Manual Quote</option>
+                                        </select>
+                                        <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
+                                    </div>
+                                </div>
+
+                                <div x-show="showCustomDelivery" x-collapse class="mt-4">
+                                    <div class="input-group">
+                                        <label class="input-label text-[#9E6B73]">Manual Delivery Cost</label>
+                                        <div class="relative">
+                                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
+                                            <input type="number" wire:model.live="form.delivery_cost" step="0.01" class="input-field input-with-icon" placeholder="0.00">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-10 border-t border-gray-100 mt-6">
+                        <div class="input-group">
+                            <label class="input-label">Delivery Notes</label>
+                            <textarea wire:model="form.notes_delivery" rows="2" class="input-field resize-none text-xs" placeholder="Access details..."></textarea>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Customer Notes</label>
+                            <textarea wire:model="form.notes_customer" rows="2" class="input-field resize-none text-xs" placeholder="Special requests..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
+                        <div class="input-group">
+                            <label class="input-label">Lead Operator</label>
+                            <input type="text" wire:model="form.lead_operator" class="input-field" placeholder="Select Staff...">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Lead Deliverer</label>
+                            <input type="text" wire:model="form.lead_deliverer" class="input-field" placeholder="Select Staff...">
+                        </div>
+                    </div>
+
+                    <div class="pt-6 border-t border-gray-100 mt-6">
+                        <label class="input-label mb-2 flex items-center justify-between">
+                            <span>Delivery Attachments (Up to 5)</span>
+                            <span class="text-[10px] bg-[#9E6B73]/10 text-[#9E6B73] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Up to 5 slots</span>
+                        </label>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             @foreach([
-                            1 => 'delivery_attachment',
-                            2 => 'delivery_attachment_1',
-                            3 => 'delivery_attachment_2',
-                            4 => 'delivery_attachment_3',
-                            5 => 'delivery_attachment_4'
+                                1 => 'delivery_attachment',
+                                2 => 'delivery_attachment_1',
+                                3 => 'delivery_attachment_2',
+                                4 => 'delivery_attachment_3',
+                                5 => 'delivery_attachment_4'
                             ] as $i => $field)
                             @php
-                            $hasFile = !empty($form[$field]) && !in_array($field, $deletedAttachments);
+                                $hasFile = !empty($form[$field]) && !in_array($field, $deletedAttachments);
                             @endphp
-                            <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border {{ $hasFile ? 'border-slate-200' : 'border-dashed border-slate-300' }}">
+                            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col justify-center border-dashed">
                                 @if($hasFile)
-                                <a href="/uploads/{{ $form[$field] }}" target="_blank" class="text-xs font-bold text-[#9D686E] hover:underline flex items-center gap-1.5 flex-1 truncate">
-                                    <span class="material-symbols-rounded text-sm">visibility</span> {{ $form[$field] }}
-                                </a>
-                                <button type="button" wire:click="markAttachmentDeleted('{{ $field }}')" class="text-red-400 hover:text-red-600 transition p-1 hover:bg-red-50 rounded-lg">
-                                    <span class="material-symbols-rounded text-xl">delete</span>
-                                </button>
-                                @else
-                                <div class="flex flex-col w-full">
-                                    <span class="text-[9px] font-bold text-slate-400 uppercase mb-1">Slot {{ $i }}</span>
-                                    <input type="file" wire:model="newAttachments.{{ $field }}" class="text-[10px] w-full text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-[#9D686E]/10 file:text-[#9D686E] hover:file:bg-[#9D686E]/20 cursor-pointer">
+                                <div class="flex items-center justify-between">
+                                    <a href="/uploads/{{ $form[$field] }}" target="_blank" class="text-xs font-bold text-[#9E6B73] hover:underline flex items-center gap-1 truncate"><span class="material-symbols-rounded text-sm">open_in_new</span> View Slot {{ $i }}</a>
+                                    <button type="button" wire:click="markAttachmentDeleted('{{ $field }}')" class="text-red-400 hover:text-red-600 transition"><span class="material-symbols-rounded text-sm">delete</span></button>
                                 </div>
+                                @else
+                                <input type="file" wire:model="newAttachments.{{ $field }}" class="text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-[#9E6B73]/10 file:text-[#9E6B73] hover:file:bg-[#9E6B73]/20 cursor-pointer">
                                 @endif
                             </div>
                             @endforeach
                         </div>
                     </div>
                 </div>
+
+                <div class="section-card">
+                    <div class="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-rounded text-[#9E6B73] text-2xl">celebration</span>
+                            <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Attractions & Extras</h2>
+                        </div>
+                        <div class="relative w-64">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-[#9E6B73]"><span class="material-symbols-rounded text-lg">search</span></span>
+                            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search attractions..." class="input-field input-with-icon py-2 text-sm">
+                        </div>
+                    </div>
+
+                    <div class="space-y-8">
+                        @php $catIndex = 0; @endphp
+                        @foreach($this->categories as $catName => $catData)
+                        @if(empty($catData['products'])) @continue @endif
+                        @php $catIndex++; @endphp
+                        <div class="category-section" data-category="{{ $catName }}">
+                            <div class="flex items-center gap-3 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <span class="w-8 h-8 rounded-lg bg-white text-[#9E6B73] flex items-center justify-center font-bold text-xs shadow-sm">{{ $catIndex }}</span>
+                                <h3 class="text-md font-bold text-slate-700 flex-1">{{ $catName }}</h3>
+                                @if(($catData['limit'] ?? 0) > 0)
+                                <span class="cat-limit-badge text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide">Category Limit: {{ $catData['limit'] }}</span>
+                                @endif
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-2">
+                                @foreach($catData['products'] as $p)
+                                @php
+                                    $cleanName = strtolower(trim($p['name']));
+                                    $isSelected = isset($selectedItems[$cleanName]);
+                                    $qty = $isSelected ? $selectedItems[$cleanName] : 1;
+                                    $availInfo = $availability[$cleanName] ?? ['left' => 99, 'sold_out' => false];
+                                    $cardClass = $isSelected ? 'border-[#9E6B73] bg-[#FFF5F7] ring-2 ring-[#9E6B73]/20' : 'border-slate-200 hover:border-slate-300';
+                                    if (!$isSelected && $availInfo['sold_out']) $cardClass = 'opacity-60 bg-slate-50 border-slate-200';
+                                @endphp
+                                <div class="product-card group {{ $isSelected ? 'selected' : '' }} cursor-pointer" 
+                                     data-name="{{ $p['name'] }}" 
+                                     data-category="{{ $p['category'] }}" 
+                                     data-counts-against="{{ $p['counts_against'] ?: $p['category'] }}"
+                                     data-daily-limit="{{ (int)($catData['limit'] ?? 0) }}"
+                                     data-specification="{{ $p['specification'] ?? '' }}"
+                                     data-price="{{ $p['price'] }}"
+                                     data-product-sold-out="false"
+                                     @click="const cb = $el.querySelector('.ride-checkbox'); if(cb && !cb.disabled) { cb.checked = !cb.checked; handleSelection(cb); $wire.toggleItem('{{ $p['name'] }}', cb.checked); }">
+                                    <div class="flex justify-between items-start gap-2 mb-2 w-full relative">
+                                        <div class="pr-2 w-full">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <h4 class="font-bold text-slate-800 text-sm leading-snug group-hover:text-[#9E6B73] line-clamp-2 min-h-[40px]">{{ $p['name'] }}</h4>
+                                                <button type="button" @click.stop="openProductDetails($el.closest('.product-card'))" class="text-slate-300 hover:text-[#9E6B73] transition-colors p-1 rounded-full hover:bg-slate-100 flex items-center justify-center shrink-0">
+                                                    <span class="material-symbols-rounded text-lg">info</span>
+                                                </button>
+                                            </div>
+                                            <div class="mt-2 status-wrapper"><span class="status-badge status-checking">Checking...</span></div>
+                                        </div>
+                                        <div class="custom-checkbox flex-shrink-0"></div>
+                                        <input type="checkbox" class="ride-checkbox hidden" {{ $isSelected ? 'checked' : '' }}>
+                                    </div>
+                                    <div class="flex items-center justify-between mt-auto pt-2" @click.stop>
+                                        <span class="text-[10px] text-slate-400 font-medium action-text">{{ $isSelected ? 'Booked' : 'Click to select' }}</span>
+                                        @if($isSelected)
+                                        <div class="flex items-center bg-white border border-[#9E6B73] rounded-lg overflow-hidden">
+                                            <button wire:click.stop="updateItemQty('{{ $p['name'] }}', -1)" @click="setTimeout(() => triggerRecalculate(), 100)" class="w-7 h-7 flex items-center justify-center bg-[#FFF5F7] text-[#9E6B73] font-bold hover:bg-[#9E6B73] hover:text-white transition">-</button>
+                                            <input type="text" readonly value="{{ $qty }}" class="w-8 text-center border-none text-xs font-bold text-slate-700 bg-transparent pointer-events-none">
+                                            <button wire:click.stop="updateItemQty('{{ $p['name'] }}', 1)" @click="setTimeout(() => triggerRecalculate(), 100)" class="w-7 h-7 flex items-center justify-center bg-[#FFF5F7] text-[#9E6B73] font-bold hover:bg-[#9E6B73] hover:text-white transition">+</button>
+                                        </div>
+                                        @endif
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endforeach
+
+                        <div class="bg-slate-50 rounded-3xl p-6 border border-slate-200 mt-8">
+                            <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2 mb-6 border-b border-slate-200 pb-3"><span class="material-symbols-rounded text-[#9E6B73]">tune</span> Extra Configurations</h3>
+
+                            <div id="dynamicExtrasContainer" class="grid grid-cols-1 gap-6" wire:ignore>
+                                <p class="text-xs text-slate-500 italic py-4 col-span-full">Select attractions to view related extras.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
 
     <!-- SAVE CONFIRM MODAL -->
-    <div x-show="saveConfirmModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" @click="saveConfirmModal = false"></div>
-            <div x-show="saveConfirmModal" x-transition class="relative bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md z-10 text-center">
-                <div class="w-16 h-16 bg-[#9D686E]/10 rounded-full flex items-center justify-center mx-auto mb-5 text-[#9D686E]">
-                    <span class="material-symbols-rounded text-4xl">save</span>
-                </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">Save All Changes?</h3>
-                <p class="text-sm text-gray-500 mb-8 leading-relaxed">Are you sure you want to finalize and save all modifications made to this booking? This action will update the invoice and calendar records.</p>
-                <div class="flex justify-center gap-3">
-                    <button @click="saveConfirmModal = false" class="flex-1 px-5 py-3 rounded-2xl text-gray-600 hover:bg-gray-100 text-sm font-bold transition">Cancel</button>
-                    <button wire:click="saveBooking" @click="saveConfirmModal = false" class="flex-1 px-5 py-3 rounded-2xl bg-[#9D686E] text-white hover:bg-[#855359] text-sm font-bold shadow-lg shadow-[#9D686E]/30 transition transform active:scale-95">Yes, Save Now</button>
-                </div>
+    <div x-show="saveConfirmModal" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[9999]" x-cloak>
+        <div x-show="saveConfirmModal" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="saveConfirmModal = false"></div>
+        <div x-show="saveConfirmModal" x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center z-10">
+            <div class="w-14 h-14 bg-[#9E6B73]/10 rounded-full flex items-center justify-center mx-auto mb-4 text-[#9E6B73]">
+                <span class="material-symbols-rounded text-3xl">save</span>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Save All Changes?</h3>
+            <p class="text-sm text-slate-600 mb-6 leading-relaxed">Are you sure you want to finalize and save all modifications made to this booking? This action will update the invoice and calendar records.</p>
+            <div class="flex gap-3">
+                <button @click="saveConfirmModal = false" class="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition">Cancel</button>
+                <button wire:click="saveBooking" @click="saveConfirmModal = false" class="flex-1 py-3 bg-[#9E6B73] text-white rounded-xl font-bold hover:bg-[#86545C] transition shadow-lg shadow-[#9E6B73]/20 flex items-center justify-center gap-2 text-lg">
+                    <span class="material-symbols-rounded">check_circle</span> Yes, Save
+                </button>
             </div>
         </div>
     </div>
 
     <!-- CALENDAR MODAL -->
-    <div x-show="calendarModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4 py-8">
-            <div class="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" @click="calendarModal = false"></div>
-            <div x-show="calendarModal" x-transition class="relative bg-white rounded-3xl shadow-2xl p-8 w-full max-w-lg z-10">
-                <div class="flex justify-between items-center mb-8">
-                    <h3 class="font-bold text-gray-800 text-xl">Check Date Availability</h3>
-                    <button @click="calendarModal = false" class="text-gray-400 hover:text-gray-600 transition p-1 hover:bg-slate-50 rounded-lg"><span class="material-symbols-rounded">close</span></button>
-                </div>
+    <div x-show="calendarModal" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[9999]" x-cloak>
+        <div x-show="calendarModal" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="calendarModal = false"></div>
+        <div x-show="calendarModal" x-transition class="relative bg-white rounded-3xl shadow-2xl p-8 w-full max-w-lg z-10">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="font-bold text-gray-800 text-xl">Check Date Availability</h3>
+                <button @click="calendarModal = false" class="text-gray-400 hover:text-gray-600 transition p-1 hover:bg-slate-50 rounded-lg"><span class="material-symbols-rounded">close</span></button>
+            </div>
 
-                <div class="flex items-center justify-between mb-6">
-                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">Limit: 7 / Day</p>
-                    <div class="flex items-center gap-4">
-                        <button wire:click="calPrev" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-xl text-slate-500 hover:bg-slate-200 transition"><span class="material-symbols-rounded text-sm">chevron_left</span></button>
-                        <p class="text-md font-bold text-slate-800 w-32 text-center">{{ \Carbon\Carbon::create($calYear, $calMonth, 1)->format('F Y') }}</p>
-                        <button wire:click="calNext" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-xl text-slate-500 hover:bg-slate-200 transition"><span class="material-symbols-rounded text-sm">chevron_right</span></button>
-                    </div>
+            <div class="flex items-center justify-between mb-6">
+                <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">Limit: 7 / Day</p>
+                <div class="flex items-center gap-4">
+                    <button wire:click="calPrev" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-xl text-slate-500 hover:bg-slate-200 transition"><span class="material-symbols-rounded text-sm">chevron_left</span></button>
+                    <p class="text-md font-bold text-slate-800 w-32 text-center">{{ \Carbon\Carbon::create($calYear, $calMonth, 1)->format('F Y') }}</p>
+                    <button wire:click="calNext" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-xl text-slate-500 hover:bg-slate-200 transition"><span class="material-symbols-rounded text-sm">chevron_right</span></button>
                 </div>
+            </div>
 
-                <div class="grid grid-cols-7 text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-widest text-center">
-                    <div>Sun</div>
-                    <div>Mon</div>
-                    <div>Tue</div>
-                    <div>Wed</div>
-                    <div>Thu</div>
-                    <div>Fri</div>
-                    <div>Sat</div>
-                </div>
+            <div class="grid grid-cols-7 text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-widest text-center">
+                <div>Sun</div>
+                <div>Mon</div>
+                <div>Tue</div>
+                <div>Wed</div>
+                <div>Thu</div>
+                <div>Fri</div>
+                <div>Sat</div>
+            </div>
 
-                <div class="grid grid-cols-7 gap-2.5">
-                    @foreach($calDays as $d)
-                    @if($d === null)
-                    <div></div>
-                    @else
-                    @php
-                    $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-200';
-                    if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-200'; }
-                    elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-200' ; }
-                        $isSelected=$d['date']===$tempSelectedDate;
-                        $ring=$isSelected ? 'border-[#9D686E] bg-pink-50 ring-2 ring-[#9D686E] shadow-md z-10' : '' ;
-                        @endphp
-                        <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')" class="h-14 rounded-2xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} flex flex-col items-center justify-center cursor-pointer transition hover:-translate-y-0.5 shadow-sm">
-                        <span class="font-bold text-sm">{{ $d['day'] }}</span>
-                        <span class="text-[8px] uppercase font-bold tracking-tight">{{ $d['left'] }} Left</span>
-                        </button>
-                        @endif
-                        @endforeach
-                </div>
+            <div class="grid grid-cols-7 gap-2.5">
+                @foreach($calDays as $d)
+                @if($d === null)
+                <div></div>
+                @else
+                @php
+                $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-200';
+                if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-200'; }
+                elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-200' ; }
+                    $isSelected=$d['date']===$tempSelectedDate;
+                    $ring=$isSelected ? 'border-[#9E6B73] bg-pink-50 ring-2 ring-[#9E6B73] shadow-md z-10' : '' ;
+                    @endphp
+                    <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')" class="h-14 rounded-2xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} flex flex-col items-center justify-center cursor-pointer transition hover:-translate-y-0.5 shadow-sm">
+                    <span class="font-bold text-sm">{{ $d['day'] }}</span>
+                    <span class="text-[8px] uppercase font-bold tracking-tight">{{ $d['left'] }} Left</span>
+                    </button>
+                    @endif
+                    @endforeach
+            </div>
 
-                <div class="flex justify-end pt-6 border-t border-gray-100 mt-8">
-                    <button wire:click="applySelectedDate" class="px-8 py-3 rounded-2xl bg-[#9D686E] text-white font-bold shadow-lg shadow-[#9D686E]/20 hover:bg-[#855359] transition transform active:scale-95">Apply Selected Date</button>
-                </div>
+            <div class="flex justify-end pt-6 border-t border-gray-100 mt-8">
+                <button wire:click="applySelectedDate" class="px-8 py-3 rounded-2xl bg-[#9E6B73] text-white font-bold shadow-lg shadow-[#9E6B73]/20 hover:bg-[#86545C] transition transform active:scale-95">Apply Selected Date</button>
             </div>
         </div>
     </div>
 
     <!-- Modal Event Listeners -->
     <div x-on:close-modal.window="calendarModal = false; saveConfirmModal = false;" x-on:open-modal.window="if ($event.detail === 'calendarModal' || $event.detail[0] === 'calendarModal') calendarModal = true;"></div>
+
+    <!-- Category Limit Modal -->
+    <div id="categoryLimitModal" x-show="modals.limitExceeded" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10002]">
+        <div x-show="modals.limitExceeded" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.limitExceeded = false"></div>
+        <div x-show="modals.limitExceeded" x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-600">
+                <span class="material-symbols-rounded text-4xl">warning</span>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-3 uppercase tracking-tight">Category Limit Reached</h3>
+            <p class="text-sm text-slate-600 mb-8 leading-relaxed">
+                You have reached the maximum limit of <span class="font-bold text-slate-800" x-text="limitExceededLimit"></span> items for the 
+                <span class="font-extrabold text-[#9E6B73] underline decoration-2 underline-offset-4" x-text="limitExceededCategory"></span> category. 
+                Please deselect an item before adding a new one.
+            </p>
+            <button type="button" @click="modals.limitExceeded = false" class="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition shadow-lg shadow-slate-200 uppercase tracking-widest text-xs">
+                I Understand
+            </button>
+        </div>
+    </div>
+
+    <div id="booking-data-bridge"
+        class="hidden"
+        data-config='@json($this->config)'
+        data-categories='@json($this->categories)'
+        data-extras='@json($this->saved_extras)'
+        data-customers='[]'
+        data-csrf="{{ csrf_token() }}"
+        data-id="{{ $this->booking->id }}"
+        data-invoice="{{ $this->booking->invoice_number }}">
+    </div>
+
+    <!-- Product Details Modal -->
+    <div x-show="productDetails.visible" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[20000]">
+        <div x-show="productDetails.visible" x-transition.opacity class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="productDetails.visible = false"></div>
+        <div x-show="productDetails.visible" x-transition class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="p-6 bg-slate-800 text-white flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-rounded text-[#9E6B73] text-2xl">info</span>
+                    <h3 class="text-xl font-bold" x-text="productDetails.name">Product Specification</h3>
+                </div>
+                <button type="button" @click="productDetails.visible = false" class="text-slate-400 hover:text-white transition">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="p-8 space-y-6">
+                <div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Costing Overview</span>
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-3xl font-black text-slate-800">$</span>
+                        <span class="text-4xl font-black text-slate-800 tracking-tighter" x-text="Number(productDetails.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})">0.00</span>
+                        <span class="text-sm font-bold text-slate-400 ml-1">per session</span>
+                    </div>
+                </div>
+                <div class="h-px bg-slate-100"></div>
+                <div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Key Specifications</span>
+                    <div class="bg-slate-50/50 rounded-xl p-5 border border-slate-100 min-h-[100px]">
+                        <template x-if="productDetails.spec">
+                            <ul class="space-y-3">
+                                <template x-for="line in productDetails.spec.split('\n').filter(l => l.trim())">
+                                    <li class="flex items-start gap-3">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-[#9E6B73] mt-1.5 shrink-0"></span>
+                                        <span class="text-sm text-slate-600 font-medium leading-relaxed" x-text="line"></span>
+                                    </li>
+                                </template>
+                            </ul>
+                        </template>
+                        <template x-if="!productDetails.spec">
+                            <p class="text-sm text-slate-400 italic">No specific instructions or features listed for this product.</p>
+                        </template>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-gray-100 flex justify-end">
+                <button type="button" @click="productDetails.visible = false" class="px-6 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200">Got it, close</button>
+            </div>
+        </div>
+    </div>
+
+    @vite(['resources/js/new-booking.js'])
 </div>
