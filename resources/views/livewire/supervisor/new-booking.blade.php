@@ -139,6 +139,7 @@
                                         <select name="payment_type" x-model="paymentType" @change="updatePaymentMethods()" class="input-dark appearance-none cursor-pointer">
                                             <option value="EFT">EFT / Bank Transfer</option>
                                             <option value="Card Holder">Credit/Debit Card</option>
+                                            <option value="Cash">Cash</option>
                                         </select>
                                         <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
                                     </div>
@@ -534,7 +535,7 @@
                                     <span class="w-8 h-8 rounded-lg bg-white text-[#9E6B73] flex items-center justify-center font-bold text-xs shadow-sm">{{ $catIndex }}</span>
                                     <h3 class="text-md font-bold text-slate-700 flex-1">{{ $catName }}</h3>
                                     @if ($catData['limit'] > 0)
-                                    <span class="cat-limit-badge text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide">Category Limit: {{ $catData['limit'] }}</span>
+                                    <span class="cat-limit-badge text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide border border-amber-200">Checking Limit...</span>
                                     @endif
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-2">
@@ -871,11 +872,12 @@
         class="hidden"
         data-config='@json($this->config)'
         data-categories='@json($this->categories)'
-        data-extras='@json($this->saved_extras)'
-        data-customers='@json($this->past_customers)'
+        data-extras='@json($saved_extras ?? (object)[])'
+        data-selected='@json($selected_products ?? [])'
+        data-customers='@json($past_customers ?? [])'
         data-csrf="{{ csrf_token() }}"
-        data-id="{{ $this->booking_id }}"
-        data-invoice="{{ $this->invoice_number }}">
+        data-id="{{ $booking_id }}"
+        data-invoice="{{ $invoice_number }}">
     </div>
     <!-- Product Details Modal -->
     <div x-show="productDetails.visible" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[20000]">

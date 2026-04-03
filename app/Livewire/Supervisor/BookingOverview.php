@@ -154,7 +154,11 @@ class BookingOverview extends Component
             $this->payAmount = $balanceDue;
         }
 
-        $this->payMethod = in_array($this->booking->payment_type, ['credit_card', 'Card Holder']) ? 'Card Holder' : 'EFT';
+        $this->payMethod = match($this->booking->payment_type) {
+            'Card Holder', 'credit_card' => 'Card Holder',
+            'Cash' => 'Cash',
+            default => 'EFT',
+        };
         $this->dispatch('open-modal', 'paymentModal');
     }
 
@@ -355,8 +359,8 @@ class BookingOverview extends Component
                 $join->on('booking_items.item_name', '=', 'products.name')
                      ->where('booking_items.is_custom', '=', 0);
             })
-            ->selectRaw('booking_items.item_name, booking_items.is_custom, SUM(booking_items.qty) as total_qty, products.specification, products.price as unit_price')
-            ->groupBy('booking_items.item_name', 'booking_items.is_custom', 'products.specification', 'products.price')
+            ->selectRaw('booking_items.item_name, booking_items.is_custom, SUM(booking_items.qty) as total_qty, products.specification, products.price as unit_price, products.category')
+            ->groupBy('booking_items.item_name', 'booking_items.is_custom', 'products.specification', 'products.price', 'products.category')
             ->get();
 
         $payments = BookingPayment::where('booking_id', $this->booking->id)->orderBy('payment_date', 'asc')->get();
@@ -392,6 +396,32 @@ class BookingOverview extends Component
             default     => 'bg-plum/10 text-[#9D686E] border-[#9D686E]/20',
         };
 
+        $activeCategories = ['General Logistics'];
+        foreach ($items as $item) {
+            if ($item->category) {
+                $activeCategories[] = $item->category;
+            }
+        }
+        $activeCategories = array_unique($activeCategories);
+
+        // Fetch configs for Extra Configurations display matching new-booking/edit-booking logic
+        $config = [
+            'addons' => DB::table('category_addons')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { return $g->toArray(); })->toArray(),
+            'questions' => DB::table('product_extras')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { return $g->toArray(); })->toArray(),
+            'dropdowns' => []
+        ];
+
+        $rawDropdowns = DB::table('product_dropdowns')->orderBy('sort_order')->get();
+        $rawOpts = DB::table('dropdown_options')->get()->groupBy('dropdown_id');
+        foreach ($rawDropdowns as $dd) {
+            $ddArray = (array)$dd;
+            $opts = $rawOpts->get($dd->id) ?? collect([]);
+            $ddArray['options'] = $opts->map(function($o) { return (array)$o; })->toArray();
+            $config['dropdowns'][$dd->category_target][] = $ddArray;
+        }
+
+        $selectedExtras = json_decode($this->booking->extras_json ?? '[]', true) ?? [];
+
         $startTime = Carbon::parse($this->booking->start_time);
         $timeString = $startTime->format('g:i A');
         if (!empty($this->booking->end_time) && $this->booking->end_time != '00:00:00') {
@@ -422,7 +452,10 @@ class BookingOverview extends Component
             'ridesCost',
             'statusColor',
             'timeString',
-            'galleryFiles'
+            'galleryFiles',
+            'activeCategories',
+            'config',
+            'selectedExtras'
         ));
     }
 }

@@ -144,7 +144,11 @@
             <form wire:submit="saveProduct">
                 <div class="grid grid-cols-1 gap-6 mb-6">
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Product Name</label>
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Daily Limit (Per Day)</label>
+                            <input type="number" wire:model="prod_limit" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#9E6B73] outline-none transition font-bold text-slate-700" placeholder="e.g. 5">
+                        </div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2 mt-4">Product Name</label>
                         <input type="text" wire:model="prod_name" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" required>
                     </div>
                     <div>
@@ -168,10 +172,6 @@
                     <div>
                         <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Price ($)</label>
                         <input type="number" step="0.01" wire:model="prod_price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" placeholder="0.00">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Item Limit <span class="text-slate-400 normal-case tracking-normal font-normal">(0=UNL)</span></label>
-                        <input type="number" wire:model="prod_limit" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" placeholder="0">
                     </div>
                 </div>
 
@@ -249,19 +249,19 @@
                             ${{ number_format($prod->price, 2) }}
                         </td>
                         <td class="py-5 w-[20%] text-text-main font-medium">
-                            @php
-                            $target_cat = $prod->counts_against ?: $prod->category;
-                            $cat_obj = $categories->firstWhere('category_name', $target_cat);
-                            $c_limit = $cat_obj ? $cat_obj->daily_limit : 0;
-                            @endphp
-                            <div class="flex flex-col border border-slate-200 rounded-lg text-[11px] w-[110px] overflow-hidden shadow-sm">
-                                <div class="flex justify-between items-center px-2 py-1 border-b border-slate-200 bg-white">
-                                    <span class="text-slate-600 font-bold tracking-wider">ITEM</span>
-                                    <span class="{{ $prod->daily_limit > 0 ? 'text-[#D97757] font-bold' : 'text-slate-400 italic' }}">{{ $prod->daily_limit > 0 ? $prod->daily_limit.'/day' : 'Unl' }}</span>
+                            <div class="flex flex-col border border-slate-200 rounded-lg text-[11px] w-[130px] overflow-hidden shadow-sm">
+                                <div class="flex justify-between items-center py-2 border-b border-slate-50 px-2">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase">Daily Limit</span>
+                                    <span class="text-xs font-black text-[#9E6B73]">{{ $prod->daily_limit ?: 'Unlimited' }}</span>
                                 </div>
-                                <div class="flex justify-between items-center px-2 py-1 bg-white">
-                                    <span class="text-slate-600 font-bold tracking-wider">CAT</span>
-                                    <span class="{{ $c_limit > 0 ? 'text-[#D97757] font-bold' : 'text-slate-400 italic' }}">{{ $c_limit > 0 ? $c_limit.'/day' : 'Unl' }}</span>
+                                @php
+                                    $target_cat = $prod->counts_against ?: $prod->category;
+                                    $cat_obj = $categories->firstWhere('category_name', $target_cat);
+                                    $c_limit = $cat_obj ? $cat_obj->daily_limit : 0;
+                                @endphp
+                                <div class="flex justify-between items-center py-2 bg-white px-2">
+                                    <span class="text-slate-600 font-bold tracking-wider">CATEGORY</span>
+                                    <span class="{{ $c_limit > 0 ? 'text-[#D97757] font-bold' : 'text-slate-400 italic' }}">{{ $c_limit > 0 ? $c_limit : 'Unl' }}</span>
                                 </div>
                             </div>
                         </td>

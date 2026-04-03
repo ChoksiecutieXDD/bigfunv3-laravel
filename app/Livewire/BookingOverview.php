@@ -91,8 +91,8 @@ class BookingOverview extends Component
                 $join->on('booking_items.item_name', '=', 'products.name')
                      ->where('booking_items.is_custom', '=', 0);
             })
-            ->selectRaw('booking_items.item_name, booking_items.is_custom, SUM(booking_items.qty) as total_qty, products.specification, products.price as unit_price')
-            ->groupBy('booking_items.item_name', 'booking_items.is_custom', 'products.specification', 'products.price')
+            ->selectRaw('booking_items.item_name, booking_items.is_custom, SUM(booking_items.qty) as total_qty, products.specification, products.price as unit_price, products.category')
+            ->groupBy('booking_items.item_name', 'booking_items.is_custom', 'products.specification', 'products.price', 'products.category')
             ->get();
 
         $payments = BookingPayment::where('booking_id', $this->booking->id)->orderBy('payment_date', 'asc')->get();
@@ -110,8 +110,10 @@ class BookingOverview extends Component
 
         $isCard = in_array($this->booking->payment_type, ['credit_card', 'Card Holder']);
         $baseAmount = $totalAmount;
+        $surcharge = 0;
         if ($isCard && $totalAmount > 0) {
             $baseAmount = $totalAmount / 1.029;
+            $surcharge = $totalAmount - $baseAmount;
         }
 
         $deliveryCost = $this->booking->delivery_cost ?? $this->booking->delivery_fee ?? 0;
@@ -124,6 +126,32 @@ class BookingOverview extends Component
             'Draft'     => 'bg-orange-100 text-orange-700 border-orange-200',
             default     => 'bg-[#9D686E]/10 text-[#9D686E] border-[#9D686E]/20',
         };
+
+        $activeCategories = ['General Logistics'];
+        foreach ($items as $item) {
+            if ($item->category) {
+                $activeCategories[] = $item->category;
+            }
+        }
+        $activeCategories = array_unique($activeCategories);
+
+        // Fetch configs for Extra Configurations display matching new-booking/edit-booking logic
+        $config = [
+            'addons' => DB::table('category_addons')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { return $g->toArray(); })->toArray(),
+            'questions' => DB::table('product_extras')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { return $g->toArray(); })->toArray(),
+            'dropdowns' => []
+        ];
+
+        $rawDropdowns = DB::table('product_dropdowns')->orderBy('sort_order')->get();
+        $rawOpts = DB::table('dropdown_options')->get()->groupBy('dropdown_id');
+        foreach ($rawDropdowns as $dd) {
+            $ddArray = (array)$dd;
+            $opts = $rawOpts->get($dd->id) ?? collect([]);
+            $ddArray['options'] = $opts->map(function($o) { return (array)$o; })->toArray();
+            $config['dropdowns'][$dd->category_target][] = $ddArray;
+        }
+
+        $selectedExtras = json_decode($this->booking->extras_json ?? '[]', true) ?? [];
 
         $startTime = Carbon::parse($this->booking->start_time);
         $timeString = $startTime->format('g:i A');
@@ -151,7 +179,12 @@ class BookingOverview extends Component
             'ridesCost',
             'statusColor',
             'timeString',
-            'galleryFiles'
+            'galleryFiles',
+            'isCard',
+            'surcharge',
+            'activeCategories',
+            'config',
+            'selectedExtras'
         ));
     }
 }

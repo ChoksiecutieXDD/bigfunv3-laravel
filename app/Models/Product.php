@@ -13,6 +13,7 @@ class Product extends Model
         'category',
         'counts_against',
         'price',
+        'total_quantity',
         'daily_limit',
         'sort_order',
         'is_active',

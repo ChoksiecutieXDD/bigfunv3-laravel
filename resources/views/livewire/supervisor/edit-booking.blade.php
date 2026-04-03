@@ -8,13 +8,25 @@
 
     <div class="flex w-full relative overflow-hidden">
         <main class="flex-1 pt-4 pb-16 px-0 max-w-[1440px] mx-auto w-full">
-            <div class="form-layout-wrapper">
+            <form id="combinedBookingForm" onsubmit="return false;" class="form-layout-wrapper">
+                <input type="hidden" name="booking_id" id="booking_id" value="{{ $booking->id }}">
+                <input type="hidden" name="invoice_number" id="invoice_number" value="{{ $booking->invoice_number }}">
 
                 <div class="flex flex-col gap-6 mb-8">
+                    <div id="duplicateBanner" class="hidden bg-amber-50 border border-amber-200 border-l-4 border-l-amber-500 p-4 rounded-xl shadow-sm">
+                        <div class="flex items-start gap-4">
+                            <span class="material-symbols-rounded text-amber-500 text-3xl">warning</span>
+                            <div class="flex-1">
+                                <h3 class="text-sm font-bold text-amber-800 mb-1">Potential Schedule Conflict Detected</h3>
+                                <div id="duplicateBannerBody" class="text-xs text-amber-700 space-y-1 mb-2"></div>
+                                <p class="text-xs font-bold text-amber-600">You may continue, but please double-check before saving.</p>
+                            </div>
+                        </div>
+                    </div>
                     <header class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                         <div class="flex items-center gap-4">
                             @php
-                                $backRoute = request()->routeIs('supervisor.*') ? 'supervisor.bookings.overview' : 'booking.overview';
+                                $backRoute = $isSupervisor ? 'supervisor.bookings.overview' : 'booking.overview';
                             @endphp
                             <a href="{{ route($backRoute, $booking->id) }}" wire:navigate class="bg-white hover:bg-gray-50 text-slate-600 p-2.5 rounded-xl border border-gray-200 transition shadow-sm flex items-center justify-center">
                                 <span class="material-symbols-rounded text-2xl">arrow_back</span>
@@ -25,7 +37,7 @@
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                            <button @click="saveConfirmModal = true" type="button" class="btn-action bg-[#9E6B73] text-white hover:bg-[#86545C] flex-1 sm:flex-none justify-center shadow-md shadow-[#9E6B73]/20">
+                            <button @click="modals.saveConfirm = true" type="button" class="btn-action bg-[#9E6B73] text-white hover:bg-[#86545C] flex-1 sm:flex-none justify-center shadow-md shadow-[#9E6B73]/20">
                                 <span class="material-symbols-rounded text-lg mr-2">save</span> SAVE CHANGES
                             </button>
                         </div>
@@ -42,7 +54,7 @@
                         </div>
                         <div class="text-right">
                             <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Total Amount</p>
-                            <p class="text-4xl font-extrabold tracking-tighter text-white">${{ number_format($totalAmount, 2) }}</p>
+                            <p class="text-4xl font-extrabold tracking-tighter text-white" id="disp_total">${{ number_format($totalAmount, 2) }}</p>
                         </div>
                     </div>
 
@@ -52,15 +64,19 @@
 
                             <div class="flex justify-between items-center text-sm text-slate-300">
                                 <span>Duration Cost</span>
-                                <span class="font-bold">${{ number_format($form['duration_cost'] ?? 0, 2) }}</span>
+                                <span class="font-bold" id="breakdown_dur">${{ number_format($durationCost, 2) }}</span>
                             </div>
                             <div class="flex justify-between items-center text-sm text-slate-300">
                                 <span>Delivery Zone Cost</span>
-                                <span class="font-bold">${{ number_format($form['delivery_cost'] ?? 0, 2) }}</span>
+                                <span class="font-bold" id="breakdown_del">${{ number_format($deliveryCost, 2) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm text-slate-300">
+                                <span>Attractions Cost</span>
+                                <span class="font-bold" id="breakdown_attractions">${{ number_format($attractionsCost, 2) }}</span>
                             </div>
                             <div class="flex justify-between items-center text-sm text-slate-300">
                                 <span>Extras Cost</span>
-                                <span class="font-bold">${{ number_format($form['extra_logistics_cost'] ?? 0, 2) }}</span>
+                                <span class="font-bold" id="breakdown_ext">${{ number_format($extrasCost, 2) }}</span>
                             </div>
 
                             <div class="h-px bg-slate-700 my-3"></div>
@@ -68,7 +84,7 @@
                             <div class="flex justify-between items-center text-sm font-bold text-white">
                                 <span>Subtotal</span>
                                 <div class="flex items-center gap-1 text-lg">
-                                    $ <input type="number" wire:model.live.debounce.500ms="subtotal" readonly class="bg-transparent text-right w-24 outline-none border-none pointer-events-none text-white font-bold">
+                                    $ <input type="number" id="calc_subtotal" wire:model.live.debounce.500ms="subtotal" readonly class="bg-transparent text-right w-24 outline-none border-none pointer-events-none text-white font-bold">
                                 </div>
                             </div>
 
@@ -81,7 +97,7 @@
                                 <label class="text-[10px] text-slate-400 uppercase font-bold mb-2 block">Override Final Total (Optional)</label>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 font-bold">$</span>
-                                    <input type="number" wire:model.live.debounce.500ms="totalAmount" placeholder="Leave empty to use calculated sum" class="input-dark input-with-icon !py-3">
+                                    <input type="number" id="override_total" wire:model.live.debounce.500ms="totalAmount" placeholder="Leave empty to use calculated sum" class="input-dark input-with-icon !py-3">
                                 </div>
                             </div>
                         </div>
@@ -96,6 +112,7 @@
                                         <select wire:model.live="form.payment_type" class="input-dark appearance-none cursor-pointer">
                                             <option value="EFT">EFT / Bank Transfer</option>
                                             <option value="Card Holder">Credit/Debit Card</option>
+                                            <option value="Cash">Cash</option>
                                         </select>
                                         <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
                                     </div>
@@ -177,7 +194,7 @@
                         <div class="input-group">
                             <label class="input-label">Event Date</label>
                             <div class="flex gap-2">
-                                <input type="date" wire:model.live="form.event_date" class="input-field">
+                                <input type="date" id="event_date" name="event_date" wire:model.live="form.event_date" value="{{ $form['event_date'] }}" class="input-field" @change="dateChanged()">
                                 <button wire:click="loadCalendar(); $dispatch('open-modal', 'calendarModal')" type="button" class="bg-[#9E6B73] text-white px-4 rounded-xl flex items-center justify-center hover:bg-[#855359] transition">
                                     <span class="material-symbols-rounded">calendar_month</span>
                                 </button>
@@ -251,42 +268,42 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="input-group">
                                     <label class="input-label">First Name <span class="text-red-500">*</span></label>
-                                    <input type="text" wire:model="form.customer_first_name" class="input-field">
+                                    <input type="text" id="cust_first_name" wire:model="form.customer_first_name" class="input-field">
                                 </div>
                                 <div class="input-group">
                                     <label class="input-label">Last Name</label>
-                                    <input type="text" wire:model="form.customer_last_name" class="input-field">
+                                    <input type="text" id="cust_last_name" wire:model="form.customer_last_name" class="input-field">
                                 </div>
                             </div>
 
                             <div class="input-group">
                                 <label class="input-label">Business / Org Name</label>
-                                <input type="text" wire:model="form.customer_organization" class="input-field">
+                                <input type="text" id="customer_organization" wire:model="form.customer_organization" class="input-field">
                             </div>
 
                             <div class="input-group">
                                 <label class="input-label">ABN Number</label>
-                                <input type="text" wire:model="form.customer_abn" class="input-field" placeholder="Optional">
+                                <input type="text" id="customer_abn" wire:model="form.customer_abn" class="input-field" placeholder="Optional">
                             </div>
 
                             <div class="input-group">
                                 <label class="input-label">Employer Name</label>
-                                <input type="text" wire:model="form.employer_name" class="input-field">
+                                <input type="text" id="employer_name" wire:model="form.employer_name" class="input-field">
                             </div>
 
                             <div class="input-group">
                                 <label class="input-label">Business Contact Number</label>
-                                <input type="tel" wire:model="form.customer_business_phone" class="input-field">
+                                <input type="tel" id="customer_business_phone" wire:model="form.customer_business_phone" class="input-field">
                             </div>
 
                             <div class="input-group">
                                 <label class="input-label">Mobile Phone <span class="text-red-500">*</span></label>
-                                <input type="tel" wire:model="form.customer_phone" class="input-field">
+                                <input type="tel" id="customer_phone_mobile" wire:model="form.customer_phone" class="input-field">
                             </div>
 
                             <div class="input-group">
                                 <label class="input-label">Email Address <span class="text-red-500">*</span></label>
-                                <input type="email" wire:model="form.customer_email" class="input-field">
+                                <input type="email" id="customer_email_address" wire:model="form.customer_email" class="input-field">
                             </div>
                         </div>
 
@@ -296,23 +313,23 @@
 
                             <div class="input-group">
                                 <label class="input-label">Event Address Line 1 <span class="text-red-500">*</span></label>
-                                <input type="text" wire:model="form.address_line_1" class="input-field" placeholder="Street Address">
+                                <input type="text" id="addr_line_1" wire:model="form.address_line_1" class="input-field" placeholder="Street Address">
                             </div>
 
                             <div class="input-group">
                                 <label class="input-label">Business Address (Optional)</label>
-                                <input type="text" wire:model="form.business_address" class="input-field" placeholder="e.g. Suite 123">
+                                <input type="text" id="business_address" wire:model="form.business_address" class="input-field" placeholder="e.g. Suite 123">
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div class="input-group">
                                     <label class="input-label">Suburb</label>
-                                    <input type="text" wire:model="form.suburb" class="input-field">
+                                    <input type="text" id="addr_suburb" wire:model="form.suburb" class="input-field">
                                 </div>
                                 <div class="input-group">
                                     <label class="input-label">State</label>
                                     <div class="relative">
-                                        <select wire:model="form.state" class="input-field appearance-none cursor-pointer">
+                                        <select id="addr_state" wire:model="form.state" class="input-field appearance-none cursor-pointer">
                                             <option value="QLD">QLD</option>
                                             <option value="NSW">NSW</option>
                                             <option value="VIC">VIC</option>
@@ -322,7 +339,7 @@
                                 </div>
                                 <div class="input-group">
                                     <label class="input-label">Postcode</label>
-                                    <input type="text" wire:model="form.postcode" class="input-field">
+                                    <input type="text" id="addr_postcode" wire:model="form.postcode" class="input-field">
                                 </div>
                             </div>
 
@@ -509,36 +526,85 @@
                         </div>
                     </div>
                 </div>
-
-            </div>
+            </form>
         </main>
     </div>
 
     <!-- SAVE CONFIRM MODAL -->
-    <div x-show="saveConfirmModal" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[9999]" x-cloak>
-        <div x-show="saveConfirmModal" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="saveConfirmModal = false"></div>
-        <div x-show="saveConfirmModal" x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center z-10">
+    <div x-show="modals.saveConfirm" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[9999]" x-cloak>
+        <div x-show="modals.saveConfirm" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.saveConfirm = false"></div>
+        <div x-show="modals.saveConfirm" x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center z-10">
             <div class="w-14 h-14 bg-[#9E6B73]/10 rounded-full flex items-center justify-center mx-auto mb-4 text-[#9E6B73]">
                 <span class="material-symbols-rounded text-3xl">save</span>
             </div>
             <h3 class="text-lg font-bold text-slate-800 mb-2">Save All Changes?</h3>
             <p class="text-sm text-slate-600 mb-6 leading-relaxed">Are you sure you want to finalize and save all modifications made to this booking? This action will update the invoice and calendar records.</p>
             <div class="flex gap-3">
-                <button @click="saveConfirmModal = false" class="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition">Cancel</button>
-                <button wire:click="saveBooking" @click="saveConfirmModal = false" class="flex-1 py-3 bg-[#9E6B73] text-white rounded-xl font-bold hover:bg-[#86545C] transition shadow-lg shadow-[#9E6B73]/20 flex items-center justify-center gap-2 text-lg">
+                <button @click="modals.saveConfirm = false" class="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition">Cancel</button>
+                <button @click="saveCurrentExtrasState(); $wire.set('dynamicExtras', window.bookingAppData.savedExtras); $wire.saveBooking(); modals.saveConfirm = false;" class="flex-1 py-3 bg-[#9E6B73] text-white rounded-xl font-bold hover:bg-[#86545C] transition shadow-lg shadow-[#9E6B73]/20 flex items-center justify-center gap-2 text-lg">
                     <span class="material-symbols-rounded">check_circle</span> Yes, Save
                 </button>
             </div>
         </div>
     </div>
 
+    <!-- CHANGE EXTRAS CONFIRM MODAL -->
+    <div x-show="modals.changeExtrasConfirm" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10001]" x-cloak>
+        <div x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.changeExtrasConfirm = false"></div>
+        <div x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center z-10">
+            <div class="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600">
+                <span class="material-symbols-rounded text-3xl">edit_attributes</span>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Change Extras?</h3>
+            <p class="text-sm text-slate-600 mb-6">You are about to modify the selected extras for this attraction. This may affect the total price and setup requirements.</p>
+            <div class="flex gap-3">
+                <button @click="modals.changeExtrasConfirm = false" class="flex-1 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold">Cancel</button>
+                <button id="btnConfirmExtraChange" class="flex-1 py-2 bg-[#9E6B73] text-white rounded-xl font-bold">Confirm Change</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT RIDES CONFIRM MODAL -->
+    <div x-show="modals.editRidesConfirm" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10001]" x-cloak>
+        <div x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.editRidesConfirm = false"></div>
+        <div x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center z-10">
+            <div class="w-14 h-14 bg-[#9E6B73]/10 rounded-full flex items-center justify-center mx-auto mb-4 text-[#9E6B73]">
+                <span class="material-symbols-rounded text-3xl">info</span>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Modify Attractions?</h3>
+            <p class="text-sm text-slate-600 mb-6">Are you sure you want to change the selected rides for this booking? Availability will be re-checked for the new selection.</p>
+            <div class="flex gap-3">
+                <button @click="modals.editRidesConfirm = false" class="flex-1 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold">Cancel</button>
+                <button id="btnConfirmRideChange" class="flex-1 py-2 bg-[#9E6B73] text-white rounded-xl font-bold">Confirm Edit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULL CAPACITY / 0 LIMIT MODAL -->
+    <div x-show="modals.fullCapacityWarning" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10003]" x-cloak>
+        <div x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.fullCapacityWarning = false"></div>
+        <div x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 text-red-600">
+                <span class="material-symbols-rounded text-4xl">error</span>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-3 uppercase tracking-tight">Full Capacity</h3>
+            <p class="text-sm text-slate-600 mb-8 leading-relaxed">
+                This item has reached its <span class="font-bold text-red-600">daily limit</span> or is <span class="font-bold text-red-600">out of stock</span> for the selected date. 
+                Please choose a different date or another attraction.
+            </p>
+            <button type="button" @click="modals.fullCapacityWarning = false" class="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition uppercase tracking-widest text-xs">
+                I Understand
+            </button>
+        </div>
+    </div>
+
     <!-- CALENDAR MODAL -->
-    <div x-show="calendarModal" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[9999]" x-cloak>
-        <div x-show="calendarModal" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="calendarModal = false"></div>
-        <div x-show="calendarModal" x-transition class="relative bg-white rounded-3xl shadow-2xl p-8 w-full max-w-lg z-10">
+    <div x-show="modals.calendar" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[9999]" x-cloak>
+        <div x-show="modals.calendar" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.calendar = false"></div>
+        <div x-show="modals.calendar" x-transition class="relative bg-white rounded-3xl shadow-2xl p-8 w-full max-w-lg z-10">
             <div class="flex justify-between items-center mb-8">
                 <h3 class="font-bold text-gray-800 text-xl">Check Date Availability</h3>
-                <button @click="calendarModal = false" class="text-gray-400 hover:text-gray-600 transition p-1 hover:bg-slate-50 rounded-lg"><span class="material-symbols-rounded">close</span></button>
+                <button @click="modals.calendar = false" class="text-gray-400 hover:text-gray-600 transition p-1 hover:bg-slate-50 rounded-lg"><span class="material-symbols-rounded">close</span></button>
             </div>
 
             <div class="flex items-center justify-between mb-6">
@@ -587,7 +653,8 @@
     </div>
 
     <!-- Modal Event Listeners -->
-    <div x-on:close-modal.window="calendarModal = false; saveConfirmModal = false;" x-on:open-modal.window="if ($event.detail === 'calendarModal' || $event.detail[0] === 'calendarModal') calendarModal = true;"></div>
+    <div x-on:close-modal.window="if ($event.detail === 'calendarModal' || (Array.isArray($event.detail) && $event.detail[0] === 'calendarModal')) modals.calendar = false; if ($event.detail === 'saveConfirm' || (Array.isArray($event.detail) && $event.detail[0] === 'saveConfirm')) modals.saveConfirm = false;" 
+         x-on:open-modal.window="if ($event.detail === 'calendarModal' || (Array.isArray($event.detail) && $event.detail[0] === 'calendarModal')) modals.calendar = true; if ($event.detail === 'saveConfirm' || (Array.isArray($event.detail) && $event.detail[0] === 'saveConfirm')) modals.saveConfirm = true;"></div>
 
     <!-- Category Limit Modal -->
     <div id="categoryLimitModal" x-show="modals.limitExceeded" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10002]">
@@ -613,6 +680,7 @@
         data-config='@json($this->config)'
         data-categories='@json($this->categories)'
         data-extras='@json($this->saved_extras)'
+        data-selected='@json($selectedItemsClean ?? [])'
         data-customers='[]'
         data-csrf="{{ csrf_token() }}"
         data-id="{{ $this->booking->id }}"

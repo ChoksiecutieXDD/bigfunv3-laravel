@@ -81,41 +81,114 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-             <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-between">
-                 <div>
-                     <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Payment Method</span>
-                     @php
-                         $displayType = $booking->payment_type === 'Card Holder' ? 'Credit/Debit Card' : ($booking->payment_type ?: 'Not Defined');
-                         $network = strtolower($booking->card_network ?? '');
-                         $networkIcon = '';
-                         if (str_contains($network, 'visa')) $networkIcon = '<i class="fa-brands fa-cc-visa text-blue-600"></i>';
-                         elseif (str_contains($network, 'mastercard')) $networkIcon = '<i class="fa-brands fa-cc-mastercard text-orange-500"></i>';
-                         elseif (str_contains($network, 'amex') || str_contains($network, 'american express')) $networkIcon = '<i class="fa-brands fa-cc-amex text-blue-400"></i>';
-                         elseif (str_contains($network, 'discover')) $networkIcon = '<i class="fa-brands fa-cc-discover text-orange-400"></i>';
-                         elseif (str_contains($network, 'diners')) $networkIcon = '<i class="fa-brands fa-cc-diners-club text-blue-800"></i>';
-                         else $networkIcon = '<i class="fa-solid fa-credit-card text-gray-400"></i>';
-                     @endphp
-                     <p class="text-lg font-black text-slate-800 flex items-center gap-2">
-                         {!! $booking->payment_type === 'Card Holder' ? $networkIcon : '' !!}
-                         {{ $displayType }}
-                     </p>
-                 </div>
-                 @if($booking->payment_type === 'Card Holder')
-                 <div class="mt-2 pt-2 border-t border-gray-200">
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-between">
+                <div>
+                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Payment Method</span>
+                    @php
+                    $displayType = $booking->payment_type === 'Card Holder' ? 'Credit/Debit Card' : ($booking->payment_type ?: 'Not Defined');
+                    $network = strtolower($booking->card_network ?? '');
+                    $networkIcon = '';
+                    if (str_contains($network, 'visa')) $networkIcon = '<i class="fa-brands fa-cc-visa text-blue-600"></i>';
+                    elseif (str_contains($network, 'mastercard')) $networkIcon = '<i class="fa-brands fa-cc-mastercard text-orange-500"></i>';
+                    elseif (str_contains($network, 'amex') || str_contains($network, 'american express')) $networkIcon = '<i class="fa-brands fa-cc-amex text-blue-400"></i>';
+                    elseif (str_contains($network, 'discover')) $networkIcon = '<i class="fa-brands fa-cc-discover text-orange-400"></i>';
+                    elseif (str_contains($network, 'diners')) $networkIcon = '<i class="fa-brands fa-cc-diners-club text-blue-800"></i>';
+                    else $networkIcon = '<i class="fa-solid fa-credit-card text-gray-400"></i>';
+                    @endphp
+                    <p class="text-lg font-black text-slate-800 flex items-center gap-2">
+                        {!! $booking->payment_type === 'Card Holder' ? $networkIcon : '' !!}
+                        {{ $displayType }}
+                    </p>
+                </div>
+                @if($booking->payment_type === 'Card Holder')
+                <div class="mt-2 pt-2 border-t border-gray-200">
                     <span class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Card:</span>
                     @php
-                        $cleanNum = str_replace(' ', '', $booking->card_number ?? '');
-                        $masked = !empty($cleanNum) ? '**** **** ' . substr($cleanNum, -8, 4) . ' ' . substr($cleanNum, -4) : 'N/A';
+                    $cleanNum = str_replace(' ', '', $booking->card_number ?? '');
+                    $masked = !empty($cleanNum) ? '**** **** ' . substr($cleanNum, -8, 4) . ' ' . substr($cleanNum, -4) : 'N/A';
                     @endphp
                     <span class="text-[11px] font-mono font-bold text-gray-600 ml-1">{{ $masked }} | Exp: **/** | CVV: ***</span>
-                 </div>
-                 @endif
-             </div>
-            <div class="bg-[#9D686E]/5 p-4 rounded-xl border border-[#9D686E]/10">
-                <span class="text-[10px] font-black text-[#9D686E] uppercase tracking-widest block mb-1">Grand Total</span>
-                <p class="text-3xl font-black text-[#9D686E] tracking-tighter leading-none">${{ number_format($totalAmount, 2) }}</p>
+                </div>
+                @endif
             </div>
-            <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+
+            <div class="bg-[#9D686E]/5 p-5 rounded-2xl border border-[#9D686E]/10 flex flex-col justify-between">
+                <div class="space-y-2 max-h-[150px] overflow-y-auto pr-2 custom-scrollbar mb-4">
+                    @foreach($items as $item)
+                    @if($item->unit_price > 0)
+                    <div class="flex justify-between items-start text-[10px] border-b border-[#9D686E]/5 pb-1">
+                        <span class="font-medium text-slate-500 flex-1">{{ $item->item_name }} ({{ $item->total_qty }})</span>
+                        <span class="font-bold text-[#9D686E] ml-2">${{ number_format($item->unit_price * $item->total_qty, 2) }}</span>
+                    </div>
+                    @endif
+                    @endforeach
+
+                    @if(($booking->duration_cost ?? 0) > 0)
+                    <div class="flex justify-between items-center text-[10px] border-b border-[#9D686E]/5 pb-1">
+                        <span class="font-medium text-slate-500">Duration Fee:</span>
+                        <span class="font-bold text-[#9D686E]">${{ number_format($booking->duration_cost, 2) }}</span>
+                    </div>
+                    @endif
+
+                    @if($deliveryCost > 0)
+                    <div class="flex justify-between items-center text-[10px] border-b border-[#9D686E]/5 pb-1">
+                        <span class="font-medium text-slate-500">Delivery:</span>
+                        <span class="font-bold text-[#9D686E]">${{ number_format($deliveryCost, 2) }}</span>
+                    </div>
+                    @endif
+
+                    {{-- Dynamically Derived Extras with Costing --}}
+                    @foreach($activeCategories as $cat)
+                    @php
+                    $catAddons = $config['addons'][$cat] ?? [];
+                    $catQuestions = $config['questions'][$cat] ?? [];
+                    @endphp
+
+                    @foreach($catAddons as $addon)
+                    @php $isSelected = isset($selectedExtras['add_'.$addon->id]); @endphp
+                    @if($isSelected && $addon->addon_price > 0)
+                    <div class="flex justify-between items-start text-[10px] border-b border-[#9D686E]/5 pb-1">
+                        <span class="font-medium text-slate-500 flex-1">{{ $addon->addon_label }}</span>
+                        <span class="font-bold text-[#9D686E] ml-2">${{ number_format($addon->addon_price, 2) }}</span>
+                    </div>
+                    @endif
+                    @endforeach
+
+                    @foreach($catQuestions as $q)
+                    @php
+                    $val = $selectedExtras['extra_'.$q->id] ?? $selectedExtras['q_'.$q->id] ?? null;
+                    $price = 0;
+                    $isYes = false;
+                    if ($val) {
+                    $parts = explode('|', $val);
+                    $price = (float)($parts[0] ?? 0);
+                    $answer = $parts[1] ?? 'yes';
+                    $isYes = ($answer === 'yes');
+                    }
+                    @endphp
+                    @if($isYes && $price > 0)
+                    <div class="flex justify-between items-start text-[10px] border-b border-[#9D686E]/5 pb-1">
+                        <span class="font-medium text-slate-500 flex-1">{{ $q->question_text }}</span>
+                        <span class="font-bold text-[#9D686E] ml-2">${{ number_format($price, 2) }}</span>
+                    </div>
+                    @endif
+                    @endforeach
+                    @endforeach
+
+                    @if($isCard && $surcharge > 0)
+                    <div class="flex justify-between items-center text-[10px] border-t border-dotted border-[#9D686E]/20 pt-1 mt-1 text-purple-600">
+                        <span class="font-bold italic">Surcharge (2.9%):</span>
+                        <span class="font-black">${{ number_format($surcharge, 2) }}</span>
+                    </div>
+                    @endif
+                </div>
+                <div>
+                    <span class="text-[10px] font-black text-[#9D686E] uppercase tracking-widest block mb-1">Grand Total</span>
+                    <p class="text-3xl font-black text-[#9D686E] tracking-tighter leading-none">${{ number_format($totalAmount, 2) }}</p>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-end">
                 <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Outstanding Balance</span>
                 <p class="text-3xl font-black {{ $balanceDue > 0 ? 'text-red-500' : 'text-green-500' }} tracking-tighter leading-none">${{ number_format($balanceDue, 2) }}</p>
             </div>
@@ -130,7 +203,7 @@
             </div>
             @if($balanceDue <= 0)
                 <span class="text-[9px] font-black text-green-600 bg-green-50 px-4 py-1 rounded-full border border-green-200 uppercase tracking-widest">Verified Fully Paid</span>
-            @endif
+                @endif
         </div>
     </div>
 
@@ -149,30 +222,149 @@
                     <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Service Date</span><span class="text-[0.8rem] font-bold text-slate-800">{{ \Carbon\Carbon::parse($booking->event_date)->format('l, d M Y') }}</span></div>
                     <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Operations Window</span><span class="text-[0.8rem] font-black text-[#9D686E]">{{ $timeString }}</span></div>
                     <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Shift Duration</span><span class="text-[0.8rem] font-bold text-gray-800">{{ $booking->duration ?: 'no note' }} @if($booking->duration_cost > 0) <span class="text-[#9D686E] ml-1">(${{ number_format($booking->duration_cost, 2) }})</span> @endif</span></div>
-                    <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Operational Hours</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->operational_hours ?: 'Standard' }}</span></div>
-                    <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Hire Type</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->hire_type ?: 'Standard' }}</span></div>
+                    @if($booking->operational_hours)
+                    <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Operational Hours</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->operational_hours }}</span></div>
+                    @endif
+                    @if($booking->hire_type)
+                    <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Hire Type</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->hire_type }}</span></div>
+                    @endif
                     <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Delivery</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->delivery_area ?: 'Not Set' }} <span class="text-[#9D686E] ml-1">(${{ number_format($deliveryCost, 2) }})</span></span></div>
                     <div class="flex justify-between mb-1 pb-1 text-slate-400 uppercase"><span class="text-[0.7rem] font-bold">Expected Pax</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->expected_people }}</span></div>
                 </div>
 
-                @if($calculatedExtrasTotal > 0)
-                <div class="mt-4 pt-4 border-t border-gray-100">
-                    <span class="text-[0.7rem] font-bold text-[#9D686E] uppercase tracking-[0.2em] block mb-3">Service Add-ons</span>
-                    <div class="bg-gray-50/50 p-4 rounded-xl border border-gray-100 space-y-2">
+                {{-- EXTRA CONFIGURATIONS SECTION --}}
+                <div class="mt-8 pt-8 border-t border-gray-100">
+                    <div class="flex items-center gap-2 mb-6 text-[#9D686E]">
+                        <span class="material-symbols-rounded">tune</span>
+                        <span class="text-sm font-bold uppercase tracking-wide">Extra Configurations</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        @foreach($activeCategories as $cat)
                         @php
-                        $gen = json_decode($booking->general_extra ?? '[]', true) ?? [];
-                        $spec = json_decode($booking->specific_extra ?? '[]', true) ?? [];
-                        $mergedExtras = array_merge($gen, $spec);
+                        $catAddons = $config['addons'][$cat] ?? [];
+                        $catQuestions = $config['questions'][$cat] ?? [];
+                        $catDropdowns = $config['dropdowns'][$cat] ?? [];
+
+                        // Check if anything is actually selected in this category
+                        $hasSelectedAddon = collect($catAddons)->contains(fn($a) => isset($selectedExtras['add_'.$a->id]));
+                        $hasSelectedQuestion = collect($catQuestions)->contains(function($q) use ($selectedExtras) {
+                        $val = $selectedExtras['extra_'.$q->id] ?? $selectedExtras['q_'.$q->id] ?? null;
+                        if (!$val) return false;
+                        $parts = explode('|', $val);
+                        return ($parts[1] ?? 'yes') === 'yes';
+                        });
+                        $hasSelectedDropdown = collect($catDropdowns)->contains(function($dd) use ($selectedExtras) {
+                        $val = $selectedExtras['dd_'.$dd['id']] ?? null;
+                        return $val && $val !== 'Not Selected' && $val !== 'None';
+                        });
+                        $hasLogistics = ($cat === 'General Logistics' && ($booking->hire_type || $booking->logistics_surfaces));
+
+                        $shouldShowCategory = $hasSelectedAddon || $hasSelectedQuestion || $hasSelectedDropdown || $hasLogistics;
                         @endphp
-                        @foreach($mergedExtras as $name => $cost)
-                        <div class="flex justify-between text-[11px] border-b border-white border-dashed pb-1">
-                            <span class="font-bold text-gray-600 tracking-tight">&bull; {{ $name }}</span>
-                            <span class="font-black text-gray-900">${{ number_format($cost, 2) }}</span>
+
+                        @if($shouldShowCategory)
+                        <div class="bg-gray-50/30 rounded-3xl border border-gray-100 overflow-hidden h-full flex flex-col">
+                            <div class="bg-gray-100/50 px-5 py-2.5 border-b border-gray-200 flex justify-between items-center">
+                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">{{ $cat }}</span>
+                                <span class="text-[8px] font-bold text-[#9D686E] uppercase tracking-tighter">Active Config</span>
+                            </div>
+                            <div class="p-5 space-y-5 flex-1">
+                                {{-- Hire Type for General --}}
+                                @if($cat === 'General Logistics' && $booking->hire_type)
+                                <div>
+                                    <label class="text-[9px] font-bold text-gray-400 uppercase mb-1.5 block">Hire Type</label>
+                                    <div class="text-[11px] font-bold text-slate-700 bg-white border border-slate-200 rounded-xl px-3.5 py-2 shadow-sm inline-block">
+                                        {{ $booking->hire_type }}
+                                    </div>
+                                </div>
+                                @endif
+
+                                {{-- Dropdowns --}}
+                                @if(!empty($catDropdowns))
+                                <div class="space-y-3">
+                                    @foreach($catDropdowns as $dd)
+                                    @php $val = $selectedExtras['dd_'.$dd['id']] ?? null; @endphp
+                                    @if($val && $val !== 'Not Selected')
+                                    <div>
+                                        <label class="text-[9px] font-bold text-gray-400 uppercase mb-1.5 block">{{ $dd['label'] }}</label>
+                                        <div class="text-[11px] font-bold text-[#9D686E] border border-[#9D686E]/20 bg-[#9D686E]/5 rounded-xl px-3.5 py-2 shadow-sm inline-block">
+                                            {{ $val }}
+                                        </div>
+                                    </div>
+                                    @endif
+                                    @endforeach
+                                </div>
+                                @endif
+
+                                {{-- Addons & Questions --}}
+                                @if(!empty($catAddons) || !empty($catQuestions) || ($cat === 'General Logistics' && $booking->logistics_surfaces))
+                                <div class="space-y-2">
+                                    {{-- Surface special case --}}
+                                    @if($cat === 'General Logistics' && $booking->logistics_surfaces)
+                                    <div class="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-emerald-100 shadow-sm ring-1 ring-emerald-50">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-4 h-4 rounded bg-emerald-500 text-white flex items-center justify-center">
+                                                <span class="material-symbols-rounded text-[10px]">check</span>
+                                            </div>
+                                            <span class="text-[11px] font-bold text-slate-700">{{ $booking->logistics_surfaces }}</span>
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    @foreach($catAddons as $addon)
+                                    @php $isSelected = isset($selectedExtras['add_'.$addon->id]); @endphp
+                                    @if($isSelected)
+                                    <div class="flex items-center justify-between px-3 py-2 rounded-xl border bg-white border-emerald-100 shadow-sm ring-1 ring-emerald-50 transition-all">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-4 h-4 rounded bg-emerald-500 text-white flex items-center justify-center transition-colors">
+                                                <span class="material-symbols-rounded text-[10px]">check</span>
+                                            </div>
+                                            <span class="text-[11px] font-bold text-slate-700">{{ $addon->addon_label }}</span>
+                                        </div>
+                                        @if($addon->addon_price > 0)
+                                        <span class="text-[9px] font-black text-[#9D686E]">+${{ number_format($addon->addon_price, 2) }}</span>
+                                        @endif
+                                    </div>
+                                    @endif
+                                    @endforeach
+
+                                    @foreach($catQuestions as $q)
+                                    @php
+                                    $val = $selectedExtras['extra_'.$q->id] ?? null;
+                                    if (!$val) $val = $selectedExtras['q_'.$q->id] ?? null;
+
+                                    $price = $q->yes_price;
+                                    $isYes = false;
+                                    if ($val) {
+                                    $parts = explode('|', $val);
+                                    $price = (float)($parts[0] ?? 0);
+                                    $answer = $parts[1] ?? 'yes';
+                                    $isYes = ($answer === 'yes');
+                                    }
+                                    @endphp
+                                    @if($isYes)
+                                    <div class="flex items-center justify-between px-3 py-2 rounded-xl border bg-white border-emerald-100 shadow-sm ring-1 ring-emerald-50 transition-all">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-4 h-4 rounded bg-emerald-500 text-white flex items-center justify-center transition-colors">
+                                                <span class="material-symbols-rounded text-[10px]">check</span>
+                                            </div>
+                                            <span class="text-[11px] font-bold text-slate-700">{{ $q->question_text }}</span>
+                                        </div>
+                                        @if($price > 0)
+                                        <span class="text-[9px] font-black text-[#9D686E]">+${{ number_format($price, 2) }}</span>
+                                        @endif
+                                    </div>
+                                    @endif
+                                    @endforeach
+                                </div>
+                                @endif
+                            </div>
                         </div>
+                        @endif
                         @endforeach
                     </div>
                 </div>
-                @endif
             </div>
         </div>
 
@@ -187,7 +379,7 @@
                     <div class="space-y-4">
                         <div class="flex justify-between items-baseline border-b border-dotted border-gray-200 pb-1"><span class="text-[0.7rem] font-bold text-slate-400 uppercase tracking-widest">Client Name</span><span class="text-[0.8rem] font-black text-slate-800">{{ $booking->customer_first_name }} {{ $booking->customer_last_name }}</span></div>
                         <div class="flex justify-between items-baseline border-b border-dotted border-gray-200 pb-1"><span class="text-[0.7rem] font-bold text-slate-400 uppercase tracking-widest">Organization</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->customer_organization ?: 'no note' }}</span></div>
-                        
+
                         <div class="grid grid-cols-2 gap-4 border-b border-dotted border-gray-200 pb-1">
                             <div class="flex flex-col"><span class="text-[0.65rem] font-bold text-slate-400 uppercase">Primary Mobile</span><span class="text-[0.8rem] font-black text-slate-800">{{ $booking->customer_phone }}</span></div>
                             <div class="flex flex-col"><span class="text-[0.65rem] font-bold text-slate-400 uppercase">Corp Landline</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->customer_business_phone ?: '-' }}</span></div>
@@ -248,24 +440,24 @@
                                     <div class="flex flex-col">
                                         <span class="text-sm uppercase tracking-tight">{{ $s->item_name }}</span>
                                         @if($s->is_custom)
-                                            <span class="text-[9px] font-bold text-amber-500 uppercase">Custom Item</span>
+                                        <span class="text-[9px] font-bold text-amber-500 uppercase">Custom Item</span>
                                         @endif
                                     </div>
                                 </td>
                                 <td class="p-4 py-4">
                                     @if($s->specification)
-                                        <div class="text-[10px] text-gray-500 space-y-0.5">
-                                            @foreach(explode("\n", str_replace(["\r\n", "\r"], "\n", $s->specification)) as $line)
-                                                @if(trim($line))
-                                                    <div class="flex items-start gap-1">
-                                                        <span class="mt-1 w-1 h-1 rounded-full bg-[#9D686E] shrink-0"></span>
-                                                        <span>{{ trim($line) }}</span>
-                                                    </div>
-                                                @endif
-                                            @endforeach
+                                    <div class="text-[10px] text-gray-500 space-y-0.5">
+                                        @foreach(explode("\n", str_replace(["\r\n", "\r"], "\n", $s->specification)) as $line)
+                                        @if(trim($line))
+                                        <div class="flex items-start gap-1">
+                                            <span class="mt-1 w-1 h-1 rounded-full bg-[#9D686E] shrink-0"></span>
+                                            <span>{{ trim($line) }}</span>
                                         </div>
+                                        @endif
+                                        @endforeach
+                                    </div>
                                     @else
-                                        <span class="text-[10px] text-gray-400 italic">No specs</span>
+                                    <span class="text-[10px] text-gray-400 italic">No specs</span>
                                     @endif
                                 </td>
                                 <td class="p-4 text-center">
@@ -273,15 +465,79 @@
                                 </td>
                                 <td class="p-4 text-right font-black text-[#9D686E] py-4">
                                     @if($s->unit_price > 0)
-                                        ${{ number_format($s->unit_price * $s->total_qty, 2) }}
+                                    ${{ number_format($s->unit_price * $s->total_qty, 2) }}
                                     @else
-                                        -
+                                    -
                                     @endif
                                 </td>
                             </tr>
                             @empty
-                            <tr><td colspan="4" class="p-10 text-center italic text-gray-300 font-bold uppercase tracking-widest">no assets catalogued</td></tr>
+                            @php
+                            $genExtra = json_decode($booking->general_extra ?? '[]', true) ?? [];
+                            $specExtra = json_decode($booking->specific_extra ?? '[]', true) ?? [];
+                            @endphp
+                            @if(empty($genExtra) && empty($specExtra))
+                            <tr>
+                                <td colspan="4" class="p-10 text-center italic text-gray-300 font-bold uppercase tracking-widest">no assets catalogued</td>
+                            </tr>
+                            @endif
                             @endforelse
+
+                            {{-- ADD EXTRAS TO TABLE --}}
+                            @foreach($activeCategories as $cat)
+                            @php
+                            $catAddons = $config['addons'][$cat] ?? [];
+                            $catQuestions = $config['questions'][$cat] ?? [];
+                            @endphp
+
+                            @foreach($catAddons as $addon)
+                            @php $isSelected = isset($selectedExtras['add_'.$addon->id]); @endphp
+                            @if($isSelected && $addon->addon_price > 0)
+                            <tr class="hover:bg-gray-50 transition border-b border-gray-50 last:border-0 bg-slate-50/30">
+                                <td class="p-4 font-bold text-slate-600 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-symbols-rounded text-sm text-[#9D686E]">add_circle</span>
+                                        <span class="text-xs uppercase tracking-tight">{{ $addon->addon_label }}</span>
+                                    </div>
+                                </td>
+                                <td class="p-4 py-4 italic text-[10px] text-slate-400">Extra / Logistics</td>
+                                <td class="p-4 text-center">
+                                    <span class="px-3 py-1 bg-white rounded-lg font-bold text-slate-400 border border-gray-100 text-[10px]">1</span>
+                                </td>
+                                <td class="p-4 text-right font-black text-[#9D686E] py-4">${{ number_format($addon->addon_price, 2) }}</td>
+                            </tr>
+                            @endif
+                            @endforeach
+
+                            @foreach($catQuestions as $q)
+                            @php
+                            $val = $selectedExtras['extra_'.$q->id] ?? $selectedExtras['q_'.$q->id] ?? null;
+                            $price = 0;
+                            $isYes = false;
+                            if ($val) {
+                            $parts = explode('|', $val);
+                            $price = (float)($parts[0] ?? 0);
+                            $answer = $parts[1] ?? 'yes';
+                            $isYes = ($answer === 'yes');
+                            }
+                            @endphp
+                            @if($isYes && $price > 0)
+                            <tr class="hover:bg-gray-50 transition border-b border-gray-50 last:border-0 bg-slate-50/30">
+                                <td class="p-4 font-bold text-slate-600 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-symbols-rounded text-sm text-[#9D686E]">add_circle</span>
+                                        <span class="text-xs uppercase tracking-tight">{{ $q->question_text }}</span>
+                                    </div>
+                                </td>
+                                <td class="p-4 py-4 italic text-[10px] text-slate-400">Extra / Logistics</td>
+                                <td class="p-4 text-center">
+                                    <span class="px-3 py-1 bg-white rounded-lg font-bold text-slate-400 border border-gray-100 text-[10px]">1</span>
+                                </td>
+                                <td class="p-4 text-right font-black text-[#9D686E] py-4">${{ number_format($price, 2) }}</td>
+                            </tr>
+                            @endif
+                            @endforeach
+                            @endforeach
                         </tbody>
                     </table>
                 </div>

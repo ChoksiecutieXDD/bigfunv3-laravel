@@ -148,6 +148,7 @@
                     $paid = (float)$row->amount_paid;
                     $outstanding = max(0, $total - $paid);
                     $isCard = stripos($row->payment_type, 'Card') !== false;
+                    $isCash = $row->payment_type === 'Cash';
                     $cleanNum = str_replace(' ', '', $row->card_number ?? '');
                     $cardNum = !empty($cleanNum) ? '**** **** ' . substr($cleanNum, -8, 4) . ' ' . substr($cleanNum, -4) : 'N/A';
                     $rawNetwork = $this->getCardNetwork($row->card_number, $row->card_type);
@@ -192,6 +193,18 @@
                                     </div>
                                     <button wire:click="openCardModal({{ $row->id }})" class="text-gray-300 hover:text-[#9E6B73] transition p-1"><span class="material-symbols-rounded text-sm">edit_square</span></button>
                                 </div>
+                                @elseif ($isCash)
+                                <div class="flex items-start gap-3 w-fit mt-1">
+                                    <div class="flex items-center gap-3">
+                                        <div class="bg-emerald-50 text-emerald-600 p-1.5 rounded-lg border border-emerald-100/50 shadow-sm flex items-center justify-center">
+                                            <span class="material-symbols-rounded text-lg">payments</span>
+                                        </div>
+                                        <div class="text-left">
+                                            <div class="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider">Cash Payment</div>
+                                            <div class="text-[10px] font-bold text-gray-700">Physical Collection</div>
+                                        </div>
+                                    </div>
+                                </div>
                                 @else
                                 <div class="flex items-start gap-3 w-fit mt-1">
                                     <div class="flex items-center gap-3">
@@ -231,6 +244,7 @@
                                     <select x-model="method" class="flex-1 py-1.5 px-2 text-xs border-none bg-transparent text-gray-700 font-semibold outline-none cursor-pointer">
                                         <option value="Card Holder">Credit/Debit Card</option>
                                         <option value="EFT">EFT / Direct</option>
+                                        <option value="Cash">Cash</option>
                                     </select>
                                     <button type="button" @click="confirmMessage = 'Are you sure you want to change the payment method for this booking?'; confirmAction = () => $wire.savePaymentType({{ $row->id }}, method); showConfirmModal = true;" class="bg-gray-50 hover:bg-[#9E6B73]/10 text-gray-500 hover:text-[#9E6B73] transition-colors border-l border-gray-200 px-2.5 flex items-center justify-center cursor-pointer">
                                         <span class="material-symbols-rounded text-[16px]">save</span>

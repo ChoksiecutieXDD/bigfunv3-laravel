@@ -135,6 +135,7 @@
                                         <select name="payment_type" x-model="paymentType" @change="updatePaymentMethods()" class="input-dark appearance-none cursor-pointer">
                                             <option value="EFT">EFT / Bank Transfer</option>
                                             <option value="Card Holder">Credit/Debit Card</option>
+                                            <option value="Cash">Cash</option>
                                         </select>
                                         <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
                                     </div>
@@ -530,7 +531,7 @@
                                     <span class="w-8 h-8 rounded-lg bg-white text-[#9E6B73] flex items-center justify-center font-bold text-xs shadow-sm">{{ $catIndex }}</span>
                                     <h3 class="text-md font-bold text-slate-700 flex-1">{{ $catName }}</h3>
                                     @if ($catData['limit'] > 0)
-                                    <span class="cat-limit-badge text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide">Category Limit: {{ $catData['limit'] }}</span>
+                                    <span class="cat-limit-badge text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide border border-amber-200">Checking Limit...</span>
                                     @endif
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-2">
@@ -773,15 +774,67 @@
             </button>
         </div>
     </div>
+
+    <!-- CHANGE EXTRAS CONFIRM MODAL -->
+    <div x-show="modals.changeExtrasConfirm" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10001]" x-cloak>
+        <div x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.changeExtrasConfirm = false"></div>
+        <div x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center z-10">
+            <div class="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600">
+                <span class="material-symbols-rounded text-3xl">edit_attributes</span>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Change Extras?</h3>
+            <p class="text-sm text-slate-600 mb-6">You are about to modify the selected extras for this attraction. This may affect the total price and setup requirements.</p>
+            <div class="flex gap-3">
+                <button @click="modals.changeExtrasConfirm = false" class="flex-1 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold">Cancel</button>
+                <button id="btnConfirmExtraChange" class="flex-1 py-2 bg-[#9E6B73] text-white rounded-xl font-bold">Confirm Change</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT RIDES CONFIRM MODAL -->
+    <div x-show="modals.editRidesConfirm" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10001]" x-cloak>
+        <div x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.editRidesConfirm = false"></div>
+        <div x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center z-10">
+            <div class="w-14 h-14 bg-[#9E6B73]/10 rounded-full flex items-center justify-center mx-auto mb-4 text-[#9E6B73]">
+                <span class="material-symbols-rounded text-3xl">info</span>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Modify Attractions?</h3>
+            <p class="text-sm text-slate-600 mb-6">Are you sure you want to change the selected rides for this booking? Availability will be re-checked for the new selection.</p>
+            <div class="flex gap-3">
+                <button @click="modals.editRidesConfirm = false" class="flex-1 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold">Cancel</button>
+                <button id="btnConfirmRideChange" class="flex-1 py-2 bg-[#9E6B73] text-white rounded-xl font-bold">Confirm Edit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULL CAPACITY / 0 LIMIT MODAL -->
+    <div x-show="modals.fullCapacityWarning" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10003]" x-cloak>
+        <div x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.fullCapacityWarning = false"></div>
+        <div x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 text-red-600">
+                <span class="material-symbols-rounded text-4xl">error</span>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-3 uppercase tracking-tight">Full Capacity</h3>
+            <p class="text-sm text-slate-600 mb-8 leading-relaxed">
+                This item has reached its <span class="font-bold text-red-600">daily limit</span> or is <span class="font-bold text-red-600">out of stock</span> for the selected date. 
+                Please choose a different date or another attraction.
+            </p>
+            <button type="button" @click="modals.fullCapacityWarning = false" class="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition uppercase tracking-widest text-xs">
+                I Understand
+            </button>
+        </div>
+    </div>
+
     <div id="booking-data-bridge"
         class="hidden"
         data-config='@json($this->config)'
         data-categories='@json($this->categories)'
-        data-extras='@json($this->saved_extras)'
-        data-customers='@json($this->past_customers)'
+        data-extras='@json($saved_extras ?? (object)[])'
+        data-selected='@json($selected_products ?? [])'
+        data-customers='@json($past_customers ?? [])'
         data-csrf="{{ csrf_token() }}"
-        data-id="{{ $this->booking_id }}"
-        data-invoice="{{ $this->invoice_number }}">
+        data-id="{{ $booking_id }}"
+        data-invoice="{{ $invoice_number }}">
     </div>
 
     <!-- Product Details Modal -->

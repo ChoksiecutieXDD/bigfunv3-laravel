@@ -39,9 +39,15 @@ class EditBooking extends Component
     public $config = [];
     public $categories = [];
     public $saved_extras = [];
+    public $isSupervisor = false;
+    public $durationCost = 0;
+    public $deliveryCost = 0;
+    public $attractionsCost = 0;
+    public $extrasCost = 0;
 
     public function mount($id)
     {
+        $this->isSupervisor = str_contains(request()->url(), '/supervisor/');
         $this->booking = Booking::findOrFail($id);
         $this->form = $this->booking->toArray();
 
@@ -97,9 +103,12 @@ class EditBooking extends Component
         $this->calYear = Carbon::parse($this->form['event_date'])->year;
 
         $durationLabels = DB::table('duration_prices')->pluck('label')->toArray();
+        // Duration Custom Check
+        $durationLabels = DB::table('duration_prices')->pluck('label')->toArray();
         if (!empty($this->form['duration']) && !in_array($this->form['duration'], $durationLabels)) {
-            $this->form['is_custom_duration'] = true;
             $this->form['custom_duration_text'] = $this->form['duration'];
+            $this->form['duration'] = 'custom';
+            $this->form['is_custom_duration'] = true;
         } else {
             $this->form['is_custom_duration'] = false;
             $this->form['custom_duration_text'] = '';
@@ -179,6 +188,12 @@ class EditBooking extends Component
         $this->updatedSelectedItems();
     }
 
+    public function syncExtras($extras)
+    {
+        $this->dynamicExtras = $extras;
+        $this->calculateTotals();
+    }
+
     public function calculateTotals()
     {
         $ridesTotal = 0;
@@ -208,10 +223,12 @@ class EditBooking extends Component
             }
         }
 
-        $deliveryCost = (float) ($this->form['delivery_cost'] ?? 0);
-        $durationCost = (float) ($this->form['duration_cost'] ?? 0);
+        $this->durationCost = (float) ($this->form['duration_cost'] ?? 0);
+        $this->deliveryCost = (float) ($this->form['delivery_cost'] ?? 0);
+        $this->attractionsCost = $ridesTotal;
+        $this->extrasCost = $extrasTotal;
 
-        $this->subtotal = $ridesTotal + $extrasTotal + $deliveryCost + $durationCost;
+        $this->subtotal = $this->attractionsCost + $this->extrasCost + $this->durationCost + $this->deliveryCost;
 
         if (in_array($this->form['payment_type'], ['Card Holder', 'credit_card'])) {
             $this->surchargeAmount = $this->subtotal * 0.029;
@@ -222,7 +239,7 @@ class EditBooking extends Component
         $this->totalAmount = $this->subtotal + $this->surchargeAmount;
         $this->depositRequired = $this->totalAmount * 0.5;
 
-        $this->form['extra_logistics_cost'] = $extrasTotal;
+        $this->form['extra_logistics_cost'] = $this->extrasCost;
         $this->form['total_amount'] = $this->totalAmount;
         $this->form['deposit_required'] = $this->depositRequired;
     }
@@ -398,8 +415,7 @@ class EditBooking extends Component
 
         $this->dispatch('notify', title: 'Saved!', message: 'Booking successfully updated.', type: 'success');
         
-        // Determine the redirect based on the route name/prefix
-        if (request()->routeIs('supervisor.*')) {
+        if ($this->isSupervisor) {
             return redirect()->route('supervisor.bookings.overview', $this->booking->id);
         } else {
             return redirect()->route('booking.overview', $this->booking->id);
@@ -467,9 +483,11 @@ class EditBooking extends Component
             $ddArray['options'] = $opts->map(function($o) { return (array)$o; })->toArray();
             $this->config['dropdowns'][$dd->category_target][] = $ddArray;
         }
-        $this->saved_extras = empty($this->dynamicExtras) ? [] : $this->dynamicExtras;
+        // Ensure dynamicExtras is an associative array (JSON object) for the JS bridge
+        $this->saved_extras = (object)($this->dynamicExtras ?? []);
+        $selectedItemsClean = $this->selectedItems;
 
         // Note: passing just other standard variables.
-        return view('livewire.supervisor.edit-booking', compact('deliveryOptions', 'durationOptions', 'activeCategories'));
+        return view('livewire.supervisor.edit-booking', compact('deliveryOptions', 'durationOptions', 'activeCategories', 'selectedItemsClean'));
     }
 }

@@ -24,7 +24,7 @@ class BookingApiController extends Controller
         }
 
         $categories = [];
-        $resCat = DB::table('product_categories')->get();
+        $resCat = DB::table('product_categories')->select('category_name', 'daily_limit')->get();
         foreach ($resCat as $row) {
             $catName = strtolower(trim($row->category_name));
             $categories[$catName] = [
@@ -37,19 +37,22 @@ class BookingApiController extends Controller
         $master_inventory = [];
         $product_targets = [];
 
-        $resProd = DB::table('products')->where('is_active', 1)->get();
+        $resProd = DB::table('products')->where('is_active', 1)->select('name', 'total_quantity', 'daily_limit', 'counts_against', 'category')->get();
         foreach ($resProd as $row) {
             $cleanName = strtolower(trim($row->name));
             $stock = (int)$row->total_quantity;
-            $limit = (int)$row->daily_limit;
-
-            $effectiveTotal = ($limit > 0) ? $limit : (($stock > 0) ? $stock : 9999);
+            $item_limit = (int)$row->daily_limit;
 
             $master_inventory[$cleanName] = [
-                'total' => $effectiveTotal,
+                'total' => $stock,
+                'limit' => $item_limit,
                 'booked' => 0,
-                'left' => $effectiveTotal
+                'left' => $stock
             ];
+
+            if ($item_limit > 0) {
+                $master_inventory[$cleanName]['left'] = min($stock, $item_limit);
+            }
 
             $target = !empty($row->counts_against) ? $row->counts_against : $row->category;
             $product_targets[$cleanName] = strtolower(trim($target));
@@ -88,26 +91,98 @@ class BookingApiController extends Controller
             }
         }
 
+        // --- EXTRAS COUNTING ---
+        $addon_cat_map = [];
+        foreach (DB::table('category_addons')->get() as $a) {
+            $addon_cat_map[$a->id] = strtolower(trim($a->counts_against ?? $a->category_target ?? ''));
+        }
+        $dropdown_cat_map = [];
+        foreach (DB::table('product_dropdowns')->get() as $d) {
+            $dropdown_cat_map[$d->id] = strtolower(trim($d->counts_against ?? $d->category_target ?? ''));
+        }
+        $question_cat_map = [];
+        foreach (DB::table('product_extras')->get() as $q) {
+            $question_cat_map[$q->id] = strtolower(trim($q->counts_against ?? $q->category_target ?? ''));
+        }
+
+        $other_bookings_json = DB::table('bookings')
+            ->where('event_date', $date)
+            ->where('invoice_number', '!=', $invoice)
+            ->where(function ($q) {
+                $q->whereIn('status', ['Pending', 'Confirmed', 'Paid'])
+                    ->orWhere(function ($q2) {
+                        $q2->where('status', 'Draft')
+                            ->where('created_at', '>=', Carbon::now()->subMinutes(20));
+                    });
+            })
+            ->pluck('extras_json');
+
+        foreach ($other_bookings_json as $json) {
+            if (!$json) continue;
+            $extras = json_decode($json, true);
+            if (!$extras) continue;
+            foreach ($extras as $key => $val) {
+                $targetCat = null;
+                if (strncmp($key, 'add_', 4) === 0) {
+                    if ((string)$val === '1' || $val === true) {
+                        $id = str_replace('add_', '', $key);
+                        $targetCat = $addon_cat_map[$id] ?? null;
+                    }
+                } elseif (strncmp($key, 'dd_', 3) === 0 && !empty($val) && $val !== '0') {
+                    $id = str_replace('dd_', '', $key);
+                    $targetCat = $dropdown_cat_map[$id] ?? null;
+                } elseif (strncmp($key, 'q_', 2) === 0 && !empty($val) && $val !== '0') {
+                    // Check if it's a "no" answer (e.g. q_123|no)
+                    if (is_string($val) && str_ends_with($val, '|no')) continue;
+                    
+                    $id = str_replace('q_', '', $key);
+                    $targetCat = $question_cat_map[$id] ?? null;
+                }
+
+                if ($targetCat && isset($categories[$targetCat])) {
+                    $categories[$targetCat]['booked']++;
+                }
+            }
+        }
+
+        // Recalculate 'left' for categories after counting extras
         foreach ($categories as $cat => &$data) {
             $data['left'] = ($data['limit'] > 0) ? max(0, $data['limit'] - $data['booked']) : 9999;
         }
         unset($data);
 
+        // 5. Finalize Availability (Compare Stock vs Daily Item Limit vs Category Limit)
         foreach ($master_inventory as $prodName => &$prodData) {
-            $prodData['left'] = max(0, $prodData['total'] - $prodData['booked']);
+            $booked = $prodData['booked'];
+            $stock = $prodData['total'];
+            $iLimit = $prodData['limit'];
+            
+            // a) Start with remaining physical stock
+            $left = max(0, $stock - $booked);
 
+            // b) Apply Item daily limit if set
+            if ($iLimit > 0) {
+                $limit_left = max(0, $iLimit - $booked);
+                if ($limit_left < $left) $left = $limit_left;
+            }
+
+            // c) Apply Category limit if applicable
             if (isset($product_targets[$prodName])) {
                 $targetCat = $product_targets[$prodName];
                 if (isset($categories[$targetCat]) && $categories[$targetCat]['limit'] > 0) {
                     $catLeft = $categories[$targetCat]['left'];
-                    $prodData['left'] = min($prodData['left'], $catLeft);
+                    if ($catLeft < $left) $left = $catLeft;
                 }
             }
+
+            $prodData['left'] = $left;
         }
+        unset($prodData);
 
         return response()->json([
             'status' => 'success',
             'products' => $master_inventory,
+            'categories' => $categories,
         ]);
     }
 

@@ -168,7 +168,11 @@ class LogisticsInbox extends Component
             $this->pay_amount = $owing;
         }
 
-        $this->pay_method = stripos($booking->payment_type, 'Card') !== false ? 'Card Holder' : 'EFT';
+        $this->pay_method = match($booking->payment_type) {
+            'Card Holder', 'credit_card' => 'Card Holder',
+            'Cash' => 'Cash',
+            default => 'EFT',
+        };
 
         $this->reset(['pay_ref', 'pay_notes']);
         $this->dispatch('open-modal', 'paymentModal');

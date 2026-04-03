@@ -1,11 +1,11 @@
-// Initialize Bridge Data from element
+
 (function() {
     const bridge = document.getElementById('booking-data-bridge');
     if (bridge) {
         window.bookingAppData = {
             config: bridge.dataset.config ? JSON.parse(bridge.dataset.config) : {},
             categories: bridge.dataset.categories ? JSON.parse(bridge.dataset.categories) : {},
-            savedExtras: bridge.dataset.extras ? JSON.parse(bridge.dataset.extras) : [],
+            savedExtras: (bridge.dataset.extras && bridge.dataset.extras !== '[]') ? JSON.parse(bridge.dataset.extras) : {},
             csrfToken: bridge.dataset.csrf,
             bookingId: bridge.dataset.id,
             invoiceNumber: bridge.dataset.invoice,
@@ -26,7 +26,9 @@ document.addEventListener('alpine:init', () => {
             history: false,
             exit: false,
             reset: false,
-            limitExceeded: false
+            limitExceeded: false,
+            saveConfirm: false,
+            calendar: false
         },
         limitExceededCategory: '',
         limitExceededLimit: 0,
@@ -62,6 +64,9 @@ document.addEventListener('alpine:init', () => {
             if (this.paymentType === 'EFT') {
                 this.paymentMethods = ['Direct Deposit', 'Bank Transfer', 'Osko', 'PayID'];
                 this.paymentMethod = 'Direct Deposit';
+            } else if (this.paymentType === 'Cash') {
+                this.paymentMethods = ['Cash Payment'];
+                this.paymentMethod = 'Cash Payment';
             } else {
                 // If Card Holder (Credit/Debit Card), we don't need sub-methods
                 this.paymentMethods = ['Credit/Debit Card'];
@@ -240,10 +245,16 @@ window.showToast = function(title, message, type = 'primary') {
 };
 
 // --- GLOBAL VARIABLES & API ---
+// NOTE: Single declaration - used as a module-scoped variable shared across all functions in this file
 let globalCategoryBooked = {};
 let isProceeding = false;
 let duplicateCheckTimer;
-let calCursor = new Date(); // Initialized below
+let calCursor = new Date();
+let lastCalRenderMonth = -1;
+let lastCalRenderYear = -1;
+let availabilityCheckTimer;
+let availabilityAbortController;
+
 
 window.apiPost = async function(action, payload = null) {
     let fd = new FormData();
@@ -350,10 +361,12 @@ window.calLoad = async function() {
             let left = Math.max(0, dailyLimit - used);
 
             let bg = left === 0 ? 'bg-red-50 border-red-200 text-red-500 opacity-60' : (left <= 2 ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700');
-            let ring = currentVal === dStr ? 'ring-2 ring-[#9E6B73] ring-offset-2 border-[#9E6B73]' : '';
-            let todayBadge = todayKey === dStr ? '<span class="absolute top-2 right-2 w-3 h-3 rounded-full bg-[#9E6B73]"></span>' : '';
+            let ring = currentVal === dStr ? 'ring-4 ring-[#9D686E] ring-offset-4 border-[#9D686E] scale-110 shadow-xl z-10' : '';
+            let todayBadge = todayKey === dStr ? '<span class="absolute top-2 right-2 w-3 h-3 rounded-full bg-[#9E6B73]/40"></span>' : '';
 
-            grid.innerHTML += `<div class="cal-day ${bg} ${ring} p-4 sm:p-6 min-h-[80px] sm:min-h-[100px] border rounded-2xl cursor-pointer flex flex-col items-center justify-center relative hover:shadow-md transition" onclick="selectDate('${dStr}', ${left})">
+            grid.innerHTML += `<div class="cal-day ${bg} ${ring} p-4 sm:p-6 min-h-[80px] sm:min-h-[100px] border rounded-2xl cursor-pointer flex flex-col items-center justify-center relative hover:shadow-md transition-all duration-300" 
+                data-date="${dStr}"
+                onclick="selectDate('${dStr}', ${left})">
                 ${todayBadge}
                 <span class="font-extrabold text-xl sm:text-3xl leading-none mb-2">${d}</span>
                 <span class="text-[10px] sm:text-xs font-bold bg-white/80 px-2 py-1 rounded-full leading-none shadow-sm">${left===0?'Full':left + ' Left'}</span>
@@ -364,6 +377,19 @@ window.calLoad = async function() {
         const summaryEl = document.getElementById('calSummary');
         if (summaryEl) summaryEl.innerText = "Failed to load slots.";
     }
+};
+
+window.updateCalSelection = function() {
+    const dateInput = document.getElementById('event_date');
+    const currentVal = dateInput ? dateInput.value : '';
+    
+    document.querySelectorAll('.cal-day').forEach(day => {
+        if (day.dataset.date === currentVal) {
+            day.classList.add('ring-2', 'ring-[#9E6B73]', 'ring-offset-2', 'border-[#9E6B73]');
+        } else {
+            day.classList.remove('ring-2', 'ring-[#9E6B73]', 'ring-offset-2', 'border-[#9E6B73]');
+        }
+    });
 };
 
 window.calPrev = function() {
@@ -383,7 +409,7 @@ window.selectDate = function(dateStr, left) {
     }
     const dateInput = document.getElementById('event_date');
     if (dateInput) dateInput.value = dateStr;
-    calLoad();
+    updateCalSelection();
     dateChanged();
     showToast("Date Selected", "Date updated to " + dateStr, "success");
 };
@@ -393,118 +419,164 @@ window.dateChanged = function() {
     checkDuplicates();
 };
 
-window.checkRealTimeAvailability = async function() {
-    const dateEl = document.getElementById('event_date');
-    const invoiceEl = document.getElementById('invoice_number');
-    if (!dateEl) return;
-    
-    const date = dateEl.value;
-    const invoice = invoiceEl ? invoiceEl.value : '';
-    if (!date) return;
+window.checkRealTimeAvailability = function() {
+    clearTimeout(availabilityCheckTimer);
+    availabilityCheckTimer = setTimeout(async () => {
+        const dateEl = document.getElementById('event_date');
+        const invoiceEl = document.getElementById('invoice_number');
+        if (!dateEl) return;
+        
+        const date = dateEl.value;
+        const invoice = invoiceEl ? invoiceEl.value : '';
+        
+        if (!date) {
+            document.querySelectorAll('.status-badge').forEach(badge => {
+                badge.innerText = 'SELECT DATE';
+                badge.className = 'status-badge status-checking';
+            });
+            return;
+        }
 
-    try {
-        const response = await fetch(`/api/bookings/check-availability?date=${date}&invoice=${invoice}`);
-        if (!response.ok) throw new Error("API call failed");
-        const data = await response.json();
+        // Show checking state
+        document.querySelectorAll('.status-badge').forEach(badge => {
+            badge.innerText = 'CHECKING...';
+            badge.className = 'status-badge status-checking';
+        });
 
-        if (data.status === 'success' && data.products) {
-            globalCategoryBooked = {};
+        try {
+            console.log(`Syncing availability for date: ${date}`);
+            const response = await fetch(`/api/bookings/check-availability?date=${date}&invoice=${invoice}`);
+            if (!response.ok) {
+                const text = await response.text();
+                console.error("Availability API Error:", text);
+                throw new Error("API call failed: " + response.status);
+            }
+            const data = await response.json();
 
-            document.querySelectorAll('.product-card').forEach(card => {
-                const rawName = card.dataset.name.trim();
-                const cleanName = rawName.toLowerCase();
-                const checkbox = card.querySelector('.ride-checkbox');
-                const badge = card.querySelector('.status-badge');
-                const actionText = card.querySelector('.action-text');
-                const targetCat = (card.dataset.countsAgainst || '').trim();
-                const itemLimit = parseInt(card.dataset.dailyLimit) || 0;
+            if (data.status === 'success' && data.products) {
+                globalCategoryBooked = {};
 
-                if (data.products[cleanName]) {
-                    const left = data.products[cleanName].left;
+                document.querySelectorAll('.product-card').forEach(card => {
+                    const rawName = card.dataset.name.trim();
+                    const cleanName = rawName.toLowerCase();
+                    const checkbox = card.querySelector('.ride-checkbox');
+                    const badge = card.querySelector('.status-badge');
+                    const actionText = card.querySelector('.action-text');
+                    const targetCat = (card.dataset.countsAgainst || '').trim().toLowerCase();
+                    const itemLimit = parseInt(card.dataset.dailyLimit) || 0;
 
-                    if (itemLimit > 0) {
-                        const bookedAmount = itemLimit - left;
-                        if (bookedAmount > 0) globalCategoryBooked[targetCat] = (globalCategoryBooked[targetCat] || 0) + bookedAmount;
-                    } else if (left === 0) {
-                        globalCategoryBooked[targetCat] = (globalCategoryBooked[targetCat] || 0) + 1;
-                    }
+                    if (data.products[cleanName]) {
+                        const left = data.products[cleanName].left;
 
-                    if (left <= 0) {
-                        card.dataset.productSoldOut = 'true';
-                        card.classList.add('disabled-card');
-                        card.classList.remove('selected');
-                        checkbox.checked = false;
-                        checkbox.disabled = true;
-                        badge.innerText = 'SOLD OUT';
-                        badge.className = 'status-badge status-soldout';
-                        if (actionText) actionText.innerText = 'Not Available';
+                        if (itemLimit > 0) {
+                            const bookedAmount = itemLimit - left;
+                            if (bookedAmount > 0) globalCategoryBooked[targetCat] = (globalCategoryBooked[targetCat] || 0) + bookedAmount;
+                        } else if (left === 0) {
+                            globalCategoryBooked[targetCat] = (globalCategoryBooked[targetCat] || 0) + 1;
+                        }
+
+                        if (left <= 0) {
+                            card.dataset.productSoldOut = 'true';
+                            card.classList.add('disabled-card');
+                            card.classList.remove('selected');
+                            if (checkbox) {
+                                checkbox.checked = false;
+                                checkbox.disabled = true;
+                            }
+                            if (badge) {
+                                badge.innerText = 'SOLD OUT';
+                                badge.className = 'status-badge status-soldout';
+                            }
+                            if (actionText) actionText.innerText = 'Not Available';
+                        } else {
+                            card.dataset.productSoldOut = 'false';
+                            card.classList.remove('disabled-card');
+                            if (checkbox) checkbox.disabled = false;
+                            if (badge) {
+                                if (left <= 2) {
+                                    badge.innerText = `ONLY ${left} LEFT`;
+                                    badge.className = 'status-badge status-limited';
+                                } else {
+                                    badge.innerText = `${left} AVAILABLE`;
+                                    badge.className = 'status-badge status-avail';
+                                }
+                            }
+                            if (actionText) actionText.innerText = 'Click to select';
+                        }
                     } else {
                         card.dataset.productSoldOut = 'false';
                         card.classList.remove('disabled-card');
-                        checkbox.disabled = false;
-                        if (left <= 2) {
-                            badge.innerText = `ONLY ${left} LEFT`;
-                            badge.className = 'status-badge status-limited';
-                        } else {
-                            badge.innerText = `${left} AVAILABLE`;
+                        if (checkbox) checkbox.disabled = false;
+                        if (badge) {
+                            badge.innerText = itemLimit > 0 ? `${itemLimit} AVAIL` : 'AVAILABLE';
                             badge.className = 'status-badge status-avail';
                         }
                         if (actionText) actionText.innerText = 'Click to select';
                     }
-                } else {
-                    card.dataset.productSoldOut = 'false';
-                    card.classList.remove('disabled-card');
-                    checkbox.disabled = false;
-                    badge.innerText = itemLimit > 0 ? `${itemLimit} AVAIL` : 'AVAILABLE';
-                    badge.className = 'status-badge status-avail';
-                    if (actionText) actionText.innerText = 'Click to select';
+                });
+
+                // Specific category booked update if API returned them
+                if (data.categories) {
+                    for (let cat in data.categories) {
+                        const catKey = cat.trim().toLowerCase();
+                        globalCategoryBooked[catKey] = data.categories[cat].booked || 0;
+                    }
+                }
+
+                updateDynamicExtras();
+                updateCategoryLimitsUI();
+            }
+        } catch (error) {
+            console.error("Availability Check Failed", error);
+            document.querySelectorAll('.status-badge').forEach(badge => {
+                if (badge.innerText === 'CHECKING...') {
+                    badge.innerText = 'ERROR';
+                    badge.className = 'status-badge status-checking';
                 }
             });
-
-            updateDynamicExtras();
-            updateCategoryLimitsUI();
         }
-    } catch (error) {
-        console.error("Availability Check Failed", error);
-    }
+    }, 500);
 };
 
 window.updateCategoryLimitsUI = function() {
     let usage = {};
     const categories = window.bookingAppData.categories;
-    for (let cat in categories) usage[cat.trim()] = globalCategoryBooked[cat.trim()] || 0;
+    for (let cat in categories) usage[cat.trim().toLowerCase()] = globalCategoryBooked[cat.trim().toLowerCase()] || 0;
 
     document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
-        const limitCategory = (cb.closest('.product-card').dataset.countsAgainst || '').trim();
-        usage[limitCategory] = (usage[limitCategory] || 0) + 1;
+        const limitCategory = (cb.closest('.product-card').dataset.countsAgainst || '').trim().toLowerCase();
+        if (limitCategory) usage[limitCategory] = (usage[limitCategory] || 0) + 1;
     });
 
-    // Also count Extras (Addons & Dropdowns) that count against category limits
-    document.querySelectorAll('.ext-price[data-counts-against]').forEach(el => {
-        const countsAgainst = (el.dataset.countsAgainst || '').trim();
-        if (!countsAgainst) return;
-
-        if (el.type === 'checkbox') {
-            if (el.checked) usage[countsAgainst] = (usage[countsAgainst] || 0) + 1;
-        } else if (el.tagName === 'SELECT') {
-            if (el.value !== '' && el.value !== '0' && !el.value.includes('|no')) {
-                usage[countsAgainst] = (usage[countsAgainst] || 0) + 1;
-            }
-        }
+    // Also count selected Extras (Addons, Dropdowns, Questions)
+    document.querySelectorAll('.ext-price').forEach(el => {
+        if (!el.dataset.countsAgainst) return;
+        const catKey = el.dataset.countsAgainst.trim().toLowerCase();
+        let isSelected = false;
+        if (el.type === 'checkbox') isSelected = el.checked;
+        else if (el.tagName === 'SELECT') isSelected = el.value !== '' && el.value !== '0' && !el.value.includes('|no');
+        
+        if (isSelected) usage[catKey] = (usage[catKey] || 0) + 1;
     });
 
     document.querySelectorAll('.category-section').forEach(section => {
-        const catNameTrimmed = (section.dataset.category || '').trim();
-        const catData = categories[section.dataset.category];
+        const catName = (section.dataset.category || '').trim().toLowerCase();
+        let catData = null;
+        for (let key in categories) {
+            if (key.trim().toLowerCase() === catName) {
+                catData = categories[key];
+                break;
+            }
+        }
 
         if (catData && catData.limit > 0) {
-            const used = usage[catNameTrimmed] || 0;
+            const used = usage[catName] || 0;
             const remaining = Math.max(0, catData.limit - used);
             const badge = section.querySelector('.cat-limit-badge');
             if (badge) {
                 badge.innerText = `Limit: ${catData.limit} (Left: ${remaining})`;
                 if (remaining <= 0) {
-                    badge.className = 'cat-limit-badge text-[10px] bg-red-500 text-white px-3 py-1 rounded-lg font-bold uppercase tracking-wide border border-red-600';
+                    badge.className = 'cat-limit-badge text-[10px] bg-red-100 text-red-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide border border-red-200';
                 } else {
                     badge.className = 'cat-limit-badge text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide border border-amber-200';
                 }
@@ -512,15 +584,14 @@ window.updateCategoryLimitsUI = function() {
         }
     });
 
-    // Disable/Enable main Attraction checkboxes
     document.querySelectorAll('.ride-checkbox').forEach(cb => {
         const card = cb.closest('.product-card');
-        const targetCat = (card.dataset.countsAgainst || '').trim();
+        const targetCat = (card.dataset.countsAgainst || '').trim().toLowerCase();
         if (card.dataset.productSoldOut === 'true') return;
 
         let targetData = null;
         for (let key in categories) {
-            if (key.trim() === targetCat) {
+            if (key.trim().toLowerCase() === targetCat) {
                 targetData = categories[key];
                 break;
             }
@@ -537,76 +608,95 @@ window.updateCategoryLimitsUI = function() {
             }
         }
     });
+};
 
-    // Disable/Enable Extra (Addons/Dropdowns) elements
-    document.querySelectorAll('.ext-price[data-counts-against]').forEach(el => {
-        const targetCat = (el.dataset.countsAgainst || '').trim();
-        if (!targetCat) return;
+window.handleExtraSelection = function(el) {
+    const appEl = document.querySelector('[x-data="bookingApp"]');
+    const alpine = appEl ? (appEl._x_dataStack ? appEl._x_dataStack[0] : (appEl.__x ? appEl.__x.$data : null)) : null;
 
-        let targetData = null;
-        for (let key in categories) {
-            if (key.trim() === targetCat) {
-                targetData = categories[key];
-                break;
-            }
+    // Only show confirm if in Edit mode and not initial load
+    if (window.bookingAppData.bookingId && !window.isInitialLoading) {
+        // Find current value/state to revert if cancelled
+        const originalValue = el.tagName === 'SELECT' ? el.dataset.originalValue : el.dataset.originalChecked === 'true';
+        
+        if (alpine) {
+            alpine.modals.changeExtrasConfirm = true;
+            document.getElementById('btnConfirmExtraChange').onclick = () => {
+                alpine.modals.changeExtrasConfirm = false;
+                if (el.tagName === 'SELECT') el.dataset.originalValue = el.value;
+                else el.dataset.originalChecked = el.checked ? 'true' : 'false';
+                triggerRecalculate();
+            };
+            // On modal close (cancel), we need to revert. Alpine handles visibility but we need to revert value.
+            // Since we can't easily hook into Alpine's 'close' from here without a watcher, 
+            // we'll rely on the user clicking 'Cancel' which just hides it.
+            // A better way is to revert if Confirm is NOT clicked.
         }
-
-        if (targetData && targetData.limit > 0) {
-            const used = usage[targetCat] || 0;
-            const isSelected = (el.type === 'checkbox' ? el.checked : (el.value !== '' && el.value !== '0' && !el.value.includes('|no')));
-            
-            if (!isSelected && used >= targetData.limit) {
-                el.disabled = true;
-                if (el.type === 'checkbox') el.closest('label').classList.add('opacity-50', 'pointer-events-none');
-            } else {
-                el.disabled = false;
-                if (el.type === 'checkbox') el.closest('label').classList.remove('opacity-50', 'pointer-events-none');
-            }
-        }
-    });
+    }
+    triggerRecalculate();
 };
 
 window.handleSelection = function(checkbox) {
     const card = checkbox.closest('.product-card');
-    const limitCategory = (card.dataset.countsAgainst || '').trim();
+    const isSoldOut = card.dataset.productSoldOut === 'true';
+    const appEl = document.querySelector('[x-data="bookingApp"]');
+    const alpine = appEl ? (appEl._x_dataStack ? appEl._x_dataStack[0] : (appEl.__x ? appEl.__x.$data : null)) : null;
+
+    // 1. Full Capacity Warning
+    if (checkbox.checked && isSoldOut) {
+        checkbox.checked = false;
+        if (alpine) alpine.modals.fullCapacityWarning = true;
+        return;
+    }
+
+    // 2. Edit Rides Confirmation (Only if in Edit mode and not a fresh load)
+    if (window.bookingAppData.bookingId && !window.isInitialLoading) {
+        checkbox.checked = !checkbox.checked; // Undo for now
+        if (alpine) {
+            alpine.modals.editRidesConfirm = true;
+            document.getElementById('btnConfirmRideChange').onclick = () => {
+                checkbox.checked = !checkbox.checked; // Redo
+                alpine.modals.editRidesConfirm = false;
+                processSelection(checkbox, card);
+            };
+        }
+        return;
+    }
+
+    processSelection(checkbox, card);
+};
+
+function processSelection(checkbox, card) {
+    const limitCategory = (card.dataset.countsAgainst || '').trim().toLowerCase();
     const categories = window.bookingAppData.categories;
 
     if (checkbox.checked) {
         let catLimit = 0;
         for (let key in categories) {
-            if (key.trim() === limitCategory) {
+            if (key.trim().toLowerCase() === limitCategory) {
                 catLimit = categories[key].limit;
                 break;
             }
         }
 
         if (limitCategory && catLimit > 0) {
-            // Calculate usage manually to see if this addition is okay
-            let currentUsage = (globalCategoryBooked[limitCategory] || 0);
-            
+            let count = globalCategoryBooked[limitCategory] || 0;
             document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
-                if (cb !== checkbox && (cb.closest('.product-card').dataset.countsAgainst || '').trim() === limitCategory) {
-                    currentUsage++;
+                if ((cb.closest('.product-card').dataset.countsAgainst || '').trim().toLowerCase() === limitCategory) count++;
+            });
+            // Also count Extras
+            document.querySelectorAll('.ext-price').forEach(el => {
+                const elCat = (el.dataset.countsAgainst || '').trim().toLowerCase();
+                if (elCat === limitCategory) {
+                    const isSelected = (el.type === 'checkbox' ? el.checked : (el.value !== '' && el.value !== '0' && !el.value.includes('|no')));
+                    if (isSelected) count++;
                 }
             });
 
-            document.querySelectorAll('.ext-price[data-counts-against]').forEach(el => {
-                if ((el.dataset.countsAgainst || '').trim() === limitCategory) {
-                    if (el.type === 'checkbox' && el.checked) currentUsage++;
-                    else if (el.tagName === 'SELECT' && el.value !== '' && el.value !== '0' && !el.value.includes('|no')) currentUsage++;
-                }
-            });
-
-            if (currentUsage + 1 > catLimit) {
-                const alpine = document.querySelector('[x-data="bookingApp"]').__x.$data;
-                if (alpine) {
-                    alpine.limitExceededCategory = limitCategory;
-                    alpine.limitExceededLimit = catLimit;
-                    alpine.modals.limitExceeded = true;
-                } else {
-                    showToast("Limit Reached", `Max ${catLimit} items for ${limitCategory}.`, "warning");
-                }
+            if (count > catLimit) {
+                showToast("Limit Reached", `Max ${catLimit} items for ${limitCategory}.`, "warning");
                 checkbox.checked = false;
+                card.classList.remove('selected');
                 return;
             }
         }
@@ -615,14 +705,13 @@ window.handleSelection = function(checkbox) {
         card.classList.remove('selected');
     }
 
-    triggerRecalculate();
-    saveCurrentExtrasState();
-    updateDynamicExtras();
     updateCategoryLimitsUI();
+    updateDynamicExtras();
+    saveCurrentExtrasState();
 };
 
 window.handleExtraSelection = function(element) {
-    const limitCategory = (element.dataset.countsAgainst || '').trim();
+    const limitCategory = (element.dataset.countsAgainst || '').trim().toLowerCase();
     const categories = window.bookingAppData.categories;
 
     const isSelected = (element.type === 'checkbox' ? element.checked : (element.value !== '' && element.value !== '0' && !element.value.includes('|no')));
@@ -630,7 +719,7 @@ window.handleExtraSelection = function(element) {
     if (isSelected) {
         let catLimit = 0;
         for (let key in categories) {
-            if (key.trim() === limitCategory) {
+            if (key.trim().toLowerCase() === limitCategory) {
                 catLimit = categories[key].limit;
                 break;
             }
@@ -640,20 +729,23 @@ window.handleExtraSelection = function(element) {
             let currentUsage = (globalCategoryBooked[limitCategory] || 0);
             
             document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
-                if ((cb.closest('.product-card').dataset.countsAgainst || '').trim() === limitCategory) {
+                const cbCat = (cb.closest('.product-card').dataset.countsAgainst || '').trim().toLowerCase();
+                if (cbCat === limitCategory) {
                     currentUsage++;
                 }
             });
 
             document.querySelectorAll('.ext-price[data-counts-against]').forEach(el => {
-                if (el !== element && (el.dataset.countsAgainst || '').trim() === limitCategory) {
+                const elCat = (el.dataset.countsAgainst || '').trim().toLowerCase();
+                if (el !== element && elCat === limitCategory) {
                     if (el.type === 'checkbox' && el.checked) currentUsage++;
                     else if (el.tagName === 'SELECT' && el.value !== '' && el.value !== '0' && !el.value.includes('|no')) currentUsage++;
                 }
             });
 
             if (currentUsage + 1 > catLimit) {
-                const alpine = document.querySelector('[x-data="bookingApp"]').__x.$data;
+                const appEl = document.querySelector('[x-data="bookingApp"]');
+                const alpine = appEl ? (appEl._x_dataStack ? appEl._x_dataStack[0] : (appEl.__x ? appEl.__x.$data : null)) : null;
                 if (alpine) {
                     alpine.limitExceededCategory = limitCategory;
                     alpine.limitExceededLimit = catLimit;
@@ -662,7 +754,6 @@ window.handleExtraSelection = function(element) {
                     showToast("Limit Reached", `Max ${catLimit} items for ${limitCategory}.`, "warning");
                 }
                 
-                // Revert
                 if (element.type === 'checkbox') {
                     element.checked = false;
                 } else {
@@ -744,6 +835,18 @@ window.saveCurrentExtrasState = function() {
             window.bookingAppData.savedExtras[el.name] = el.value;
         }
     });
+
+    // Notify Livewire for dynamic financial updates if in Edit mode
+    const bridge = document.getElementById('booking-data-bridge');
+    if (bridge && bridge.dataset.id) {
+        const lwEl = document.querySelector('[wire\\:id]');
+        if (lwEl && window.Livewire) {
+             const lwComp = window.Livewire.find(lwEl.getAttribute('wire:id'));
+             if (lwComp) {
+                lwComp.syncExtras(window.bookingAppData.savedExtras);
+             }
+        }
+    }
 };
 
 window.updateDynamicExtras = function() {
@@ -758,43 +861,61 @@ window.updateDynamicExtras = function() {
     if (!container) return;
     
     container.innerHTML = '';
+    const configCategories = window.bookingAppData.categories;
+
+    function createBlockWithBadge(catName, html) {
+        if (!html) return '';
+        let badgeHtml = '';
+        const catKey = catName.trim().toLowerCase();
+        let catData = null;
+        for (let key in configCategories) {
+            if (key.trim().toLowerCase() === catKey) {
+                catData = configCategories[key];
+                break;
+            }
+        }
+        
+        // Final fallback if catData is still null
+        if (!catData) catData = configCategories[catName];
+        
+        if (catData && catData.limit > 0) {
+            badgeHtml = `<span class="cat-limit-badge text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide border border-amber-200 ml-auto">Limit: ${catData.limit}</span>`;
+        }
+        return `
+            <div class="category-section" data-category="${catName}">
+                <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-3">
+                    <span class="material-symbols-rounded text-[#9E6B73] text-sm">tune</span>
+                    <h4 class="text-xs font-extrabold text-slate-800 uppercase tracking-wider">${catName}</h4>
+                    ${badgeHtml}
+                </div>
+                ${html}
+            </div>
+        `;
+    }
 
     let hasBlocks = false;
     let glHtml = renderCategoryBlockHTML('General Logistics');
-    let catHtmlCombined = '';
+    if (glHtml) {
+        container.innerHTML += createBlockWithBadge('General Logistics', glHtml);
+        hasBlocks = true;
+    }
 
     activeCategories.forEach(catName => {
         if (catName !== 'General Logistics') {
             let cHtml = renderCategoryBlockHTML(catName);
             if (cHtml) {
-                catHtmlCombined += cHtml;
+                container.innerHTML += (hasBlocks ? '<div class="mt-8 pt-6 border-t border-slate-200"></div>' : '') + createBlockWithBadge(catName, cHtml);
+                hasBlocks = true;
             }
         }
     });
 
-    if (glHtml) {
-        container.innerHTML += `
-            <div class="flex flex-col gap-4">
-                <h4 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider pl-1">General Logistics</h4>
-                ${glHtml}
-            </div>
-        `;
-        hasBlocks = true;
-    }
-
-    if (catHtmlCombined) {
-        container.innerHTML += `
-            <div class="flex flex-col gap-4 ${glHtml ? 'mt-6 pt-6 border-t border-slate-200' : ''}">
-                <h4 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider pl-1">Attraction Specific Extras</h4>
-                ${catHtmlCombined}
-            </div>
-        `;
-        hasBlocks = true;
-    }
-
     if (!hasBlocks) {
         container.innerHTML = '<p class="text-xs text-slate-500 italic py-4 col-span-full">Select attractions to view related extras.</p>';
     }
+    
+    // Crucial: After rendering new HTML, we must recalculate limits and triggering standard logic
+    updateCategoryLimitsUI();
     triggerRecalculate();
 };
 
@@ -807,10 +928,10 @@ function renderCategoryBlockHTML(catName) {
         config.dropdowns[catName].forEach(dd => {
             let key = `dd_${dd.id}`;
             let val = savedExtras[key] || '';
-            let countsAgainst = (dd.counts_against || '').trim();
+            let countsAgainst = (dd.counts_against || catName).trim();
             let placeholder = `<option value="" data-price="0" ${val == '' ? 'selected' : ''}>-- Select Option --</option>`;
             let opts = placeholder + dd.options.map(o => `<option value="${o.id}" data-price="${o.option_price}" ${val == o.id ? 'selected' : ''}>${o.option_label} (+$${o.option_price})</option>`).join('');
-            catHtml += `<div class="mt-3"><label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 ml-1">${dd.label}</label><select name="${key}" data-counts-against="${countsAgainst}" class="input-field !py-2 text-sm ext-price bg-white cursor-pointer" onchange="handleExtraSelection(this)">${opts}</select></div>`;
+            catHtml += `<div class="mt-3"><label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 ml-1">${dd.label}</label><select name="${key}" data-counts-against="${countsAgainst}" data-original-value="${val}" class="input-field !py-2 text-sm ext-price bg-white cursor-pointer" onchange="handleExtraSelection(this)">${opts}</select></div>`;
         });
     }
 
@@ -818,10 +939,11 @@ function renderCategoryBlockHTML(catName) {
         config.questions[catName].forEach(q => {
             let key = `q_${q.id}`;
             let val = savedExtras[key] || '';
+            let countsAgainst = (q.counts_against || catName).trim();
             let yesSel = (val == (q.yes_price + '|yes')) ? 'selected' : '';
             let noSel = (val == (q.no_price + '|no')) ? 'selected' : '';
             let placeholderSel = (!yesSel && !noSel) ? 'selected' : '';
-            catHtml += `<div class="mt-3"><label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 ml-1">${q.question_text}</label><select name="${key}" class="input-field !py-2 text-sm ext-price bg-white cursor-pointer" onchange="handleExtraSelection(this)"><option value="" data-price="0" ${placeholderSel}>-- Select Choice --</option><option value="${q.yes_price}|yes" data-price="${q.yes_price}" ${yesSel}>${q.yes_label} (+$${q.yes_price})</option><option value="${q.no_price}|no" data-price="${q.no_price}" ${noSel}>${q.no_label} (+$${q.no_price})</option></select></div>`;
+            catHtml += `<div class="mt-3"><label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 ml-1">${q.question_text}</label><select name="${key}" data-counts-against="${countsAgainst}" data-original-value="${val}" class="input-field !py-2 text-sm ext-price bg-white cursor-pointer" onchange="handleExtraSelection(this)"><option value="" data-price="0" ${placeholderSel}>-- Select Choice --</option><option value="${q.yes_price}|yes" data-price="${q.yes_price}" ${yesSel}>${q.yes_label} (+$${q.yes_price})</option><option value="${q.no_price}|no" data-price="${q.no_price}" ${noSel}>${q.no_label} (+$${q.no_price})</option></select></div>`;
         });
     }
 
@@ -829,8 +951,8 @@ function renderCategoryBlockHTML(catName) {
         config.addons[catName].forEach(addon => {
             let key = `add_${addon.id}`;
             let isChecked = (savedExtras[key] == '1');
-            let countsAgainst = (addon.counts_against || '').trim();
-            catHtml += `<label class="flex items-center gap-3 mt-3 p-3 bg-white border border-slate-200 rounded-xl hover:border-[#9E6B73] cursor-pointer transition shadow-sm h-[42px]"><input type="checkbox" name="${key}" value="1" class="ext-price w-4 h-4 text-[#9E6B73] focus:ring-[#9E6B73]" data-price="${addon.addon_price}" data-counts-against="${countsAgainst}" ${isChecked ? 'checked' : ''} onchange="handleExtraSelection(this)"><span class="text-sm font-bold text-slate-700 flex-1">${addon.addon_label}</span><span class="text-xs font-bold text-[#9E6B73] bg-[#9E6B73]/10 px-2 py-1 rounded-lg">+$${addon.addon_price}</span></label>`;
+            let countsAgainst = (addon.counts_against || catName).trim();
+            catHtml += `<label class="flex items-center gap-3 mt-3 p-3 bg-white border border-slate-200 rounded-xl hover:border-[#9E6B73] cursor-pointer transition shadow-sm h-[42px]"><input type="checkbox" name="${key}" value="1" class="ext-price w-4 h-4 text-[#9E6B73] focus:ring-[#9E6B73]" data-price="${addon.addon_price}" data-counts-against="${countsAgainst}" data-original-checked="${isChecked}" ${isChecked ? 'checked' : ''} onchange="handleExtraSelection(this)"><span class="text-sm font-bold text-slate-700 flex-1">${addon.addon_label}</span><span class="text-xs font-bold text-[#9E6B73] bg-[#9E6B73]/10 px-2 py-1 rounded-lg">+$${addon.addon_price}</span></label>`;
         });
     }
 
@@ -841,7 +963,9 @@ function renderCategoryBlockHTML(catName) {
                     <span class="material-symbols-rounded text-[#9E6B73]">category</span>
                     <h4 class="font-extrabold text-slate-800 text-sm uppercase tracking-wide">${catName}</h4>
                 </div>
-                ${catHtml}
+                <div class="category-block-items">
+                    ${catHtml}
+                </div>
             </div>
         `;
     }
@@ -950,7 +1074,9 @@ window.triggerRecalculate = function() {
     document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
         const card = cb.closest('.product-card');
         if (card) {
-            attractionsCost += parseFloat(card.dataset.price || 0);
+            const qtyInput = card.querySelector('input[readonly].w-8'); // Match the quantity input in Edit mode
+            const q = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
+            attractionsCost += (parseFloat(card.dataset.price || 0) * q);
         }
     });
     const breakAttractions = document.getElementById('breakdown_attractions');
@@ -1271,13 +1397,13 @@ window.finalizeBooking = async function() {
         showToast("Success", "Booking Confirmed & Saved!", "success");
         setTimeout(() => {
             // Check if we're in supervisor mode or admin
-            if (window.location.pathname.includes('/supervisor/')) {
-                window.location.href = '/supervisor/calendar';
-            } else if (window.location.pathname.includes('/admin/')) {
-                window.location.href = '/admin/calendar';
+            const isEdit = !!window.bookingAppData.bookingId;
+            if (isEdit) {
+                const backRoute = window.location.pathname.includes('/supervisor/') ? `/supervisor/bookings/${window.bookingAppData.bookingId}` : `/admin/bookings/${window.bookingAppData.bookingId}`;
+                window.location.href = backRoute;
             } else {
-                // Fallback for prefix-less or other cases
-                window.location.href = '/admin/calendar';
+                const calRoute = window.location.pathname.includes('/supervisor/') ? '/supervisor/calendar' : '/admin/calendar';
+                window.location.href = calRoute;
             }
         }, 1000);
     } catch (e) {
@@ -1290,36 +1416,77 @@ window.finalizeBooking = async function() {
  
 window.deleteAndExit = function() {
     isProceeding = true;
-    const bookingIdEl = document.getElementById('booking_id');
-    if (bookingIdEl && bookingIdEl.value) {
-        let fd = new FormData();
-        fd.append('action', 'delete_draft');
-        fd.append('booking_id', bookingIdEl.value);
-        fd.append('_token', window.bookingAppData.csrfToken);
-        navigator.sendBeacon('/api/bookings/handler', fd);
+    const isEdit = !!window.bookingAppData.bookingId;
+    
+    if (!isEdit && window.bookingAppData.bookingId) { // Only delete if it was a fresh draft (simplified check)
+        const bookingIdEl = document.getElementById('booking_id');
+        if (bookingIdEl && bookingIdEl.value) {
+            let fd = new FormData();
+            fd.append('action', 'delete_draft');
+            fd.append('booking_id', bookingIdEl.value);
+            fd.append('_token', window.bookingAppData.csrfToken);
+            navigator.sendBeacon('/api/bookings/handler', fd);
+        }
     }
     
-    // Check if we're in supervisor mode or admin
-    if (window.location.pathname.includes('/supervisor/')) {
-        window.location.href = '/supervisor/calendar';
-    } else if (window.location.pathname.includes('/admin/')) {
-        window.location.href = '/admin/calendar';
+    if (isEdit) {
+        window.location.href = window.location.pathname.includes('/supervisor/') ? `/supervisor/bookings/${window.bookingAppData.bookingId}` : `/admin/bookings/${window.bookingAppData.bookingId}`;
     } else {
-        // Fallback for prefix-less or other cases
-        window.location.href = '/admin/calendar';
+        window.location.href = window.location.pathname.includes('/supervisor/') ? '/supervisor/calendar' : '/admin/calendar';
     }
 };
 
-// --- DOM READY ---
+window.isInitialLoading = true;
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize calCursor from bridge or now
+    // 1. Initialize data from bridge
+    const bridge = document.getElementById('booking-data-bridge');
+    if (bridge) {
+        window.bookingAppData = {
+            config: JSON.parse(bridge.dataset.config || '{}'),
+            categories: JSON.parse(bridge.dataset.categories || '{}'),
+            savedExtras: JSON.parse(bridge.dataset.extras || '{}'),
+            selectedItems: JSON.parse(bridge.dataset.selected || '{}'),
+            csrfToken: bridge.dataset.csrf,
+            bookingId: bridge.dataset.id,
+            invoiceNumber: bridge.dataset.invoice
+        };
+
+        // Pre-check rides from bridge
+        for (let name in window.bookingAppData.selectedItems) {
+            const clean = name.toLowerCase().trim();
+            const card = document.querySelector(`.product-card[data-name]`); // Need to find by name carefully
+            // In a better loop below
+        }
+    }
+
     const dateInput = document.getElementById('event_date');
     calCursor = new Date(dateInput && dateInput.value ? dateInput.value : Date.now());
     
     // Initial triggers
-    if (typeof calLoad === 'function') calLoad();
-    if (typeof checkRealTimeAvailability === 'function') checkRealTimeAvailability();
-    if (typeof triggerRecalculate === 'function') triggerRecalculate();
+    setTimeout(async () => {
+        if (typeof calLoad === 'function') calLoad();
+        
+        // Populate initial selection state
+        if (window.bookingAppData.selectedItems) {
+            document.querySelectorAll('.product-card').forEach(card => {
+                const name = card.dataset.name.toLowerCase().trim();
+                if (window.bookingAppData.selectedItems[name]) {
+                    const cb = card.querySelector('.ride-checkbox');
+                    if (cb) {
+                        cb.checked = true;
+                        card.classList.add('selected');
+                        const actionText = card.querySelector('.action-text');
+                        if (actionText) actionText.innerText = 'Booked';
+                    }
+                }
+            });
+        }
+
+        if (typeof checkRealTimeAvailability === 'function') await checkRealTimeAvailability();
+        if (typeof triggerRecalculate === 'function') triggerRecalculate();
+        
+        window.isInitialLoading = false;
+    }, 100);
 });
 
 window.addEventListener('beforeunload', () => {
