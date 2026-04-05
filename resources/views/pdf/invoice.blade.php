@@ -43,8 +43,8 @@
     }
 
     if (!$include_attraction_cost) {
-        $total_amount -= $attraction_subtotal;
-        $balance_due -= $attraction_subtotal;
+        // We no longer subtract from the total to ensure accuracy
+        // But we handle the display subtotal in the table instead
         $display_balance = $balance_due < 0 ? 0.00 : $balance_due;
         $is_fully_paid = ($amount_paid > 0 && $balance_due <= 0);
     }
@@ -57,7 +57,7 @@
 
     if ($amount_paid < $deposit_required) {
         $header_warning = "DEPOSIT NOW DUE";
-        $box_warning = "YOUR BOOKING HAS BEEN ACCEPTED - PLEASE GUARANTEE<br>YOUR BOOKING BY PAYING THE DEPOSIT";
+        $box_warning = "YOUR BOOKING HAS BEEN<br>ACCEPTED - PLEASE GUARANTEE<br>YOUR BOOKING BY PAYING THE DEPOSIT";
     } elseif ($balance_due > 0) {
         $header_warning = "BALANCE DUE";
         $box_warning = "PLEASE PAY THE REMAINING BALANCE PRIOR TO YOUR EVENT";
@@ -68,8 +68,15 @@
     }
 
     // Check Payment Type logic
-    $paymentType = $booking->payment_type ?? '';
-    $isCard = ($paymentType === 'Card Holder' || $paymentType === 'credit_card');
+    $paymentType = strtolower($booking->payment_type ?? 'eft');
+    $isCard = in_array($paymentType, ['card holder', 'credit_card', 'card_holder']);
+    
+    $paymentMethodLabel = 'EFT';
+    if ($paymentType === 'cash') {
+        $paymentMethodLabel = 'Cash';
+    } elseif ($isCard) {
+        $paymentMethodLabel = 'Credit Card';
+    }
 
     $baseAmount = $total_amount;
     $surcharge  = 0.0;
@@ -104,6 +111,7 @@
     // Extract General and Specific Extras
     $general_extras = !empty($booking->general_extra) ? (is_string($booking->general_extra) ? json_decode($booking->general_extra, true) : $booking->general_extra) : [];
     $specific_extras = !empty($booking->specific_extra) ? (is_string($booking->specific_extra) ? json_decode($booking->specific_extra, true) : $booking->specific_extra) : [];
+    $col_span = $include_attraction_cost ? 4 : 3;
 @endphp
 <!DOCTYPE html>
 <html>
@@ -374,12 +382,7 @@
                             </tr>
                         @endif
 
-                        @if($is_fully_paid)
-                            <tr>
-                                <td class="bold">Method:</td>
-                                <td>{{ $isCard ? 'Credit Card (Card Holder)' : 'EFT / Bank Transfer' }}</td>
-                            </tr>
-                        @endif
+                        {{-- Method removed as per request --}}
                     </table>
                 </td>
 
@@ -414,26 +417,26 @@
                             <span class="fin-val">{{ money($amount_paid) }}</span>
                         </div>
 
-                        @if($deposit_required > 0)
-                            <div class="finance-row">
-                                <span class="fin-label">Deposit Required</span>
-                                <span class="fin-val">{{ money($deposit_required) }}</span>
-                            </div>
-                        @endif
-
                         <div class="finance-row balance-line">
                             <span class="fin-label">Balance Due</span>
                             <span class="fin-val bold">
                                 {{ money($display_balance) }}
                             </span>
                         </div>
+
+                        @if($deposit_required > 0)
+                            <div class="finance-row">
+                                <span class="fin-label">Deposit Required</span>
+                                <span class="fin-val">{{ money($deposit_required) }}</span>
+                            </div>
+                        @endif
                         @if($is_overpaid)
                             <div class="finance-row text-right" style="font-size: 9px; color: green; font-weight: bold;">
                                 (Overpaid / Credit: {{ money(abs($balance_due)) }})
                             </div>
                         @endif
 
-                        <div class="text-center {{ $warning_color }} bold" style="font-size: 8px; margin-top: 15px;">
+                        <div class="text-center {{ $warning_color }} bold" style="font-size: 9px; margin-top: 10px; clear: both; width: 100%;">
                             {!! $box_warning !!}
                         </div>
 
@@ -450,9 +453,7 @@
                 <th width="{{ $include_attraction_cost ? '30%' : '40%' }}">Specifications:</th>
                 <th width="10%" class="text-center">Qty:</th>
                 @if($include_attraction_cost)
-                <th width="20%" class="text-right">Price:</th>
-                @else
-                <th width="0%"></th>
+                <th width="20%" class="text-right">Price/Cost:</th>
                 @endif
             </tr>
         </thead>
@@ -495,6 +496,15 @@
                         @endif
                     </tr>
                 @endforeach
+
+                {{-- Attraction Package Row for hidden prices --}}
+                @if(!$include_attraction_cost && $attraction_subtotal > 0)
+                    <tr style="background-color: #fafafa;">
+                        <td colspan="{{ $col_span }}" style="padding: 10px 5px; border-bottom: 2px solid #000;">
+                            <span class="bold">Attraction Package Service Fee:</span>
+                        </td>
+                    </tr>
+                @endif
             @endif
 
 
@@ -510,37 +520,44 @@
                         $genHeaderStyle = 'style="padding: 10px 5px 5px 5px; border-bottom: 1px solid #000;"';
                     @endphp
                     <tr>
-                        <td colspan="{{ $include_attraction_cost ? 4 : 3 }}" {!! $genHeaderStyle !!}>
+                        <td colspan="{{ $col_span }}" {!! $genHeaderStyle !!}>
                             <span class="bold" style="font-size: 11px;">General Logistic Extras:</span>
                         </td>
                     </tr>
                     @if(!empty($booking->logistics_surfaces))
-                        <tr>
-                            <td colspan="{{ $include_attraction_cost ? 3 : 2 }}" style="padding: 5px 5px 5px 15px; font-size: 10px;">
+                        <tr style="border-bottom: 1px dashed #ddd;">
+                            <td colspan="2" style="padding: 5px 5px 5px 15px; font-size: 10px;">
                                 &bull; Logistics Surface: {{ $booking->logistics_surfaces }}
                             </td>
+                            <td class="text-center" style="padding: 5px; font-size: 10px;">1</td>
+                            @if($include_attraction_cost)
                             <td class="text-right" style="padding: 5px; font-size: 10px;">-</td>
+                            @endif
                         </tr>
                     @endif
                     @if(is_array($general_extras))
                         @foreach($general_extras as $label => $cost)
-                            <tr>
-                                <td colspan="{{ $include_attraction_cost ? 3 : 2 }}" style="padding: 5px 5px 5px 15px; font-size: 10px;">
+                            <tr style="border-bottom: 1px dashed #ddd;">
+                                <td colspan="2" style="padding: 5px 5px 5px 15px; font-size: 10px;">
                                     &bull; {{ $label }}
                                 </td>
+                                <td class="text-center" style="padding: 5px; font-size: 10px;">1</td>
+                                @if($include_attraction_cost)
                                 <td class="text-right" style="padding: 5px; font-size: 10px;">
-                                    {{ $cost > 0 ? money($cost) : '-' }}
+                                    {{ ($include_attraction_cost && (float)$cost > 0) ? money($cost) : '-' }}
                                 </td>
+                                @endif
                             </tr>
                         @endforeach
                     @endif
                     @if(!$has_json_extras && $extra_cost_fallback > 0)
-                        <tr>
-                            <td colspan="{{ $include_attraction_cost ? 3 : 2 }}" style="padding: 5px 5px 5px 15px; font-size: 10px;">
+                        <tr style="border-bottom: 1px dashed #ddd;">
+                            <td colspan="2" style="padding: 5px 5px 5px 15px; font-size: 10px;">
                                 &bull; General Logistics Charge
                             </td>
+                            <td class="text-center" style="padding: 5px; font-size: 10px;">1</td>
                             <td class="text-right" style="padding: 5px; font-size: 10px;">
-                                {{ money($extra_cost_fallback) }}
+                                {{ $include_attraction_cost ? money($extra_cost_fallback) : '-' }}
                             </td>
                         </tr>
                     @endif
@@ -555,26 +572,29 @@
                         $specHeaderStyle = 'style="' . $specStyleStr . '"';
                     @endphp
                     <tr>
-                        <td colspan="{{ $include_attraction_cost ? 4 : 3 }}" {!! $specHeaderStyle !!}>
+                        <td colspan="{{ $col_span }}" {!! $specHeaderStyle !!}>
                             <span class="bold" style="font-size: 11px;">Specific Extras:</span>
                         </td>
                     </tr>
 
                     @foreach($specific_extras as $label => $cost)
-                        <tr>
-                            <td colspan="{{ $include_attraction_cost ? 3 : 2 }}" style="padding: 5px 5px 5px 15px; font-size: 10px;">
+                        <tr style="border-bottom: 1px dashed #ddd;">
+                            <td colspan="2" style="padding: 5px 5px 5px 15px; font-size: 10px;">
                                 &bull; {{ $label }}
                             </td>
+                            <td class="text-center" style="padding: 5px; font-size: 10px;">1</td>
+                            @if($include_attraction_cost)
                             <td class="text-right" style="padding: 5px; font-size: 10px;">
-                                {{ $cost > 0 ? money($cost) : '-' }}
+                                {{ ($include_attraction_cost && (float)$cost > 0) ? money($cost) : '-' }}
                             </td>
+                            @endif
                         </tr>
                     @endforeach
                 @endif
             @endif
 
             <tr>
-                <td colspan="{{ $include_attraction_cost ? 4 : 3 }}" style="border-top: 2px solid #000; padding: 5px;">
+                <td colspan="{{ $col_span }}" style="border-top: 2px solid #000; padding: 5px;">
                     <span class="bold">Special Instructions:</span><br>
                     {!! nl2br(e($specialInstructions)) !!}
                 </td>

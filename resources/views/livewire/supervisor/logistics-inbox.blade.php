@@ -1,4 +1,4 @@
-<div class="max-w-[1440px] mx-auto space-y-8"
+<div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8"
     x-data="{ 
          showPaymentModal: false, 
          showCardModal: false, 
@@ -9,6 +9,7 @@
          showPaymentSuccessModal: false,
          sentSuccessModal: false,
          showConfirmModal: false,
+         confirmEmailModal: false,
          confirmMessage: '',
          confirmAction: null
      }"
@@ -22,6 +23,7 @@
         if(modal === 'successModal') showSuccessModal = true;
         if(modal === 'paymentSuccessModal') showPaymentSuccessModal = true;
         if(modal === 'sentSuccessModal') sentSuccessModal = true;
+        if(modal === 'confirmEmailModal') confirmEmailModal = true;
      "
     @close-modal.window="
         let modal = typeof $event.detail === 'string' ? $event.detail : ($event.detail.name || $event.detail[0]);
@@ -33,6 +35,7 @@
         if(modal === 'successModal') showSuccessModal = false;
         if(modal === 'paymentSuccessModal') showPaymentSuccessModal = false;
         if(modal === 'sentSuccessModal') sentSuccessModal = false;
+        if(modal === 'confirmEmailModal') confirmEmailModal = false;
      ">
 
     <style>
@@ -93,45 +96,46 @@
         }
     </style>
 
-    <div class="flex flex-col gap-1">
-        <h2 class="text-3xl font-bold text-white drop-shadow-md">Logistics Inbox</h2>
-        <p class="text-white/80 text-sm font-medium">Manage daily dispatching, payments, and invoicing tasks.</p>
+    <div class="flex flex-col gap-1 px-1 sm:px-0">
+        <h2 class="text-2xl sm:text-3xl font-bold text-white drop-shadow-md">Logistics Inbox</h2>
+        <p class="text-white/80 text-xs sm:text-sm font-medium leading-relaxed">Manage daily dispatching, payments, and invoicing tasks.</p>
     </div>
 
     @if ($enquiriesCount > 0)
-    <div class="bg-yellow-50 border border-yellow-200 p-5 rounded-[2rem] shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-2xl flex items-center justify-center shrink-0">
-                <span class="material-symbols-rounded text-2xl">notifications_active</span>
+    <div class="bg-yellow-50 border border-yellow-200 p-4 sm:p-5 rounded-2xl sm:rounded-[2rem] shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-4 w-full md:w-auto">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 text-yellow-600 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
+                <span class="material-symbols-rounded text-xl sm:text-2xl">notifications_active</span>
             </div>
             <div>
-                <h3 class="font-bold text-gray-800 text-lg">Attention Needed</h3>
-                <p class="text-sm text-gray-600">You have <span class="font-bold text-yellow-700">{{ $enquiriesCount }}</span> enquiry pending follow-up.</p>
+                <h3 class="font-bold text-gray-800 text-base sm:text-lg">Attention Needed</h3>
+                <p class="text-xs sm:text-sm text-gray-600">You have <span class="font-bold text-yellow-700">{{ $enquiriesCount }}</span> enquiry pending follow-up.</p>
             </div>
         </div>
-        <a href="{{ route('supervisor.enquiries') }}" class="px-6 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-yellow-500/30 transition transform active:scale-95 whitespace-nowrap">View Enquiries</a>
+        <a href="{{ route('supervisor.enquiries') }}" class="w-full md:w-auto text-center px-6 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-yellow-500/30 transition transform active:scale-95 whitespace-nowrap">View Enquiries</a>
     </div>
     @endif
 
-    <section class="bg-white rounded-[2.5rem] shadow-xl shadow-black-200/50 border border-gray-100 overflow-hidden">
-        <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
-            <div class="flex items-center gap-3 w-full md:w-auto">
+    <section class="bg-white rounded-2xl sm:rounded-[2.5rem] shadow-xl shadow-black-200/50 border border-gray-100 overflow-hidden">
+        <div class="p-4 sm:p-6 border-b border-gray-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
+            <div class="flex items-center gap-3 w-full lg:w-auto">
                 <div class="p-2 bg-[#9E6B73]/10 text-[#9E6B73] rounded-xl"><span class="material-symbols-rounded">credit_card</span></div>
                 <div>
-                    <h3 class="font-bold text-gray-800 text-lg">Manage Payment Methods</h3>
-                    <p class="text-xs text-gray-400">Total Pending: {{ $pendingPayments->total() }}</p>
+                    <h3 class="font-bold text-gray-800 text-base sm:text-lg">Manage Payment Methods</h3>
+                    <p class="text-[10px] sm:text-xs text-gray-400">Total Pending: {{ $pendingPayments->total() }}</p>
                 </div>
             </div>
-            <div class="flex items-center w-full md:w-auto gap-2">
-                <div class="relative w-full md:w-56">
+            <div class="flex flex-col sm:flex-row items-center w-full lg:w-auto gap-3 sm:gap-2">
+                <div class="relative w-full sm:w-56">
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 material-symbols-rounded text-sm">search</span>
                     <input type="text" wire:model.live.debounce.300ms="search_pay" placeholder="Search Payments..." class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#9E6B73]/20 outline-none">
                 </div>
             </div>
         </div>
 
-        <div class="overflow-y-auto custom-scrollbar" style="max-height: 500px;">
-            <table class="w-full text-left text-sm border-collapse relative">
+        <div class="overflow-x-auto custom-scrollbar">
+            <div class="min-w-[1100px] overflow-y-auto" style="max-height: 500px;">
+                <table class="w-full text-left text-sm border-collapse relative">
                 <thead class="sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10 shadow-sm">
                     <tr class="text-xs text-gray-400 uppercase tracking-wider border-b border-gray-200">
                         <th class="p-4 font-bold text-left">Customer / Date</th>
@@ -275,23 +279,32 @@
         @endif
     </section>
 
-    <section class="bg-white rounded-[2.5rem] shadow-xl shadow-black-200/50 border border-gray-100 overflow-hidden">
-        <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
-            <div class="flex items-center gap-3">
+    <section class="bg-white rounded-2xl sm:rounded-[2.5rem] shadow-xl shadow-black-200/50 border border-gray-100 overflow-hidden">
+        <div class="p-4 sm:p-6 border-b border-gray-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
+            <div class="flex items-center gap-3 w-full lg:w-auto">
                 <div class="p-2 bg-[#9E6B73]/10 text-[#9E6B73] rounded-xl"><span class="material-symbols-rounded">description</span></div>
                 <div>
-                    <h3 class="font-bold text-gray-800 text-lg">Invoices to Send</h3>
-                    <p class="text-xs text-gray-400">Total Pending: {{ $invoices->total() }}</p>
+                    <h3 class="font-bold text-gray-800 text-base sm:text-lg">Invoices to Send</h3>
+                    <p class="text-[10px] sm:text-xs text-gray-400">Total Pending: {{ $invoices->total() }}</p>
                 </div>
             </div>
-            <div class="relative w-full md:w-56">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 material-symbols-rounded text-sm">search</span>
-                <input type="text" wire:model.live.debounce.300ms="search_inv" placeholder="Search Invoices..." class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#9E6B73] outline-none">
+            <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full lg:w-auto">
+                <div class="flex items-center gap-2 px-3 py-1.5 bg-white/50 rounded-xl border border-gray-200/50 shadow-sm transition hover:bg-white w-full sm:w-auto justify-center sm:justify-start">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest cursor-pointer whitespace-nowrap">PDF Prices</label>
+                    <button wire:click="$set('invoice_pdf_prices', {{ !$invoice_pdf_prices ? 'true' : 'false' }})" class="relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $invoice_pdf_prices ? 'bg-[#9E6B73]' : 'bg-gray-200' }}">
+                        <span class="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $invoice_pdf_prices ? 'translate-x-4' : 'translate-x-0' }}"></span>
+                    </button>
+                </div>
+                <div class="relative w-full sm:w-56">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 material-symbols-rounded text-sm">search</span>
+                    <input type="text" wire:model.live.debounce.300ms="search_inv" placeholder="Search Invoices..." class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#9E6B73] outline-none">
+                </div>
             </div>
         </div>
 
-        <div class="overflow-y-auto custom-scrollbar" style="max-height: 500px;">
-            <table class="w-full text-left text-sm border-collapse relative">
+        <div class="overflow-x-auto custom-scrollbar">
+            <div class="min-w-[1000px] overflow-y-auto px-1" style="max-height: 500px;">
+                <table class="w-full text-left text-sm border-collapse relative">
                 <thead class="sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10 shadow-sm">
                     <tr class="text-xs text-gray-400 uppercase tracking-wider border-b border-gray-200">
                         <th class="p-4 font-bold text-left">Invoice #</th>
@@ -337,27 +350,29 @@
                 </tbody>
             </table>
         </div>
+        </div>
         @if ($invoices->hasPages())
-        <div class="p-4 border-t border-gray-100 bg-gray-50">{{ $invoices->links() }}</div>
+        <div class="p-4 border-t border-gray-100 bg-gray-50 text-xs">{{ $invoices->links() }}</div>
         @endif
     </section>
 
-    <section class="bg-white rounded-[2.5rem] shadow-xl shadow-black-200/50 border border-gray-100 overflow-hidden">
-        <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
-            <div class="flex items-center gap-3">
+    <section class="bg-white rounded-2xl sm:rounded-[2.5rem] shadow-xl shadow-black-200/50 border border-gray-100 overflow-hidden">
+        <div class="p-4 sm:p-6 border-b border-gray-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
+            <div class="flex items-center gap-3 w-full lg:w-auto">
                 <div class="p-2 bg-[#9E6B73]/10 text-[#9E6B73] rounded-xl"><span class="material-symbols-rounded">inventory_2</span></div>
                 <div>
-                    <h3 class="font-bold text-gray-800 text-lg">Upcoming Orders</h3>
-                    <p class="text-xs text-gray-400">Total: {{ $orders->total() }}</p>
+                    <h3 class="font-bold text-gray-800 text-base sm:text-lg">Upcoming Orders</h3>
+                    <p class="text-[10px] sm:text-xs text-gray-400">Total: {{ $orders->total() }}</p>
                 </div>
             </div>
-            <div class="relative w-full md:w-56">
+            <div class="relative w-full lg:w-56">
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 material-symbols-rounded text-sm">search</span>
                 <input type="text" wire:model.live.debounce.300ms="search_ord" placeholder="Search Orders..." class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#9E6B73] outline-none">
             </div>
         </div>
-        <div class="overflow-x-auto custom-scrollbar" style="max-height: 500px;">
-            <table class="w-full text-left text-sm border-collapse relative">
+        <div class="overflow-x-auto custom-scrollbar">
+            <div class="min-w-[1000px] overflow-y-auto px-1" style="max-height: 500px;">
+                <table class="w-full text-left text-sm border-collapse relative">
                 <thead class="sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10 shadow-sm">
                     <tr class="text-xs text-gray-400 uppercase tracking-wider border-b border-gray-200">
                         <th class="p-4 font-bold text-left">Event Date</th>
@@ -398,27 +413,37 @@
                 </tbody>
             </table>
         </div>
+        </div>
         @if ($orders->hasPages())
-        <div class="p-4 border-t border-gray-100 bg-gray-50">{{ $orders->links() }}</div>
+        <div class="p-4 border-t border-gray-100 bg-gray-50 text-xs">{{ $orders->links() }}</div>
         @endif
     </section>
 
-    <section class="bg-white rounded-[2.5rem] shadow-xl shadow-black-200/50 border border-gray-100 overflow-hidden">
-        <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
-            <div class="flex items-center gap-3">
+    <section class="bg-white rounded-2xl sm:rounded-[2.5rem] shadow-xl shadow-black-200/50 border border-gray-100 overflow-hidden">
+        <div class="p-4 sm:p-6 border-b border-gray-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
+            <div class="flex items-center gap-3 w-full lg:w-auto">
                 <div class="p-2 bg-[#9E6B73]/10 text-[#9E6B73] rounded-xl"><span class="material-symbols-rounded">money_off</span></div>
                 <div>
-                    <h3 class="font-bold text-gray-800 text-lg">Debtors</h3>
-                    <p class="text-xs text-gray-400">Total: {{ $debtors->total() }}</p>
+                    <h3 class="font-bold text-gray-800 text-base sm:text-lg">Debtors</h3>
+                    <p class="text-[10px] sm:text-xs text-gray-400">Total: {{ $debtors->total() }}</p>
                 </div>
             </div>
-            <div class="relative w-full md:w-56">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 material-symbols-rounded text-sm">search</span>
-                <input type="text" wire:model.live.debounce.300ms="search_deb" placeholder="Search Debtors..." class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#9E6B73] outline-none">
+            <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full lg:w-auto">
+                <div class="flex items-center gap-2 px-3 py-1.5 bg-white/50 rounded-xl border border-gray-200/50 shadow-sm transition hover:bg-white w-full sm:w-auto justify-center sm:justify-start">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest cursor-pointer whitespace-nowrap">PDF Prices</label>
+                    <button wire:click="$set('debtor_pdf_prices', {{ !$debtor_pdf_prices ? 'true' : 'false' }})" class="relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $debtor_pdf_prices ? 'bg-[#9E6B73]' : 'bg-gray-200' }}">
+                        <span class="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $debtor_pdf_prices ? 'translate-x-4' : 'translate-x-0' }}"></span>
+                    </button>
+                </div>
+                <div class="relative w-full sm:w-56">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 material-symbols-rounded text-sm">search</span>
+                    <input type="text" wire:model.live.debounce.300ms="search_deb" placeholder="Search Debtors..." class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#9E6B73] outline-none">
+                </div>
             </div>
         </div>
-        <div class="overflow-x-auto custom-scrollbar" style="max-height: 500px;">
-            <table class="w-full text-left text-sm border-collapse relative min-w-[800px]">
+        <div class="overflow-x-auto custom-scrollbar">
+            <div class="min-w-[1000px] overflow-y-auto px-1" style="max-height: 500px;">
+                <table class="w-full text-left text-sm border-collapse relative min-w-[800px]">
                 <thead class="sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10 shadow-sm">
                     <tr class="text-xs text-gray-400 uppercase tracking-wider border-b border-gray-200">
                         <th class="p-4 font-bold text-left">Customer</th>
@@ -487,18 +512,19 @@
                 </tbody>
             </table>
         </div>
+        </div>
         @if ($debtors->hasPages())
-        <div class="p-4 border-t border-gray-100 bg-gray-50">{{ $debtors->links() }}</div>
+        <div class="p-4 border-t border-gray-100 bg-gray-50 text-xs">{{ $debtors->links() }}</div>
         @endif
     </section>
 
-    <section class="bg-white rounded-[2.5rem] shadow-xl shadow-black-200/50 border border-gray-100 overflow-hidden">
-        <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
+    <section class="bg-white rounded-2xl sm:rounded-[2.5rem] shadow-xl shadow-black-200/50 border border-gray-100 overflow-hidden">
+        <div class="p-4 sm:p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
             <div class="flex items-center gap-3">
                 <div class="p-2 bg-[#9E6B73]/10 text-[#9E6B73] rounded-xl"><span class="material-symbols-rounded">badge</span></div>
                 <div>
-                    <h3 class="font-bold text-gray-800 text-lg">Operators</h3>
-                    <p class="text-xs text-gray-400">Total: {{ $operators->total() }}</p>
+                    <h3 class="font-bold text-gray-800 text-base sm:text-lg">Operators</h3>
+                    <p class="text-[10px] sm:text-xs text-gray-400">Total: {{ $operators->total() }}</p>
                 </div>
             </div>
             <div class="relative w-full md:w-56">
@@ -506,8 +532,9 @@
                 <input type="text" wire:model.live.debounce.300ms="search_op" placeholder="Search Staff..." class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#9E6B73] outline-none">
             </div>
         </div>
-        <div class="overflow-x-auto custom-scrollbar" style="max-height: 500px;">
-            <table class="w-full text-left text-sm border-collapse relative">
+        <div class="overflow-x-auto custom-scrollbar">
+            <div class="min-w-[800px] overflow-y-auto px-1" style="max-height: 500px;">
+                <table class="w-full text-left text-sm border-collapse relative">
                 <thead class="sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10 shadow-sm">
                     <tr class="text-xs text-gray-400 uppercase tracking-wider border-b border-gray-200">
                         <th class="p-4 font-bold text-left">Name</th>
@@ -532,8 +559,9 @@
                 </tbody>
             </table>
         </div>
+        </div>
         @if ($operators->hasPages())
-        <div class="p-4 border-t border-gray-100 bg-gray-50">{{ $operators->links() }}</div>
+        <div class="p-4 border-t border-gray-100 bg-gray-50 text-xs">{{ $operators->links() }}</div>
         @endif
     </section>
 
@@ -557,9 +585,9 @@
     <template x-teleport="body">
         <div style="z-index: 9999; position: relative;">
             <div x-show="showPaymentModal" x-transition.opacity style="display: none;" class="fixed inset-0 bg-black/50 backdrop-blur-sm" @click="showPaymentModal = false"></div>
-            <div x-show="showPaymentModal" x-transition.scale style="display: none;" class="fixed inset-0 flex items-center justify-center" @click.self="showPaymentModal = false">
-                <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm flex flex-col">
-                    <div class="flex justify-between items-center mb-5">
+            <div x-show="showPaymentModal" x-transition.scale style="display: none;" class="fixed inset-0 flex items-center justify-center p-4" @click.self="showPaymentModal = false">
+                <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm flex flex-col max-h-[95vh] overflow-y-auto custom-scrollbar">
+                    <div class="flex justify-between items-center mb-5 shrink-0">
                         <h3 class="text-xl font-extrabold text-gray-800">Record Payment</h3>
                         <button type="button" @click="showPaymentModal = false" class="text-gray-400 hover:text-gray-600 transition"><span class="material-symbols-rounded">close</span></button>
                     </div>
@@ -752,23 +780,23 @@
     <template x-teleport="body">
         <div style="z-index: 9999; position: relative;">
             <div x-show="showEmailModal" x-transition.opacity style="display: none;" class="fixed inset-0 bg-black/40 backdrop-blur-sm" @click="showEmailModal = false"></div>
-            <div x-show="showEmailModal" x-transition.scale style="display: none;" class="fixed inset-0 flex items-center justify-center" @click.self="showEmailModal = false">
-                <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
-                    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white rounded-t-xl">
+            <div x-show="showEmailModal" x-transition.scale style="display: none;" class="fixed inset-0 flex items-center justify-center p-4" @click.self="showEmailModal = false">
+                <div class="relative bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+                    <div class="px-4 sm:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white rounded-t-xl sm:rounded-t-2xl shrink-0">
                         <div class="flex items-center gap-2 text-[#9E6B73]">
                             <span class="material-symbols-rounded text-xl">mail</span>
-                            <h3 class="font-bold text-lg text-[#9E6B73]">Send Email</h3>
+                            <h3 class="font-bold text-base sm:text-lg text-[#9E6B73]">Send Email</h3>
                         </div>
                         <button type="button" @click="showEmailModal = false" class="text-gray-400 hover:text-gray-600 transition"><span class="material-symbols-rounded text-2xl">close</span></button>
                     </div>
-                    <div class="p-6 overflow-y-auto custom-scrollbar">
-                        <form wire:submit.prevent="sendEmail">
-                            <div class="flex items-start mb-2">
-                                <label class="text-[11px] font-bold text-slate-500 w-24 text-right pr-3 pt-2">From:</label>
+                    <div class="p-4 sm:p-6 overflow-y-auto custom-scrollbar">
+                        <form wire:submit.prevent="sendEmail" class="space-y-4">
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-0">
+                                <label class="text-[11px] font-bold text-slate-500 sm:w-24 sm:text-right sm:pr-3 sm:pt-2">From:</label>
                                 <div class="flex-grow space-y-2">
                                     <div class="flex items-center gap-2">
                                         <span class="text-[10px] font-bold text-gray-400 w-12 text-right">Address:</span>
-                                        <input type="text" value="bigfun.qld.au@gmail.com" class="flex-grow text-xs p-1.5 border border-slate-200 rounded bg-slate-100 text-slate-500 cursor-not-allowed" readonly>
+                                        <input type="text" value="bigfun.qld.au@gmail.com" class="flex-grow text-xs p-1.5 border border-slate-200 rounded bg-slate-100 text-slate-500 cursor-not-allowed" readonly title="Sent via system">
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <span class="text-[10px] font-bold text-gray-400 w-12 text-right">Name:</span>
@@ -776,32 +804,32 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex items-center mb-2">
-                                <label class="text-[11px] font-bold text-slate-500 w-24 text-right pr-3">To:</label>
-                                <input type="text" wire:model="email_to" class="flex-grow text-xs p-1.5 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9E6B73]">
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
+                                <label class="text-[11px] font-bold text-slate-500 sm:w-24 sm:text-right sm:pr-3">To:</label>
+                                <input type="text" wire:model="email_to" class="flex-grow text-xs p-2 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9E6B73]">
                             </div>
-                            <div class="flex items-center mb-2">
-                                <label class="text-[11px] font-bold text-slate-500 w-24 text-right pr-3">Cc:</label>
-                                <input type="text" wire:model="email_cc" class="flex-grow text-xs p-1.5 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9E6B73]">
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
+                                <label class="text-[11px] font-bold text-slate-500 sm:w-24 sm:text-right sm:pr-3">Cc:</label>
+                                <input type="text" wire:model="email_cc" class="flex-grow text-xs p-2 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9E6B73]">
                             </div>
-                            <div class="flex items-center mb-2">
-                                <label class="text-[11px] font-bold text-slate-500 w-24 text-right pr-3">Bcc:</label>
-                                <input type="text" wire:model="email_bcc" class="flex-grow text-xs p-1.5 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9E6B73]">
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
+                                <label class="text-[11px] font-bold text-slate-500 sm:w-24 sm:text-right sm:pr-3">Bcc:</label>
+                                <input type="text" wire:model="email_bcc" class="flex-grow text-xs p-2 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9E6B73]">
                             </div>
-                            <div class="flex items-center mb-2">
-                                <label class="text-[11px] font-bold text-slate-500 w-24 text-right pr-3">Subject:</label>
-                                <input type="text" wire:model="email_subject" class="flex-grow text-xs p-1.5 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9E6B73] font-medium text-slate-800">
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
+                                <label class="text-[11px] font-bold text-slate-500 sm:w-24 sm:text-right sm:pr-3">Subject:</label>
+                                <input type="text" wire:model="email_subject" class="flex-grow text-xs p-2 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9E6B73] font-medium text-slate-800">
                             </div>
-                            <div class="flex items-center mb-4">
-                                <label class="text-[11px] font-bold text-slate-500 w-24 text-right pr-3">Attachment:</label>
-                                <div class="flex items-center gap-2">
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
+                                <label class="text-[11px] font-bold text-slate-500 sm:w-24 sm:text-right sm:pr-3">Attachment:</label>
+                                <div class="flex items-center gap-2 py-1">
                                     <input type="checkbox" checked class="w-4 h-4 text-[#9E6B73] rounded border-gray-300">
-                                    <span class="text-[#3182ce] underline font-semibold text-[13px] cursor-pointer">{{ $email_attachment }}</span>
+                                    <span class="text-[#3182ce] underline font-semibold text-xs sm:text-[13px] cursor-pointer break-all">{{ $email_attachment }}</span>
                                 </div>
                             </div>
-                            <div class="flex items-start mb-4">
-                                <label class="text-[11px] font-bold text-slate-500 w-24 text-right pr-3">Body:</label>
-                                <textarea wire:model="email_body" rows="8" class="flex-grow text-xs p-2 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9E6B73] font-mono leading-relaxed resize-none"></textarea>
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-0">
+                                <label class="text-[11px] font-bold text-slate-500 sm:w-24 sm:text-right sm:pr-3 sm:pt-2">Body:</label>
+                                <textarea wire:model="email_body" rows="8" class="flex-grow text-xs p-3 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9E6B73] font-mono leading-relaxed resize-none transition-all"></textarea>
                             </div>
 
                             <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
@@ -821,9 +849,9 @@
     <template x-teleport="body">
         <div style="z-index: 10000; position: relative;">
             <div x-show="showPaymentDetailsModal" x-transition.opacity style="display: none;" class="fixed inset-0 bg-black/40 backdrop-blur-sm" @click="showPaymentDetailsModal = false"></div>
-            <div x-show="showPaymentDetailsModal" x-transition.scale style="display: none;" class="fixed inset-0 flex items-center justify-center" @click.self="showPaymentDetailsModal = false">
-                <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
-                    <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+            <div x-show="showPaymentDetailsModal" x-transition.scale style="display: none;" class="fixed inset-0 flex items-center justify-center p-4" @click.self="showPaymentDetailsModal = false">
+                <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto custom-scrollbar">
+                    <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3 shrink-0">
                         <h3 class="text-lg font-bold text-gray-800">Transaction Details</h3>
                         <button type="button" @click="showPaymentDetailsModal = false" class="text-gray-400 hover:text-gray-600 transition"><span class="material-symbols-rounded">close</span></button>
                     </div>
@@ -919,6 +947,37 @@
                     <button @click="sentSuccessModal = false; $wire.resetEmailState()" class="w-full py-4 bg-[#9E6B73] text-white rounded-2xl font-bold hover:bg-[#86545C] shadow-lg shadow-[#9E6B73]/20 transition-all active:scale-[0.98]">
                         Great, thanks!
                     </button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- EMAIL CONFIRMATION MODAL -->
+    <template x-teleport="body">
+        <div x-show="confirmEmailModal" class="fixed inset-0 z-[10000] overflow-y-auto" x-cloak style="display: none;">
+            <div class="flex items-center justify-center min-h-screen px-4">
+                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="confirmEmailModal = false"></div>
+                <div x-show="confirmEmailModal" 
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     class="relative bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-md z-10 text-center">
+                    
+                    <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-600 ring-8 ring-amber-50/50">
+                        <span class="material-symbols-rounded text-3xl">priority_high</span>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">{{ $confirmEmailTitle }}</h3>
+                    <div class="text-sm text-gray-500 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100 leading-relaxed text-left">
+                        {!! $confirmEmailMessage !!}
+                    </div>
+                    
+                    <div class="flex justify-center gap-3">
+                        <button @click="confirmEmailModal = false" class="flex-1 py-3.5 rounded-2xl text-gray-600 hover:bg-gray-100 text-sm font-bold transition">Cancel</button>
+                        <button wire:click="proceedWithEmail" class="flex-1 py-3.5 rounded-2xl bg-[#9E6B73] text-white hover:bg-[#86545C] text-sm font-bold shadow-lg shadow-[#9E6B73]/20 transition flex items-center justify-center gap-2">
+                             Proceed
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

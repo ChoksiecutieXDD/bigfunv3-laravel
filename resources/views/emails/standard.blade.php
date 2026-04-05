@@ -22,7 +22,7 @@
 
             <div class="signature">
                 Kind regards,<br>
-                <strong>Jelly</strong><br><br>
+                <strong>Jhelly</strong><br><br>
                 --<br>
                 <strong>Jhelly Goode</strong><br>
                 Tel: <a href="tel:1800244386">1800 BIGFUN (244-386)</a><br>

@@ -69,52 +69,57 @@
         }
     </style>
 
-    <div class="max-w-[1440px] mx-auto">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Top Overview & Stats -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-6">
-        <div class="w-full md:w-auto">
-            <h1 class="text-2xl md:text-3xl font-extrabold text-white drop-shadow-sm">Hello, {{ $firstNameOnly }}! 👋</h1>
-            <p class="text-white/90 font-medium mt-1 text-sm md:text-base">Here is your operational overview.</p>
-        </div>
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-8 mt-4">
+            <div class="w-full lg:w-auto">
+                <h1 class="text-2xl md:text-4xl font-extrabold text-white drop-shadow-md">Hello, {{ $firstNameOnly }}! 👋</h1>
+                <p class="text-white/90 font-medium mt-1 text-sm md:text-base">Here is your operational overview.</p>
+            </div>
 
-        <div class="flex gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-            <div class="bg-white/90 backdrop-blur px-5 py-3 rounded-2xl shadow-sm border border-white/50 flex items-center gap-3 min-w-[140px] flex-1 md:flex-none">
-                <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0"><span class="material-symbols-rounded">calendar_month</span></div>
-                <div>
-                    <div class="text-[10px] md:text-xs text-gray-400 font-bold uppercase">Upcoming</div>
-                    <div class="text-lg md:text-xl font-bold text-gray-800 leading-none">{{ $upcoming_count }}</div>
+            <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <div class="bg-white/90 backdrop-blur px-5 py-4 rounded-2xl shadow-sm border border-white/50 flex items-center gap-4 flex-1 lg:min-w-[180px]">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 shadow-inner">
+                        <span class="material-symbols-rounded text-2xl">calendar_month</span>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-0.5">Upcoming</div>
+                        <div class="text-xl md:text-2xl font-black text-gray-800 leading-none">{{ $upcoming_count }}</div>
+                    </div>
+                </div>
+                <div class="bg-white/90 backdrop-blur px-5 py-4 rounded-2xl shadow-sm border border-white/50 flex items-center gap-4 flex-1 lg:min-w-[180px]">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0 shadow-inner">
+                        <span class="material-symbols-rounded text-2xl">check_circle</span>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-0.5">Completed</div>
+                        <div class="text-xl md:text-2xl font-black text-gray-800 leading-none">{{ $completed_count }}</div>
+                    </div>
                 </div>
             </div>
-            <div class="bg-white/90 backdrop-blur px-5 py-3 rounded-2xl shadow-sm border border-white/50 flex items-center gap-3 min-w-[140px] flex-1 md:flex-none">
-                <div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600 shrink-0"><span class="material-symbols-rounded">check_circle</span></div>
-                <div>
-                    <div class="text-[10px] md:text-xs text-gray-400 font-bold uppercase">Completed</div>
-                    <div class="text-lg md:text-xl font-bold text-gray-800 leading-none">{{ $completed_count }}</div>
-                </div>
-            </div>
         </div>
-    </div>
 
-    <!-- Livewire Reactive Search Bar -->
-    <div class="bg-white/90 backdrop-blur-md rounded-2xl p-6 mb-8 border border-white/50 shadow-sm">
-        <div class="flex items-center gap-2 mb-4">
-            <span class="material-symbols-rounded text-[#9E6B73]">search</span>
-            <h2 class="text-lg font-bold text-gray-800">Find Booking</h2>
-        </div>
-        <div class="flex flex-col sm:flex-row gap-2 w-full">
-            <div class="relative w-full">
-                <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
-                <!-- Debounce prevents the database from being spammed while typing -->
-                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Job ID or Customer Name..."
-                    class="pl-10 pr-4 py-3 rounded-xl text-sm border border-gray-200 focus:border-[#9E6B73] focus:ring-2 focus:ring-[#9E6B73]/20 w-full shadow-sm bg-white text-gray-800">
+        <!-- Livewire Reactive Search Bar -->
+        <div class="bg-white/95 backdrop-blur-md rounded-2xl p-5 sm:p-6 mb-10 border border-white/50 shadow-xl shadow-black/10">
+            <div class="flex items-center gap-3 mb-5 border-b border-gray-100 pb-3">
+                <div class="w-8 h-8 rounded-lg bg-[#FDF2F4] flex items-center justify-center text-[#9E6B73]">
+                    <span class="material-symbols-rounded text-xl">search</span>
+                </div>
+                <h2 class="text-lg font-bold text-gray-800">Find Booking</h2>
             </div>
-            @if (!empty($search))
-            <button wire:click="clearSearch" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-3 rounded-xl text-sm font-bold transition flex items-center justify-center w-full sm:w-auto">
-                <span class="material-symbols-rounded">close</span>
-            </button>
-            @endif
+            <div class="flex flex-col sm:flex-row gap-3 w-full">
+                <div class="relative flex-grow">
+                    <span class="material-symbols-rounded absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">search</span>
+                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search by Job ID or Customer Name..."
+                        class="pl-12 pr-4 py-4 rounded-xl text-sm border-2 border-gray-50 focus:border-[#9E6B73] focus:ring-4 focus:ring-[#9E6B73]/5 w-full shadow-inner bg-gray-50/50 text-gray-800 transition-all font-medium">
+                </div>
+                @if (!empty($search))
+                <button wire:click="clearSearch" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-6 py-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center sm:w-auto shadow-sm">
+                    <span class="material-symbols-rounded mr-2">close</span> Clear
+                </button>
+                @endif
+            </div>
         </div>
-    </div>
 
     <!-- 1. UPCOMING SCHEDULE -->
     <div class="mb-10">

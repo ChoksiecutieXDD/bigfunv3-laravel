@@ -1,26 +1,28 @@
-<div class="max-w-[1440px] mx-auto w-full pb-12">
+<div class="max-w-[1440px] mx-auto w-full pb-12 px-4 sm:px-6 lg:px-8">
     <!-- Header -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-8 mt-4">
         <div>
-            <h1 class="text-3xl font-extrabold text-white drop-shadow-sm">Logistics Overview</h1>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-white drop-shadow-sm">Logistics Overview</h1>
             <p class="text-white/90 font-medium mt-1">Active routes and upcoming assignments.</p>
         </div>
     </div>
 
     <!-- Search Section -->
-    <div class="bg-white/95 backdrop-blur-md rounded-2xl p-6 mb-10 border border-white/50 shadow-sm transition-all hover:shadow-md">
-        <div class="flex items-center gap-2 mb-4">
-            <span class="material-symbols-rounded text-[#9E6B73]">local_shipping</span>
+    <div class="bg-white/95 backdrop-blur-md rounded-2xl p-5 sm:p-6 mb-10 border border-white/50 shadow-xl shadow-black/10">
+        <div class="flex items-center gap-3 mb-5 border-b border-gray-100 pb-3">
+            <div class="w-8 h-8 rounded-lg bg-[#FDF2F4] flex items-center justify-center text-[#9E6B73]">
+                <span class="material-symbols-rounded text-xl">local_shipping</span>
+            </div>
             <h2 class="text-lg font-bold text-gray-800">Find Delivery</h2>
         </div>
-        <div class="flex flex-col md:flex-row gap-4">
-            <div class="relative flex-1">
-                <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
+        <div class="flex flex-col sm:flex-row gap-3 w-full">
+            <div class="relative flex-grow">
+                <span class="material-symbols-rounded absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">search</span>
                 <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search ID, Customer, or Suburb..."
-                    class="pl-10 pr-4 py-3 rounded-xl text-sm border border-gray-100 focus:border-[#9E6B73] focus:ring-4 focus:ring-[#9E6B73]/10 w-full shadow-sm bg-white/50 text-gray-800 transition-all">
+                    class="pl-12 pr-4 py-4 rounded-xl text-sm border-2 border-gray-50 focus:border-[#9E6B73] focus:ring-4 focus:ring-[#9E6B73]/5 w-full shadow-inner bg-gray-50/50 text-gray-800 transition-all font-medium">
             </div>
             @if(!empty($search))
-                <button wire:click="$set('search', '')" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-sm">Clear</button>
+                <button wire:click="$set('search', '')" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-6 py-4 rounded-xl text-sm font-bold transition-all shadow-sm">Clear</button>
             @endif
         </div>
     </div>

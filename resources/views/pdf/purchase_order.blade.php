@@ -164,7 +164,10 @@
         .items-table td {
             padding: 8px 5px;
             vertical-align: top;
-            border-bottom: 1px solid #ccc;
+            border-bottom: 1px dashed #ccc;
+        }
+        .items-table tr:last-child td {
+            border-bottom: none;
         }
 
         .signature-section {
@@ -279,8 +282,6 @@
                 <th width="10%" class="text-center">Qty</th>
                 @if($include_attraction_cost)
                 <th width="20%" class="text-right">Price</th>
-                @else
-                <th width="0%"></th>
                 @endif
             </tr>
         </thead>

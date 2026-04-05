@@ -282,7 +282,93 @@ class LogisticsInbox extends Component
         $this->dispatch('open-modal', 'paymentDetailsModal');
     }
 
+    // Email Confirmation
+    public $confirmEmailTitle;
+    public $confirmEmailMessage;
+    public $pendingEmailType;
+    public $pendingBookingId;
+
+    // Global PDF Price Toggles (per section)
+    public $invoice_pdf_prices = true;
+    public $debtor_pdf_prices = true;
+
+    public function toggleAttractionCost($bookingId)
+    {
+        $booking = Booking::findOrFail($bookingId);
+        $booking->update(['include_attraction_cost' => !$booking->include_attraction_cost]);
+        $this->dispatch('notify', title: 'Updated', message: 'PDF attraction prices ' . ($booking->include_attraction_cost ? 'included.' : 'excluded.'));
+    }
+
     public function prepareEmail($bookingId, $type)
+    {
+        $booking = Booking::with('payments')->findOrFail($bookingId);
+        
+        // Apply global section settings
+        if ($type === 'invoice' || $type === 'receipt' || $type === 'envelope') {
+            $booking->update(['include_attraction_cost' => $this->invoice_pdf_prices]);
+        } elseif ($type === 'debt') {
+            $booking->update(['include_attraction_cost' => $this->debtor_pdf_prices]);
+        }
+        $booking->refresh();
+
+        $amountPaid = (float)$booking->amount_paid;
+        $totalAmount = (float)$booking->total_amount;
+        $balanceDue = max(0, $totalAmount - $amountPaid);
+
+        $lastSentAt = DB::table('email_logs')
+            ->where('booking_id', $bookingId)
+            ->where('type', $type)
+            ->max('sent_at'); // String timestamp
+            
+        $lastPaymentAt = BookingPayment::where('booking_id', $bookingId)->max('created_at');
+        
+        $hasHistory = !empty($lastSentAt);
+        $newPaymentMade = $hasHistory && (!empty($lastPaymentAt) && Carbon::parse($lastPaymentAt)->isAfter(Carbon::parse($lastSentAt)));
+
+        $warnings = [];
+
+        // 1. Smart Debt Warning (Even for first send)
+        $isOverdue = Carbon::parse($booking->event_date)->startOfDay()->isBefore(now()->startOfDay());
+        $isCompleted = $booking->status === 'Completed';
+        $hasDebt = $balanceDue > 0 && ($isOverdue || $isCompleted);
+
+        if ($hasDebt && in_array($type, ['receipt', 'invoice', 'po'])) {
+            $warnings[] = "This booking has an outstanding debt of $" . number_format($balanceDue, 2) . ".";
+        }
+
+        // 2. Resend Warning (Only if no new payments since last send)
+        if ($hasHistory && !$newPaymentMade) {
+            if ($type === 'receipt') {
+                $warnings[] = "A receipt has already been sent for the existing payments.";
+            } else {
+                $prefix = ($type === 'invoice') ? 'An' : 'A';
+                $typeName = match($type) {
+                    'invoice' => 'Invoice',
+                    'po' => 'Purchase Order',
+                    default => 'Email'
+                };
+                $warnings[] = "$prefix $typeName has already been sent to this customer.";
+            }
+        }
+
+        if (!empty($warnings)) {
+            $this->confirmEmailTitle = $hasDebt ? "Debt Reminder Warning" : "Send Another Email?";
+            $this->confirmEmailMessage = implode("<br>", $warnings) . "<br><br>Do you want to proceed with sending the email?";
+            $this->pendingEmailType = $type;
+            $this->pendingBookingId = $bookingId;
+            $this->dispatch('open-modal', 'confirmEmailModal');
+            return;
+        }
+
+        $this->executePrepareEmail($bookingId, $type);
+    }
+
+    public function proceedWithEmail()
+    {
+        $this->executePrepareEmail($this->pendingBookingId, $this->pendingEmailType);
+    }
+
+    public function executePrepareEmail($bookingId, $type)
     {
         $booking = Booking::findOrFail($bookingId);
         $this->email_booking_id = $bookingId;
@@ -312,12 +398,10 @@ class LogisticsInbox extends Component
         }
 
         if ($type === 'invoice') {
-            // Big Fun Invoice (Paperwork/Deposit)
             $this->email_subject = "Big Fun Invoice - " . $invNum;
             $this->email_body = "Hello,\n\nPlease find attached the paperwork for your booking on $eventDate. Kindly review the document to ensure all contact and delivery details are correct, then sign and return the form to us via email.\n\nBooking Details:\nDate: $eventDate\nTime: $timeString\nLocation: $fullAddress\n\nPayment Details:\nYour deposit is now due. The remaining balance is payable during the week of your event via direct deposit or Electronic Funds Transfer (EFT). Please note that our drivers do not accept payments.\n\nTotal Amount: $$totalAmount\nBalance Due: $" . number_format($balanceDue, 2) . "\n\nAll payments should be made to Big Fun. Please ensure your invoice number is quoted as the payment reference.\n\nIf you have any questions or require assistance, please feel free to contact us on 1800 244 386.\n\nThank you again for booking with us.\n\nKind regards,\nBIG FUN\n1800 244 386";
             $this->email_attachment = "BigFunInvoice-{$booking->id}.pdf";
         } elseif ($type === 'receipt') {
-            // Payment Receipt
             $this->email_subject = "Payment Receipt - Booking #" . $booking->id;
             $this->email_body = "$fullName\n\nBIG FUN INVOICE No.: $invNum\n\nThank you for your payment for your booking on $eventDate. Do not hesitate to contact us if you have any questions.\n\nInvoice Amount: $$totalAmount\n\nAmount Paid:  $" . number_format($amountPaid, 2) . "\nPayment Method: $paymentMethod\n\nAmount Owing: $" . number_format($balanceDue, 2) . "\n\nREMEMBER: Your final payment is due PRIOR to your event.\n\nRegards\n\nBIG FUN\nwww.bigfun.com.au\n1800 244 386";
             $this->email_attachment = "BigFunReceipt-{$booking->id}.pdf";
@@ -334,6 +418,7 @@ class LogisticsInbox extends Component
             $this->email_attachment = "BigFunDebt-{$booking->id}.pdf";
         }
 
+        $this->dispatch('close-modal', 'confirmEmailModal');
         $this->dispatch('open-modal', 'emailModal');
     }
 

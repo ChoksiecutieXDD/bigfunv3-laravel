@@ -1,46 +1,48 @@
-<div class="max-w-[1440px] mx-auto w-full pb-12">
+<div class="max-w-[1440px] mx-auto w-full pb-12 px-4 sm:px-6 lg:px-8">
     <!-- Header -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-6">
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6 mt-4">
         <div>
-            <h1 class="text-3xl font-extrabold text-white drop-shadow-sm">Lead Operator Log</h1>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-white drop-shadow-sm">Lead Operator Log</h1>
             <p class="text-white/90 font-medium mt-1">Full record of all jobs assigned to you as Lead Operator.</p>
-            <p class="text-[10px] text-white/50 mt-1 uppercase tracking-widest font-black">Logged in as: {{ $fullName }}</p>
+            <p class="text-[10px] text-white/40 mt-1 uppercase tracking-widest font-black leading-none">Logged in as: {{ $fullName }}</p>
         </div>
 
-        <div class="bg-white/20 backdrop-blur-md text-white px-6 py-3 rounded-2xl border border-white/30 text-xs font-black uppercase tracking-widest shadow-sm">
-            Records Found: <span class="text-white drop-shadow-sm">{{ $historyData->total() }}</span>
+        <div class="bg-white/10 backdrop-blur-md text-white px-5 py-3 rounded-2xl border border-white/20 text-xs font-black uppercase tracking-widest shadow-sm w-full lg:w-auto text-center lg:text-left">
+            Records Found: <span class="text-white drop-shadow-sm font-black">{{ $historyData->total() }}</span>
         </div>
     </div>
 
     <!-- Filters Section -->
-    <div class="bg-white/95 backdrop-blur-md rounded-2xl p-6 mb-10 border border-white/50 shadow-sm transition-all hover:shadow-md">
-        <div class="flex items-center gap-2 mb-6">
-            <span class="material-symbols-rounded text-[#9E6B73]">filter_list</span>
+    <div class="bg-white/95 backdrop-blur-md rounded-2xl p-5 sm:p-6 mb-10 border border-white/50 shadow-xl shadow-black/10">
+        <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-3">
+            <div class="w-8 h-8 rounded-lg bg-[#FDF2F4] flex items-center justify-center text-[#9E6B73]">
+                <span class="material-symbols-rounded text-xl">filter_list</span>
+            </div>
             <h2 class="text-lg font-bold text-gray-800">Filter History</h2>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-5 items-end">
             <!-- Search -->
-            <div class="md:col-span-5">
+            <div class="lg:col-span-5">
                 <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Search Details</label>
                 <div class="relative">
                     <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
                     <input wire:model.live.debounce.300ms="search" type="text" placeholder="Job ID, Name, Location..."
-                        class="pl-10 pr-4 py-3 rounded-xl text-sm border border-gray-100 focus:border-[#9E6B73] focus:ring-4 focus:ring-[#9E6B73]/10 w-full shadow-sm bg-white/50 text-gray-800 transition-all">
+                        class="pl-10 pr-4 py-3 rounded-xl text-sm border-2 border-gray-50 focus:border-[#9E6B73] focus:ring-4 focus:ring-[#9E6B73]/5 shadow-inner bg-gray-50/50 text-gray-800 transition-all font-medium">
                 </div>
             </div>
 
             <!-- Date -->
-            <div class="md:col-span-3">
+            <div class="lg:col-span-3">
                 <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Specific Date</label>
                 <input wire:model.live="specificDate" type="date"
-                    class="w-full px-4 py-3 rounded-xl text-sm border border-gray-100 focus:border-[#9E6B73] focus:ring-4 focus:ring-[#9E6B73]/10 shadow-sm bg-white/50 text-gray-800 transition-all">
+                    class="w-full px-4 py-3 rounded-xl text-sm border-2 border-gray-50 focus:border-[#9E6B73] focus:ring-4 focus:ring-[#9E6B73]/5 shadow-inner bg-gray-50/50 text-gray-800 transition-all font-bold">
             </div>
 
             <!-- Status -->
-            <div class="md:col-span-2">
+            <div class="lg:col-span-2">
                 <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Status</label>
-                <select wire:model.live="statusFilter" class="w-full px-4 py-3 rounded-xl text-sm border border-gray-100 focus:border-[#9E6B73] focus:ring-4 focus:ring-[#9E6B73]/10 shadow-sm bg-white/50 text-gray-800 transition-all font-bold">
+                <select wire:model.live="statusFilter" class="w-full px-4 py-3 rounded-xl text-sm border-2 border-gray-50 focus:border-[#9E6B73] focus:ring-4 focus:ring-[#9E6B73]/5 shadow-inner bg-gray-50/50 text-gray-800 transition-all font-bold">
                     <option value="">All Statuses</option>
                     <option value="Pending">Pending</option>
                     <option value="Confirmed">Confirmed</option>
@@ -50,8 +52,8 @@
             </div>
 
             <!-- Reset -->
-            <div class="md:col-span-2 flex gap-2">
-                <button wire:click="clearFilters" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm flex items-center justify-center gap-2">
+            <div class="lg:col-span-2 flex gap-2">
+                <button wire:click="clearFilters" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm flex items-center justify-center gap-2">
                     <span class="material-symbols-rounded text-base">close</span> Reset
                 </button>
             </div>

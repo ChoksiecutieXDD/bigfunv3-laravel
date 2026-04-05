@@ -16,8 +16,15 @@
     $balance_due  = $total_amount - $amount_paid;
 
     // Payment Type Logic
-    $paymentType = $booking->payment_type ?? 'cash_eft';
-    $isCard = ($paymentType === 'Card Holder' || $paymentType === 'credit_card');
+    $paymentType = strtolower($booking->payment_type ?? 'eft');
+    $isCard = in_array($paymentType, ['card holder', 'credit_card', 'card_holder']);
+    
+    $paymentMethodLabel = 'EFT';
+    if ($paymentType === 'cash') {
+        $paymentMethodLabel = 'Cash';
+    } elseif ($isCard) {
+        $paymentMethodLabel = 'Credit Card';
+    }
 
     $baseAmount = $total_amount;
     $surcharge  = 0.0;
@@ -50,8 +57,8 @@
     }
 
     if (!$include_attraction_cost) {
-        $total_amount -= $attraction_subtotal;
-        $balance_due -= $attraction_subtotal;
+        // We no longer subtract from the total to ensure accuracy
+        // But we handle the display subtotal in the table instead
         $isFullyPaid = ($balance_due <= 0.01);
     }
 
@@ -60,6 +67,10 @@
     $invNo = !empty($booking->invoice_number) ? $booking->invoice_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT);
     $receiptNo = $invNo . '-REC';
 
+    // Extract General and Specific Extras
+    $general_extras = !empty($booking->general_extra) ? (is_string($booking->general_extra) ? json_decode($booking->general_extra, true) : $booking->general_extra) : [];
+    $specific_extras = !empty($booking->specific_extra) ? (is_string($booking->specific_extra) ? json_decode($booking->specific_extra, true) : $booking->specific_extra) : [];
+
     // Event date
     $eventDate = !empty($booking->event_date) ? date('d/m/Y', strtotime($booking->event_date)) : '-';
 
@@ -67,6 +78,7 @@
     $start = !empty($booking->start_time) ? date('h:i A', strtotime($booking->start_time)) : '-';
     $end   = (!empty($booking->end_time) && $booking->end_time !== '00:00:00') ? date('h:i A', strtotime($booking->end_time)) : '';
     $timeRange = $end ? ($start . ' - ' . $end) : $start;
+    $col_span = $include_attraction_cost ? 4 : 3;
 @endphp
 <!DOCTYPE html>
 <html>
@@ -109,20 +121,20 @@
             text-transform: uppercase;
         }
 
-        /* Watermark Stamp */
+        /* Watermark Stamp - Positioned relative to totals container */
         .paid-stamp {
             position: absolute;
-            top: 180px;
-            right: 60px;
+            top: 5px;
+            right: 20px;
             border: 4px solid #28a745;
             color: #28a745;
-            font-size: 45px;
+            font-size: 40px;
             font-weight: bold;
-            padding: 10px 30px;
+            padding: 5px 15px;
             text-transform: uppercase;
-            transform: rotate(-15deg);
-            opacity: 0.25;
-            z-index: -1;
+            transform: rotate(-10deg);
+            opacity: 0.3; /* Increased for better visibility over text */
+            z-index: 9999; /* Maintain front placement */
         }
 
         .row {
@@ -142,26 +154,27 @@
             text-align: right;
         }
 
-        /* Items Table */
-        table {
+        /* Items Table matching Invoice */
+        .items-table {
             width: 100%;
             border-collapse: collapse;
+            border: 2px solid #000;
             margin-bottom: 20px;
         }
-
-        th {
+        .items-table th {
             background-color: #eee;
-            border-bottom: 2px solid #ddd;
-            padding: 8px;
+            border-bottom: 1px solid #000;
+            padding: 8px 5px;
             text-align: left;
             font-weight: bold;
         }
-
-        td {
-            border-bottom: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
+        .items-table td {
+            padding: 8px 5px;
             vertical-align: top;
+            border-bottom: 1px dashed #ccc;
+        }
+        .items-table tr:last-child td {
+            border-bottom: none;
         }
 
         /* Totals Table */
@@ -220,9 +233,6 @@
 
 <body>
 
-    @if($isFullyPaid)
-        <div class="paid-stamp">PAID</div>
-    @endif
 
     <div class="header">
         <div style="float:left;">
@@ -255,7 +265,7 @@
             Event Date: {{ $eventDate }}<br>
 
             <div class="note" style="text-align:right;">
-                <strong>Method:</strong> {{ $isCard ? 'Credit Card' : 'Cash / EFT' }}
+                <strong>Method:</strong> {{ $paymentMethodLabel }}
             </div>
         </div>
 
@@ -267,16 +277,14 @@
         <p>This document confirms that we have received payment for the following items:</p>
     </div>
 
-    <table>
+    <table class="items-table">
         <thead>
             <tr>
                 <th width="{{ $include_attraction_cost ? '40%' : '50%' }}">Ride / Equipment:</th>
                 <th width="{{ $include_attraction_cost ? '30%' : '40%' }}">Specifications:</th>
                 <th width="10%" class="text-center">Qty:</th>
                 @if($include_attraction_cost)
-                <th width="20%" class="text-right">Price:</th>
-                @else
-                <th width="0%"></th>
+                <th width="20%" class="text-right">Price/Cost:</th>
                 @endif
             </tr>
         </thead>
@@ -319,6 +327,91 @@
                         @endif
                     </tr>
                 @endforeach
+
+                @if(!$include_attraction_cost && $attraction_subtotal > 0)
+                    <tr style="background-color: #fafafa;">
+                        <td colspan="{{ $col_span }}" style="padding: 10px 5px; border-bottom: 2px solid #000;">
+                            <span class="bold">Attraction Package Service Fee:</span>
+                        </td>
+                    </tr>
+                @endif
+
+
+                @php
+                    $extra_cost_fallback = (float)($booking->extra_logistics_cost ?? 0);
+                    $has_json_extras = !empty($general_extras) || !empty($specific_extras);
+                    $show_extras_section = $has_json_extras || !empty($booking->logistics_surfaces) || (!$has_json_extras && $extra_cost_fallback > 0);
+                @endphp
+
+                @if($show_extras_section)
+                    @if(!empty($general_extras) || !empty($booking->logistics_surfaces) || (!$has_json_extras && $extra_cost_fallback > 0))
+                        <tr>
+                            <td colspan="{{ $col_span }}" style="padding: 10px 5px 5px 5px; border-bottom: 1px solid #000;">
+                                <span class="bold" style="font-size: 11px;">General Logistic Extras:</span>
+                            </td>
+                        </tr>
+                    @if(!empty($booking->logistics_surfaces))
+                        <tr style="border-bottom: 1px dashed #eee;">
+                            <td colspan="2" style="padding: 5px 5px 5px 15px; font-size: 10px;">
+                                &bull; Logistics Surface: {{ $booking->logistics_surfaces }}
+                            </td>
+                            <td class="text-center" style="padding: 5px; font-size: 10px;">1</td>
+                            @if($include_attraction_cost)
+                            <td class="text-right" style="padding: 5px 5px 5px 15px; font-size: 10px;">-</td>
+                            @endif
+                        </tr>
+                    @endif
+                    @if(is_array($general_extras))
+                        @foreach($general_extras as $label => $cost)
+                            <tr style="border-bottom: 1px dashed #eee;">
+                                <td colspan="2" style="padding: 5px 5px 5px 15px; font-size: 10px;">
+                                    &bull; {{ $label }}
+                                </td>
+                                <td class="text-center" style="padding: 5px; font-size: 10px;">1</td>
+                                @if($include_attraction_cost)
+                                <td class="text-right" style="padding: 5px 5px 5px 15px; font-size: 10px;">
+                                    {{ ($include_attraction_cost && (float)$cost > 0) ? money($cost) : '-' }}
+                                </td>
+                                @endif
+                            </tr>
+                        @endforeach
+                    @endif
+                    @if(!$has_json_extras && $extra_cost_fallback > 0)
+                        <tr style="border-bottom: 1px dashed #eee;">
+                            <td colspan="2" style="padding: 5px 5px 5px 15px; font-size: 10px;">
+                                &bull; General Logistics Charge
+                            </td>
+                            <td class="text-center" style="padding: 5px; font-size: 10px;">1</td>
+                            @if($include_attraction_cost)
+                            <td class="text-right" style="padding: 5px 5px 5px 15px; font-size: 10px;">
+                                {{ $include_attraction_cost ? money($extra_cost_fallback) : '-' }}
+                            </td>
+                            @endif
+                        </tr>
+                    @endif
+                    @endif
+
+                    @if(!empty($specific_extras))
+                        <tr>
+                            <td colspan="{{ $col_span }}" style="padding: 10px 5px 5px 5px; border-bottom: 1px solid #000;">
+                                <span class="bold" style="font-size: 11px;">Specific Extras:</span>
+                            </td>
+                        </tr>
+                        @foreach($specific_extras as $label => $cost)
+                            <tr style="border-bottom: 1px dashed #eee;">
+                                <td colspan="2" style="padding: 5px 5px 5px 15px; font-size: 10px;">
+                                    &bull; {{ $label }}
+                                </td>
+                                <td class="text-center" style="padding: 5px; font-size: 10px;">1</td>
+                                @if($include_attraction_cost)
+                                <td class="text-right" style="padding: 5px 5px 5px 15px; font-size: 10px;">
+                                    {{ ($include_attraction_cost && (float)$cost > 0) ? money($cost) : '-' }}
+                                </td>
+                                @endif
+                            </tr>
+                        @endforeach
+                    @endif
+                @endif
             @else
                 <tr><td colspan="{{ $include_attraction_cost ? 4 : 3 }}" style="text-align:center; color:#777;">No item lines found.</td></tr>
             @endif
@@ -326,42 +419,48 @@
     </table>
 
 
-    <table class="totals-table">
-        @if($isCard && $surcharge > 0)
+    <div style="position: relative; float: right; width: 55%; margin-top: 10px;">
+        <table class="totals-table" style="width: 100%; float: none;">
+            @if($isCard && $surcharge > 0)
+                <tr>
+                    <td>Base Amount:</td>
+                    <td style="text-align:right;">{{ money($baseAmount) }}</td>
+                </tr>
+                <tr>
+                    <td>Card Fee (+2.9%):</td>
+                    <td style="text-align:right;">{{ money($surcharge) }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Total Invoice Amount:</strong></td>
+                    <td style="text-align:right;"><strong>{{ money($total_amount) }}</strong></td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="note" style="border-top:1px solid #ddd;">
+                        Total includes card surcharge.
+                    </td>
+                </tr>
+            @else
+                <tr>
+                    <td>Total Invoice Amount:</td>
+                    <td style="text-align:right;">{{ money($total_amount) }}</td>
+                </tr>
+            @endif
+    
             <tr>
-                <td>Base Amount:</td>
-                <td style="text-align:right;">{{ money($baseAmount) }}</td>
+                <td>Total Paid to Date:</td>
+                <td style="text-align:right;">{{ money($amount_paid) }}</td>
             </tr>
-            <tr>
-                <td>Card Fee (+2.9%):</td>
-                <td style="text-align:right;">{{ money($surcharge) }}</td>
+    
+            <tr class="total-row">
+                <td>Remaining Balance:</td>
+                <td style="text-align:right;">{{ money($balance_due) }}</td>
             </tr>
-            <tr>
-                <td><strong>Total Invoice Amount:</strong></td>
-                <td style="text-align:right;"><strong>{{ money($total_amount) }}</strong></td>
-            </tr>
-            <tr>
-                <td colspan="2" class="note" style="border-top:1px solid #ddd;">
-                    Total includes card surcharge.
-                </td>
-            </tr>
-        @else
-            <tr>
-                <td>Total Invoice Amount:</td>
-                <td style="text-align:right;">{{ money($total_amount) }}</td>
-            </tr>
+        </table>
+        
+        @if($isFullyPaid)
+            <div class="paid-stamp">PAID</div>
         @endif
-
-        <tr>
-            <td>Total Paid to Date:</td>
-            <td style="text-align:right;">{{ money($amount_paid) }}</td>
-        </tr>
-
-        <tr class="total-row">
-            <td>Remaining Balance:</td>
-            <td style="text-align:right;">{{ money($balance_due) }}</td>
-        </tr>
-    </table>
+    </div>
 
     <div class="clear"></div>
 

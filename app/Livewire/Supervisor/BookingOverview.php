@@ -43,6 +43,11 @@ class BookingOverview extends Component
     public $emailAttachment;
     public $isSentSuccessfully = false;
 
+    // --- Confirmation Properties ---
+    public $confirmEmailMessage = '';
+    public $confirmEmailTitle = '';
+    public $pendingEmailType = '';
+
 
     // --- Calendar Modals Properties ---
     public $calMonth;
@@ -206,6 +211,92 @@ class BookingOverview extends Component
 
     // --- Email Logic ---
     public function openEmailModal($type)
+    {
+        $payments = BookingPayment::where('booking_id', $this->booking->id)->get();
+        $amountPaid = $payments->sum('amount');
+        $totalAmount = (float) $this->booking->total_amount;
+        $balanceDue = max(0, $totalAmount - $amountPaid);
+        $paymentsCount = $payments->count();
+
+        $lastSentAt = DB::table('email_logs')
+            ->where('booking_id', $this->booking->id)
+            ->where('type', $type)
+            ->max('sent_at'); // String timestamp
+            
+        $lastPaymentAt = BookingPayment::where('booking_id', $this->booking->id)->max('created_at');
+        
+        $hasHistory = !empty($lastSentAt);
+        $newPaymentMade = $hasHistory && (!empty($lastPaymentAt) && Carbon::parse($lastPaymentAt)->isAfter(Carbon::parse($lastSentAt)));
+
+        $warnings = [];
+
+        // 1. Smart Debt Warning (Even for first send)
+        $isOverdue = Carbon::parse($this->booking->event_date)->startOfDay()->isBefore(now()->startOfDay());
+        $isCompleted = $this->booking->status === 'Completed';
+        $hasDebt = $balanceDue > 0 && ($isOverdue || $isCompleted);
+
+        if ($hasDebt && in_array($type, ['receipt', 'invoice', 'po'])) {
+            $warnings[] = "This booking has an outstanding debt of $" . number_format($balanceDue, 2) . ".";
+        }
+
+        // 2. Resend Warning (Only if no new payments since last send)
+        if ($hasHistory && !$newPaymentMade) {
+            if ($type === 'receipt') {
+                $warnings[] = "A receipt has already been sent for the existing payments.";
+            } else {
+                $prefix = ($type === 'invoice') ? 'An' : 'A';
+                $typeName = match($type) {
+                    'invoice' => 'Invoice',
+                    'po' => 'Purchase Order',
+                    default => 'Email'
+                };
+                $warnings[] = "$prefix $typeName has already been sent to this customer.";
+            }
+        }
+
+        if (!empty($warnings)) {
+            $this->confirmEmailTitle = $hasDebt ? "Debt Reminder Warning" : "Send Another Email?";
+            $this->confirmEmailMessage = implode("<br>", $warnings) . "<br><br>Do you want to proceed with sending the email?";
+            $this->pendingEmailType = $type;
+            $this->dispatch('open-modal', 'confirmEmailModal');
+            return;
+        }
+
+        $this->executeOpenEmailModal($type);
+    }
+
+    public function deleteEmailLog($logId)
+    {
+        if ($logId) {
+            \Illuminate\Support\Facades\DB::table('email_logs')->where('id', $logId)->delete();
+            $this->dispatch('notify', title: 'Deleted', message: 'Email history log removed.');
+        }
+        $this->dispatch('close-modal', 'deleteSingleLogModal');
+    }
+
+    public function deleteAllEmailHistory()
+    {
+        \Illuminate\Support\Facades\DB::table('email_logs')->where('booking_id', $this->booking->id)->delete();
+        $this->booking->update(['invoice_emailed' => false]);
+        $this->dispatch('notify', title: 'Cleared', message: 'All email history has been deleted.');
+        $this->dispatch('close-modal', 'historyClearModal');
+    }
+
+    public function deleteLegacyInvoiceLog()
+    {
+        $this->booking->update(['invoice_emailed' => false]);
+        $this->booking->refresh();
+        $this->dispatch('notify', title: 'Deleted', message: 'Legacy invoice record removed.');
+        $this->dispatch('close-modal', 'deleteLegacyModal');
+    }
+
+    public function proceedWithEmail()
+    {
+        $this->dispatch('close-modal', 'confirmEmailModal');
+        $this->executeOpenEmailModal($this->pendingEmailType);
+    }
+
+    private function executeOpenEmailModal($type)
     {
         $this->emailType = $type;
         $this->emailTo = $this->booking->customer_email;
