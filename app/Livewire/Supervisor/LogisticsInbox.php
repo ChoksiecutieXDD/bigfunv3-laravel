@@ -320,7 +320,7 @@ class LogisticsInbox extends Component
             ->where('type', $type)
             ->max('sent_at'); // String timestamp
             
-        $lastPaymentAt = BookingPayment::where('booking_id', $bookingId)->max('created_at');
+        $lastPaymentAt = BookingPayment::where('booking_id', $bookingId)->max('payment_date');
         
         $hasHistory = !empty($lastSentAt);
         $newPaymentMade = $hasHistory && (!empty($lastPaymentAt) && Carbon::parse($lastPaymentAt)->isAfter(Carbon::parse($lastSentAt)));

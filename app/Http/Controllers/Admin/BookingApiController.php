@@ -61,7 +61,12 @@ class BookingApiController extends Controller
         $res = DB::table('booking_items as bi')
             ->join('bookings as b', 'bi.booking_id', '=', 'b.id')
             ->where('b.event_date', $date)
-            ->where('b.invoice_number', '!=', $invoice)
+            ->when($invoice, function($q) use ($invoice) {
+                return $q->where('b.invoice_number', '!=', $invoice);
+            })
+            ->when($request->query('booking_id'), function($q) use ($request) {
+                return $q->where('b.id', '!=', $request->query('booking_id'));
+            })
             ->where(function ($q) {
                 $q->whereIn('b.status', ['Pending', 'Confirmed', 'Paid'])
                     ->orWhere(function ($q2) {
@@ -107,7 +112,12 @@ class BookingApiController extends Controller
 
         $other_bookings_json = DB::table('bookings')
             ->where('event_date', $date)
-            ->where('invoice_number', '!=', $invoice)
+            ->when($invoice, function($q) use ($invoice) {
+                return $q->where('invoice_number', '!=', $invoice);
+            })
+            ->when($request->query('booking_id'), function($q) use ($request) {
+                return $q->where('id', '!=', $request->query('booking_id'));
+            })
             ->where(function ($q) {
                 $q->whereIn('status', ['Pending', 'Confirmed', 'Paid'])
                     ->orWhere(function ($q2) {

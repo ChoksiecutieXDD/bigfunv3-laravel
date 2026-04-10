@@ -278,6 +278,7 @@ class EditBooking extends Component
 
     public function loadCalendar()
     {
+        $this->tempSelectedDate = $this->form['event_date'];
         $start = Carbon::create($this->calYear, $this->calMonth, 1);
         $end = $start->copy()->endOfMonth();
 
@@ -395,6 +396,19 @@ class EditBooking extends Component
         $saveData['specific_extra'] = json_encode($specificExtras);
         $saveData['extras_json'] = json_encode($this->dynamicExtras);
 
+        // --- HANDLE ATTACHMENTS ---
+        foreach ($this->newAttachments as $field => $file) {
+            if ($file) {
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $file->storeAs('public/uploads', $filename);
+                $saveData[$field] = $filename;
+            }
+        }
+
+        foreach ($this->deletedAttachments as $field) {
+            $saveData[$field] = null;
+        }
+
         // --- SAVE TO DB ---
         $this->booking->update($saveData);
 
@@ -409,9 +423,8 @@ class EditBooking extends Component
             ]);
         }
 
-        foreach ($this->deletedAttachments as $field) {
-            $this->booking->update([$field => null]);
-        }
+        // Sync to Google Sheet (After all updates)
+        app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
 
         $this->dispatch('notify', title: 'Saved!', message: 'Booking successfully updated.', type: 'success');
         

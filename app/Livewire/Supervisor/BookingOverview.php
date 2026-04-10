@@ -223,7 +223,7 @@ class BookingOverview extends Component
             ->where('type', $type)
             ->max('sent_at'); // String timestamp
             
-        $lastPaymentAt = BookingPayment::where('booking_id', $this->booking->id)->max('created_at');
+        $lastPaymentAt = BookingPayment::where('booking_id', $this->booking->id)->max('payment_date');
         
         $hasHistory = !empty($lastSentAt);
         $newPaymentMade = $hasHistory && (!empty($lastPaymentAt) && Carbon::parse($lastPaymentAt)->isAfter(Carbon::parse($lastSentAt)));
@@ -381,6 +381,7 @@ class BookingOverview extends Component
     // --- Live Calendar Logic ---
     public function openCalendarModal()
     {
+        $this->tempSelectedDate = $this->booking->event_date;
         $this->loadCalendar();
         $this->dispatch('open-modal', 'calendarModal');
     }

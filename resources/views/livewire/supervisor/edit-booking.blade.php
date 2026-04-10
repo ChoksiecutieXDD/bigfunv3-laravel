@@ -421,10 +421,10 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             @foreach([
                                 1 => 'delivery_attachment',
-                                2 => 'delivery_attachment_1',
-                                3 => 'delivery_attachment_2',
-                                4 => 'delivery_attachment_3',
-                                5 => 'delivery_attachment_4'
+                                2 => 'delivery_attachment_2',
+                                3 => 'delivery_attachment_3',
+                                4 => 'delivery_attachment_4',
+                                5 => 'delivery_attachment_5'
                             ] as $i => $field)
                             @php
                                 $hasFile = !empty($form[$field]) && !in_array($field, $deletedAttachments);
@@ -483,11 +483,12 @@
                                      data-name="{{ $p['name'] }}" 
                                      data-category="{{ $p['category'] }}" 
                                      data-counts-against="{{ $p['counts_against'] ?: $p['category'] }}"
-                                     data-daily-limit="{{ (int)($catData['limit'] ?? 0) }}"
+                                     data-daily-limit="{{ (int)($p['daily_limit'] ?? 0) }}"
+                                     data-category-limit="{{ (int)($catData['limit'] ?? 0) }}"
                                      data-specification="{{ $p['specification'] ?? '' }}"
                                      data-price="{{ $p['price'] }}"
                                      data-product-sold-out="false"
-                                     @click="const cb = $el.querySelector('.ride-checkbox'); if(cb && !cb.disabled) { cb.checked = !cb.checked; handleSelection(cb); $wire.toggleItem('{{ $p['name'] }}', cb.checked); }">
+                                     @click="const cb = $el.querySelector('.ride-checkbox'); if(cb && !cb.disabled) { handleSelection(cb); }">
                                     <div class="flex justify-between items-start gap-2 mb-2 w-full relative">
                                         <div class="pr-2 w-full">
                                             <div class="flex items-center gap-2 mb-1">
@@ -496,20 +497,14 @@
                                                     <span class="material-symbols-rounded text-lg">info</span>
                                                 </button>
                                             </div>
-                                            <div class="mt-2 status-wrapper"><span class="status-badge status-checking">Checking...</span></div>
+                                            <div class="mt-2"><span class="status-badge status-checking">Checking...</span></div>
                                         </div>
                                         <div class="custom-checkbox flex-shrink-0"></div>
                                         <input type="checkbox" class="ride-checkbox hidden" {{ $isSelected ? 'checked' : '' }}>
                                     </div>
                                     <div class="flex items-center justify-between mt-auto pt-2" @click.stop>
                                         <span class="text-[10px] text-slate-400 font-medium action-text">{{ $isSelected ? 'Booked' : 'Click to select' }}</span>
-                                        @if($isSelected)
-                                        <div class="flex items-center bg-white border border-[#9E6B73] rounded-lg overflow-hidden">
-                                            <button wire:click.stop="updateItemQty('{{ $p['name'] }}', -1)" @click="setTimeout(() => triggerRecalculate(), 100)" class="w-7 h-7 flex items-center justify-center bg-[#FFF5F7] text-[#9E6B73] font-bold hover:bg-[#9E6B73] hover:text-white transition">-</button>
-                                            <input type="text" readonly value="{{ $qty }}" class="w-8 text-center border-none text-xs font-bold text-slate-700 bg-transparent pointer-events-none">
-                                            <button wire:click.stop="updateItemQty('{{ $p['name'] }}', 1)" @click="setTimeout(() => triggerRecalculate(), 100)" class="w-7 h-7 flex items-center justify-center bg-[#FFF5F7] text-[#9E6B73] font-bold hover:bg-[#9E6B73] hover:text-white transition">+</button>
-                                        </div>
-                                        @endif
+
                                     </div>
                                 </div>
                                 @endforeach
@@ -564,21 +559,7 @@
         </div>
     </div>
 
-    <!-- EDIT RIDES CONFIRM MODAL -->
-    <div x-show="modals.editRidesConfirm" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10001]" x-cloak>
-        <div x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.editRidesConfirm = false"></div>
-        <div x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center z-10">
-            <div class="w-14 h-14 bg-[#9E6B73]/10 rounded-full flex items-center justify-center mx-auto mb-4 text-[#9E6B73]">
-                <span class="material-symbols-rounded text-3xl">info</span>
-            </div>
-            <h3 class="text-lg font-bold text-slate-800 mb-2">Modify Attractions?</h3>
-            <p class="text-sm text-slate-600 mb-6">Are you sure you want to change the selected rides for this booking? Availability will be re-checked for the new selection.</p>
-            <div class="flex gap-3">
-                <button @click="modals.editRidesConfirm = false" class="flex-1 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold">Cancel</button>
-                <button id="btnConfirmRideChange" class="flex-1 py-2 bg-[#9E6B73] text-white rounded-xl font-bold">Confirm Edit</button>
-            </div>
-        </div>
-    </div>
+
 
     <!-- FULL CAPACITY / 0 LIMIT MODAL -->
     <div x-show="modals.fullCapacityWarning" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10003]" x-cloak>
@@ -635,15 +616,23 @@
                 $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-200';
                 if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-200'; }
                 elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-200' ; }
-                    $isSelected=$d['date']===$tempSelectedDate;
-                    $ring=$isSelected ? 'border-[#9E6B73] bg-pink-50 ring-2 ring-[#9E6B73] shadow-md z-10' : '' ;
-                    @endphp
-                    <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')" class="h-14 rounded-2xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} flex flex-col items-center justify-center cursor-pointer transition hover:-translate-y-0.5 shadow-sm">
-                    <span class="font-bold text-sm">{{ $d['day'] }}</span>
-                    <span class="text-[8px] uppercase font-bold tracking-tight">{{ $d['left'] }} Left</span>
-                    </button>
+                    
+                $isSelected = $d['date'] === $tempSelectedDate;
+                $isOriginal = $d['date'] === ($booking->event_date ?? $form['event_date']);
+
+                $ring = $isSelected ? 'border-[#9E6B73] bg-pink-50 ring-4 ring-[#9E6B73]/30 shadow-md z-10' : '' ;
+                $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9E6B73] shadow-inner' : '';
+                @endphp
+                <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')" 
+                        class="h-14 rounded-2xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $originStyle }} flex flex-col items-center justify-center cursor-pointer transition relative hover:-translate-y-0.5 shadow-sm group hover:border-[#9E6B73]">
+                    @if($isOriginal)
+                        <div class="absolute -top-1 -right-1 bg-[#9E6B73] text-white text-[7px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
                     @endif
-                    @endforeach
+                    <span class="font-bold text-sm">{{ $d['day'] }}</span>
+                    <span class="text-[8px] uppercase font-bold tracking-tight group-hover:text-[#9E6B73]">{{ $d['left'] }} Left</span>
+                </button>
+                @endif
+                @endforeach
             </div>
 
             <div class="flex justify-end pt-6 border-t border-gray-100 mt-8">
@@ -736,4 +725,18 @@
     </div>
 
     @vite(['resources/js/new-booking.js'])
+
+    @script
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            Livewire.hook('morph.updated', (details) => {
+                if (details.component.name === 'supervisor.edit-booking' || details.component.name === 'edit-booking') {
+                    if (typeof checkRealTimeAvailability === 'function') {
+                         checkRealTimeAvailability(true);
+                    }
+                }
+            });
+        });
+    </script>
+    @endscript
 </div>

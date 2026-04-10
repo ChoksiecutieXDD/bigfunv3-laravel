@@ -956,17 +956,25 @@
                     $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-200'; $dot = 'bg-emerald-500';
                     if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-200'; $dot = 'bg-red-500'; }
                     elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-200' ; $dot='bg-amber-500' ; }
-                        $isSelected=$d['date']===$tempSelectedDate;
-                        $ring=$isSelected ? 'border-[#9D686E] bg-pink-50 ring-2 ring-[#9D686E] shadow-md z-10' : '' ;
-                        $opacity=($d['left']==0 && !$isSelected) ? 'opacity-50' : '' ;
-                        @endphp
-                        <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')" class="h-14 rounded-xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $opacity }} flex flex-col items-center justify-center cursor-pointer transition hover:-translate-y-0.5 hover:shadow-md hover:border-[#9D686E]">
-                        <span class="font-bold text-sm">{{ $d['day'] }}</span>
-                        <span class="text-[9px] uppercase tracking-wide font-medium mt-0.5">{{ $d['left'] }} Left</span>
-                        <span class="w-1.5 h-1.5 rounded-full mt-1 {{ $dot }}"></span>
-                        </button>
+                        
+                        $isSelected = $d['date'] === $tempSelectedDate;
+                        $isOriginal = $d['date'] === $booking->event_date;
+                        
+                        $ring = $isSelected ? 'border-[#9D686E] bg-pink-50 ring-4 ring-[#9D686E]/30 shadow-md z-10' : '' ;
+                        $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9D686E] shadow-inner' : '';
+                        $opacity = ($d['left'] == 0 && !$isSelected && !$isOriginal) ? 'opacity-50' : '' ;
+                    @endphp
+                    <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')" 
+                            class="h-14 rounded-xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $originStyle }} {{ $opacity }} flex flex-col items-center justify-center cursor-pointer transition relative hover:-translate-y-0.5 hover:shadow-md hover:border-[#9D686E] group">
+                        @if($isOriginal)
+                            <div class="absolute -top-1 -right-1 bg-[#9D686E] text-white text-[7px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
                         @endif
-                        @endforeach
+                        <span class="font-bold text-sm">{{ $d['day'] }}</span>
+                        <span class="text-[9px] uppercase tracking-wide font-medium mt-0.5 group-hover:text-[#9D686E]">{{ $d['left'] }} Left</span>
+                        <span class="w-1.5 h-1.5 rounded-full mt-1 {{ $dot }}"></span>
+                    </button>
+                    @endif
+                    @endforeach
                 </div>
 
                 <div class="mt-6 flex items-center gap-4 text-xs text-slate-500 font-bold justify-center bg-gray-50 p-2 rounded-lg">

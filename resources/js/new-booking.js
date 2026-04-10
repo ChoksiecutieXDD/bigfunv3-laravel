@@ -10,6 +10,7 @@
             bookingId: bridge.dataset.id,
             invoiceNumber: bridge.dataset.invoice,
             pastCustomers: bridge.dataset.customers ? JSON.parse(bridge.dataset.customers) : [],
+            selectedItems: (bridge.dataset.selected && bridge.dataset.selected !== '[]' && bridge.dataset.selected !== 'null') ? JSON.parse(bridge.dataset.selected) : {},
         };
     }
 })();
@@ -416,48 +417,61 @@ window.selectDate = function(dateStr, left) {
 
 window.dateChanged = function() {
     checkRealTimeAvailability();
-    checkDuplicates();
 };
 
-window.checkRealTimeAvailability = function() {
-    clearTimeout(availabilityCheckTimer);
-    availabilityCheckTimer = setTimeout(async () => {
-        const dateEl = document.getElementById('event_date');
-        const invoiceEl = document.getElementById('invoice_number');
-        if (!dateEl) return;
-        
-        const date = dateEl.value;
-        const invoice = invoiceEl ? invoiceEl.value : '';
-        
-        if (!date) {
-            document.querySelectorAll('.status-badge').forEach(badge => {
-                badge.innerText = 'SELECT DATE';
-                badge.className = 'status-badge status-checking';
-            });
-            return;
-        }
+let lastCheckedDate = null;
+window.checkRealTimeAvailability = async function(silent = false) {
+    const dateEl = document.getElementById('event_date');
+    const invoiceEl = document.getElementById('invoice_number');
+    if (!dateEl) return;
+    
+    const date = dateEl.value;
+    const invoice = invoiceEl ? invoiceEl.value : '';
+    const bookingId = window.bookingAppData ? window.bookingAppData.bookingId : '';
+    
+    if (!date) {
+        document.querySelectorAll('.status-badge').forEach(badge => {
+            badge.innerText = 'SELECT DATE';
+            badge.className = 'status-badge status-checking';
+        });
+        return;
+    }
 
-        // Show checking state
+    // Only show checking state if NOT silent (e.g. date changed or initial load)
+    if (!silent) {
         document.querySelectorAll('.status-badge').forEach(badge => {
             badge.innerText = 'CHECKING...';
             badge.className = 'status-badge status-checking';
         });
+    }
+    
+    lastCheckedDate = date;
 
-        try {
-            console.log(`Syncing availability for date: ${date}`);
-            const response = await fetch(`/api/bookings/check-availability?date=${date}&invoice=${invoice}`);
-            if (!response.ok) {
-                const text = await response.text();
-                console.error("Availability API Error:", text);
-                throw new Error("API call failed: " + response.status);
+    try {
+        console.log(`Syncing availability for date: ${date} (Silent: ${silent})`);
+        const response = await fetch(`/api/bookings/check-availability?date=${date}&invoice=${invoice}&booking_id=${bookingId}`);
+        if (!response.ok) {
+            const text = await response.text();
+            console.error("Availability API Error:", text);
+            throw new Error("API call failed: " + response.status);
+        }
+        const data = await response.json();
+
+        if (data.status === 'success' && data.products) {
+            globalCategoryBooked = {};
+
+            // Use the API's categorical counts as the base if provided
+            if (data.categories) {
+                for (let cat in data.categories) {
+                    globalCategoryBooked[cat.trim().toLowerCase()] = data.categories[cat].booked || 0;
+                }
             }
-            const data = await response.json();
 
-            if (data.status === 'success' && data.products) {
-                globalCategoryBooked = {};
+            document.querySelectorAll('.product-card').forEach(card => {
+                try {
+                    const rawName = card.dataset.name ? card.dataset.name.trim() : null;
+                    if (!rawName) return; 
 
-                document.querySelectorAll('.product-card').forEach(card => {
-                    const rawName = card.dataset.name.trim();
                     const cleanName = rawName.toLowerCase();
                     const checkbox = card.querySelector('.ride-checkbox');
                     const badge = card.querySelector('.status-badge');
@@ -467,13 +481,6 @@ window.checkRealTimeAvailability = function() {
 
                     if (data.products[cleanName]) {
                         const left = data.products[cleanName].left;
-
-                        if (itemLimit > 0) {
-                            const bookedAmount = itemLimit - left;
-                            if (bookedAmount > 0) globalCategoryBooked[targetCat] = (globalCategoryBooked[targetCat] || 0) + bookedAmount;
-                        } else if (left === 0) {
-                            globalCategoryBooked[targetCat] = (globalCategoryBooked[targetCat] || 0) + 1;
-                        }
 
                         if (left <= 0) {
                             card.dataset.productSoldOut = 'true';
@@ -501,41 +508,35 @@ window.checkRealTimeAvailability = function() {
                                     badge.className = 'status-badge status-avail';
                                 }
                             }
-                            if (actionText) actionText.innerText = 'Click to select';
+                            if (actionText && !card.classList.contains('selected')) actionText.innerText = 'Click to select';
                         }
                     } else {
                         card.dataset.productSoldOut = 'false';
                         card.classList.remove('disabled-card');
                         if (checkbox) checkbox.disabled = false;
                         if (badge) {
-                            badge.innerText = itemLimit > 0 ? `${itemLimit} AVAIL` : 'AVAILABLE';
+                            badge.innerText = (itemLimit > 0) ? `${itemLimit} AVAILABLE` : 'AVAILABLE';
                             badge.className = 'status-badge status-avail';
                         }
-                        if (actionText) actionText.innerText = 'Click to select';
+                        if (actionText && !card.classList.contains('selected')) actionText.innerText = 'Click to select';
                     }
-                });
-
-                // Specific category booked update if API returned them
-                if (data.categories) {
-                    for (let cat in data.categories) {
-                        const catKey = cat.trim().toLowerCase();
-                        globalCategoryBooked[catKey] = data.categories[cat].booked || 0;
-                    }
-                }
-
-                updateDynamicExtras();
-                updateCategoryLimitsUI();
-            }
-        } catch (error) {
-            console.error("Availability Check Failed", error);
-            document.querySelectorAll('.status-badge').forEach(badge => {
-                if (badge.innerText === 'CHECKING...') {
-                    badge.innerText = 'ERROR';
-                    badge.className = 'status-badge status-checking';
+                } catch (cardErr) {
+                    console.error("Error processing product card:", cardErr, card);
                 }
             });
+
+            updateDynamicExtras();
+            updateCategoryLimitsUI();
         }
-    }, 500);
+    } catch (error) {
+        console.error("Availability Check Failed", error);
+        document.querySelectorAll('.status-badge').forEach(badge => {
+            if (badge.innerText === 'CHECKING...') {
+                badge.innerText = 'ERROR';
+                badge.className = 'status-badge status-checking';
+            }
+        });
+    }
 };
 
 window.updateCategoryLimitsUI = function() {
@@ -610,37 +611,16 @@ window.updateCategoryLimitsUI = function() {
     });
 };
 
-window.handleExtraSelection = function(el) {
-    const appEl = document.querySelector('[x-data="bookingApp"]');
-    const alpine = appEl ? (appEl._x_dataStack ? appEl._x_dataStack[0] : (appEl.__x ? appEl.__x.$data : null)) : null;
 
-    // Only show confirm if in Edit mode and not initial load
-    if (window.bookingAppData.bookingId && !window.isInitialLoading) {
-        // Find current value/state to revert if cancelled
-        const originalValue = el.tagName === 'SELECT' ? el.dataset.originalValue : el.dataset.originalChecked === 'true';
-        
-        if (alpine) {
-            alpine.modals.changeExtrasConfirm = true;
-            document.getElementById('btnConfirmExtraChange').onclick = () => {
-                alpine.modals.changeExtrasConfirm = false;
-                if (el.tagName === 'SELECT') el.dataset.originalValue = el.value;
-                else el.dataset.originalChecked = el.checked ? 'true' : 'false';
-                triggerRecalculate();
-            };
-            // On modal close (cancel), we need to revert. Alpine handles visibility but we need to revert value.
-            // Since we can't easily hook into Alpine's 'close' from here without a watcher, 
-            // we'll rely on the user clicking 'Cancel' which just hides it.
-            // A better way is to revert if Confirm is NOT clicked.
-        }
-    }
-    triggerRecalculate();
-};
 
 window.handleSelection = function(checkbox) {
     const card = checkbox.closest('.product-card');
     const isSoldOut = card.dataset.productSoldOut === 'true';
     const appEl = document.querySelector('[x-data="bookingApp"]');
     const alpine = appEl ? (appEl._x_dataStack ? appEl._x_dataStack[0] : (appEl.__x ? appEl.__x.$data : null)) : null;
+
+    // Toggle state immediately
+    checkbox.checked = !checkbox.checked;
 
     // 1. Full Capacity Warning
     if (checkbox.checked && isSoldOut) {
@@ -649,26 +629,15 @@ window.handleSelection = function(checkbox) {
         return;
     }
 
-    // 2. Edit Rides Confirmation (Only if in Edit mode and not a fresh load)
-    if (window.bookingAppData.bookingId && !window.isInitialLoading) {
-        checkbox.checked = !checkbox.checked; // Undo for now
-        if (alpine) {
-            alpine.modals.editRidesConfirm = true;
-            document.getElementById('btnConfirmRideChange').onclick = () => {
-                checkbox.checked = !checkbox.checked; // Redo
-                alpine.modals.editRidesConfirm = false;
-                processSelection(checkbox, card);
-            };
-        }
-        return;
-    }
-
+    // 2. Process Selection
     processSelection(checkbox, card);
 };
 
 function processSelection(checkbox, card) {
     const limitCategory = (card.dataset.countsAgainst || '').trim().toLowerCase();
     const categories = window.bookingAppData.categories;
+
+    const actionText = card.querySelector('.action-text');
 
     if (checkbox.checked) {
         let catLimit = 0;
@@ -697,17 +666,44 @@ function processSelection(checkbox, card) {
                 showToast("Limit Reached", `Max ${catLimit} items for ${limitCategory}.`, "warning");
                 checkbox.checked = false;
                 card.classList.remove('selected');
+                if (actionText) actionText.innerText = 'Click to select';
                 return;
             }
         }
         card.classList.add('selected');
+        if (actionText) {
+            const isOriginal = window.bookingAppData.selectedItems && window.bookingAppData.selectedItems[card.dataset.name.toLowerCase().trim()];
+            actionText.innerText = isOriginal ? 'Booked' : 'Selected';
+        }
     } else {
         card.classList.remove('selected');
+        if (actionText) actionText.innerText = 'Click to select';
     }
 
     updateCategoryLimitsUI();
     updateDynamicExtras();
-    saveCurrentExtrasState();
+    saveCurrentExtrasState(true);
+
+    // Communicate to Livewire ONLY after all confirmations/logic
+    const lwEl = document.querySelector('[wire\\:id]');
+    if (lwEl && window.Livewire) {
+        const lwComp = window.Livewire.find(lwEl.getAttribute('wire:id'));
+        if (lwComp) {
+            lwComp.toggleItem(card.dataset.name, checkbox.checked);
+        }
+    }
+};
+
+window.updateItemQty = function(itemName, change) {
+    const lwEl = document.querySelector('[wire\\:id]');
+    if (lwEl && window.Livewire) {
+        const lwComp = window.Livewire.find(lwEl.getAttribute('wire:id'));
+        if (lwComp) {
+            lwComp.updateItemQty(itemName, change);
+        }
+    }
+    // Need a tiny delay for backend calculation before UI update
+    setTimeout(() => triggerRecalculate(), 150);
 };
 
 window.handleExtraSelection = function(element) {
@@ -823,7 +819,7 @@ window.filterRides = function() {
     });
 };
 
-window.saveCurrentExtrasState = function() {
+window.saveCurrentExtrasState = function(ignoreSync = false) {
     if (!window.bookingAppData) return;
     const container = document.getElementById('dynamicExtrasContainer');
     if (!container) return;
@@ -835,6 +831,8 @@ window.saveCurrentExtrasState = function() {
             window.bookingAppData.savedExtras[el.name] = el.value;
         }
     });
+
+    if (ignoreSync) return;
 
     // Notify Livewire for dynamic financial updates if in Edit mode
     const bridge = document.getElementById('booking-data-bridge');
@@ -850,7 +848,7 @@ window.saveCurrentExtrasState = function() {
 };
 
 window.updateDynamicExtras = function() {
-    saveCurrentExtrasState();
+    saveCurrentExtrasState(true); // Don't sync to Livewire during refresh to avoid infinite loops!
 
     const activeCategories = new Set();
     document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
@@ -1482,7 +1480,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        if (typeof checkRealTimeAvailability === 'function') await checkRealTimeAvailability();
+        if (typeof checkRealTimeAvailability === 'function') await checkRealTimeAvailability(false); // First load is NOT silent
         if (typeof triggerRecalculate === 'function') triggerRecalculate();
         
         window.isInitialLoading = false;
