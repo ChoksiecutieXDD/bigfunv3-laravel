@@ -47,12 +47,18 @@ class MailService
         try {
             // SMTP Settings (from .env/config)
             $mail->isSMTP();
-            $mail->Host       = config('mail.mailers.smtp.host', 'smtp.gmail.com');
+            
+            $defaultMailer = config('mail.default', 'smtp');
+            if (!in_array($defaultMailer, ['google', 'smtp'])) {
+                $defaultMailer = 'smtp';
+            }
+            
+            $mail->Host       = config("mail.mailers.{$defaultMailer}.host", 'smtp.gmail.com');
             $mail->SMTPAuth   = true;
-            $mail->Username   = config('mail.mailers.smtp.username');
-            $mail->Password   = config('mail.mailers.smtp.password');
-            $mail->SMTPSecure = config('mail.mailers.smtp.encryption', 'tls');
-            $mail->Port       = config('mail.mailers.smtp.port', 587);
+            $mail->Username   = config("mail.mailers.{$defaultMailer}.username");
+            $mail->Password   = config("mail.mailers.{$defaultMailer}.password");
+            $mail->SMTPSecure = config("mail.mailers.{$defaultMailer}.encryption", 'tls');
+            $mail->Port       = config("mail.mailers.{$defaultMailer}.port", 587);
             $mail->CharSet    = 'UTF-8';
 
             // Sender
@@ -115,6 +121,9 @@ class MailService
 
             // Send
             $mail->send();
+
+            // Increment Quota Token
+            $this->incrementDailyQuota($defaultMailer);
 
             // Log the email
             $this->logEmail($bookingId, $type, $toList[0] ?? $toRaw);
@@ -188,6 +197,32 @@ class MailService
                 'invoice_emailed' => 1,
                 // 'invoicing_done' => 1, // Optional: if field exists
             ]);
+        }
+    }
+
+    /**
+     * Increment the daily email used quota for the current mailer in .env and runtime config.
+     */
+    private function incrementDailyQuota($mailer)
+    {
+        $envKey = $mailer === 'google' ? 'MAIL_GOOGLE_DAILY_EMAIL_USED' : 'MAIL_BREVO_DAILY_EMAIL_USED';
+        $configKey = $mailer === 'google' ? 'mail.google_quota.daily_email_used' : 'mail.brevo.daily_email_used';
+        
+        $currentUsed = (int) config($configKey, 0);
+        $newUsed = $currentUsed + 1;
+        
+        $path = base_path('.env');
+        if (file_exists($path)) {
+            $envContent = file_get_contents($path);
+            if (preg_match('/^' . $envKey . '=.*/m', $envContent)) {
+                $envContent = preg_replace('/^' . $envKey . '=.*/m', $envKey . '=' . $newUsed, $envContent);
+            } else {
+                $envContent .= "\n" . $envKey . '=' . $newUsed . "\n";
+            }
+            if (file_put_contents($path, $envContent, LOCK_EX) !== false) {
+                // Update runtime config so subsequent emails in the same request use the new value
+                \Illuminate\Support\Facades\Config::set($configKey, $newUsed);
+            }
         }
     }
 }

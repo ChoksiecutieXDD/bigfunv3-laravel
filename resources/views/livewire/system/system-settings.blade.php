@@ -24,10 +24,12 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
 
             @php
-            $envColor = match($currentEnv) {
-            'local', 'development' => 'text-amber-400',
-            'staging' => 'text-blue-400',
-            default => 'text-emerald-400'
+            $displayEnv = $currentEnv ?: config('app.env');
+            $envColor = match($displayEnv) {
+                'local', 'development' => 'text-amber-400',
+                'staging' => 'text-blue-400',
+                'production' => 'text-emerald-400',
+                default => 'text-slate-400'
             };
             @endphp
 
@@ -278,6 +280,13 @@
                 </div>
 
                 <!-- SECONDARY SMTP (GOOGLE) -->
+                @php
+                    $googleUsed = config('mail.google_quota.daily_email_used');
+                    $googleLimit = config('mail.google_quota.daily_email_limit');
+                    $googleQuotaLabel = ($googleUsed !== null && $googleUsed !== '' && $googleLimit !== null && $googleLimit !== '')
+                        ? $googleUsed . ' / ' . $googleLimit
+                        : null;
+                @endphp
                 <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full">
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
                         <div class="flex items-center gap-3">
@@ -298,6 +307,14 @@
                             @endif
                             <div class="flex items-center gap-2 bg-slate-500/10 text-slate-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-slate-500/20">
                                 Secondary
+                            </div>
+                            <div class="flex items-center gap-1.5 bg-slate-600/30 text-slate-200 px-3 py-1 rounded-full text-[10px] font-bold tracking-wide border border-slate-500/30" title="Set MAIL_GOOGLE_DAILY_EMAIL_USED and MAIL_GOOGLE_DAILY_EMAIL_LIMIT in .env">
+                                <span class="text-slate-400 font-semibold uppercase">Daily</span>
+                                @if($googleQuotaLabel)
+                                <span>{{ $googleQuotaLabel }}</span>
+                                @else
+                                <span class="text-slate-500">— / —</span>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -355,7 +372,7 @@
                         <div class="space-y-4">
                             <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-700">
                                 <span class="block text-xs text-slate-400 mb-2">App Environment</span>
-                                <div class="relative">
+                                <div class="relative" wire:key="env-select-{{ $currentEnv }}">
                                     <select
                                         x-data
                                         @change="$dispatch('open-modal', { 

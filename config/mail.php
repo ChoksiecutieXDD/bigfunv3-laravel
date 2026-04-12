@@ -145,4 +145,9 @@ return [
         'daily_email_limit' => env('MAIL_BREVO_DAILY_EMAIL_LIMIT'),
     ],
 
+    'google_quota' => [
+        'daily_email_used' => env('MAIL_GOOGLE_DAILY_EMAIL_USED'),
+        'daily_email_limit' => env('MAIL_GOOGLE_DAILY_EMAIL_LIMIT'),
+    ],
+
 ];

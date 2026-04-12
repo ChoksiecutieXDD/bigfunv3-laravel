@@ -204,27 +204,40 @@ class SystemSettings extends Component
                 if (file_exists($path)) {
                     $envContent = file_get_contents($path);
 
-                    // Update APP_ENV, or add it if it somehow doesn't exist
-                    if (preg_match("/^APP_ENV=/m", $envContent)) {
+                    // 1. Update APP_ENV
+                    if (preg_match("/^APP_ENV=.*/m", $envContent)) {
                         $envContent = preg_replace("/^APP_ENV=.*/m", "APP_ENV={$targetEnv}", $envContent);
                     } else {
                         $envContent .= "\nAPP_ENV={$targetEnv}\n";
                     }
 
+                    // 2. Update APP_DEBUG (True for local/dev, False for staging/prod)
+                    $debugValue = ($targetEnv === 'production' || $targetEnv === 'staging') ? 'false' : 'true';
+                    if (preg_match("/^APP_DEBUG=.*/m", $envContent)) {
+                        $envContent = preg_replace("/^APP_DEBUG=.*/m", "APP_DEBUG={$debugValue}", $envContent);
+                    } else {
+                        $envContent .= "\nAPP_DEBUG={$debugValue}\n";
+                    }
+
                     // Save the file
                     file_put_contents($path, $envContent);
 
-                    // FORWARD THE NEW CONFIG TO LARAVEL
+                    // FORWARD THE NEW CONFIG TO LARAVEL IMMEDIATELY
+                    Config::set('app.env', $targetEnv);
+                    Config::set('app.debug', $debugValue === 'true');
+                    
+                    // Update component state for immediate UI feedback
+                    $this->currentEnv = $targetEnv;
+
+                    // Clear config cache to ensure the changes take effect globally
                     Artisan::call('config:clear');
 
-                    $this->currentEnv = config('app.env'); // Fetch the fresh config to confirm
-
-                    $this->dispatch('show-alert', message: 'Environment successfully set to ' . strtoupper($targetEnv), type: 'success');
+                    $this->dispatch('show-alert', message: 'Environment successfully set to ' . strtoupper($targetEnv) . ' (Debug: ' . ($debugValue === 'true' ? 'ON' : 'OFF') . ')', type: 'success');
                 } else {
                     $this->dispatch('show-toast', message: 'Cannot find .env file.', type: 'error');
                 }
             } catch (\Exception $e) {
-                $this->dispatch('show-toast', message: 'Failed to update .env file. Please check file permissions.', type: 'error');
+                $this->dispatch('show-toast', message: 'Failed to update .env: ' . $e->getMessage(), type: 'error');
             }
         } else {
             $this->dispatch('show-toast', message: 'Environment name not allowed.', type: 'error');
