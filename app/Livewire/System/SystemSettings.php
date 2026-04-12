@@ -55,20 +55,31 @@ class SystemSettings extends Component
             }
 
             $envContent = file_get_contents($path);
-            if (preg_match('/^MAIL_MAILER=/m', $envContent)) {
-                $envContent = preg_replace('/^MAIL_MAILER=.*/m', 'MAIL_MAILER='.$value, $envContent);
-            } else {
-                $envContent .= "\nMAIL_MAILER={$value}\n";
+            if ($envContent === false) {
+                throw new \RuntimeException('Could not read .env file.');
             }
 
-            file_put_contents($path, $envContent);
+            $newEnvContent = $envContent;
+            if (preg_match('/^MAIL_MAILER=/m', $newEnvContent)) {
+                $newEnvContent = preg_replace('/^MAIL_MAILER=.*/m', 'MAIL_MAILER='.$value, $newEnvContent);
+            } else {
+                $newEnvContent .= "\nMAIL_MAILER={$value}\n";
+            }
+
+            // Apply runtime changes first; persist .env only after so disk never diverges from UI if later steps fail.
             Artisan::call('config:clear');
             Config::set('mail.default', $value);
 
+            if (file_put_contents($path, $newEnvContent, LOCK_EX) === false) {
+                Config::set('mail.default', $previous);
+                throw new \RuntimeException('Could not write .env file.');
+            }
+
             $this->dispatch('show-alert', message: 'Default mailer set to '.strtoupper($value).' (Brevo = smtp, Gmail = google).', type: 'success');
         } catch (\Exception $e) {
-            $this->dispatch('show-toast', message: 'Failed to update .env: '.$e->getMessage(), type: 'error');
+            Config::set('mail.default', $previous);
             $this->revertDefaultMailerUi($previous);
+            $this->dispatch('show-toast', message: 'Failed to update default mailer: '.$e->getMessage(), type: 'error');
         }
     }
 

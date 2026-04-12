@@ -150,31 +150,48 @@
                             <span class="material-symbols-rounded text-[22px]">toggle_on</span>
                         </div>
                         <div>
-                            <h2 class="text-lg font-bold text-white">Default outbound mailer</h2>
-                            <p class="text-xs text-slate-400">Choose which SMTP Laravel uses for <code class="text-slate-500">Mail::</code> sends. Updates <span class="text-slate-500">MAIL_MAILER</span> in <span class="text-slate-500">.env</span>.</p>
+                            <h2 id="default-mailer-heading" class="text-lg font-bold text-white">Default outbound mailer</h2>
+                            <p class="text-xs text-slate-400">Pick one option. Laravel’s <code class="text-slate-500">MAIL_MAILER</code> in <code class="text-slate-500">.env</code> is updated to <code class="text-slate-500">smtp</code> (Brevo) or <code class="text-slate-500">google</code> (Gmail).</p>
                         </div>
                     </div>
                     @php $activeMail = (string) config('mail.default'); @endphp
                     @if(! in_array($activeMail, ['smtp', 'google'], true))
                     <p class="text-amber-400/90 text-xs mb-4 rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2">Outbound mailer is currently <strong class="text-amber-200">{{ $activeMail }}</strong>. Select Brevo or Gmail below to route app mail through that SMTP.</p>
                     @endif
-                    <fieldset class="grid grid-cols-1 sm:grid-cols-2 gap-4" wire:target="defaultMailer" wire:loading.class="opacity-60 pointer-events-none">
+                    <fieldset
+                        class="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                        wire:target="defaultMailer"
+                        wire:loading.class="opacity-60 pointer-events-none"
+                        role="radiogroup"
+                        aria-labelledby="default-mailer-heading">
                         <legend class="sr-only">Default mail transport</legend>
-                        <label class="relative flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-all {{ $defaultMailer === 'smtp' ? 'border-emerald-500/50 bg-emerald-500/5 ring-1 ring-emerald-500/30' : 'border-slate-700 bg-slate-900/40 hover:border-slate-600' }}">
-                            <input type="radio" wire:model.live="defaultMailer" value="smtp" class="mt-1 h-4 w-4 shrink-0 border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500/40 focus:ring-offset-0 focus:ring-offset-slate-900">
+                        {{-- Large native radios (accent + size) so the control reads clearly as a radio group in the browser. --}}
+                        <label class="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-all border-slate-700 bg-slate-900/40 hover:border-slate-600 has-[:checked]:border-emerald-500/60 has-[:checked]:bg-emerald-500/10 has-[:checked]:ring-1 has-[:checked]:ring-emerald-500/35">
+                            <input
+                                type="radio"
+                                name="default_outbound_mailer"
+                                value="smtp"
+                                wire:model.live="defaultMailer"
+                                class="mt-1 size-5 shrink-0 cursor-pointer rounded-full border-2 border-slate-600 bg-slate-900 text-emerald-500 accent-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
                             <span class="min-w-0 flex-1">
                                 <span class="block text-sm font-bold text-slate-100">Primary — Brevo</span>
-                                <span class="mt-0.5 block text-xs text-slate-400">Mailer key: <span class="font-mono text-slate-500">smtp</span></span>
+                                <span class="mt-0.5 block text-xs text-slate-400">Config mailer: <span class="font-mono text-slate-500">smtp</span> · host <span class="font-mono text-slate-500">smtp-relay.brevo.com</span></span>
                             </span>
                         </label>
-                        <label class="relative flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-all {{ $defaultMailer === 'google' ? 'border-blue-500/50 bg-blue-500/5 ring-1 ring-blue-500/30' : 'border-slate-700 bg-slate-900/40 hover:border-slate-600' }}">
-                            <input type="radio" wire:model.live="defaultMailer" value="google" class="mt-1 h-4 w-4 shrink-0 border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500/40 focus:ring-offset-0 focus:ring-offset-slate-900">
+                        <label class="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-all border-slate-700 bg-slate-900/40 hover:border-slate-600 has-[:checked]:border-blue-500/60 has-[:checked]:bg-blue-500/10 has-[:checked]:ring-1 has-[:checked]:ring-blue-500/35">
+                            <input
+                                type="radio"
+                                name="default_outbound_mailer"
+                                value="google"
+                                wire:model.live="defaultMailer"
+                                class="mt-1 size-5 shrink-0 cursor-pointer rounded-full border-2 border-slate-600 bg-slate-900 text-blue-500 accent-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
                             <span class="min-w-0 flex-1">
                                 <span class="block text-sm font-bold text-slate-100">Secondary — Gmail</span>
-                                <span class="mt-0.5 block text-xs text-slate-400">Mailer key: <span class="font-mono text-slate-500">google</span></span>
+                                <span class="mt-0.5 block text-xs text-slate-400">Config mailer: <span class="font-mono text-slate-500">google</span> · typical host <span class="font-mono text-slate-500">smtp.gmail.com</span></span>
                             </span>
                         </label>
                     </fieldset>
+                    <p class="mt-3 text-[11px] leading-relaxed text-slate-500">Credentials are read from <code class="text-slate-600">.env</code> only (never stored in this page). Brevo: <code class="text-slate-600">MAIL_HOST</code>, <code class="text-slate-600">MAIL_USERNAME</code>, <code class="text-slate-600">MAIL_PASSWORD</code>, <code class="text-slate-600">MAIL_BREVO_SMTP_KEY_NAME</code>. Gmail: <code class="text-slate-600">MAIL_GOOGLE_*</code>.</p>
                 </div>
 
                 <!-- PRIMARY SMTP (BREVO) -->
@@ -186,7 +203,7 @@
                         ? $brevoUsed . ' / ' . $brevoLimit
                         : null;
                 @endphp
-                <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full" x-data="{ showToken: false }">
+                <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full">
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
                         <div class="flex items-center gap-3">
                             <div class="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
@@ -249,12 +266,7 @@
 
                             <div>
                                 <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">SMTP Key (Token)</label>
-                                <div class="relative">
-                                    <input :type="showToken ? 'text' : 'password'" value="{{ config('mail.mailers.smtp.password') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl py-3 pl-3 pr-11 outline-none" disabled>
-                                    <button type="button" @click="showToken = !showToken" class="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 hover:text-slate-300 transition-colors rounded-r-xl">
-                                        <span class="material-symbols-rounded text-xl leading-none select-none" x-text="showToken ? 'visibility_off' : 'visibility'"></span>
-                                    </button>
-                                </div>
+                                <input type="password" value="{{ config('mail.mailers.smtp.password') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 outline-none" disabled autocomplete="new-password" readonly>
                             </div>
                         </div>
                     </div>
@@ -266,7 +278,7 @@
                 </div>
 
                 <!-- SECONDARY SMTP (GOOGLE) -->
-                <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full" x-data="{ showToken: false }">
+                <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full">
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
                         <div class="flex items-center gap-3">
                             <div class="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
@@ -316,12 +328,7 @@
 
                             <div>
                                 <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">App Password (Token)</label>
-                                <div class="relative">
-                                    <input :type="showToken ? 'text' : 'password'" value="{{ config('mail.mailers.google.password') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl py-3 pl-3 pr-11 outline-none" disabled>
-                                    <button type="button" @click="showToken = !showToken" class="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 hover:text-slate-300 transition-colors rounded-r-xl">
-                                        <span class="material-symbols-rounded text-xl leading-none select-none" x-text="showToken ? 'visibility_off' : 'visibility'"></span>
-                                    </button>
-                                </div>
+                                <input type="password" value="{{ config('mail.mailers.google.password') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 outline-none" disabled autocomplete="new-password" readonly>
                             </div>
                         </div>
                     </div>
