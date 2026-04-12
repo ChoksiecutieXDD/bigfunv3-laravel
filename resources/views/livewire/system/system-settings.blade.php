@@ -31,7 +31,8 @@
             };
             @endphp
 
-            <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full">
+            <!-- 1. DATA MANAGEMENT -->
+            <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full flex flex-col">
                 <div class="flex items-center gap-3 mb-6">
                     <div class="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
                         <span class="material-symbols-rounded">database</span>
@@ -42,8 +43,8 @@
                     </div>
                 </div>
 
-                <div class="space-y-4">
-                    <a href="/system/db-view" wire:navigate class="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-plum hover:bg-slate-800 transition-all group cursor-pointer">
+                <div class="space-y-4 flex-grow">
+                    <a href="/system/db-view" wire:navigate class="w-full min-h-[76px] flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-plum hover:bg-slate-800 transition-all group cursor-pointer">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-rounded text-slate-400 group-hover:text-plum transition-colors">table_view</span>
                             <span class="font-medium text-slate-200">Database Viewer</span>
@@ -51,7 +52,7 @@
                         <span class="material-symbols-rounded text-slate-500 group-hover:text-white">chevron_right</span>
                     </a>
 
-                    <button wire:click="exportDb" class="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-emerald-500/50 hover:bg-slate-800 transition-all group disabled:opacity-50">
+                    <button wire:click="exportDb" class="w-full min-h-[76px] flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-emerald-500/50 hover:bg-slate-800 transition-all group disabled:opacity-50">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-rounded text-slate-400 group-hover:text-emerald-400 transition-colors">download</span>
                             <span class="font-medium text-slate-200" wire:loading.remove wire:target="exportDb">Export Full Backup (.sql)</span>
@@ -61,7 +62,8 @@
                 </div>
             </div>
 
-            <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full">
+            <!-- 2. SYSTEM MAINTENANCE -->
+            <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full flex flex-col">
                 <div class="flex items-center gap-3 mb-6">
                     <div class="w-12 h-12 rounded-full bg-plum/10 flex items-center justify-center text-plum shrink-0">
                         <span class="material-symbols-rounded">memory</span>
@@ -72,7 +74,7 @@
                     </div>
                 </div>
 
-                <div class="space-y-4">
+                <div class="space-y-4 flex-grow">
                     <button type="button"
                         x-data
                         @click="$dispatch('open-modal', { 
@@ -81,7 +83,7 @@
                             type: 'warning', 
                             event: 'execute-clear-cache' 
                         })"
-                        class="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-plum hover:bg-slate-800 transition-all group disabled:opacity-50">
+                        class="w-full min-h-[76px] flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-plum hover:bg-slate-800 transition-all group disabled:opacity-50">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-rounded text-slate-400 group-hover:text-plum transition-colors">cleaning_services</span>
                             <div class="text-left">
@@ -92,7 +94,7 @@
                         </div>
                     </button>
 
-                    <div class="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700">
+                    <div class="w-full min-h-[76px] flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-rounded text-slate-400">construction</span>
                             <div class="text-left">
@@ -114,6 +116,7 @@
                 </div>
             </div>
 
+            <!-- 3. BUSINESS MODULES (FULL WIDTH) -->
             <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full lg:col-span-2">
                 <div class="flex items-center gap-3 mb-6">
                     <div class="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
@@ -138,91 +141,171 @@
                 </div>
             </div>
 
-            <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
-                        <span class="material-symbols-rounded">forward_to_inbox</span>
-                    </div>
-                    <div>
-                        <h2 class="text-xl font-bold text-white">SMTP Configuration</h2>
-                        <p class="text-xs text-slate-400">Mail server credentials</p>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">SMTP Host</label>
-                        <input type="text" value="{{ config('mail.mailers.smtp.host') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-plum focus:border-plum block p-3 outline-none transition-colors" disabled>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">Port</label>
-                            <input type="number" value="{{ config('mail.mailers.smtp.port') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-plum focus:border-plum block p-3 outline-none transition-colors" disabled>
+            <!-- 4. SMTP CONFIGURATION & ENVIRONMENT (SINGLE COLUMN STACK) -->
+            <div class="lg:col-span-2 grid grid-cols-1 gap-6">
+                <!-- PRIMARY SMTP (BREVO) -->
+                <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full" x-data="{ showToken: false }">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
+                                <span class="material-symbols-rounded">forward_to_inbox</span>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-white">SMTP Configuration</h2>
+                                <p class="text-xs text-slate-400">Primary Mail Server (Brevo)</p>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">Encryption</label>
-                            <select class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-plum focus:border-plum block p-3 outline-none transition-colors appearance-none" disabled>
-                                <option value="tls" {{ config('mail.mailers.smtp.encryption') == 'tls' ? 'selected' : '' }}>TLS</option>
-                                <option value="ssl" {{ config('mail.mailers.smtp.encryption') == 'ssl' ? 'selected' : '' }}>SSL</option>
-                            </select>
+                        <div class="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-500/20">
+                            Primary
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">Username (Email)</label>
-                        <input type="email" value="{{ config('mail.mailers.smtp.username') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-plum focus:border-plum block p-3 outline-none transition-colors" disabled>
-                    </div>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">App Password (Temporary)</label>
-                        <input type="password" value="{{ config('mail.mailers.smtp.password') }}" placeholder="********" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-plum focus:border-plum block p-3 outline-none transition-colors" disabled>
-                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">SMTP Host</label>
+                                <input type="text" value="{{ config('mail.mailers.smtp.host') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 outline-none" disabled>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">Port</label>
+                                    <input type="number" value="{{ config('mail.mailers.smtp.port') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 outline-none" disabled>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">Encryption</label>
+                                    <div class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 uppercase">{{ config('mail.mailers.smtp.encryption') }}</div>
+                                </div>
+                            </div>
+                        </div>
 
-                    <button type="button" wire:click="testSmtp" wire:loading.attr="disabled" class="w-full py-3 bg-plum hover:bg-plum-dark text-white text-sm font-bold rounded-xl transition-all duration-300 mt-3 flex items-center justify-center gap-2 shadow-lg shadow-plum/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100">
-                        <span wire:loading.remove wire:target="testSmtp">Test Connection</span>
-                        <span wire:loading wire:target="testSmtp">Sending Test Email...</span>
-                    </button>
-                </div>
-            </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">Username (Email)</label>
+                                <input type="email" value="{{ config('mail.mailers.smtp.username') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 outline-none" disabled>
+                            </div>
 
-            <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
-                        <span class="material-symbols-rounded">admin_panel_settings</span>
-                    </div>
-                    <div>
-                        <h2 class="text-xl font-bold text-white">Environment & Security</h2>
-                        <p class="text-xs text-slate-400">System environment variables</p>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-700">
-                        <span class="block text-xs text-slate-400 mb-2">App Environment</span>
-                        <div class="relative">
-                            <select
-                                x-data
-                                @change="$dispatch('open-modal', { 
-                                    title: 'Change Environment?', 
-                                    message: 'Changing the environment can affect database connections and error reporting. Proceed?', 
-                                    type: 'warning', 
-                                    event: 'execute-change-environment',
-                                    params: $event.target.value
-                                }); $event.target.value = '{{ $currentEnv }}';"
-                                class="w-full bg-slate-800 border border-slate-600 font-bold rounded-xl {{ $envColor }} focus:ring-plum focus:border-plum p-3 outline-none transition-colors appearance-none cursor-pointer">
-                                <option value="development" class="text-amber-400" {{ $currentEnv === 'local' || $currentEnv === 'development' ? 'selected' : '' }}>Development Environment</option>
-                                <option value="staging" class="text-blue-400" {{ $currentEnv === 'staging' ? 'selected' : '' }}>Staging Environment</option>
-                                <option value="production" class="text-emerald-400" {{ $currentEnv === 'production' ? 'selected' : '' }}>Production Environment</option>
-                            </select>
-                            <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-slate-400">
-                                <span class="material-symbols-rounded">expand_more</span>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">SMTP Key (Token)</label>
+                                <div class="relative">
+                                    <input :type="showToken ? 'text' : 'password'" value="{{ config('mail.mailers.smtp.password') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 pr-10 outline-none" disabled>
+                                    <button @click="showToken = !showToken" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
+                                        <span class="material-symbols-rounded text-lg" x-text="showToken ? 'visibility_off' : 'visibility'"></span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-700 flex justify-between items-center">
+                    <button type="button" wire:click="testSmtp" wire:loading.attr="disabled" class="w-full py-3 bg-plum hover:bg-plum-dark text-white text-sm font-bold rounded-xl transition-all duration-300 mt-6 flex items-center justify-center gap-2 shadow-lg shadow-plum/20">
+                        <span wire:loading.remove wire:target="testSmtp">Test Primary Connection</span>
+                        <span wire:loading wire:target="testSmtp">Sending Test Email...</span>
+                    </button>
+                </div>
+
+                <!-- SECONDARY SMTP (GOOGLE) -->
+                <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full" x-data="{ showToken: false }">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+                                <span class="material-symbols-rounded">forward_to_inbox</span>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-white">Secondary Configuration</h2>
+                                <p class="text-xs text-slate-400">Google App Password (Secondary)</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 bg-slate-500/10 text-slate-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-slate-500/20">
+                            Secondary
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">SMTP Host</label>
+                                <input type="text" value="{{ config('mail.mailers.google.host') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 outline-none" disabled>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">Port</label>
+                                    <input type="number" value="{{ config('mail.mailers.google.port') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 outline-none" disabled>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">Encryption</label>
+                                    <div class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 uppercase">{{ config('mail.mailers.google.encryption') }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">Username (Email)</label>
+                                <input type="email" value="{{ config('mail.mailers.google.username') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 outline-none" disabled>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">App Password (Token)</label>
+                                <div class="relative">
+                                    <input :type="showToken ? 'text' : 'password'" value="{{ config('mail.mailers.google.password') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 pr-10 outline-none" disabled>
+                                    <button @click="showToken = !showToken" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
+                                        <span class="material-symbols-rounded text-lg" x-text="showToken ? 'visibility_off' : 'visibility'"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" wire:click="testGoogleSmtp" wire:loading.attr="disabled" class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-xl transition-all duration-300 mt-6 flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]">
+                        <span wire:loading.remove wire:target="testGoogleSmtp">Test Secondary Connection</span>
+                        <span wire:loading wire:target="testGoogleSmtp">Sending Test Email...</span>
+                    </button>
+                </div>
+
+                <!-- ENVIRONMENT & SECURITY -->
+                <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
+                            <span class="material-symbols-rounded">admin_panel_settings</span>
+                        </div>
                         <div>
-                            <span class="block text-xs text-slate-400">PHP Version</span>
-                            <span class="block text-sm font-bold text-slate-200">{{ phpversion() }}</span>
+                            <h2 class="text-xl font-bold text-white">Environment & Security</h2>
+                            <p class="text-xs text-slate-400">System environment variables</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-700">
+                                <span class="block text-xs text-slate-400 mb-2">App Environment</span>
+                                <div class="relative">
+                                    <select
+                                        x-data
+                                        @change="$dispatch('open-modal', { 
+                                            title: 'Change Environment?', 
+                                            message: 'Changing the environment can affect database connections and error reporting. Proceed?', 
+                                            type: 'warning', 
+                                            event: 'execute-change-environment',
+                                            params: $event.target.value
+                                        }); $event.target.value = '{{ $currentEnv }}';"
+                                        class="w-full bg-slate-800 border border-slate-600 font-bold rounded-xl {{ $envColor }} focus:ring-plum focus:border-plum p-3 outline-none transition-colors appearance-none cursor-pointer">
+                                        <option value="development" class="text-amber-400" {{ $currentEnv === 'local' || $currentEnv === 'development' ? 'selected' : '' }}>Development Environment</option>
+                                        <option value="staging" class="text-blue-400" {{ $currentEnv === 'staging' ? 'selected' : '' }}>Staging Environment</option>
+                                        <option value="production" class="text-emerald-400" {{ $currentEnv === 'production' ? 'selected' : '' }}>Production Environment</option>
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-slate-400">
+                                        <span class="material-symbols-rounded">expand_more</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-700 flex justify-between items-center h-full">
+                                <div>
+                                    <span class="block text-xs text-slate-400">PHP Version</span>
+                                    <span class="block text-sm font-bold text-slate-200">{{ phpversion() }}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -234,7 +317,7 @@
                             type: 'danger', 
                             event: 'execute-force-logout' 
                         })"
-                        class="w-full mt-2 py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 text-sm font-bold rounded-xl transition-colors flex justify-center items-center gap-2">
+                        class="w-full mt-6 py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 text-sm font-bold rounded-xl transition-colors flex justify-center items-center gap-2">
                         <span class="material-symbols-rounded text-lg">logout</span>
                         Force Logout All Sessions
                     </button>
