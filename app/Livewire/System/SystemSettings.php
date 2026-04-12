@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Config;
 
 #[Layout('components.layouts.settings-layout')]
 class SystemSettings extends Component
@@ -16,10 +17,70 @@ class SystemSettings extends Component
     public $isMaintenance;
     public $currentEnv;
 
+    /**
+     * Active application mailer: smtp (Brevo) or google (Gmail). Synced to MAIL_MAILER in .env.
+     * Empty string when current config is another mailer (e.g. log) so neither radio appears forced.
+     */
+    public string $defaultMailer = '';
+
     public function mount()
     {
         $this->isMaintenance = app()->isDownForMaintenance();
         $this->currentEnv = config('app.env');
+        $m = (string) config('mail.default');
+        $this->defaultMailer = in_array($m, ['smtp', 'google'], true) ? $m : '';
+    }
+
+    public function updatedDefaultMailer(?string $value): void
+    {
+        if ($value === null || $value === '') {
+            return;
+        }
+
+        if (! in_array($value, ['smtp', 'google'], true)) {
+            $this->syncDefaultMailerFromConfig();
+
+            return;
+        }
+
+        $previous = (string) config('mail.default');
+
+        try {
+            $path = base_path('.env');
+            if (! file_exists($path)) {
+                $this->dispatch('show-toast', message: 'Cannot find .env file.', type: 'error');
+                $this->revertDefaultMailerUi($previous);
+
+                return;
+            }
+
+            $envContent = file_get_contents($path);
+            if (preg_match('/^MAIL_MAILER=/m', $envContent)) {
+                $envContent = preg_replace('/^MAIL_MAILER=.*/m', 'MAIL_MAILER='.$value, $envContent);
+            } else {
+                $envContent .= "\nMAIL_MAILER={$value}\n";
+            }
+
+            file_put_contents($path, $envContent);
+            Artisan::call('config:clear');
+            Config::set('mail.default', $value);
+
+            $this->dispatch('show-alert', message: 'Default mailer set to '.strtoupper($value).' (Brevo = smtp, Gmail = google).', type: 'success');
+        } catch (\Exception $e) {
+            $this->dispatch('show-toast', message: 'Failed to update .env: '.$e->getMessage(), type: 'error');
+            $this->revertDefaultMailerUi($previous);
+        }
+    }
+
+    private function syncDefaultMailerFromConfig(): void
+    {
+        $m = (string) config('mail.default');
+        $this->defaultMailer = in_array($m, ['smtp', 'google'], true) ? $m : '';
+    }
+
+    private function revertDefaultMailerUi(string $previous): void
+    {
+        $this->defaultMailer = in_array($previous, ['smtp', 'google'], true) ? $previous : '';
     }
 
     // ==========================================
@@ -178,30 +239,48 @@ class SystemSettings extends Component
     public function testSmtp()
     {
         try {
-            config([
-                'mail.mailers.smtp.host' => 'smtp.gmail.com',
-                'mail.mailers.smtp.port' => 587,
-                'mail.mailers.smtp.encryption' => 'tls',
-                'mail.mailers.smtp.username' => 'bigfun.qld.au@gmail.com',
-                'mail.mailers.smtp.password' => 'fkpu ptou jdnc zduk',
-            ]);
+            $to = config('mail.from.address');
+            $host = config('mail.mailers.smtp.host');
 
-            Mail::send([], [], function ($message) {
-                $message->to('bigfun.qld.au@gmail.com')
-                    ->subject('SMTP Configuration Test - Success!')
-                    ->html("
-                        <div style='font-family: sans-serif; padding: 20px; background: #fdf2f4; border-radius: 10px;'>
-                            <h2 style='color: #9E6B73;'>Connection Successful! 🎉</h2>
-                            <p style='color: #333;'>Your local SMTP configuration is working perfectly via Google App Passwords.</p>
-                            <hr style='border: none; border-top: 1px solid #ccc; margin: 15px 0;' />
-                            <p style='color: #666; font-size: 12px;'><strong>Host:</strong> smtp.gmail.com <br> <strong>Port:</strong> 587</p>
-                        </div>
-                    ");
+            Mail::mailer('smtp')->send([], [], function ($message) use ($to, $host) {
+                $message->to($to)
+                    ->subject('SMTP primary (Brevo) test')
+                    ->html(
+                        '<div style="font-family: sans-serif; padding: 20px; background: #0f172a; color: #e2e8f0; border-radius: 10px;">'
+                        . '<h2 style="color: #34d399;">Primary mailer OK</h2>'
+                        . '<p>This message was sent using the <strong>smtp</strong> mailer from system settings.</p>'
+                        . '<p style="font-size: 12px; color: #94a3b8;"><strong>Host:</strong> ' . e($host) . '</p>'
+                        . '</div>'
+                    );
             });
 
             $this->dispatch('show-toast', message: 'Test email sent! Please check your inbox.', type: 'success');
         } catch (\Exception $e) {
-            $this->dispatch('show-alert', message: "SMTP Failed: " . $e->getMessage(), type: 'error');
+            $this->dispatch('show-alert', message: 'SMTP Failed: ' . $e->getMessage(), type: 'error');
+        }
+    }
+
+    public function testGoogleSmtp()
+    {
+        try {
+            $to = config('mail.from.address');
+            $host = config('mail.mailers.google.host');
+
+            Mail::mailer('google')->send([], [], function ($message) use ($to, $host) {
+                $message->to($to)
+                    ->subject('SMTP secondary (Google) test')
+                    ->html(
+                        '<div style="font-family: sans-serif; padding: 20px; background: #0f172a; color: #e2e8f0; border-radius: 10px;">'
+                        . '<h2 style="color: #60a5fa;">Secondary mailer OK</h2>'
+                        . '<p>This message was sent using the <strong>google</strong> mailer from system settings.</p>'
+                        . '<p style="font-size: 12px; color: #94a3b8;"><strong>Host:</strong> ' . e($host) . '</p>'
+                        . '</div>'
+                    );
+            });
+
+            $this->dispatch('show-toast', message: 'Test email sent! Please check your inbox.', type: 'success');
+        } catch (\Exception $e) {
+            $this->dispatch('show-alert', message: 'SMTP Failed: ' . $e->getMessage(), type: 'error');
         }
     }
 

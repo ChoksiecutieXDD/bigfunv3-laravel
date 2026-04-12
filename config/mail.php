@@ -43,8 +43,22 @@ return [
             'url' => env('MAIL_URL'),
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),
+            'encryption' => env('MAIL_ENCRYPTION'),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+
+        'google' => [
+            'transport' => 'smtp',
+            'scheme' => env('MAIL_GOOGLE_SCHEME'),
+            'url' => env('MAIL_GOOGLE_URL'),
+            'host' => env('MAIL_GOOGLE_HOST', 'smtp.gmail.com'),
+            'port' => env('MAIL_GOOGLE_PORT', 587),
+            'encryption' => env('MAIL_GOOGLE_ENCRYPTION', 'tls'),
+            'username' => env('MAIL_GOOGLE_USERNAME'),
+            'password' => env('MAIL_GOOGLE_PASSWORD'),
             'timeout' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
@@ -113,6 +127,22 @@ return [
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
         'name' => env('MAIL_FROM_NAME', 'Example'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Primary SMTP (e.g. Brevo) — display & quota hints for system settings
+    |--------------------------------------------------------------------------
+    |
+    | Daily used/limit are optional; set in .env to show the badge on the
+    | system settings screen (Brevo plan limits or your own counters).
+    |
+    */
+
+    'brevo' => [
+        'smtp_key_name' => env('MAIL_BREVO_SMTP_KEY_NAME'),
+        'daily_email_used' => env('MAIL_BREVO_DAILY_EMAIL_USED'),
+        'daily_email_limit' => env('MAIL_BREVO_DAILY_EMAIL_LIMIT'),
     ],
 
 ];
