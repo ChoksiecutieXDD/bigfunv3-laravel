@@ -52,6 +52,16 @@ class MailService
             if (!in_array($defaultMailer, ['google', 'smtp'])) {
                 $defaultMailer = 'smtp';
             }
+
+            $quotaStatus = app(EmailQuotaService::class)->statusForMailer($defaultMailer);
+            if ($quotaStatus['is_limit_reached']) {
+                return [
+                    'success' => false,
+                    'message' => "{$quotaStatus['label']} daily quota reached ({$quotaStatus['used']}/{$quotaStatus['limit']}).",
+                    'error_code' => 'quota_reached',
+                    'quota' => $quotaStatus,
+                ];
+            }
             
             $mail->Host       = config("mail.mailers.{$defaultMailer}.host", 'smtp.gmail.com');
             $mail->SMTPAuth   = true;
@@ -214,6 +224,9 @@ class MailService
         $path = base_path('.env');
         if (file_exists($path)) {
             $envContent = file_get_contents($path);
+            if ($envContent === false) {
+                return;
+            }
             if (preg_match('/^' . $envKey . '=.*/m', $envContent)) {
                 $envContent = preg_replace('/^' . $envKey . '=.*/m', $envKey . '=' . $newUsed, $envContent);
             } else {

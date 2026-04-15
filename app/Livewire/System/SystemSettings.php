@@ -33,24 +33,23 @@ class SystemSettings extends Component
 
     public function updatedDefaultMailer(?string $value): void
     {
-        if ($value === null || $value === '') {
-            return;
-        }
+        // We do nothing here to prevent automatic updates. 
+        // The update is triggered by the 'execute-change-mailer' event after confirmation.
+    }
 
+    #[On('execute-change-mailer')]
+    public function executeChangeMailer(string $value): void
+    {
         if (! in_array($value, ['smtp', 'google'], true)) {
-            $this->syncDefaultMailerFromConfig();
-
             return;
         }
 
         $previous = (string) config('mail.default');
-
+        
         try {
             $path = base_path('.env');
             if (! file_exists($path)) {
                 $this->dispatch('show-toast', message: 'Cannot find .env file.', type: 'error');
-                $this->revertDefaultMailerUi($previous);
-
                 return;
             }
 
@@ -66,19 +65,20 @@ class SystemSettings extends Component
                 $newEnvContent .= "\nMAIL_MAILER={$value}\n";
             }
 
-            // Apply runtime changes first; persist .env only after so disk never diverges from UI if later steps fail.
-            Artisan::call('config:clear');
-            Config::set('mail.default', $value);
-
+            // Persist changes to .env
             if (file_put_contents($path, $newEnvContent, LOCK_EX) === false) {
-                Config::set('mail.default', $previous);
                 throw new \RuntimeException('Could not write .env file.');
             }
 
-            $this->dispatch('show-alert', message: 'Default mailer set to '.strtoupper($value).' (Brevo = smtp, Gmail = google).', type: 'success');
+            // Clear configuration cache so the new .env value is picked up
+            Artisan::call('config:clear');
+            
+            $this->dispatch('show-toast', message: 'Mailer updated successfully. Refreshing...', type: 'success');
+            
+            // Redirect to the same page to ensure a clean state
+            $this->redirect(route('system.settings'), navigate: true);
+
         } catch (\Exception $e) {
-            Config::set('mail.default', $previous);
-            $this->revertDefaultMailerUi($previous);
             $this->dispatch('show-toast', message: 'Failed to update default mailer: '.$e->getMessage(), type: 'error');
         }
     }
@@ -260,6 +260,7 @@ class SystemSettings extends Component
     // ==========================================
     // 5. TEST SMTP
     // ==========================================
+    #[On('execute-test-smtp')]
     public function testSmtp()
     {
         try {
@@ -284,6 +285,7 @@ class SystemSettings extends Component
         }
     }
 
+    #[On('execute-test-google-smtp')]
     public function testGoogleSmtp()
     {
         try {
@@ -305,6 +307,52 @@ class SystemSettings extends Component
             $this->dispatch('show-toast', message: 'Test email sent! Please check your inbox.', type: 'success');
         } catch (\Exception $e) {
             $this->dispatch('show-alert', message: 'SMTP Failed: ' . $e->getMessage(), type: 'error');
+        }
+    }
+
+    // ==========================================
+    // 6. QUOTA MANAGEMENT
+    // ==========================================
+    #[On('execute-reset-quota')]
+    public function executeResetQuota(string $mailer)
+    {
+        if (! in_array($mailer, ['brevo', 'google'], true)) {
+            return;
+        }
+
+        try {
+            $path = base_path('.env');
+            if (! file_exists($path)) {
+                $this->dispatch('show-toast', message: 'Cannot find .env file.', type: 'error');
+                return;
+            }
+
+            $envContent = file_get_contents($path);
+            if ($envContent === false) {
+                throw new \RuntimeException('Could not read .env file.');
+            }
+
+            $key = ($mailer === 'brevo') ? 'MAIL_BREVO_DAILY_EMAIL_USED' : 'MAIL_GOOGLE_DAILY_EMAIL_USED';
+            
+            if (preg_match("/^{$key}=.*/m", $envContent)) {
+                $envContent = preg_replace("/^{$key}=.*/m", "{$key}=0", $envContent);
+            } else {
+                $envContent .= "\n{$key}=0\n";
+            }
+
+            if (file_put_contents($path, $envContent, LOCK_EX) === false) {
+                throw new \RuntimeException('Could not write .env file.');
+            }
+
+            Artisan::call('config:clear');
+            
+            $this->dispatch('show-alert', message: ucfirst($mailer) . ' daily counter has been reset to 0.', type: 'success');
+            
+            // Refresh state
+            $this->redirect(route('system.settings'), navigate: true);
+
+        } catch (\Exception $e) {
+            $this->dispatch('show-toast', message: 'Failed to reset quota: ' . $e->getMessage(), type: 'error');
         }
     }
 

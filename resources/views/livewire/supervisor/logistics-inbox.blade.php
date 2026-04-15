@@ -11,7 +11,9 @@
          showConfirmModal: false,
          confirmEmailModal: false,
          confirmMessage: '',
-         confirmAction: null
+         confirmAction: null,
+         quotaWarningModal: false,
+         quotaLimitModal: false
      }"
     @open-modal.window="
         let modal = typeof $event.detail === 'string' ? $event.detail : ($event.detail.name || $event.detail[0]);
@@ -24,6 +26,8 @@
         if(modal === 'paymentSuccessModal') showPaymentSuccessModal = true;
         if(modal === 'sentSuccessModal') sentSuccessModal = true;
         if(modal === 'confirmEmailModal') confirmEmailModal = true;
+        if(modal === 'quotaWarningModal') quotaWarningModal = true;
+        if(modal === 'quotaLimitModal') quotaLimitModal = true;
      "
     @close-modal.window="
         let modal = typeof $event.detail === 'string' ? $event.detail : ($event.detail.name || $event.detail[0]);
@@ -36,6 +40,8 @@
         if(modal === 'paymentSuccessModal') showPaymentSuccessModal = false;
         if(modal === 'sentSuccessModal') sentSuccessModal = false;
         if(modal === 'confirmEmailModal') confirmEmailModal = false;
+        if(modal === 'quotaWarningModal') quotaWarningModal = false;
+        if(modal === 'quotaLimitModal') quotaLimitModal = false;
      ">
 
     <style>
@@ -978,6 +984,41 @@
                              Proceed
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template x-teleport="body">
+        <div x-show="quotaWarningModal" class="fixed inset-0 z-[10001] overflow-y-auto" x-cloak>
+            <div class="flex items-center justify-center min-h-screen px-4">
+                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="quotaWarningModal = false"></div>
+                <div x-show="quotaWarningModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10 text-center">
+                    <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600">
+                        <span class="material-symbols-rounded text-3xl">warning</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">{{ $quotaWarningTitle }}</h3>
+                    <p class="text-sm text-gray-500 mb-6">{{ $quotaWarningMessage }}</p>
+                    <div class="flex justify-center gap-3">
+                        <button @click="quotaWarningModal = false" class="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-bold transition">Cancel</button>
+                        <button wire:click="continueEmailAfterQuotaWarning" class="px-5 py-2.5 rounded-xl bg-amber-500 text-white hover:bg-amber-600 text-sm font-bold shadow-lg shadow-amber-200 transition">Continue</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template x-teleport="body">
+        <div x-show="quotaLimitModal" class="fixed inset-0 z-[10001] overflow-y-auto" x-cloak>
+            <div class="flex items-center justify-center min-h-screen px-4">
+                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="quotaLimitModal = false"></div>
+                <div x-show="quotaLimitModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10 text-center">
+                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
+                        <span class="material-symbols-rounded text-3xl">block</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">{{ $quotaLimitTitle }}</h3>
+                    <p class="text-sm text-gray-500 mb-6">{{ $quotaLimitMessage }}</p>
+                    <button @click="quotaLimitModal = false" class="px-6 py-2.5 rounded-xl bg-red-500 text-white hover:bg-red-600 text-sm font-bold shadow-lg shadow-red-200 transition">Understood</button>
                 </div>
             </div>
         </div>

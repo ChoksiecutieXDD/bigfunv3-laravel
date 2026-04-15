@@ -7,6 +7,7 @@ use Livewire\Attributes\Layout;
 use App\Models\Booking;
 use App\Models\BookingItem;
 use App\Models\BookingPayment;
+use App\Services\EmailQuotaService;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -47,6 +48,10 @@ class BookingOverview extends Component
     public $confirmEmailMessage = '';
     public $confirmEmailTitle = '';
     public $pendingEmailType = '';
+    public $quotaWarningTitle = '';
+    public $quotaWarningMessage = '';
+    public $quotaLimitTitle = '';
+    public $quotaLimitMessage = '';
 
 
     // --- Calendar Modals Properties ---
@@ -212,6 +217,10 @@ class BookingOverview extends Component
     // --- Email Logic ---
     public function openEmailModal($type)
     {
+        if ($this->handleQuotaGuardForEmail($type)) {
+            return;
+        }
+
         $payments = BookingPayment::where('booking_id', $this->booking->id)->get();
         $amountPaid = $payments->sum('amount');
         $totalAmount = (float) $this->booking->total_amount;
@@ -262,6 +271,37 @@ class BookingOverview extends Component
             return;
         }
 
+        $this->executeOpenEmailModal($type);
+    }
+
+    private function handleQuotaGuardForEmail(string $type): bool
+    {
+        $quota = app(EmailQuotaService::class)->statusForDefaultMailer();
+
+        if ($quota['is_limit_reached']) {
+            $this->quotaLimitTitle = 'Daily Email Quota Reached';
+            $this->quotaLimitMessage = "{$quota['label']} has reached {$quota['used']}/{$quota['limit']} for today. Please switch mailer or wait for reset.";
+            $this->dispatch('open-modal', 'quotaLimitModal');
+
+            return true;
+        }
+
+        if ($quota['is_low']) {
+            $this->pendingEmailType = $type;
+            $this->quotaWarningTitle = 'Email Credits Running Low';
+            $this->quotaWarningMessage = "{$quota['label']} has {$quota['remaining']} credits left today ({$quota['used']}/{$quota['limit']}). Continue sending?";
+            $this->dispatch('open-modal', 'quotaWarningModal');
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public function continueEmailAfterQuotaWarning(): void
+    {
+        $type = $this->pendingEmailType ?: 'invoice';
+        $this->dispatch('close-modal', 'quotaWarningModal');
         $this->executeOpenEmailModal($type);
     }
 
@@ -369,7 +409,14 @@ class BookingOverview extends Component
             // Re-fetch email logs to show the new one
             $this->booking->refresh();
         } else {
-            $this->dispatch('notify', title: 'Error', message: $result['message']);
+            if (($result['error_code'] ?? null) === 'quota_reached' && isset($result['quota'])) {
+                $quota = $result['quota'];
+                $this->quotaLimitTitle = 'Daily Email Quota Reached';
+                $this->quotaLimitMessage = "{$quota['label']} has reached {$quota['used']}/{$quota['limit']} for today. Please switch mailer or wait for reset.";
+                $this->dispatch('open-modal', 'quotaLimitModal');
+            } else {
+                $this->dispatch('notify', title: 'Error', message: $result['message']);
+            }
         }
     }
 

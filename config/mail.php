@@ -141,13 +141,13 @@ return [
 
     'brevo' => [
         'smtp_key_name' => env('MAIL_BREVO_SMTP_KEY_NAME'),
-        'daily_email_used' => env('MAIL_BREVO_DAILY_EMAIL_USED'),
-        'daily_email_limit' => env('MAIL_BREVO_DAILY_EMAIL_LIMIT'),
+        'daily_email_used' => env('MAIL_BREVO_DAILY_EMAIL_USED', 0),
+        'daily_email_limit' => env('MAIL_BREVO_DAILY_EMAIL_LIMIT', 300),
     ],
 
     'google_quota' => [
-        'daily_email_used' => env('MAIL_GOOGLE_DAILY_EMAIL_USED'),
-        'daily_email_limit' => env('MAIL_GOOGLE_DAILY_EMAIL_LIMIT'),
+        'daily_email_used' => env('MAIL_GOOGLE_DAILY_EMAIL_USED', 0),
+        'daily_email_limit' => env('MAIL_GOOGLE_DAILY_EMAIL_LIMIT', 500),
     ],
 
 ];

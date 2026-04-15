@@ -338,7 +338,7 @@ class Inventory extends Component
         $dropdown = ProductDropdown::updateOrCreate(
             ['id' => $this->dd_id],
             [
-                'category_target' => $this->dd_category, 
+                'category_target' => $this->dd_category,
                 'label' => $this->dd_label,
                 'counts_against' => $this->dd_counts_against ?: $this->dd_category
             ]

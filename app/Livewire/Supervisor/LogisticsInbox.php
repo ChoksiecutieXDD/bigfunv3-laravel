@@ -8,6 +8,7 @@ use Livewire\Attributes\Layout;
 use App\Models\Booking;
 use App\Models\BookingPayment;
 use App\Models\User;
+use App\Services\EmailQuotaService;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -287,6 +288,10 @@ class LogisticsInbox extends Component
     public $confirmEmailMessage;
     public $pendingEmailType;
     public $pendingBookingId;
+    public $quotaWarningTitle = '';
+    public $quotaWarningMessage = '';
+    public $quotaLimitTitle = '';
+    public $quotaLimitMessage = '';
 
     // Global PDF Price Toggles (per section)
     public $invoice_pdf_prices = true;
@@ -301,6 +306,10 @@ class LogisticsInbox extends Component
 
     public function prepareEmail($bookingId, $type)
     {
+        if ($this->handleQuotaGuardForEmail((int) $bookingId, (string) $type)) {
+            return;
+        }
+
         $booking = Booking::with('payments')->findOrFail($bookingId);
         
         // Apply global section settings
@@ -366,6 +375,42 @@ class LogisticsInbox extends Component
     public function proceedWithEmail()
     {
         $this->executePrepareEmail($this->pendingBookingId, $this->pendingEmailType);
+    }
+
+    private function handleQuotaGuardForEmail(int $bookingId, string $type): bool
+    {
+        $quota = app(EmailQuotaService::class)->statusForDefaultMailer();
+
+        if ($quota['is_limit_reached']) {
+            $this->quotaLimitTitle = 'Daily Email Quota Reached';
+            $this->quotaLimitMessage = "{$quota['label']} has reached {$quota['used']}/{$quota['limit']} for today. Please switch mailer or wait for reset.";
+            $this->dispatch('open-modal', 'quotaLimitModal');
+
+            return true;
+        }
+
+        if ($quota['is_low']) {
+            $this->pendingBookingId = $bookingId;
+            $this->pendingEmailType = $type;
+            $this->quotaWarningTitle = 'Email Credits Running Low';
+            $this->quotaWarningMessage = "{$quota['label']} has {$quota['remaining']} credits left today ({$quota['used']}/{$quota['limit']}). Continue sending?";
+            $this->dispatch('open-modal', 'quotaWarningModal');
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public function continueEmailAfterQuotaWarning(): void
+    {
+        $bookingId = (int) $this->pendingBookingId;
+        $type = (string) $this->pendingEmailType;
+        $this->dispatch('close-modal', 'quotaWarningModal');
+
+        if ($bookingId > 0 && $type !== '') {
+            $this->executePrepareEmail($bookingId, $type);
+        }
     }
 
     public function executePrepareEmail($bookingId, $type)
@@ -443,7 +488,14 @@ class LogisticsInbox extends Component
                 Booking::where('id', $this->email_booking_id)->update(['invoice_emailed' => 1]);
             }
         } else {
-            $this->dispatch('notify', title: 'Error', message: $result['message']);
+            if (($result['error_code'] ?? null) === 'quota_reached' && isset($result['quota'])) {
+                $quota = $result['quota'];
+                $this->quotaLimitTitle = 'Daily Email Quota Reached';
+                $this->quotaLimitMessage = "{$quota['label']} has reached {$quota['used']}/{$quota['limit']} for today. Please switch mailer or wait for reset.";
+                $this->dispatch('open-modal', 'quotaLimitModal');
+            } else {
+                $this->dispatch('notify', title: 'Error', message: $result['message']);
+            }
         }
     }
 

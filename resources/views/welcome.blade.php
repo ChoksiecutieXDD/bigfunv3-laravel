@@ -184,7 +184,11 @@
                     <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between">
                         <div>
                             <div class="flex text-yellow-400 mb-4">
-                                <span class="material-symbols-rounded">star</span><span class="material-symbols-rounded">star</span><span class="material-symbols-rounded">star</span><span class="material-symbols-rounded">star</span><span class="material-symbols-rounded">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
                             </div>
                             <p class="text-gray-600 text-sm italic mb-6">"Absolutely fantastic service! The mechanical bull was the highlight of our corporate party. The staff was professional and made sure everyone was safe."</p>
                         </div>
@@ -199,7 +203,11 @@
                     <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between">
                         <div>
                             <div class="flex text-yellow-400 mb-4">
-                                <span class="material-symbols-rounded">star</span><span class="material-symbols-rounded">star</span><span class="material-symbols-rounded">star</span><span class="material-symbols-rounded">star</span><span class="material-symbols-rounded">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
                             </div>
                             <p class="text-gray-600 text-sm italic mb-6">"Hired a jumping castle for my son's birthday. The team arrived early, set up quickly, and the kids had a blast. Highly recommend BigFun!"</p>
                         </div>
@@ -214,7 +222,11 @@
                     <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between hidden lg:flex">
                         <div>
                             <div class="flex text-yellow-400 mb-4">
-                                <span class="material-symbols-rounded">star</span><span class="material-symbols-rounded">star</span><span class="material-symbols-rounded">star</span><span class="material-symbols-rounded">star</span><span class="material-symbols-rounded">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
                             </div>
                             <p class="text-gray-600 text-sm italic mb-6">"We've used them for three years in a row for our school fete. Reliable, clean equipment, and the best customer service in the industry."</p>
                         </div>

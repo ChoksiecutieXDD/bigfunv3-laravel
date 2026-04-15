@@ -1,6 +1,14 @@
 <div
+    x-data="{
+        showBrevoQuotaInfo: false,
+        showGoogleQuotaInfo: false,
+    }"
     @execute-clear-cache.window="$wire.clearCache()"
+    @execute-change-mailer.window="$wire.executeChangeMailer($event.detail.params)"
     @execute-change-environment.window="$wire.changeEnvironment($event.detail.id)"
+    @execute-reset-quota.window="$wire.executeResetQuota($event.detail.params)"
+    @execute-test-smtp.window="$wire.testSmtp()"
+    @execute-test-google-smtp.window="$wire.testGoogleSmtp()"
     @execute-force-logout.window="$wire.forceLogout()">
     <div class="fixed top-[-20%] left-[-10%] w-[500px] h-[500px] bg-plum rounded-full blur-[150px] opacity-20 pointer-events-none z-0"></div>
     <div class="fixed bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-900 rounded-full blur-[150px] opacity-20 pointer-events-none z-0"></div>
@@ -26,10 +34,10 @@
             @php
             $displayEnv = $currentEnv ?: config('app.env');
             $envColor = match($displayEnv) {
-                'local', 'development' => 'text-amber-400',
-                'staging' => 'text-blue-400',
-                'production' => 'text-emerald-400',
-                default => 'text-slate-400'
+            'local', 'development' => 'text-amber-400',
+            'staging' => 'text-blue-400',
+            'production' => 'text-emerald-400',
+            default => 'text-slate-400'
             };
             @endphp
 
@@ -173,7 +181,15 @@
                                 type="radio"
                                 name="default_outbound_mailer"
                                 value="smtp"
-                                wire:model.live="defaultMailer"
+                                x-data
+                                @change="$dispatch('open-modal', { 
+                                    title: 'Switch to Brevo?', 
+                                    message: 'Changing the default outbound mailer will update system configuration and requires a full server refresh. Proceed?', 
+                                    type: 'warning', 
+                                    event: 'execute-change-mailer',
+                                    params: 'smtp'
+                                }); $event.target.checked = false;"
+                                :checked="'{{ $defaultMailer }}' === 'smtp'"
                                 class="mt-1 size-5 shrink-0 cursor-pointer rounded-full border-2 border-slate-600 bg-slate-900 text-emerald-500 accent-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
                             <span class="min-w-0 flex-1">
                                 <span class="block text-sm font-bold text-slate-100">Primary — Brevo</span>
@@ -185,7 +201,15 @@
                                 type="radio"
                                 name="default_outbound_mailer"
                                 value="google"
-                                wire:model.live="defaultMailer"
+                                x-data
+                                @change="$dispatch('open-modal', { 
+                                    title: 'Switch to Gmail?', 
+                                    message: 'Changing the default outbound mailer will update system configuration and requires a full server refresh. Proceed?', 
+                                    type: 'warning', 
+                                    event: 'execute-change-mailer',
+                                    params: 'google'
+                                }); $event.target.checked = false;"
+                                :checked="'{{ $defaultMailer }}' === 'google'"
                                 class="mt-1 size-5 shrink-0 cursor-pointer rounded-full border-2 border-slate-600 bg-slate-900 text-blue-500 accent-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
                             <span class="min-w-0 flex-1">
                                 <span class="block text-sm font-bold text-slate-100">Secondary — Gmail</span>
@@ -198,12 +222,12 @@
 
                 <!-- PRIMARY SMTP (BREVO) -->
                 @php
-                    $brevoUsed = config('mail.brevo.daily_email_used');
-                    $brevoLimit = config('mail.brevo.daily_email_limit');
-                    $brevoKeyName = config('mail.brevo.smtp_key_name');
-                    $brevoQuotaLabel = ($brevoUsed !== null && $brevoUsed !== '' && $brevoLimit !== null && $brevoLimit !== '')
-                        ? $brevoUsed . ' / ' . $brevoLimit
-                        : null;
+                $brevoUsed = config('mail.brevo.daily_email_used');
+                $brevoLimit = config('mail.brevo.daily_email_limit');
+                $brevoKeyName = config('mail.brevo.smtp_key_name');
+                $brevoUsed = is_numeric($brevoUsed) ? (int) $brevoUsed : 0;
+                $brevoLimit = is_numeric($brevoLimit) ? max(1, (int) $brevoLimit) : 300;
+                $brevoRemaining = max(0, $brevoLimit - $brevoUsed);
                 @endphp
                 <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full">
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
@@ -218,29 +242,30 @@
                         </div>
                         <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2">
                             @if($defaultMailer === 'smtp')
-                            <div class="flex items-center gap-1 bg-violet-500/15 text-violet-300 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-violet-500/25" title="This mailer is selected as default for the app">
+                            <div class="inline-flex items-center gap-1 bg-violet-500/15 text-violet-300 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-violet-500/25 min-w-[80px] justify-center" title="This mailer is selected as default for the app">
                                 <span class="material-symbols-rounded text-sm leading-none">check_circle</span>
                                 In use
                             </div>
                             @endif
-                            <div class="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-500/20">
+                            <div class="inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-500/20 min-w-[80px] justify-center">
                                 Primary
                             </div>
                             @if($brevoKeyName)
-                            <div class="flex items-center gap-1.5 bg-amber-500/10 text-amber-300 px-3 py-1 rounded-full text-[10px] font-bold tracking-wide border border-amber-500/20 max-w-[220px] truncate" title="{{ $brevoKeyName }}">
+                            <div class="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-300 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide border border-amber-500/20 max-w-[180px] truncate" title="{{ $brevoKeyName }}">
                                 Key: {{ $brevoKeyName }}
                             </div>
                             @endif
-                            <div class="flex items-center gap-1.5 bg-slate-600/30 text-slate-200 px-3 py-1 rounded-full text-[10px] font-bold tracking-wide border border-slate-500/30" title="Set MAIL_BREVO_DAILY_EMAIL_USED and MAIL_BREVO_DAILY_EMAIL_LIMIT in .env">
+                            <div class="inline-flex items-center gap-1.5 bg-slate-600/30 text-slate-200 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide border border-slate-500/30 min-w-[90px] justify-center">
                                 <span class="text-slate-400 font-semibold uppercase">Daily</span>
-                                @if($brevoQuotaLabel)
-                                <span>{{ $brevoQuotaLabel }}</span>
-                                @else
-                                <span class="text-slate-500">— / —</span>
-                                @endif
+                                <span>{{ $brevoUsed }} / {{ $brevoLimit }}</span>
                             </div>
+                            <button type="button" @click="showBrevoQuotaInfo = true" class="inline-flex items-center gap-1.5 bg-slate-700/40 text-slate-200 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide border border-slate-600/30 hover:border-slate-500/60 transition min-w-[95px] justify-center">
+                                <span class="material-symbols-rounded text-sm leading-none">info</span>
+                                Quota Info
+                            </button>
                         </div>
                     </div>
+                    <p class="mb-5 text-[11px] text-slate-400">Remaining today: <span class="font-semibold text-slate-300">{{ $brevoRemaining }}</span> credits.</p>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-4">
@@ -268,12 +293,21 @@
 
                             <div>
                                 <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">SMTP Key (Token)</label>
-                                <input type="password" value="{{ config('mail.mailers.smtp.password') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 outline-none" disabled autocomplete="new-password" readonly>
+                                <input type="password" value="********" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 outline-none" disabled autocomplete="new-password" readonly>
                             </div>
                         </div>
                     </div>
 
-                    <button type="button" wire:click="testSmtp" wire:loading.attr="disabled" class="w-full py-3 bg-plum hover:bg-plum-dark text-white text-sm font-bold rounded-xl transition-all duration-300 mt-6 flex items-center justify-center gap-2 shadow-lg shadow-plum/20">
+                    <button type="button" 
+                        x-data
+                        @click="$dispatch('open-modal', { 
+                            title: 'Test Primary Connection?', 
+                            message: 'This will send a test email to {{ config('mail.from.address') }} using the current Brevo configuration. Proceed?', 
+                            type: 'info', 
+                            event: 'execute-test-smtp' 
+                        })"
+                        wire:loading.attr="disabled" 
+                        class="w-full py-3 bg-plum hover:bg-plum-dark text-white text-sm font-bold rounded-xl transition-all duration-300 mt-6 flex items-center justify-center gap-2 shadow-lg shadow-plum/20">
                         <span wire:loading.remove wire:target="testSmtp">Test Primary Connection</span>
                         <span wire:loading wire:target="testSmtp">Sending Test Email...</span>
                     </button>
@@ -281,11 +315,11 @@
 
                 <!-- SECONDARY SMTP (GOOGLE) -->
                 @php
-                    $googleUsed = config('mail.google_quota.daily_email_used');
-                    $googleLimit = config('mail.google_quota.daily_email_limit');
-                    $googleQuotaLabel = ($googleUsed !== null && $googleUsed !== '' && $googleLimit !== null && $googleLimit !== '')
-                        ? $googleUsed . ' / ' . $googleLimit
-                        : null;
+                $googleUsed = config('mail.google_quota.daily_email_used');
+                $googleLimit = config('mail.google_quota.daily_email_limit');
+                $googleUsed = is_numeric($googleUsed) ? (int) $googleUsed : 0;
+                $googleLimit = is_numeric($googleLimit) ? max(1, (int) $googleLimit) : 500;
+                $googleRemaining = max(0, $googleLimit - $googleUsed);
                 @endphp
                 <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full">
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
@@ -300,24 +334,25 @@
                         </div>
                         <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2">
                             @if($defaultMailer === 'google')
-                            <div class="flex items-center gap-1 bg-violet-500/15 text-violet-300 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-violet-500/25" title="This mailer is selected as default for the app">
+                            <div class="inline-flex items-center gap-1 bg-violet-500/15 text-violet-300 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-violet-500/25 min-w-[80px] justify-center" title="This mailer is selected as default for the app">
                                 <span class="material-symbols-rounded text-sm leading-none">check_circle</span>
                                 In use
                             </div>
                             @endif
-                            <div class="flex items-center gap-2 bg-slate-500/10 text-slate-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-slate-500/20">
+                            <div class="inline-flex items-center gap-2 bg-slate-500/10 text-slate-400 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-slate-500/20 min-w-[80px] justify-center">
                                 Secondary
                             </div>
-                            <div class="flex items-center gap-1.5 bg-slate-600/30 text-slate-200 px-3 py-1 rounded-full text-[10px] font-bold tracking-wide border border-slate-500/30" title="Set MAIL_GOOGLE_DAILY_EMAIL_USED and MAIL_GOOGLE_DAILY_EMAIL_LIMIT in .env">
+                            <div class="inline-flex items-center gap-1.5 bg-slate-600/30 text-slate-200 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide border border-slate-500/30 min-w-[90px] justify-center">
                                 <span class="text-slate-400 font-semibold uppercase">Daily</span>
-                                @if($googleQuotaLabel)
-                                <span>{{ $googleQuotaLabel }}</span>
-                                @else
-                                <span class="text-slate-500">— / —</span>
-                                @endif
+                                <span>{{ $googleUsed }} / {{ $googleLimit }}</span>
                             </div>
+                            <button type="button" @click="showGoogleQuotaInfo = true" class="inline-flex items-center gap-1.5 bg-slate-700/40 text-slate-200 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide border border-slate-600/30 hover:border-slate-500/60 transition min-w-[95px] justify-center">
+                                <span class="material-symbols-rounded text-sm leading-none">info</span>
+                                Quota Info
+                            </button>
                         </div>
                     </div>
+                    <p class="mb-5 text-[11px] text-slate-400">Remaining today: <span class="font-semibold text-slate-300">{{ $googleRemaining }}</span> credits.</p>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-4">
@@ -345,12 +380,21 @@
 
                             <div>
                                 <label class="block text-xs font-semibold text-slate-400 mb-1 pl-1">App Password (Token)</label>
-                                <input type="password" value="{{ config('mail.mailers.google.password') }}" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 outline-none" disabled autocomplete="new-password" readonly>
+                                <input type="password" value="********" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 outline-none" disabled autocomplete="new-password" readonly>
                             </div>
                         </div>
                     </div>
 
-                    <button type="button" wire:click="testGoogleSmtp" wire:loading.attr="disabled" class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-xl transition-all duration-300 mt-6 flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]">
+                    <button type="button" 
+                        x-data
+                        @click="$dispatch('open-modal', { 
+                            title: 'Test Secondary Connection?', 
+                            message: 'This will send a test email to {{ config('mail.from.address') }} using the current Google configuration. Proceed?', 
+                            type: 'info', 
+                            event: 'execute-test-google-smtp' 
+                        })"
+                        wire:loading.attr="disabled" 
+                        class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-xl transition-all duration-300 mt-6 flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]">
                         <span wire:loading.remove wire:target="testGoogleSmtp">Test Secondary Connection</span>
                         <span wire:loading wire:target="testGoogleSmtp">Sending Test Email...</span>
                     </button>
@@ -421,4 +465,96 @@
 
         </div>
     </div>
-</div>
+
+    <div x-show="showBrevoQuotaInfo" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+        <div x-show="showBrevoQuotaInfo"
+            x-transition.opacity.duration.300ms
+            class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            @click="showBrevoQuotaInfo = false"></div>
+
+        <div x-show="showBrevoQuotaInfo"
+            x-transition:enter="transition ease-out duration-300 transform"
+            x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-200 transform"
+            x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+            x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+            class="relative w-full max-w-lg rounded-[24px] bg-white p-8 text-slate-600 shadow-2xl z-[10001]">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Brevo Quota Information</h3>
+            <div class="space-y-4 text-sm text-slate-500 leading-relaxed">
+                <p>
+                    Your primary mailer is currently tracking <strong>{{ $brevoUsed }}</strong> sent emails out of a daily limit of <strong>{{ $brevoLimit }}</strong>. 
+                    This limit is managed through your <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">.env</code> configuration file using the 
+                    <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_BREVO_DAILY_EMAIL_LIMIT</code> variable.
+                </p>
+                <p>
+                    The daily usage is tracked by the <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_BREVO_DAILY_EMAIL_USED</code> key. 
+                    If you reach the limit, the system will prevent further automated emails to avoid deliverability issues.
+                </p>
+                <div class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50 text-xs text-emerald-700">
+                    <span class="font-bold block mb-1">Administrative Note:</span>
+                    To reset the daily counter, you can use the button below. This will update the system tracking back to zero and clear the configuration cache.
+                </div>
+            </div>
+            <div class="mt-8 flex justify-between items-center">
+                <button type="button"
+                    @click="$dispatch('open-modal', { 
+                        title: 'Reset Brevo Counter?', 
+                        message: 'This will reset the tracked daily email usage back to zero in the system. Proceed?', 
+                        type: 'warning', 
+                        event: 'execute-reset-quota',
+                        params: 'brevo'
+                    })"
+                    class="text-xs font-bold text-red-500 hover:text-red-600 transition underline underline-offset-4">
+                    Reset Daily Counter
+                </button>
+                <button type="button" @click="showBrevoQuotaInfo = false" class="rounded-xl bg-slate-100 px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-200 transition">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="showGoogleQuotaInfo" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+        <div x-show="showGoogleQuotaInfo"
+            x-transition.opacity.duration.300ms
+            class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            @click="showGoogleQuotaInfo = false"></div>
+
+        <div x-show="showGoogleQuotaInfo"
+            x-transition:enter="transition ease-out duration-300 transform"
+            x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-200 transform"
+            x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+            x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+            class="relative w-full max-w-lg rounded-[24px] bg-white p-8 text-slate-600 shadow-2xl z-[10001]">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Gmail Quota Information</h3>
+            <div class="space-y-4 text-sm text-slate-500 leading-relaxed">
+                <p>
+                    Your secondary Gmail mailer is currently tracking <strong>{{ $googleUsed }}</strong> sent emails out of a daily limit of <strong>{{ $googleLimit }}</strong>. 
+                    This limit is defined by the <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_GOOGLE_DAILY_EMAIL_LIMIT</code> variable in your configuration.
+                </p>
+                <p>
+                    The daily usage is tracked by the <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_GOOGLE_DAILY_EMAIL_USED</code> key. 
+                    Gmail typically has strict outbound limits, so ensure this value stays within your account's allowed throughput.
+                </p>
+                <div class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50 text-xs text-emerald-700">
+                    <span class="font-bold block mb-1">Administrative Note:</span>
+                    To reset the daily counter, you can use the button below. This will update the system tracking back to zero and clear the configuration cache.
+                </div>
+            </div>
+            <div class="mt-8 flex justify-between items-center">
+                <button type="button"
+                    @click="$dispatch('open-modal', { 
+                        title: 'Reset Gmail Counter?', 
+                        message: 'This will reset the tracked daily email usage back to zero in the system. Proceed?', 
+                        type: 'warning', 
+                        event: 'execute-reset-quota',
+                        params: 'google'
+                    })"
+                    class="text-xs font-bold text-red-500 hover:text-red-600 transition underline underline-offset-4">
+                    Reset Daily Counter
+                </button>
+                <button type="button" @click="showGoogleQuotaInfo = false" class="rounded-xl bg-slate-100 px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-200 transition">Got it</button>
+            </div>
+        </div>
+    </div>
