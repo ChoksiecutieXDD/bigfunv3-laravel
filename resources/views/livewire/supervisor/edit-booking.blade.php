@@ -1,4 +1,4 @@
-<div x-data="bookingApp" 
+<div x-data="bookingApp"
     x-init="
         showCustomDelivery = @entangle('form.delivery_area').live === 'custom' || (@entangle('form.delivery_area').live !== '' && !@js($deliveryOptions->pluck('zone_name')->contains($form['delivery_area'] ?? '')));
         showCustomDuration = @entangle('form.duration').live === 'custom';
@@ -11,6 +11,8 @@
             <form id="combinedBookingForm" onsubmit="return false;" class="form-layout-wrapper">
                 <input type="hidden" name="booking_id" id="booking_id" value="{{ $booking->id }}">
                 <input type="hidden" name="invoice_number" id="invoice_number" value="{{ $booking->invoice_number }}">
+                <input type="hidden" id="duration_cost" value="{{ $durationCost }}">
+                <input type="hidden" id="delivery_cost" value="{{ $deliveryCost }}">
 
                 <div class="flex flex-col gap-6 mb-8">
                     <div id="duplicateBanner" class="hidden bg-amber-50 border border-amber-200 border-l-4 border-l-amber-500 p-4 rounded-xl shadow-sm">
@@ -26,7 +28,7 @@
                     <header class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                         <div class="flex items-center gap-4">
                             @php
-                                $backRoute = $isSupervisor ? 'supervisor.bookings.overview' : 'booking.overview';
+                            $backRoute = $isSupervisor ? 'supervisor.bookings.overview' : 'booking.overview';
                             @endphp
                             <a href="{{ route($backRoute, $booking->id) }}" wire:navigate class="bg-white hover:bg-gray-50 text-slate-600 p-2.5 rounded-xl border border-gray-200 transition shadow-sm flex items-center justify-center">
                                 <span class="material-symbols-rounded text-2xl">arrow_back</span>
@@ -152,14 +154,14 @@
                                 </div>
 
                                 <div class="relative">
-                                    <input type="text" wire:model="form.card_number" placeholder=" " maxlength="19" 
+                                    <input type="text" wire:model="form.card_number" placeholder=" " maxlength="19"
                                         x-on:input="$el.value = $el.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()"
                                         class="input-dark font-mono text-lg tracking-widest">
                                     <label class="input-floating-label">Card Number</label>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="relative">
-                                        <input type="text" wire:model="form.card_expiry" placeholder=" " maxlength="5" 
+                                        <input type="text" wire:model="form.card_expiry" placeholder=" " maxlength="5"
                                             x-on:input="
                                                 let v = $el.value.replace(/\D/g, '');
                                                 if (v.length > 2) v = v.substring(0,2) + '/' + v.substring(2,4);
@@ -264,7 +266,7 @@
                         <!-- Left Column: CONTACT INFO -->
                         <div class="space-y-6">
                             <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-4">Contact Info</h3>
-                            
+
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="input-group">
                                     <label class="input-label">First Name <span class="text-red-500">*</span></label>
@@ -415,19 +417,19 @@
 
                     <div class="pt-6 border-t border-gray-100 mt-6">
                         <label class="input-label mb-2 flex items-center justify-between">
-                            <span>Delivery Attachments (Up to 5)</span>
-                            <span class="text-[10px] bg-[#9E6B73]/10 text-[#9E6B73] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Up to 5 slots</span>
+                            <span class="flex items-center gap-2">Delivery Attachments <span class="font-black text-slate-500">(Up to 5)</span></span>
+                            <span class="flex items-center gap-1.5 text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider"><span class="material-symbols-rounded text-xs">folder_limited</span>Max 5MB per file</span>
                         </label>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             @foreach([
-                                1 => 'delivery_attachment',
-                                2 => 'delivery_attachment_2',
-                                3 => 'delivery_attachment_3',
-                                4 => 'delivery_attachment_4',
-                                5 => 'delivery_attachment_5'
+                            1 => 'delivery_attachment',
+                            2 => 'delivery_attachment_2',
+                            3 => 'delivery_attachment_3',
+                            4 => 'delivery_attachment_4',
+                            5 => 'delivery_attachment_5'
                             ] as $i => $field)
                             @php
-                                $hasFile = !empty($form[$field]) && !in_array($field, $deletedAttachments);
+                            $hasFile = !empty($form[$field]) && !in_array($field, $deletedAttachments);
                             @endphp
                             <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col justify-center border-dashed">
                                 @if($hasFile)
@@ -436,7 +438,16 @@
                                     <button type="button" wire:click="markAttachmentDeleted('{{ $field }}')" class="text-red-400 hover:text-red-600 transition"><span class="material-symbols-rounded text-sm">delete</span></button>
                                 </div>
                                 @else
-                                <input type="file" wire:model="newAttachments.{{ $field }}" class="text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-[#9E6B73]/10 file:text-[#9E6B73] hover:file:bg-[#9E6B73]/20 cursor-pointer">
+                                <input type="file" accept="image/png,image/jpeg,application/pdf"
+                                    wire:model="newAttachments.{{ $field }}"
+                                    @change="
+                                        const file = $event.target.files[0];
+                                        if (file && file.size > 5 * 1024 * 1024) {
+                                            $event.target.value = '';
+                                            modals.fileSizeAlert = true;
+                                        }
+                                    "
+                                    class="text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-[#9E6B73]/10 file:text-[#9E6B73] hover:file:bg-[#9E6B73]/20 cursor-pointer">
                                 @endif
                             </div>
                             @endforeach
@@ -444,7 +455,7 @@
                     </div>
                 </div>
 
-                <div class="section-card">
+                <div class="section-card" wire:ignore>
                     <div class="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-rounded text-[#9E6B73] text-2xl">celebration</span>
@@ -472,32 +483,38 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-2">
                                 @foreach($catData['products'] as $p)
                                 @php
-                                    $cleanName = strtolower(trim($p['name']));
-                                    $isSelected = isset($selectedItems[$cleanName]);
-                                    $qty = $isSelected ? $selectedItems[$cleanName] : 1;
-                                    $availInfo = $availability[$cleanName] ?? ['left' => 99, 'sold_out' => false];
-                                    $cardClass = $isSelected ? 'border-[#9E6B73] bg-[#FFF5F7] ring-2 ring-[#9E6B73]/20' : 'border-slate-200 hover:border-slate-300';
-                                    if (!$isSelected && $availInfo['sold_out']) $cardClass = 'opacity-60 bg-slate-50 border-slate-200';
+                                $cleanName = strtolower(trim($p['name']));
+                                $isSelected = isset($selectedItems[$cleanName]);
+                                $qty = $isSelected ? $selectedItems[$cleanName] : 1;
+                                $availInfo = $availability[$cleanName] ?? ['left' => 99, 'sold_out' => false];
+                                $cardClass = $isSelected ? 'border-[#9E6B73] bg-[#FFF5F7] ring-2 ring-[#9E6B73]/20' : 'border-slate-200 hover:border-slate-300';
+                                if (!$isSelected && $availInfo['sold_out']) $cardClass = 'opacity-60 bg-slate-50 border-slate-200';
                                 @endphp
-                                <div class="product-card group {{ $isSelected ? 'selected' : '' }} cursor-pointer" 
-                                     data-name="{{ $p['name'] }}" 
-                                     data-category="{{ $p['category'] }}" 
-                                     data-counts-against="{{ $p['counts_against'] ?: $p['category'] }}"
-                                     data-daily-limit="{{ (int)($p['daily_limit'] ?? 0) }}"
-                                     data-category-limit="{{ (int)($catData['limit'] ?? 0) }}"
-                                     data-specification="{{ $p['specification'] ?? '' }}"
-                                     data-price="{{ $p['price'] }}"
-                                     data-product-sold-out="false"
-                                     @click="const cb = $el.querySelector('.ride-checkbox'); if(cb && !cb.disabled) { handleSelection(cb); }">
+                                <div class="product-card group {{ $isSelected ? 'selected' : '' }} cursor-pointer"
+                                    data-name="{{ $p['name'] }}"
+                                    data-category="{{ $p['category'] }}"
+                                    data-counts-against="{{ $p['counts_against'] ?: $p['category'] }}"
+                                    data-daily-limit="{{ (int)($p['daily_limit'] ?? 0) }}"
+                                    data-category-limit="{{ (int)($catData['limit'] ?? 0) }}"
+                                    data-specification="{{ $p['specification'] ?? '' }}"
+                                    data-price="{{ $p['price'] }}"
+                                    data-product-sold-out="false"
+                                    @click="
+                                        const cb = $el.querySelector('.ride-checkbox');
+                                        if(cb && !cb.disabled) {
+                                            cb.checked = !cb.checked;
+                                            handleSelection(cb);
+                                        }
+                                      ">
                                     <div class="flex justify-between items-start gap-2 mb-2 w-full relative">
                                         <div class="pr-2 w-full">
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <h4 class="font-bold text-slate-800 text-sm leading-snug group-hover:text-[#9E6B73] line-clamp-2 min-h-[40px]">{{ $p['name'] }}</h4>
-                                                <button type="button" @click.stop="openProductDetails($el.closest('.product-card'))" class="text-slate-300 hover:text-[#9E6B73] transition-colors p-1 rounded-full hover:bg-slate-100 flex items-center justify-center shrink-0">
+                                            <div class="flex items-center gap-2">
+                                                <h4 class="font-bold text-slate-800 text-sm leading-snug group-hover:text-[#9E6B73]">{{ $p['name'] }}</h4>
+                                                <button type="button" @click.stop="openProductDetails($event.currentTarget.closest('.product-card'))" class="text-slate-300 hover:text-[#9E6B73] transition-colors p-1 rounded-full hover:bg-slate-100 flex items-center justify-center shrink-0">
                                                     <span class="material-symbols-rounded text-lg">info</span>
                                                 </button>
                                             </div>
-                                            <div class="mt-2"><span class="status-badge status-checking">Checking...</span></div>
+                                            <div class="mt-2"><span class="status-badge {{ $availInfo['sold_out'] ? 'status-full bg-rose-100 text-rose-700' : 'status-available bg-emerald-100 text-emerald-700' }}">{{ $availInfo['sold_out'] ? 'SOLD OUT' : $availInfo['left'] . ' AVAILABLE' }}</span></div>
                                         </div>
                                         <div class="custom-checkbox flex-shrink-0"></div>
                                         <input type="checkbox" class="ride-checkbox hidden" {{ $isSelected ? 'checked' : '' }}>
@@ -527,32 +544,66 @@
 
     <template x-teleport="body">
         <!-- SAVE CONFIRM MODAL -->
-        <div x-show="modals.saveConfirm" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+        <div x-show="modals.saveConfirm" class="fixed inset-0 z-[9999] flex items-center justify-center p-6" x-cloak>
             <div x-show="modals.saveConfirm"
                 x-transition.opacity.duration.300ms
-                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                class="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
                 @click="modals.saveConfirm = false"></div>
 
             <div x-show="modals.saveConfirm"
                 x-transition:enter="transition ease-out duration-300 transform"
-                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-6"
                 x-transition:enter-end="opacity-100 scale-100 translate-y-0"
                 x-transition:leave="transition ease-in duration-200 transform"
                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
-                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
-                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10 text-center z-10">
-                <div class="w-20 h-20 bg-[#9D686E]/10 rounded-full flex items-center justify-center mx-auto mb-6 text-[#9D686E] ring-8 ring-[#9D686E]/5">
-                    <span class="material-symbols-rounded text-4xl font-bold">save_as</span>
+                x-transition:leave-end="opacity-0 scale-90 translate-y-6"
+                class="relative w-full max-w-md bg-white rounded-[28px] shadow-2xl overflow-hidden z-10">
+
+                <!-- Header Band -->
+                <div class="bg-gradient-to-br from-[#9D686E] to-[#7C4E54] px-8 pt-10 pb-8 text-center">
+                    <div class="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-inner backdrop-blur-sm">
+                        <span class="material-symbols-rounded text-white text-4xl">save_as</span>
+                    </div>
+                    <h3 class="text-2xl font-black text-white tracking-tight mb-1">Save Changes?</h3>
+                    <p class="text-[13px] font-medium text-white/70 leading-relaxed">Review your modifications before confirming.</p>
                 </div>
-                <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">Save Changes?</h3>
-                <p class="text-[14px] font-medium text-slate-500 mb-10 leading-relaxed px-2">Are you sure you want to finalize and save all modifications? This will update the invoice and production schedule.</p>
-                <div class="flex gap-4">
-                    <button @click="modals.saveConfirm = false" class="flex-1 py-4 text-slate-600 font-black text-[13px] hover:bg-slate-50 rounded-2xl transition-colors uppercase tracking-widest">Cancel</button>
-                    <button @click="saveCurrentExtrasState(); $wire.set('dynamicExtras', window.bookingAppData.savedExtras); $wire.saveBooking(); modals.saveConfirm = false;" class="flex-1 py-4 bg-[#9D686E] text-white hover:bg-[#855359] font-black text-[13px] rounded-2xl shadow-xl shadow-[#9D686E]/20 transition-all active:scale-95 uppercase tracking-widest">Save Now</button>
+
+                <!-- Body -->
+                <div class="px-8 py-7">
+                    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 mb-7">
+                        <span class="material-symbols-rounded text-amber-500 text-xl shrink-0 mt-0.5">info</span>
+                        <p class="text-[13px] font-medium text-amber-800 leading-relaxed">
+                            This will <span class="font-extrabold">update the invoice</span> and <span class="font-extrabold">production schedule</span>. Make sure all attractions, extras, and financials are correct.
+                        </p>
+                    </div>
+
+                    <!-- Buttons stacked -->
+                    <div class="flex flex-col gap-3">
+                        <button
+                            @click="saveCurrentExtrasState(); $wire.set('dynamicExtras', window.bookingAppData.savedExtras); $wire.saveBooking();"
+                            wire:loading.attr="disabled"
+                            class="w-full py-4 bg-[#9D686E] text-white hover:bg-[#7C4E54] font-black text-[13px] rounded-2xl transition-all active:scale-95 uppercase tracking-widest flex items-center justify-center gap-2.5 disabled:opacity-75 disabled:cursor-wait shadow-none">
+                            <span wire:loading.remove wire:target="saveBooking" class="flex items-center gap-2.5">
+                                <span class="material-symbols-rounded text-xl leading-none">check_circle</span>
+                                Confirm & Save Booking
+                            </span>
+                            <span wire:loading wire:target="saveBooking" class="flex items-center gap-2.5">
+                                <span class="material-symbols-rounded animate-spin text-xl leading-none flex items-center justify-center">progress_activity</span>
+                                Saving — Please Wait...
+                            </span>
+                        </button>
+                        <button
+                            @click="modals.saveConfirm = false"
+                            class="w-full py-4 text-slate-500 hover:text-slate-700 font-bold text-[12px] hover:bg-slate-50 rounded-2xl transition-colors uppercase tracking-widest flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-300">
+                            <span class="material-symbols-rounded text-base">close</span>
+                            Cancel, Go Back
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </template>
+
 
 
     <template x-teleport="body">
@@ -634,7 +685,7 @@
                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                 x-transition:leave-end="opacity-0 scale-90 translate-y-4"
                 class="relative w-full max-w-lg bg-white rounded-[24px] shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]">
-                
+
                 <div class="px-8 py-8 border-b border-slate-50 flex justify-between items-center shrink-0 bg-white">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-2xl bg-[#9D686E]/10 text-[#9D686E] flex items-center justify-center">
@@ -651,15 +702,19 @@
                 </div>
 
                 <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-white">
-                    <div class="bg-slate-50 p-6 rounded-[24px] mb-8 border border-slate-100 flex items-center justify-between">
-                        <div class="flex items-center gap-6">
-                            <button wire:click="calPrev" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_left</span></button>
-                            <p class="text-lg font-black text-slate-800 w-48 text-center truncate tracking-widest">{{ \Carbon\Carbon::create($calYear, $calMonth, 1)->format('F Y') }}</p>
-                            <button wire:click="calNext" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_right</span></button>
+                    <div class="bg-slate-50 p-5 rounded-[24px] mb-8 border border-slate-100">
+                        <div class="flex items-center justify-center mb-4">
+                            <div class="flex items-center gap-4">
+                                <button wire:click="calPrev" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_left</span></button>
+                                <p class="text-lg font-black text-slate-800 w-48 text-center truncate tracking-widest">{{ \Carbon\Carbon::create($calYear, $calMonth, 1)->format('F Y') }}</p>
+                                <button wire:click="calNext" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_right</span></button>
+                            </div>
                         </div>
-                        <div class="text-right">
-                            <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">Global Soft Limit</p>
-                            <p class="text-sm font-black text-[#9D686E]">7 Missions / Day</p>
+                        <div class="flex items-center justify-center">
+                            <div class="inline-flex items-center gap-2 bg-[#9D686E]/10 border border-[#9D686E]/20 rounded-full px-4 py-2">
+                                <span class="material-symbols-rounded text-[#9D686E] text-sm">shield</span>
+                                <span class="text-[11px] font-extrabold text-[#9D686E] uppercase tracking-widest">Global Soft Limit: 7 Missions / Day</span>
+                            </div>
                         </div>
                     </div>
 
@@ -682,23 +737,23 @@
                         $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-100';
                         if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-100'; }
                         elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-100' ; }
-                            
-                        $isSelected = $d['date'] === $tempSelectedDate;
-                        $isOriginal = $d['date'] === ($booking->event_date ?? $form['event_date']);
 
-                        $ring = $isSelected ? 'border-[#9D686E] bg-pink-50 ring-4 ring-[#9D686E]/10 shadow-md z-10' : '' ;
-                        $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9D686E] shadow-inner' : '';
-                        @endphp
-                        <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')" 
+                            $isSelected=$d['date']===$tempSelectedDate;
+                            $isOriginal=$d['date']===($booking->event_date ?? $form['event_date']);
+
+                            $ring = $isSelected ? 'border-[#9D686E] bg-pink-50 ring-4 ring-[#9D686E]/10 shadow-md z-10' : '' ;
+                            $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9D686E] shadow-inner' : '';
+                            @endphp
+                            <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')"
                                 class="h-20 rounded-2xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $originStyle }} flex flex-col items-center justify-center cursor-pointer transition-all relative hover:-translate-y-1 shadow-sm group hover:border-[#9D686E]">
-                            @if($isOriginal)
+                                @if($isOriginal)
                                 <div class="absolute -top-1.5 -right-1.5 bg-[#9D686E] text-white text-[7px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
+                                @endif
+                                <span class="font-black text-lg">{{ $d['day'] }}</span>
+                                <span class="text-[9px] uppercase font-extrabold tracking-tighter group-hover:text-[#9D686E]">{{ $d['left'] }} Left</span>
+                            </button>
                             @endif
-                            <span class="font-black text-lg">{{ $d['day'] }}</span>
-                            <span class="text-[9px] uppercase font-extrabold tracking-tighter group-hover:text-[#9D686E]">{{ $d['left'] }} Left</span>
-                        </button>
-                        @endif
-                        @endforeach
+                            @endforeach
                     </div>
 
                     <div class="mt-10 flex items-center gap-8 text-[10px] text-slate-400 font-extrabold justify-center border-t border-slate-50 pt-8">
@@ -709,7 +764,10 @@
                 </div>
 
                 <div class="p-8 border-t border-slate-50 bg-white">
-                    <button wire:click="applySelectedDate" class="w-full py-5 rounded-2xl bg-[#9D686E] text-white font-black shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359] transition-all transform active:scale-95 uppercase tracking-widest text-xs">Apply Selection</button>
+                    <button wire:click="applySelectedDate" class="w-full py-5 rounded-2xl bg-[#9D686E] text-white font-black shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359] transition-all transform active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
+                        <span class="material-symbols-rounded text-base">event_available</span>
+                        Apply Selection
+                    </button>
                 </div>
             </div>
         </div>
@@ -717,8 +775,8 @@
 
 
     <!-- Modal Event Listeners -->
-    <div x-on:close-modal.window="if ($event.detail === 'calendarModal' || (Array.isArray($event.detail) && $event.detail[0] === 'calendarModal')) modals.calendar = false; if ($event.detail === 'saveConfirm' || (Array.isArray($event.detail) && $event.detail[0] === 'saveConfirm')) modals.saveConfirm = false;" 
-         x-on:open-modal.window="if ($event.detail === 'calendarModal' || (Array.isArray($event.detail) && $event.detail[0] === 'calendarModal')) modals.calendar = true; if ($event.detail === 'saveConfirm' || (Array.isArray($event.detail) && $event.detail[0] === 'saveConfirm')) modals.saveConfirm = true;"></div>
+    <div x-on:close-modal.window="if ($event.detail === 'calendarModal' || (Array.isArray($event.detail) && $event.detail[0] === 'calendarModal')) modals.calendar = false; if ($event.detail === 'saveConfirm' || (Array.isArray($event.detail) && $event.detail[0] === 'saveConfirm')) modals.saveConfirm = false;"
+        x-on:open-modal.window="if ($event.detail === 'calendarModal' || (Array.isArray($event.detail) && $event.detail[0] === 'calendarModal')) modals.calendar = true; if ($event.detail === 'saveConfirm' || (Array.isArray($event.detail) && $event.detail[0] === 'saveConfirm')) modals.saveConfirm = true;"></div>
 
     <template x-teleport="body">
         <!-- Category Limit Modal -->
@@ -741,16 +799,105 @@
                 </div>
                 <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight uppercase">Limit Reached</h3>
                 <p class="text-[14px] font-medium text-slate-600 mb-8 leading-relaxed px-4">
-                    You have reached the maximum cap of <span class="font-black text-slate-800" x-text="limitExceededLimit"></span> items for the 
+                    You have reached the maximum cap of <span class="font-black text-slate-800" x-text="limitExceededLimit"></span> items for the
                     <span class="font-black text-[#9D686E] underline decoration-2 underline-offset-4" x-text="limitExceededCategory"></span> category.
                 </p>
-                <button type="button" @click="modals.limitExceeded = false" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition shadow-xl uppercase tracking-widest text-[11px]">
+                <button type="button" @click="modals.limitExceeded = false" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition shadow-xl uppercase tracking-widest text-[11px] flex items-center justify-center gap-2">
+                    <span class="material-symbols-rounded text-base">thumb_up</span>
                     I Understand
                 </button>
             </div>
         </div>
     </template>
 
+    <template x-teleport="body">
+        <!-- FILE SIZE ALERT MODAL -->
+        <div x-show="modals.fileSizeAlert" class="fixed inset-0 z-[20001] flex items-center justify-center p-4" x-cloak>
+            <div x-show="modals.fileSizeAlert"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="modals.fileSizeAlert = false"></div>
+
+            <div x-show="modals.fileSizeAlert"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10 text-center z-10">
+
+                <div class="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500 ring-8 ring-rose-50/50">
+                    <span class="material-symbols-rounded text-4xl font-bold">file_upload_off</span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">File Too Large</h3>
+                <p class="text-[14px] font-medium text-slate-500 mb-4 leading-relaxed px-2">
+                    This file exceeds the <span class="font-black text-rose-600">5MB</span> size limit per attachment.
+                </p>
+                <div class="bg-rose-50 border border-rose-100 rounded-2xl p-4 mb-8 text-left">
+                    <p class="text-xs font-bold text-rose-700 flex items-start gap-2">
+                        <span class="material-symbols-rounded text-sm shrink-0 mt-0.5">tips_and_updates</span>
+                        Please compress or resize your image before uploading. Tools like <span class="underline font-extrabold">TinyPNG</span> or <span class="underline font-extrabold">Squoosh</span> can reduce file sizes quickly.
+                    </p>
+                </div>
+                <button type="button" @click="modals.fileSizeAlert = false"
+                    class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition shadow-xl uppercase tracking-widest text-[11px] flex items-center justify-center gap-2">
+                    <span class="material-symbols-rounded text-base">check_circle</span>
+                    Got It, Try Again
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <template x-teleport="body">
+        <!-- Product Details Modal -->
+        <div x-show="productDetails.visible" x-cloak class="fixed inset-0 z-[20000] flex items-center justify-center p-4">
+            <div x-show="productDetails.visible" x-transition.opacity.duration.300ms class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="productDetails.visible = false"></div>
+            <div x-show="productDetails.visible" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="opacity-0 scale-90 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" x-transition:leave="transition ease-in duration-200 transform" x-transition:leave-start="opacity-100 scale-100 translate-y-0" x-transition:leave-end="opacity-0 scale-90 translate-y-4" class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden z-10">
+                <div class="p-6 bg-slate-800 text-white flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-rounded text-[#9E6B73] text-2xl">info</span>
+                        <h3 class="text-xl font-bold" x-text="productDetails.name">Product Specification</h3>
+                    </div>
+                    <button type="button" @click="productDetails.visible = false" class="text-slate-400 hover:text-white transition">
+                        <span class="material-symbols-rounded">close</span>
+                    </button>
+                </div>
+                <div class="p-8 space-y-6">
+                    <div>
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Costing Overview</span>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-3xl font-black text-slate-800">$</span>
+                            <span class="text-4xl font-black text-slate-800 tracking-tighter" x-text="Number(productDetails.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})">0.00</span>
+                            <span class="text-sm font-bold text-slate-400 ml-1">per session</span>
+                        </div>
+                    </div>
+                    <div class="h-px bg-slate-100"></div>
+                    <div>
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Key Specifications</span>
+                        <div class="bg-slate-50/50 rounded-xl p-5 border border-slate-100 min-h-[100px]">
+                            <template x-if="productDetails.spec">
+                                <ul class="space-y-3">
+                                    <template x-for="line in productDetails.spec.split('\n').filter(l => l.trim())">
+                                        <li class="flex items-start gap-3">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-[#9E6B73] mt-1.5 shrink-0"></span>
+                                            <span class="text-sm text-slate-600 font-medium leading-relaxed" x-text="line"></span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </template>
+                            <template x-if="!productDetails.spec">
+                                <p class="text-sm text-slate-400 italic">No specific instructions or features listed for this product.</p>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 bg-slate-50 border-t border-gray-100 flex justify-end">
+                    <button type="button" @click="productDetails.visible = false" class="px-6 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200">Got it, close</button>
+                </div>
+            </div>
+        </div>
+    </template>
 
     <div id="booking-data-bridge"
         class="hidden"
@@ -758,28 +905,73 @@
         data-categories='@json($this->categories)'
         data-extras='@json($this->saved_extras)'
         data-selected='@json($selectedItemsClean ?? [])'
+        data-duration-cost="{{ $durationCost }}"
+        data-delivery-cost="{{ $deliveryCost }}"
         data-customers='[]'
         data-csrf="{{ csrf_token() }}"
         data-id="{{ $this->booking->id }}"
         data-invoice="{{ $this->booking->invoice_number }}">
-    </div>
+</div>
+</div>
 
-        </div>
-    </div>
+@vite(['resources/js/availability-sync.js', 'resources/js/new-booking.js'])
 
-    @vite(['resources/js/new-booking.js'])
+@script
+<script>
+    document.addEventListener('livewire:navigated', () => {
+         // 0. Refresh bridge data on navigation entry
+         if (typeof window.initBookingAppData === 'function') {
+             window.initBookingAppData();
+         }
 
-    @script
-    <script>
-        document.addEventListener('livewire:initialized', () => {
-            Livewire.hook('morph.updated', (details) => {
-                if (details.component.name === 'supervisor.edit-booking' || details.component.name === 'edit-booking') {
-                    if (typeof checkRealTimeAvailability === 'function') {
-                         checkRealTimeAvailability(true);
-                    }
-                }
-            });
-        });
-    </script>
-    @endscript
+         // 1. Initial check after load/navigation
+         setTimeout(() => {
+            if (typeof checkRealTimeAvailability === 'function') {
+                checkRealTimeAvailability(true);
+            }
+            if (typeof window.triggerRecalculate === 'function') {
+                window.triggerRecalculate();
+            }
+         }, 500);
+
+         // 2. Force a direct bridge between Vanilla JS and Livewire
+         window.lwBookingComponent = $wire;
+
+         // 3. Override the Extra saving to guarantee Livewire gets the data
+         const originalSaveExtras = window.saveCurrentExtrasState;
+         window.saveCurrentExtrasState = function(ignoreSync = false) {
+             if (typeof originalSaveExtras === 'function') {
+                originalSaveExtras(true); // Run original UI updates but block old sync
+             }
+             if (!ignoreSync && window.lwBookingComponent) {
+                 window.lwBookingComponent.syncExtras(window.bookingAppData.savedExtras);
+             }
+         };
+
+         // 4. Override Item toggling to guarantee Livewire sync on UI interactions
+         const originalToggleItemUI = window.toggleItemUI;
+         window.toggleItemUI = function(checkbox, card) {
+             if (typeof originalToggleItemUI === 'function') {
+                originalToggleItemUI(checkbox, card);
+             }
+             if (window.lwBookingComponent) {
+                 window.lwBookingComponent.toggleItem(card.dataset.name, checkbox.checked);
+             }
+         };
+    });
+
+    // For first load if navigated didn't fire
+    document.addEventListener('livewire:initialized', () => {
+         setTimeout(() => {
+            if (typeof checkRealTimeAvailability === 'function') {
+                checkRealTimeAvailability(true);
+            }
+            if (typeof window.triggerRecalculate === 'function') {
+                window.triggerRecalculate();
+            }
+         }, 300);
+         window.lwBookingComponent = $wire;
+    });
+</script>
+@endscript
 </div>

@@ -1,5 +1,4 @@
-
-(function() {
+window.initBookingAppData = function() {
     const bridge = document.getElementById('booking-data-bridge');
     if (bridge) {
         window.bookingAppData = {
@@ -13,7 +12,10 @@
             selectedItems: (bridge.dataset.selected && bridge.dataset.selected !== '[]' && bridge.dataset.selected !== 'null') ? JSON.parse(bridge.dataset.selected) : {},
         };
     }
-})();
+};
+
+// Initial run
+window.initBookingAppData();
 
 // --- GLOBAL STATE ---
 let isProceeding = false;
@@ -36,7 +38,10 @@ document.addEventListener('alpine:init', () => {
             reset: false,
             limitExceeded: false,
             saveConfirm: false,
-            calendar: false
+            calendar: false,
+            fullCapacityWarning: false,
+            changeExtrasConfirm: false,
+            fileSizeAlert: false,
         },
         limitExceededCategory: '',
         limitExceededLimit: 0,
@@ -445,22 +450,20 @@ window.handleSelection = function(checkbox) {
     const appEl = document.querySelector('[x-data="bookingApp"]');
     const alpine = appEl ? (appEl._x_dataStack ? appEl._x_dataStack[0] : (appEl.__x ? appEl.__x.$data : null)) : null;
 
-    // 1. Full Capacity Warning (checkbox state is already set by card's @click)
     if (checkbox.checked && isSoldOut) {
         checkbox.checked = false;
         if (alpine) alpine.modals.fullCapacityWarning = true;
         return;
     }
 
-    // 2. Process Selection
     processSelection(checkbox, card);
 };
 
 function processSelection(checkbox, card) {
     const limitCategory = (card.dataset.countsAgainst || '').trim().toLowerCase();
     const categories = window.bookingAppData.categories;
-
     const actionText = card.querySelector('.action-text');
+    const name = (card.dataset.name || '').toLowerCase().trim();
 
     if (checkbox.checked) {
         let catLimit = 0;
@@ -472,7 +475,7 @@ function processSelection(checkbox, card) {
         }
 
         if (limitCategory && catLimit > 0) {
-            let count = globalCategoryBooked[limitCategory] || 0;
+            let count = (window.globalCategoryBooked ? (window.globalCategoryBooked[limitCategory] || 0) : 0);
             document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
                 if ((cb.closest('.product-card').dataset.countsAgainst || '').trim().toLowerCase() === limitCategory) count++;
             });
@@ -494,28 +497,32 @@ function processSelection(checkbox, card) {
             }
         }
         card.classList.add('selected');
-        if (actionText) {
-            const isOriginal = window.bookingAppData.selectedItems && window.bookingAppData.selectedItems[card.dataset.name.toLowerCase().trim()];
-            actionText.innerText = isOriginal ? 'Booked' : 'Selected';
-        }
+        if (actionText) actionText.innerText = 'Selected';
+        // Add to selectedItems for sync
+        if (window.bookingAppData) window.bookingAppData.selectedItems[name] = 1;
     } else {
         card.classList.remove('selected');
         if (actionText) actionText.innerText = 'Click to select';
+        // Remove from selectedItems for sync
+        if (window.bookingAppData) delete window.bookingAppData.selectedItems[name];
     }
 
-    updateCategoryLimitsUI();
-    updateDynamicExtras();
-    saveCurrentExtrasState(true);
+    if (typeof updateCategoryLimitsUI === 'function') updateCategoryLimitsUI();
+    if (typeof updateDynamicExtras === 'function') updateDynamicExtras();
+    if (typeof saveCurrentExtrasState === 'function') saveCurrentExtrasState(true);
 
     // Communicate to Livewire ONLY after all confirmations/logic
-    const lwEl = document.querySelector('[wire\\:id]');
-    if (lwEl && window.Livewire) {
-        const lwComp = window.Livewire.find(lwEl.getAttribute('wire:id'));
-        if (lwComp) {
-            lwComp.toggleItem(card.dataset.name, checkbox.checked);
+    if (!window.lwBookingComponent) {
+        const lwEl = document.querySelector('[wire\\:id]');
+        if (lwEl && window.Livewire) {
+            const lwComp = window.Livewire.find(lwEl.getAttribute('wire:id'));
+            if (lwComp) {
+                lwComp.toggleItem(card.dataset.name, checkbox.checked);
+            }
         }
     }
 };
+
 
 window.updateItemQty = function(itemName, change) {
     const lwEl = document.querySelector('[wire\\:id]');
