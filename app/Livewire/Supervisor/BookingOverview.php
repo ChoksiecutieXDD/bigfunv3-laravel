@@ -25,7 +25,7 @@ class BookingOverview extends Component
     public $payType = 'Remaining Balance';
     public $payMethod = 'EFT';
     public $eftMethod = 'Direct Deposit';
-    public $cardNum;
+    public $cardNumber;
     public $cardExpiry;
     public $cardCvv;
     public $cardCategory = 'Debit Card';
@@ -42,6 +42,7 @@ class BookingOverview extends Component
     public $emailSubject;
     public $emailBody;
     public $emailAttachment;
+    public $emailFrom = 'bigfun.qld.au@gmail.com';
     public $isSentSuccessfully = false;
 
     // --- Confirmation Properties ---
@@ -59,6 +60,10 @@ class BookingOverview extends Component
     public $calYear;
     public $calDays = [];
     public $tempSelectedDate;
+
+    // --- Detail Selection ---
+    public $selectedPayment;
+    public $selectedLogToDelete;
 
     public function mount($id)
     {
@@ -154,13 +159,13 @@ class BookingOverview extends Component
         $depositReq = $this->booking->deposit_required > 0 ? $this->booking->deposit_required : ($totalAmount / 2);
 
         if ($balanceDue <= 0) {
-            $this->payType = 'Remaining Balance';
+            $this->payType = 'Final Settlement';
             $this->payAmount = 0;
         } elseif ($amountPaid == 0 && $balanceDue >= $depositReq) {
-            $this->payType = 'Deposit';
+            $this->payType = 'Deposit Capture';
             $this->payAmount = $depositReq;
         } else {
-            $this->payType = 'Remaining Balance';
+            $this->payType = 'Final Settlement';
             $this->payAmount = $balanceDue;
         }
 
@@ -179,10 +184,14 @@ class BookingOverview extends Component
         $balanceDue = max(0, $totalAmount - $amountPaid);
         $depositReq = $this->booking->deposit_required > 0 ? $this->booking->deposit_required : ($totalAmount / 2);
 
-        if ($value === 'Remaining Balance') $this->payAmount = $balanceDue;
-        elseif ($value === 'Full Amount') $this->payAmount = $totalAmount;
-        elseif ($value === 'Deposit') $this->payAmount = $depositReq;
-        else $this->payAmount = null;
+        if ($value === 'Deposit Capture') {
+            $this->payAmount = $depositReq;
+        } elseif ($value === 'Final Settlement') {
+            $this->payAmount = $balanceDue;
+        } elseif ($value === 'Total Liquidation') {
+            $this->payAmount = $totalAmount;
+        }
+        // Partial Allocation keeps current amount
     }
 
     public function savePayment()
@@ -195,12 +204,12 @@ class BookingOverview extends Component
         BookingPayment::create([
             'booking_id' => $this->booking->id,
             'amount' => $this->payAmount,
-            'payment_method' => $this->payMethod,
+            'payment_method' => $this->payMethod === 'EFT' ? 'EFT (' . $this->eftMethod . ')' : $this->payMethod,
             'payment_type' => $this->payType,
             'payment_date' => $this->payDate,
             'reference' => $this->payRef,
             'notes' => $this->payNotes,
-            'card_number' => $this->payMethod === 'Card Holder' ? $this->cardNum : null,
+            'card_number' => $this->payMethod === 'Card Holder' ? $this->cardNumber : null,
             'card_expiry' => $this->payMethod === 'Card Holder' ? $this->cardExpiry : null,
             'card_cvv' => $this->payMethod === 'Card Holder' ? $this->cardCvv : null,
             'card_network' => $this->payMethod === 'Card Holder' ? $this->cardNetwork : null,
@@ -212,6 +221,12 @@ class BookingOverview extends Component
         $this->reset(['payAmount', 'payRef', 'payNotes']);
         $this->dispatch('close-modal', 'paymentModal');
         $this->dispatch('notify', title: 'Success', message: 'Payment recorded.');
+    }
+
+    public function selectPayment($id)
+    {
+        $this->selectedPayment = BookingPayment::find($id);
+        $this->dispatch('open-modal', 'paymentDetailsModal');
     }
 
     // --- Email Logic ---
@@ -314,7 +329,7 @@ class BookingOverview extends Component
         $this->dispatch('close-modal', 'deleteSingleLogModal');
     }
 
-    public function deleteAllEmailHistory()
+    public function clearHistory()
     {
         \Illuminate\Support\Facades\DB::table('email_logs')->where('booking_id', $this->booking->id)->delete();
         $this->booking->update(['invoice_emailed' => false]);
@@ -322,12 +337,17 @@ class BookingOverview extends Component
         $this->dispatch('close-modal', 'historyClearModal');
     }
 
-    public function deleteLegacyInvoiceLog()
+    public function deleteLegacyLog()
     {
         $this->booking->update(['invoice_emailed' => false]);
         $this->booking->refresh();
         $this->dispatch('notify', title: 'Deleted', message: 'Legacy invoice record removed.');
         $this->dispatch('close-modal', 'deleteLegacyModal');
+    }
+
+    public function sendInvoiceEmail()
+    {
+        $this->proceedWithEmail();
     }
 
     public function proceedWithEmail()
@@ -392,6 +412,7 @@ class BookingOverview extends Component
     public function sendEmail(\App\Services\MailService $mailService)
     {
         $result = $mailService->sendEmail($this->booking->id, [
+            'email_from' => $this->emailFrom,
             'email_to' => $this->emailTo,
             'email_cc' => $this->emailCc,
             'email_bcc' => $this->emailBcc,
@@ -486,7 +507,7 @@ class BookingOverview extends Component
     public function applySelectedDate()
     {
         if ($this->tempSelectedDate) {
-            $this->newDate = $this->tempSelectedDate;
+            $this->newDate = \Carbon\Carbon::parse($this->tempSelectedDate)->format('Y-m-d');
             $this->dispatch('close-modal', 'calendarModal');
         }
     }
@@ -545,8 +566,12 @@ class BookingOverview extends Component
 
         // Fetch configs for Extra Configurations display matching new-booking/edit-booking logic
         $config = [
-            'addons' => DB::table('category_addons')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { return $g->toArray(); })->toArray(),
-            'questions' => DB::table('product_extras')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { return $g->toArray(); })->toArray(),
+            'addons' => DB::table('category_addons')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { 
+                return $g->map(fn($v) => (array)$v)->toArray(); 
+            })->toArray(),
+            'questions' => DB::table('product_extras')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { 
+                return $g->map(fn($v) => (array)$v)->toArray(); 
+            })->toArray(),
             'dropdowns' => []
         ];
 

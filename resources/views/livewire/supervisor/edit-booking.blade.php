@@ -525,144 +525,232 @@
         </main>
     </div>
 
-    <!-- SAVE CONFIRM MODAL -->
-    <div x-show="modals.saveConfirm" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[9999]" x-cloak>
-        <div x-show="modals.saveConfirm" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.saveConfirm = false"></div>
-        <div x-show="modals.saveConfirm" x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center z-10">
-            <div class="w-14 h-14 bg-[#9E6B73]/10 rounded-full flex items-center justify-center mx-auto mb-4 text-[#9E6B73]">
-                <span class="material-symbols-rounded text-3xl">save</span>
-            </div>
-            <h3 class="text-lg font-bold text-slate-800 mb-2">Save All Changes?</h3>
-            <p class="text-sm text-slate-600 mb-6 leading-relaxed">Are you sure you want to finalize and save all modifications made to this booking? This action will update the invoice and calendar records.</p>
-            <div class="flex gap-3">
-                <button @click="modals.saveConfirm = false" class="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition">Cancel</button>
-                <button @click="saveCurrentExtrasState(); $wire.set('dynamicExtras', window.bookingAppData.savedExtras); $wire.saveBooking(); modals.saveConfirm = false;" class="flex-1 py-3 bg-[#9E6B73] text-white rounded-xl font-bold hover:bg-[#86545C] transition shadow-lg shadow-[#9E6B73]/20 flex items-center justify-center gap-2 text-lg">
-                    <span class="material-symbols-rounded">check_circle</span> Yes, Save
-                </button>
-            </div>
-        </div>
-    </div>
+    <template x-teleport="body">
+        <!-- SAVE CONFIRM MODAL -->
+        <div x-show="modals.saveConfirm" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+            <div x-show="modals.saveConfirm"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="modals.saveConfirm = false"></div>
 
-    <!-- CHANGE EXTRAS CONFIRM MODAL -->
-    <div x-show="modals.changeExtrasConfirm" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10001]" x-cloak>
-        <div x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.changeExtrasConfirm = false"></div>
-        <div x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center z-10">
-            <div class="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600">
-                <span class="material-symbols-rounded text-3xl">edit_attributes</span>
-            </div>
-            <h3 class="text-lg font-bold text-slate-800 mb-2">Change Extras?</h3>
-            <p class="text-sm text-slate-600 mb-6">You are about to modify the selected extras for this attraction. This may affect the total price and setup requirements.</p>
-            <div class="flex gap-3">
-                <button @click="modals.changeExtrasConfirm = false" class="flex-1 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold">Cancel</button>
-                <button id="btnConfirmExtraChange" class="flex-1 py-2 bg-[#9E6B73] text-white rounded-xl font-bold">Confirm Change</button>
-            </div>
-        </div>
-    </div>
-
-
-
-    <!-- FULL CAPACITY / 0 LIMIT MODAL -->
-    <div x-show="modals.fullCapacityWarning" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10003]" x-cloak>
-        <div x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.fullCapacityWarning = false"></div>
-        <div x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 text-center">
-            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 text-red-600">
-                <span class="material-symbols-rounded text-4xl">error</span>
-            </div>
-            <h3 class="text-xl font-bold text-slate-800 mb-3 uppercase tracking-tight">Full Capacity</h3>
-            <p class="text-sm text-slate-600 mb-8 leading-relaxed">
-                This item has reached its <span class="font-bold text-red-600">daily limit</span> or is <span class="font-bold text-red-600">out of stock</span> for the selected date. 
-                Please choose a different date or another attraction.
-            </p>
-            <button type="button" @click="modals.fullCapacityWarning = false" class="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition uppercase tracking-widest text-xs">
-                I Understand
-            </button>
-        </div>
-    </div>
-
-    <!-- CALENDAR MODAL -->
-    <div x-show="modals.calendar" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[9999]" x-cloak>
-        <div x-show="modals.calendar" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.calendar = false"></div>
-        <div x-show="modals.calendar" x-transition class="relative bg-white rounded-3xl shadow-2xl p-8 w-full max-w-lg z-10">
-            <div class="flex justify-between items-center mb-8">
-                <h3 class="font-bold text-gray-800 text-xl">Check Date Availability</h3>
-                <button @click="modals.calendar = false" class="text-gray-400 hover:text-gray-600 transition p-1 hover:bg-slate-50 rounded-lg"><span class="material-symbols-rounded">close</span></button>
-            </div>
-
-            <div class="flex items-center justify-between mb-6">
-                <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">Limit: 7 / Day</p>
-                <div class="flex items-center gap-4">
-                    <button wire:click="calPrev" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-xl text-slate-500 hover:bg-slate-200 transition"><span class="material-symbols-rounded text-sm">chevron_left</span></button>
-                    <p class="text-md font-bold text-slate-800 w-32 text-center">{{ \Carbon\Carbon::create($calYear, $calMonth, 1)->format('F Y') }}</p>
-                    <button wire:click="calNext" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-xl text-slate-500 hover:bg-slate-200 transition"><span class="material-symbols-rounded text-sm">chevron_right</span></button>
+            <div x-show="modals.saveConfirm"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10 text-center z-10">
+                <div class="w-20 h-20 bg-[#9D686E]/10 rounded-full flex items-center justify-center mx-auto mb-6 text-[#9D686E] ring-8 ring-[#9D686E]/5">
+                    <span class="material-symbols-rounded text-4xl font-bold">save_as</span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">Save Changes?</h3>
+                <p class="text-[14px] font-medium text-slate-500 mb-10 leading-relaxed px-2">Are you sure you want to finalize and save all modifications? This will update the invoice and production schedule.</p>
+                <div class="flex gap-4">
+                    <button @click="modals.saveConfirm = false" class="flex-1 py-4 text-slate-600 font-black text-[13px] hover:bg-slate-50 rounded-2xl transition-colors uppercase tracking-widest">Cancel</button>
+                    <button @click="saveCurrentExtrasState(); $wire.set('dynamicExtras', window.bookingAppData.savedExtras); $wire.saveBooking(); modals.saveConfirm = false;" class="flex-1 py-4 bg-[#9D686E] text-white hover:bg-[#855359] font-black text-[13px] rounded-2xl shadow-xl shadow-[#9D686E]/20 transition-all active:scale-95 uppercase tracking-widest">Save Now</button>
                 </div>
             </div>
+        </div>
+    </template>
 
-            <div class="grid grid-cols-7 text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-widest text-center">
-                <div>Sun</div>
-                <div>Mon</div>
-                <div>Tue</div>
-                <div>Wed</div>
-                <div>Thu</div>
-                <div>Fri</div>
-                <div>Sat</div>
-            </div>
 
-            <div class="grid grid-cols-7 gap-2.5">
-                @foreach($calDays as $d)
-                @if($d === null)
-                <div></div>
-                @else
-                @php
-                $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-200';
-                if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-200'; }
-                elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-200' ; }
-                    
-                $isSelected = $d['date'] === $tempSelectedDate;
-                $isOriginal = $d['date'] === ($booking->event_date ?? $form['event_date']);
+    <template x-teleport="body">
+        <!-- CHANGE EXTRAS CONFIRM MODAL -->
+        <div x-show="modals.changeExtrasConfirm" class="fixed inset-0 z-[10001] flex items-center justify-center p-4" x-cloak>
+            <div x-show="modals.changeExtrasConfirm"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="modals.changeExtrasConfirm = false"></div>
 
-                $ring = $isSelected ? 'border-[#9E6B73] bg-pink-50 ring-4 ring-[#9E6B73]/30 shadow-md z-10' : '' ;
-                $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9E6B73] shadow-inner' : '';
-                @endphp
-                <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')" 
-                        class="h-14 rounded-2xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $originStyle }} flex flex-col items-center justify-center cursor-pointer transition relative hover:-translate-y-0.5 shadow-sm group hover:border-[#9E6B73]">
-                    @if($isOriginal)
-                        <div class="absolute -top-1 -right-1 bg-[#9E6B73] text-white text-[7px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
-                    @endif
-                    <span class="font-bold text-sm">{{ $d['day'] }}</span>
-                    <span class="text-[8px] uppercase font-bold tracking-tight group-hover:text-[#9E6B73]">{{ $d['left'] }} Left</span>
-                </button>
-                @endif
-                @endforeach
-            </div>
-
-            <div class="flex justify-end pt-6 border-t border-gray-100 mt-8">
-                <button wire:click="applySelectedDate" class="px-8 py-3 rounded-2xl bg-[#9E6B73] text-white font-bold shadow-lg shadow-[#9E6B73]/20 hover:bg-[#86545C] transition transform active:scale-95">Apply Selected Date</button>
+            <div x-show="modals.changeExtrasConfirm"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10 text-center z-10">
+                <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-600 ring-8 ring-amber-50">
+                    <span class="material-symbols-rounded text-4xl font-bold">edit_attributes</span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">Update Setup?</h3>
+                <p class="text-[14px] font-medium text-slate-500 mb-10 leading-relaxed px-4">Modifying these extras may impact the total quote and setup requirements for this attraction.</p>
+                <div class="flex gap-4">
+                    <button @click="modals.changeExtrasConfirm = false" class="flex-1 py-4 text-slate-600 font-black text-[13px] hover:bg-slate-50 rounded-2xl transition-colors uppercase tracking-widest">Go Back</button>
+                    <button id="btnConfirmExtraChange" class="flex-1 py-4 bg-[#9D686E] text-white hover:bg-[#855359] font-black text-[13px] rounded-2xl shadow-xl shadow-[#9D686E]/20 transition-all active:scale-95 uppercase tracking-widest">Confirm</button>
+                </div>
             </div>
         </div>
-    </div>
+    </template>
+
+
+
+
+    <template x-teleport="body">
+        <!-- FULL CAPACITY / 0 LIMIT MODAL -->
+        <div x-show="modals.fullCapacityWarning" class="fixed inset-0 z-[10003] flex items-center justify-center p-4" x-cloak>
+            <div x-show="modals.fullCapacityWarning"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="modals.fullCapacityWarning = false"></div>
+
+            <div x-show="modals.fullCapacityWarning"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10 text-center z-10">
+                <div class="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500 shadow-inner">
+                    <span class="material-symbols-rounded text-4xl font-bold">inventory_2</span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">Full Capacity</h3>
+                <p class="text-[14px] font-medium text-slate-500 mb-10 leading-relaxed px-4">
+                    This item has reached its <span class="font-black text-rose-600 underline underline-offset-4 decoration-2">daily booking limit</span> or is currently <span class="font-black text-rose-600">out of stock</span> for the chosen date.
+                </p>
+                <button type="button" @click="modals.fullCapacityWarning = false" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition shadow-xl shadow-slate-200 uppercase tracking-widest text-[11px]">
+                    Acknowledged
+                </button>
+            </div>
+        </div>
+    </template>
+
+
+    <template x-teleport="body">
+        <!-- CALENDAR MODAL -->
+        <div x-show="modals.calendar" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+            <div x-show="modals.calendar"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="modals.calendar = false"></div>
+
+            <div x-show="modals.calendar"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-lg bg-white rounded-[24px] shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]">
+                
+                <div class="px-8 py-8 border-b border-slate-50 flex justify-between items-center shrink-0 bg-white">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-[#9D686E]/10 text-[#9D686E] flex items-center justify-center">
+                            <span class="material-symbols-rounded text-2xl font-bold">calendar_month</span>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-slate-800 text-xl uppercase tracking-tight">Capacity Check</h3>
+                            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">Global Schedule Review</p>
+                        </div>
+                    </div>
+                    <button @click="modals.calendar = false" class="text-slate-400 hover:text-slate-600 transition p-2 hover:bg-slate-50 rounded-xl">
+                        <span class="material-symbols-rounded text-2xl font-bold">close</span>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-white">
+                    <div class="bg-slate-50 p-6 rounded-[24px] mb-8 border border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-6">
+                            <button wire:click="calPrev" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_left</span></button>
+                            <p class="text-lg font-black text-slate-800 w-48 text-center truncate tracking-widest">{{ \Carbon\Carbon::create($calYear, $calMonth, 1)->format('F Y') }}</p>
+                            <button wire:click="calNext" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_right</span></button>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">Global Soft Limit</p>
+                            <p class="text-sm font-black text-[#9D686E]">7 Missions / Day</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-7 text-[11px] font-black text-slate-300 mb-4 uppercase tracking-widest text-center px-1">
+                        <div>Sun</div>
+                        <div>Mon</div>
+                        <div>Tue</div>
+                        <div>Wed</div>
+                        <div>Thu</div>
+                        <div>Fri</div>
+                        <div>Sat</div>
+                    </div>
+
+                    <div class="grid grid-cols-7 gap-3">
+                        @foreach($calDays as $d)
+                        @if($d === null)
+                        <div></div>
+                        @else
+                        @php
+                        $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-100';
+                        if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-100'; }
+                        elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-100' ; }
+                            
+                        $isSelected = $d['date'] === $tempSelectedDate;
+                        $isOriginal = $d['date'] === ($booking->event_date ?? $form['event_date']);
+
+                        $ring = $isSelected ? 'border-[#9D686E] bg-pink-50 ring-4 ring-[#9D686E]/10 shadow-md z-10' : '' ;
+                        $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9D686E] shadow-inner' : '';
+                        @endphp
+                        <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')" 
+                                class="h-20 rounded-2xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $originStyle }} flex flex-col items-center justify-center cursor-pointer transition-all relative hover:-translate-y-1 shadow-sm group hover:border-[#9D686E]">
+                            @if($isOriginal)
+                                <div class="absolute -top-1.5 -right-1.5 bg-[#9D686E] text-white text-[7px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
+                            @endif
+                            <span class="font-black text-lg">{{ $d['day'] }}</span>
+                            <span class="text-[9px] uppercase font-extrabold tracking-tighter group-hover:text-[#9D686E]">{{ $d['left'] }} Left</span>
+                        </button>
+                        @endif
+                        @endforeach
+                    </div>
+
+                    <div class="mt-10 flex items-center gap-8 text-[10px] text-slate-400 font-extrabold justify-center border-t border-slate-50 pt-8">
+                        <span class="inline-flex items-center gap-2.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span>AVAILABLE</span>
+                        <span class="inline-flex items-center gap-2.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm"></span>BUSY</span>
+                        <span class="inline-flex items-center gap-2.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm"></span>FULL</span>
+                    </div>
+                </div>
+
+                <div class="p-8 border-t border-slate-50 bg-white">
+                    <button wire:click="applySelectedDate" class="w-full py-5 rounded-2xl bg-[#9D686E] text-white font-black shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359] transition-all transform active:scale-95 uppercase tracking-widest text-xs">Apply Selection</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
 
     <!-- Modal Event Listeners -->
     <div x-on:close-modal.window="if ($event.detail === 'calendarModal' || (Array.isArray($event.detail) && $event.detail[0] === 'calendarModal')) modals.calendar = false; if ($event.detail === 'saveConfirm' || (Array.isArray($event.detail) && $event.detail[0] === 'saveConfirm')) modals.saveConfirm = false;" 
          x-on:open-modal.window="if ($event.detail === 'calendarModal' || (Array.isArray($event.detail) && $event.detail[0] === 'calendarModal')) modals.calendar = true; if ($event.detail === 'saveConfirm' || (Array.isArray($event.detail) && $event.detail[0] === 'saveConfirm')) modals.saveConfirm = true;"></div>
 
-    <!-- Category Limit Modal -->
-    <div id="categoryLimitModal" x-show="modals.limitExceeded" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10002]">
-        <div x-show="modals.limitExceeded" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.limitExceeded = false"></div>
-        <div x-show="modals.limitExceeded" x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 text-center">
-            <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-600">
-                <span class="material-symbols-rounded text-4xl">warning</span>
+    <template x-teleport="body">
+        <!-- Category Limit Modal -->
+        <div x-show="modals.limitExceeded" class="fixed inset-0 z-[10002] flex items-center justify-center p-4" x-cloak>
+            <div x-show="modals.limitExceeded"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="modals.limitExceeded = false"></div>
+
+            <div x-show="modals.limitExceeded"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10 text-center z-10">
+                <div class="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500 shadow-inner">
+                    <span class="material-symbols-rounded text-4xl font-bold">warning</span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight uppercase">Limit Reached</h3>
+                <p class="text-[14px] font-medium text-slate-600 mb-8 leading-relaxed px-4">
+                    You have reached the maximum cap of <span class="font-black text-slate-800" x-text="limitExceededLimit"></span> items for the 
+                    <span class="font-black text-[#9D686E] underline decoration-2 underline-offset-4" x-text="limitExceededCategory"></span> category.
+                </p>
+                <button type="button" @click="modals.limitExceeded = false" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition shadow-xl uppercase tracking-widest text-[11px]">
+                    I Understand
+                </button>
             </div>
-            <h3 class="text-xl font-bold text-slate-800 mb-3 uppercase tracking-tight">Category Limit Reached</h3>
-            <p class="text-sm text-slate-600 mb-8 leading-relaxed">
-                You have reached the maximum limit of <span class="font-bold text-slate-800" x-text="limitExceededLimit"></span> items for the 
-                <span class="font-extrabold text-[#9E6B73] underline decoration-2 underline-offset-4" x-text="limitExceededCategory"></span> category. 
-                Please deselect an item before adding a new one.
-            </p>
-            <button type="button" @click="modals.limitExceeded = false" class="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition shadow-lg shadow-slate-200 uppercase tracking-widest text-xs">
-                I Understand
-            </button>
         </div>
-    </div>
+    </template>
+
 
     <div id="booking-data-bridge"
         class="hidden"
@@ -676,51 +764,6 @@
         data-invoice="{{ $this->booking->invoice_number }}">
     </div>
 
-    <!-- Product Details Modal -->
-    <div x-show="productDetails.visible" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[20000]">
-        <div x-show="productDetails.visible" x-transition.opacity class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="productDetails.visible = false"></div>
-        <div x-show="productDetails.visible" x-transition class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
-            <div class="p-6 bg-slate-800 text-white flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <span class="material-symbols-rounded text-[#9E6B73] text-2xl">info</span>
-                    <h3 class="text-xl font-bold" x-text="productDetails.name">Product Specification</h3>
-                </div>
-                <button type="button" @click="productDetails.visible = false" class="text-slate-400 hover:text-white transition">
-                    <span class="material-symbols-rounded">close</span>
-                </button>
-            </div>
-            <div class="p-8 space-y-6">
-                <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Costing Overview</span>
-                    <div class="flex items-baseline gap-1">
-                        <span class="text-3xl font-black text-slate-800">$</span>
-                        <span class="text-4xl font-black text-slate-800 tracking-tighter" x-text="Number(productDetails.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})">0.00</span>
-                        <span class="text-sm font-bold text-slate-400 ml-1">per session</span>
-                    </div>
-                </div>
-                <div class="h-px bg-slate-100"></div>
-                <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Key Specifications</span>
-                    <div class="bg-slate-50/50 rounded-xl p-5 border border-slate-100 min-h-[100px]">
-                        <template x-if="productDetails.spec">
-                            <ul class="space-y-3">
-                                <template x-for="line in productDetails.spec.split('\n').filter(l => l.trim())">
-                                    <li class="flex items-start gap-3">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-[#9E6B73] mt-1.5 shrink-0"></span>
-                                        <span class="text-sm text-slate-600 font-medium leading-relaxed" x-text="line"></span>
-                                    </li>
-                                </template>
-                            </ul>
-                        </template>
-                        <template x-if="!productDetails.spec">
-                            <p class="text-sm text-slate-400 italic">No specific instructions or features listed for this product.</p>
-                        </template>
-                    </div>
-                </div>
-            </div>
-            <div class="p-4 bg-slate-50 border-t border-gray-100 flex justify-end">
-                <button type="button" @click="productDetails.visible = false" class="px-6 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200">Got it, close</button>
-            </div>
         </div>
     </div>
 

@@ -326,6 +326,7 @@
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Counts Against Target</label>
                                 <select wire:model="addon_counts_against" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors">
                                     <option value="">-- Same as Target Category --</option>
+                                    <option value="None">None</option>
                                     @foreach ($categories as $c)
                                     <option value="{{ $c->category_name }}">{{ $c->category_name }}</option>
                                     @endforeach
@@ -438,6 +439,7 @@
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Counts Against Target</label>
                                 <select wire:model="dd_counts_against" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors">
                                     <option value="">-- Same as Target Category --</option>
+                                    <option value="None">None</option>
                                     @foreach ($categories as $c)
                                     <option value="{{ $c->category_name }}">{{ $c->category_name }}</option>
                                     @endforeach

@@ -34,6 +34,7 @@
     </main>
 
     @livewireScripts
+    <x-ui.toast />
 </body>
 
 </html>

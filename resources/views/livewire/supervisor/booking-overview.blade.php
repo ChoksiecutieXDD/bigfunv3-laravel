@@ -45,38 +45,7 @@
         </div>
     </div>
 
-    <!-- QUOTA LOW WARNING MODAL -->
-    <div x-show="quotaWarningModal" class="fixed inset-0 z-[10001] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="quotaWarningModal = false"></div>
-            <div x-show="quotaWarningModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10 text-center">
-                <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600">
-                    <span class="material-symbols-rounded text-3xl">warning</span>
-                </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">{{ $quotaWarningTitle }}</h3>
-                <p class="text-sm text-gray-500 mb-6">{{ $quotaWarningMessage }}</p>
-                <div class="flex justify-center gap-3">
-                    <button @click="quotaWarningModal = false" class="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-bold transition">Cancel</button>
-                    <button wire:click="continueEmailAfterQuotaWarning" class="px-5 py-2.5 rounded-xl bg-amber-500 text-white hover:bg-amber-600 text-sm font-bold shadow-lg shadow-amber-200 transition">Continue</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- QUOTA LIMIT MODAL -->
-    <div x-show="quotaLimitModal" class="fixed inset-0 z-[10001] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="quotaLimitModal = false"></div>
-            <div x-show="quotaLimitModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10 text-center">
-                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
-                    <span class="material-symbols-rounded text-3xl">block</span>
-                </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">{{ $quotaLimitTitle }}</h3>
-                <p class="text-sm text-gray-500 mb-6">{{ $quotaLimitMessage }}</p>
-                <button @click="quotaLimitModal = false" class="px-6 py-2.5 rounded-xl bg-red-500 text-white hover:bg-red-600 text-sm font-bold shadow-lg shadow-red-200 transition">Understood</button>
-            </div>
-        </div>
-    </div>
 
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
         <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100 text-[#9D686E]">
@@ -271,7 +240,7 @@
                                     </div>
                                     <div class="flex justify-between items-center text-[9px] text-gray-400 font-medium">
                                         <span>{{ \Carbon\Carbon::parse($pay->payment_date)->format('M d, Y') }}</span>
-                                        <button @click="selectedPayment = {{ json_encode($pay) }}; paymentDetailsModal = true" class="text-[#9D686E] font-bold uppercase tracking-tighter hover:underline">View Details</button>
+                                        <button wire:click="selectPayment({{ $pay->id }})" class="text-[#9D686E] font-bold uppercase tracking-tighter hover:underline">View Details</button>
                                     </div>
                                 </div>
                             </div>
@@ -320,18 +289,18 @@
                     @endphp
 
                     @foreach($catAddons as $addon)
-                    @php $isSelected = isset($selectedExtras['add_'.$addon->id]); @endphp
-                    @if($isSelected && $addon->addon_price > 0)
+                    @php $isSelected = isset($selectedExtras['add_'.$addon['id']]); @endphp
+                    @if($isSelected && $addon['addon_price'] > 0)
                     <div class="flex justify-between items-start text-[11px] border-b border-[#9D686E]/5 pb-1 mb-1">
-                        <span class="font-medium text-slate-500 flex-1">{{ $addon->addon_label }}</span>
-                        <span class="font-bold text-slate-700 ml-4">${{ number_format($addon->addon_price, 2) }}</span>
+                        <span class="font-medium text-slate-500 flex-1">{{ $addon['addon_label'] }}</span>
+                        <span class="font-bold text-slate-700 ml-4">${{ number_format($addon['addon_price'], 2) }}</span>
                     </div>
                     @endif
                     @endforeach
 
                     @foreach($catQuestions as $q)
                     @php
-                    $val = $selectedExtras['extra_'.$q->id] ?? $selectedExtras['q_'.$q->id] ?? null;
+                    $val = $selectedExtras['extra_'.$q['id']] ?? $selectedExtras['q_'.$q['id']] ?? null;
                     $price = 0;
                     $isYes = false;
                     if ($val) {
@@ -343,7 +312,7 @@
                     @endphp
                     @if($isYes && $price > 0)
                     <div class="flex justify-between items-start text-[11px] border-b border-[#9D686E]/5 pb-1 mb-1">
-                        <span class="font-medium text-slate-500 flex-1">{{ $q->question_text }}</span>
+                        <span class="font-medium text-slate-500 flex-1">{{ $q['question_text'] }}</span>
                         <span class="font-bold text-slate-700 ml-4">${{ number_format($price, 2) }}</span>
                     </div>
                     @endif
@@ -578,25 +547,25 @@
                             @endphp
 
                             @foreach($catAddons as $addon)
-                            @php $isSelected = isset($selectedExtras['add_'.$addon->id]); @endphp
-                            @if($isSelected && $addon->addon_price > 0)
+                            @php $isSelected = isset($selectedExtras['add_'.$addon['id']]); @endphp
+                            @if($isSelected && $addon['addon_price'] > 0)
                             <tr class="hover:bg-gray-50 transition border-b border-gray-50 last:border-0 bg-slate-50/30">
                                 <td class="p-2 font-bold text-slate-600 py-4">
                                     <div class="flex items-center gap-2">
                                         <span class="material-symbols-rounded text-sm text-[#9D686E]">add_circle</span>
-                                        <span class="text-xs uppercase tracking-tight">{{ $addon->addon_label }}</span>
+                                        <span class="text-xs uppercase tracking-tight">{{ $addon['addon_label'] }}</span>
                                     </div>
                                 </td>
                                 <td class="p-2 py-4 italic text-[10px] text-slate-400">Extra / Logistics</td>
                                 <td class="p-2 text-center font-bold text-slate-500 py-4">1</td>
-                                <td class="p-2 text-right font-black text-[#9D686E] py-4">${{ number_format($addon->addon_price, 2) }}</td>
+                                <td class="p-2 text-right font-black text-[#9D686E] py-4">${{ number_format($addon['addon_price'], 2) }}</td>
                             </tr>
                             @endif
                             @endforeach
 
                             @foreach($catQuestions as $q)
                             @php
-                            $val = $selectedExtras['extra_'.$q->id] ?? $selectedExtras['q_'.$q->id] ?? null;
+                            $val = $selectedExtras['extra_'.$q['id']] ?? $selectedExtras['q_'.$q['id']] ?? null;
                             $price = 0;
                             $isYes = false;
                             if ($val) {
@@ -611,7 +580,7 @@
                                 <td class="p-2 font-bold text-slate-600 py-4">
                                     <div class="flex items-center gap-2">
                                         <span class="material-symbols-rounded text-sm text-[#9D686E]">add_circle</span>
-                                        <span class="text-xs uppercase tracking-tight">{{ $q->question_text }}</span>
+                                        <span class="text-xs uppercase tracking-tight">{{ $q['question_text'] }}</span>
                                     </div>
                                 </td>
                                 <td class="p-2 py-4 italic text-[10px] text-slate-400">Extra / Logistics</td>
@@ -659,263 +628,449 @@
     </div>
 
 
+
     <!-- ================== ALPINE MODALS ================== -->
 
-    <!-- DELETE MODAL -->
-    <div x-show="deleteModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="deleteModal = false"></div>
-            <div x-show="deleteModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10 text-center">
-                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600"><span class="material-symbols-rounded text-3xl">delete_forever</span></div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">Delete Booking?</h3>
-                <p class="text-sm text-gray-500 mb-6">Are you sure you want to permanently delete Booking #{{ $booking->id }}? This cannot be undone.</p>
+    <template x-teleport="body">
+        <!-- QUOTA LOW WARNING MODAL -->
+        <div x-show="quotaWarningModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+            <div x-show="quotaWarningModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="quotaWarningModal = false"></div>
+
+            <div x-show="quotaWarningModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-md bg-white rounded-[24px] shadow-2xl p-8 z-10 text-center">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-5 text-amber-600">
+                    <span class="material-symbols-rounded text-3xl">warning</span>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">{{ $quotaWarningTitle }}</h3>
+                <p class="text-[14px] font-medium text-slate-500 mb-8 leading-relaxed">{{ $quotaWarningMessage }}</p>
                 <div class="flex justify-center gap-3">
-                    <button @click="deleteModal = false" class="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-bold">Cancel</button>
-                    <button wire:click="deleteBooking" class="px-5 py-2.5 rounded-xl bg-red-500 text-white hover:bg-red-600 text-sm font-bold shadow-lg shadow-red-200">Yes, Delete It</button>
+                    <button @click="quotaWarningModal = false" class="flex-1 py-3.5 text-slate-600 font-bold text-[15px] hover:bg-slate-50 rounded-xl transition-colors">Cancel</button>
+                    <button wire:click="continueEmailAfterQuotaWarning" class="flex-1 py-3.5 bg-amber-500 text-white hover:bg-amber-600 font-bold text-[15px] rounded-xl shadow-md shadow-amber-500/20 transition-all active:scale-95">Continue</button>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
 
-    <!-- DRAFT MODAL -->
-    <div x-show="draftModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="draftModal = false"></div>
-            <div x-show="draftModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10 text-center">
-                <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 text-orange-600">
+    <template x-teleport="body">
+        <!-- QUOTA LIMIT MODAL -->
+        <div x-show="quotaLimitModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+            <div x-show="quotaLimitModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="quotaLimitModal = false"></div>
+
+            <div x-show="quotaLimitModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-md bg-white rounded-[24px] shadow-2xl p-8 z-10 text-center">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5 text-red-600">
+                    <span class="material-symbols-rounded text-3xl">block</span>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">{{ $quotaLimitTitle }}</h3>
+                <p class="text-[14px] font-medium text-slate-500 mb-8 leading-relaxed">{{ $quotaLimitMessage }}</p>
+                <button @click="quotaLimitModal = false" class="w-full py-3.5 bg-red-500 text-white hover:bg-red-600 font-bold text-[15px] rounded-xl shadow-md shadow-red-500/20 transition-all active:scale-95">Understood</button>
+            </div>
+        </div>
+    </template>
+
+    <template x-teleport="body">
+        <!-- DELETE MODAL -->
+        <div x-show="deleteModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+            <div x-show="deleteModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="deleteModal = false"></div>
+
+            <div x-show="deleteModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-md bg-white rounded-[24px] shadow-2xl p-8 z-10 text-center">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5 text-red-600">
+                    <span class="material-symbols-rounded text-3xl">delete_forever</span>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Delete Booking?</h3>
+                <p class="text-[14px] font-medium text-slate-500 mb-8 leading-relaxed">Are you sure you want to permanently delete Booking #{{ $booking->id }}? This cannot be undone.</p>
+                <div class="flex justify-center gap-3">
+                    <button @click="deleteModal = false" class="flex-1 py-3.5 text-slate-600 font-bold text-[15px] hover:bg-slate-50 rounded-xl transition-colors">Cancel</button>
+                    <button wire:click="deleteBooking" class="flex-1 py-3.5 bg-red-500 text-white hover:bg-red-600 font-bold text-[15px] rounded-xl shadow-md shadow-red-500/20 transition-all active:scale-95">Yes, Delete It</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template x-teleport="body">
+        <!-- DRAFT MODAL -->
+        <div x-show="draftModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+            <div x-show="draftModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="draftModal = false"></div>
+
+            <div x-show="draftModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-md bg-white rounded-[24px] shadow-2xl p-8 z-10 text-center">
+                <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-5 text-orange-600">
                     <span class="material-symbols-rounded text-3xl">warning</span>
                 </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">Publish Draft?</h3>
-                <p class="text-sm text-gray-500 mb-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Publish Draft?</h3>
+                <p class="text-[14px] font-medium text-slate-500 mb-8 leading-relaxed">
                     This booking is currently a <strong>Draft</strong>. Are you sure you want to change its status to <strong class="text-[#9D686E]">{{ $newStatus }}</strong>? <br><br> Make sure you have edited and confirmed all necessary details first!
                 </p>
                 <div class="flex justify-center gap-3">
-                    <button @click="draftModal = false" class="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-bold transition">Cancel</button>
-                    <button wire:click="executeStatusUpdate" class="px-5 py-2.5 rounded-xl bg-orange-500 text-white hover:bg-orange-600 text-sm font-bold shadow-lg shadow-orange-200 transition">Yes, Update Status</button>
+                    <button @click="draftModal = false" class="flex-1 py-3.5 text-slate-600 font-bold text-[15px] hover:bg-slate-50 rounded-xl transition-colors">Cancel</button>
+                    <button wire:click="executeStatusUpdate" class="flex-1 py-3.5 bg-orange-500 text-white hover:bg-orange-600 font-bold text-[15px] rounded-xl shadow-md shadow-orange-500/20 transition-all active:scale-95">Yes, Update Status</button>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
 
-    <!-- STATUS CONFIRM MODAL -->
-    <div x-show="statusConfirmModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="statusConfirmModal = false"></div>
-            <div x-show="statusConfirmModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10 text-center">
-                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
-                    <span class="material-symbols-rounded text-3xl">info</span>
+    <template x-teleport="body">
+        <!-- STATUS CONFIRM MODAL -->
+        <div x-show="statusConfirmModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+            <div x-show="statusConfirmModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="statusConfirmModal = false"></div>
+
+            <div x-show="statusConfirmModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-8 z-10 text-center">
+                <div class="w-16 h-16 bg-[#9D686E]/10 rounded-full flex items-center justify-center mx-auto mb-5 text-[#9D686E]">
+                    <span class="material-symbols-rounded text-3xl">sync_alt</span>
                 </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">Confirm Status Change</h3>
-                <p class="text-sm text-gray-500 mb-6">
-                    You are changing the status from <strong class="text-gray-700">{{ $booking->status }}</strong> to <strong class="text-[#9D686E]">{{ $newStatus }}</strong>. Are you sure you want to proceed?
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Update Status?</h3>
+                <p class="text-[14px] font-medium text-slate-500 mb-8 leading-relaxed">
+                    Are you sure you want to change the booking status to <strong class="text-[#9D686E]">{{ $newStatus }}</strong>?
                 </p>
-                <div class="flex justify-center gap-3">
-                    <button @click="statusConfirmModal = false" class="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-bold transition">Cancel</button>
-                    <button wire:click="executeStatusUpdate" class="px-5 py-2.5 rounded-xl bg-blue-500 text-white hover:bg-blue-600 text-sm font-bold shadow-lg shadow-blue-200 transition">Confirm Change</button>
+                <div class="flex justify-center gap-4">
+                    <button @click="statusConfirmModal = false" class="flex-1 py-3.5 text-slate-600 font-bold text-[15px] hover:bg-slate-50 rounded-xl transition-colors">Cancel</button>
+                    <button wire:click="executeStatusUpdate" class="flex-1 py-3.5 bg-[#9D686E] text-white hover:bg-[#855359] font-bold text-[15px] rounded-xl shadow-md shadow-[#9D686E]/20 transition-all active:scale-95">Yes, Update</button>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
 
-    <!-- PAYMENT MODAL -->
-    <div x-show="paymentModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4 py-8">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="paymentModal = false"></div>
-            <div x-show="paymentModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-10 flex flex-col max-h-[90vh] overflow-y-auto custom-scrollbar">
-                <div class="flex justify-between items-center mb-5 shrink-0">
-                    <h3 class="text-xl font-bold text-gray-800">Record Payment</h3>
-                    <button @click="paymentModal = false" class="text-gray-400 hover:text-gray-600 transition"><span class="material-symbols-rounded">close</span></button>
+
+    <template x-teleport="body">
+        <!-- PAYMENT MODAL -->
+        <div x-show="paymentModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+            <div x-show="paymentModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="paymentModal = false"></div>
+
+            <div x-show="paymentModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]">
+                
+                <div class="px-8 py-6 border-b border-slate-50 flex justify-between items-center shrink-0 bg-white">
+                    <div class="flex items-center gap-3 text-[#9D686E]">
+                        <span class="material-symbols-rounded text-2xl font-bold">account_balance_wallet</span>
+                        <h3 class="font-black text-lg text-slate-800 uppercase tracking-tight">Add Payment</h3>
+                    </div>
+                    <button @click="paymentModal = false" class="text-slate-400 hover:text-slate-600 transition p-1.5 hover:bg-slate-50 rounded-lg">
+                        <span class="material-symbols-rounded">close</span>
+                    </button>
                 </div>
 
-                <form wire:submit="savePayment" class="space-y-4">
-
-                    <div class="flex justify-between text-xs text-gray-500 border-b border-gray-100 pb-2">
-                        <div>
-                            <div class="font-bold text-gray-700 truncate max-w-[180px]">{{ $booking->customer_first_name }} {{ $booking->customer_last_name }}</div>
-                            <span class="text-[10px] text-gray-400 font-mono mt-0.5 inline-block">INV {{ $booking->invoice_number ?? $booking->id }}</span>
-                        </div>
-                        <div class="text-right">
-                            <span>Due: <span class="font-bold text-[#9D686E]">${{ number_format($balanceDue, 2) }}</span></span>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Payment For</label>
-                        <select wire:model.live="payType" class="w-full p-2.5 bg-gray-50 rounded-lg border border-transparent focus:border-[#9D686E] outline-none cursor-pointer text-sm">
-                            <option value="Deposit">Deposit</option>
-                            <option value="Remaining Balance">Remaining Balance</option>
-                            <option value="Full Amount">Full Amount</option>
-                            <option value="Partial Payment">Partial Payment</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Amount ($)</label>
-                        <input type="number" wire:model="payAmount" step="0.01" required class="w-full p-2.5 bg-gray-50 rounded-lg border border-transparent focus:bg-white focus:border-[#9D686E] outline-none transition-all">
-                    </div>
-
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Method</label>
-                        <select wire:model.live="payMethod" class="w-full p-2.5 bg-gray-50 rounded-lg border border-transparent focus:border-[#9D686E] outline-none cursor-pointer text-sm">
-                            <option value="EFT">EFT / Bank Transfer</option>
-                            <option value="Card Holder">Credit/Debit Card</option>
-                            <option value="Cash">Cash</option>
-                        </select>
-                    </div>
-
-                    {{-- EFT Specifics --}}
-                    <div x-show="payMethod === 'EFT'" x-transition>
-                        <label class="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Specific Method</label>
-                        <select wire:model="eftMethod" class="w-full p-2.5 bg-gray-50 rounded-lg border border-transparent focus:border-[#9D686E] outline-none cursor-pointer text-sm">
-                            <option value="Direct Deposit">Direct Deposit</option>
-                            <option value="Bank Transfer">Bank Transfer</option>
-                            <option value="Osko">Osko</option>
-                            <option value="PayID">PayID</option>
-                        </select>
-                    </div>
-
-                    {{-- Card Specifics --}}
-                    <div x-show="payMethod === 'Card Holder'" x-transition class="space-y-3 bg-gray-50/50 p-3 rounded-lg border border-dashed border-gray-200">
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wider">Card Number</label>
-                            <input type="text" wire:model="cardNum"
-                                x-on:input="$el.value = $el.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()"
-                                maxlength="19"
-                                class="w-full p-2 bg-white rounded border border-gray-100 text-xs text-gray-600 outline-none focus:border-[#9D686E]"
-                                placeholder="1234 5678 1234 5678">
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
+                <form wire:submit="savePayment" class="flex flex-col flex-1 overflow-hidden">
+                    <div class="p-8 overflow-y-auto custom-scrollbar flex-1 bg-white">
+                        <div class="space-y-6">
                             <div>
-                                <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wider">Expiry (MM/YY)</label>
-                                <input type="text" wire:model="cardExpiry"
-                                    x-on:input="
-                                        let v = $el.value.replace(/\D/g, '');
-                                        if (v.length > 2) v = v.substring(0,2) + '/' + v.substring(2,4);
-                                        $el.value = v;
-                                    "
-                                    maxlength="5"
-                                    class="w-full p-2 bg-white rounded border border-gray-100 text-xs text-gray-600 outline-none focus:border-[#9D686E]"
-                                    placeholder="MM/YY">
+                                <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">ALLOCATION MATRIX</label>
+                                <div class="relative group">
+                                    <select wire:model.live="payType" class="w-full px-5 py-4 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold text-slate-700 outline-none focus:border-[#9D686E]/30 focus:bg-white focus:ring-4 focus:ring-[#9D686E]/5 cursor-pointer shadow-sm appearance-none transition-all">
+                                        <option value="Deposit Capture">Deposit Capture</option>
+                                        <option value="Final Settlement">Final Settlement</option>
+                                        <option value="Total Liquidation">Total Liquidation</option>
+                                        <option value="Partial Allocation">Partial Allocation</option>
+                                    </select>
+                                    <div class="absolute inset-y-0 right-5 flex items-center pointer-events-none text-[#9D686E] transition-colors">
+                                        <span class="material-symbols-rounded text-2xl">expand_more</span>
+                                    </div>
+                                </div>
                             </div>
+
+                            <!-- Amount Section -->
+                            <div class="p-8 bg-slate-50/50 rounded-[32px] border border-slate-100/80 shadow-inner group transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/20">
+                                <label class="block text-[11px] font-black text-slate-400 mb-6 uppercase tracking-[0.2em]">ENTRY AMOUNT RETRIEVAL ($)</label>
+                                <div class="relative flex items-center">
+                                    <span class="absolute left-0 text-4xl font-black text-slate-300 pointer-events-none">$</span>
+                                    <input type="number" step="0.01" wire:model.live="payAmount" class="w-full pl-10 bg-transparent border-none text-[56px] font-black text-slate-800 outline-none p-0 focus:ring-0 placeholder:text-slate-200" placeholder="0.00">
+                                </div>
+                            </div>
+
+                            <!-- Payment Method Selection -->
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Transaction Method</label>
+                                    <div class="grid grid-cols-3 gap-3">
+                                        <label class="relative flex flex-col items-center gap-2 p-4 border rounded-2xl cursor-pointer transition-all {{ $payMethod === 'EFT' ? 'border-[#9D686E] bg-pink-50 ring-2 ring-[#9D686E]/10' : 'border-slate-100 hover:bg-slate-50' }}">
+                                            <input type="radio" wire:model.live="payMethod" value="EFT" class="hidden">
+                                            <span class="material-symbols-rounded {{ $payMethod === 'EFT' ? 'text-[#9D686E]' : 'text-slate-400' }}">account_balance</span>
+                                            <span class="text-[11px] font-black {{ $payMethod === 'EFT' ? 'text-[#9D686E]' : 'text-slate-600' }} uppercase tracking-wide">EFT</span>
+                                        </label>
+                                        <label class="relative flex flex-col items-center gap-2 p-4 border rounded-2xl cursor-pointer transition-all {{ $payMethod === 'Card Holder' ? 'border-[#9D686E] bg-pink-50 ring-2 ring-[#9D686E]/10' : 'border-slate-100 hover:bg-slate-50' }}">
+                                            <input type="radio" wire:model.live="payMethod" value="Card Holder" class="hidden">
+                                            <span class="material-symbols-rounded {{ $payMethod === 'Card Holder' ? 'text-[#9D686E]' : 'text-slate-400' }}">credit_card</span>
+                                            <span class="text-[11px] font-black {{ $payMethod === 'Card Holder' ? 'text-[#9D686E]' : 'text-slate-600' }} uppercase tracking-wide">Card</span>
+                                        </label>
+                                        <label class="relative flex flex-col items-center gap-2 p-4 border rounded-2xl cursor-pointer transition-all {{ $payMethod === 'Cash' ? 'border-[#9D686E] bg-pink-50 ring-2 ring-[#9D686E]/10' : 'border-slate-100 hover:bg-slate-50' }}">
+                                            <input type="radio" wire:model.live="payMethod" value="Cash" class="hidden">
+                                            <span class="material-symbols-rounded {{ $payMethod === 'Cash' ? 'text-[#9D686E]' : 'text-slate-400' }}">payments</span>
+                                            <span class="text-[11px] font-black {{ $payMethod === 'Cash' ? 'text-[#9D686E]' : 'text-slate-600' }} uppercase tracking-wide">Cash</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- EFT Details (Sub-Methods) -->
+                            <div x-show="$wire.payMethod === 'EFT'" x-collapse class="space-y-4 pt-2">
+                                <div class="p-5 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                    <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Specific Routing Protocol</label>
+                                    <div class="relative group">
+                                        <select wire:model="eftMethod" class="w-full px-4 py-3.5 bg-white rounded-xl border border-slate-100 text-sm font-bold text-slate-700 outline-none focus:border-[#9D686E]/30 cursor-pointer shadow-sm appearance-none">
+                                            <option value="Direct Deposit">Direct Deposit</option>
+                                            <option value="Bank Transfer">Bank Transfer</option>
+                                            <option value="Osko Realtime">Osko Realtime</option>
+                                            <option value="PayID Matrix">PayID Matrix</option>
+                                        </select>
+                                        <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400 group-hover:text-[#9D686E] transition-colors">
+                                            <span class="material-symbols-rounded">expand_more</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card Details Area (Dynamic) -->
+                            <div x-show="$wire.payMethod === 'Card Holder'" x-collapse class="space-y-4 pt-2">
+                                <div class="p-5 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-4">
+                                    <div class="relative">
+                                        <label class="block text-[10px] font-black text-slate-400 mb-1.5 uppercase tracking-widest">Card Number</label>
+                                        <input type="text" wire:model="cardNumber" maxlength="19" x-on:input="$el.value = $el.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()" class="w-full px-4 py-3 bg-white rounded-xl border border-slate-100 text-sm font-mono tracking-wider focus:border-[#9D686E]/30 outline-none shadow-sm" placeholder="0000 0000 0000 0000">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-[10px] font-black text-slate-400 mb-1.5 uppercase tracking-widest">Expiry</label>
+                                            <input type="text" wire:model="cardExpiry" maxlength="5" placeholder="MM/YY" x-on:input="let v = $el.value.replace(/\D/g, ''); if (v.length > 2) v = v.substring(0,2) + '/' + v.substring(2,4); $el.value = v;" class="w-full px-4 py-3 bg-white rounded-xl border border-slate-100 text-sm font-mono text-center focus:border-[#9D686E]/30 outline-none shadow-sm">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-black text-slate-400 mb-1.5 uppercase tracking-widest">CVV</label>
+                                            <input type="text" wire:model="cardCvv" maxlength="4" placeholder="123" class="w-full px-4 py-3 bg-white rounded-xl border border-slate-100 text-sm font-mono text-center focus:border-[#9D686E]/30 outline-none shadow-sm">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-black text-slate-400 mb-1.5 uppercase tracking-widest">Network Provider</label>
+                                        <select wire:model="cardNetwork" class="w-full px-4 py-3 bg-white rounded-xl border border-slate-100 text-sm font-bold text-slate-600 outline-none focus:border-[#9D686E]/30 cursor-pointer shadow-sm">
+                                            <option value="Visa">Visa</option>
+                                            <option value="Mastercard">Mastercard</option>
+                                            <option value="American Express">American Express</option>
+                                            <option value="Discover">Discover</option>
+                                            <option value="Bankcard">Bankcard</option>
+                                            <option value="Bartercard">Bartercard</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest">Payment Date</label>
+                                    <input type="date" wire:model="payDate" class="w-full px-4 py-3.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-sm font-bold text-slate-700">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest">Reference No.</label>
+                                    <input type="text" wire:model="payRef" placeholder="e.g. INV-1234" class="w-full px-4 py-3.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-sm font-bold text-slate-700">
+                                </div>
+                            </div>
+
                             <div>
-                                <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wider">CVV</label>
-                                <input type="text" wire:model="cardCvv"
-                                    maxlength="4"
-                                    class="w-full p-2 bg-white rounded border border-gray-100 text-xs text-gray-600 outline-none focus:border-[#9D686E]"
-                                    placeholder="123">
+                                <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest">Additional Notes</label>
+                                <textarea wire:model="payNotes" rows="2" class="w-full px-4 py-3.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none resize-none text-sm font-medium text-slate-600 leading-relaxed"></textarea>
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wider">Network</label>
-                            <select wire:model="cardNetwork" class="w-full p-2 bg-white rounded border border-gray-100 text-xs text-gray-600 outline-none focus:border-[#9D686E] cursor-pointer">
-                                <option value="Visa">Visa</option>
-                                <option value="Mastercard">Mastercard</option>
-                                <option value="American Express">American Express</option>
-                                <option value="Discover">Discover</option>
-                                <option value="Bankcard">Bankcard</option>
-                                <option value="Bartercard">Bartercard</option>
-                            </select>
-                        </div>
                     </div>
 
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Date</label>
-                        <input type="date" wire:model="payDate" class="w-full p-2.5 bg-gray-50 rounded-lg border border-transparent focus:bg-white focus:border-[#9D686E] outline-none text-sm">
+                    <div class="p-8 border-t border-slate-50 shrink-0 bg-white">
+                        <button type="submit" class="w-full py-4 rounded-xl bg-[#9D686E] hover:bg-[#855359] text-white font-black shadow-xl shadow-[#9D686E]/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 uppercase tracking-widest text-xs">
+                            <span wire:loading.remove wire:target="savePayment" class="flex items-center gap-3"><span class="material-symbols-rounded">check_circle</span> Save Transaction</span>
+                            <span wire:loading wire:target="savePayment" class="flex items-center gap-2"><span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Processing...</span>
+                        </button>
                     </div>
-
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Reference No.</label>
-                        <input type="text" wire:model="payRef" placeholder="e.g. INV-1234" class="w-full p-2.5 bg-gray-50 border-transparent focus:border-[#9D686E] rounded-lg outline-none text-sm">
-                    </div>
-
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Notes</label>
-                        <textarea wire:model="payNotes" rows="2" class="w-full p-2.5 bg-gray-50 border-transparent focus:border-[#9D686E] rounded-lg outline-none resize-none text-sm"></textarea>
-                    </div>
-
-                    <button type="submit" class="w-full py-3 rounded-xl bg-[#9D686E] hover:bg-[#855359] text-white font-bold shadow-lg shadow-[#9D686E]/20 transition transform active:scale-95 text-sm mt-2">
-                        <span wire:loading.remove wire:target="savePayment">Save Payment</span>
-                        <span wire:loading wire:target="savePayment">Processing...</span>
-                    </button>
                 </form>
             </div>
         </div>
-    </div>
+    </template>
 
-    <!-- EMAIL MODAL -->
-    <div x-show="emailModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4 py-8">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="emailModal = false"></div>
-            <div x-show="emailModal" x-transition class="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl z-10 flex flex-col">
-                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white rounded-t-xl">
-                    <div class="flex items-center gap-2 text-[#9D686E]"><span class="material-symbols-rounded text-xl">mail</span>
-                        <h3 class="font-bold text-lg">Send Email</h3>
+
+    <template x-teleport="body">
+        <!-- EMAIL MODAL -->
+        <div x-show="emailModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+            <div x-show="emailModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="emailModal = false"></div>
+
+            <div x-show="emailModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-2xl bg-white rounded-[24px] shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]">
+                
+                <div class="px-8 py-6 border-b border-slate-50 flex justify-between items-center shrink-0 bg-white">
+                    <div class="flex items-center gap-3 text-[#9D686E]">
+                        <span class="material-symbols-rounded text-2xl font-bold">mail</span>
+                        <h3 class="font-black text-xl text-slate-800 uppercase tracking-tight">Compose Email</h3>
                     </div>
-                    <button @click="emailModal = false" class="text-gray-400 hover:text-gray-600 transition"><span class="material-symbols-rounded text-2xl">close</span></button>
+                    <button @click="emailModal = false" class="text-slate-400 hover:text-slate-600 transition p-1.5 hover:bg-slate-50 rounded-lg">
+                        <span class="material-symbols-rounded text-2xl font-bold">close</span>
+                    </button>
                 </div>
-                <div class="p-4 sm:p-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
-                    <form wire:submit="sendEmail">
-                        <div class="flex items-start mb-2">
-                            <label class="text-[11px] font-bold text-slate-500 w-24 text-right pr-3 pt-2">From:</label>
-                            <div class="flex-grow space-y-2">
-                                <div class="flex items-center gap-2"><span class="text-[10px] font-bold text-gray-400 w-12 text-right">Address:</span><input type="text" value="bigfun.qld.au@gmail.com" class="flex-grow text-xs p-1.5 border border-slate-200 rounded bg-slate-100 text-slate-500 cursor-not-allowed" readonly></div>
-                                <div class="flex items-center gap-2"><span class="text-[10px] font-bold text-gray-400 w-12 text-right">Name:</span><input type="text" value="BigFun" class="flex-grow text-xs p-1.5 border border-slate-200 rounded bg-slate-100 text-slate-500 cursor-not-allowed" readonly></div>
-                            </div>
-                        </div>
-                        <div class="flex items-center mb-2"><label class="text-[11px] font-bold text-slate-500 w-24 text-right pr-3">To:</label><input type="text" wire:model="emailTo" class="flex-grow text-xs p-1.5 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9D686E]"></div>
-                        <div class="flex items-center mb-2"><label class="text-[11px] font-bold text-slate-500 w-24 text-right pr-3">Cc:</label><input type="text" wire:model="emailCc" class="flex-grow text-xs p-1.5 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9D686E]"></div>
-                        <div class="flex items-center mb-2"><label class="text-[11px] font-bold text-slate-500 w-24 text-right pr-3">Bcc:</label><input type="text" wire:model="emailBcc" class="flex-grow text-xs p-1.5 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9D686E]"></div>
-                        <div class="flex items-center mb-2"><label class="text-[11px] font-bold text-slate-500 w-24 text-right pr-3">Subject:</label><input type="text" wire:model="emailSubject" class="flex-grow text-xs p-1.5 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9D686E] font-medium text-slate-800"></div>
-                        <div class="flex items-center mb-4"><label class="text-[11px] font-bold text-slate-500 w-24 text-right pr-3">Attachment:</label>
-                            <div class="flex items-center gap-2">
-                                <input type="checkbox" checked class="w-4 h-4 text-[#9D686E] rounded border-gray-300">
-                                <span class="text-xs font-medium text-blue-600 underline">{{ $emailAttachment }}</span>
-                            </div>
-                        </div>
-                        <div class="flex items-start mb-4"><label class="text-[11px] font-bold text-slate-500 w-24 text-right pr-3">Body:</label><textarea wire:model="emailBody" rows="8" class="flex-grow text-xs p-2 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9D686E] font-mono leading-relaxed resize-none"></textarea></div>
 
-                        <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                            <button type="button" @click="emailModal = false" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-600 text-xs font-bold hover:bg-gray-50 transition">Cancel</button>
-                            <button type="submit" class="px-6 py-2 rounded-lg bg-[#9D686E] text-white text-xs font-bold shadow-md shadow-[#9D686E]/20 hover:bg-[#855359] transition flex items-center gap-2">
-                                <span wire:loading.remove wire:target="sendEmail"><i class="fa-solid fa-paper-plane mr-1"></i> Send Email</span>
-                                <span wire:loading wire:target="sendEmail">Sending...</span>
-                            </button>
+                <form wire:submit="sendEmail" class="flex flex-col flex-1 overflow-hidden">
+                    <div class="p-8 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/30">
+                        <div class="space-y-6">
+                            <div class="space-y-4 bg-white p-8 rounded-[24px] border border-slate-100 shadow-sm">
+                                <div class="grid grid-cols-1 md:grid-cols-[100px_1fr] items-center gap-2">
+                                    <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest md:text-right md:pr-4">From:</label>
+                                    <input type="text" wire:model="emailFrom" class="w-full px-4 py-2.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 text-xs font-bold text-slate-700">
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-[100px_1fr] items-center gap-2">
+                                    <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest md:text-right md:pr-4">Recipient:</label>
+                                    <input type="text" wire:model="emailTo" class="w-full px-4 py-2.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 text-xs font-bold text-slate-700">
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-[100px_1fr] items-center gap-2">
+                                    <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest md:text-right md:pr-4">Cc:</label>
+                                    <input type="text" wire:model="emailCc" class="w-full px-4 py-2.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 text-xs font-medium text-slate-500" placeholder="Optional CC recipients">
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-[100px_1fr] items-center gap-2">
+                                    <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest md:text-right md:pr-4">Subject:</label>
+                                    <input type="text" wire:model="emailSubject" class="w-full px-4 py-2.5 bg-white border border-slate-100 rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 text-xs font-black text-slate-800">
+                                </div>
+                            </div>
+
+                            <div class="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500">
+                                        <span class="material-symbols-rounded text-2xl font-bold">attachment</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selected Attachment</p>
+                                        <p class="text-xs font-bold text-blue-600 truncate max-w-[300px]">{{ $emailAttachment }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" checked class="w-5 h-5 text-[#9D686E] rounded-lg border-slate-200 focus:ring-offset-0">
+                                    <span class="text-[11px] font-bold text-slate-500">Include</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-white p-8 rounded-[24px] border border-slate-100 shadow-sm overflow-hidden">
+                                <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Message Body</label>
+                                <textarea wire:model="emailBody" rows="10" class="w-full p-6 bg-slate-50/50 border-none rounded-2xl focus:ring-0 text-xs font-mono leading-relaxed resize-none text-slate-600 min-h-[300px] scrollbar-hide"></textarea>
+                            </div>
                         </div>
-                    </form>
-                </div>
+                    </div>
+
+                    <div class="p-8 border-t border-slate-100 shrink-0 bg-white flex justify-end gap-4">
+                        <button type="button" @click="emailModal = false" class="px-8 py-4 rounded-xl border border-slate-200 text-slate-500 text-[11px] font-black hover:bg-slate-50 hover:text-slate-700 transition-all uppercase tracking-widest">Cancel</button>
+                        <button type="submit" class="px-8 py-4 rounded-xl bg-[#9D686E] text-white text-[11px] font-black shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359] hover:-translate-y-0.5 transition-all flex items-center gap-3 uppercase tracking-widest">
+                            <span wire:loading.remove wire:target="sendEmail" class="flex items-center gap-3"><span class="material-symbols-rounded text-lg font-bold">send</span> Dispatch Email</span>
+                            <span wire:loading wire:target="sendEmail" class="flex items-center gap-2"><span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Sending...</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
-    </div>
+    </template>
 
-    <!-- HISTORY MODAL -->
-    <div x-show="historyModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4 py-8">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="historyModal = false"></div>
-            <div x-show="historyModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-5 sm:p-6 w-full max-w-sm z-10 flex flex-col max-h-[90vh] overflow-hidden">
-                <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3 shrink-0">
-                    <div class="flex items-center gap-2">
-                        <h3 class="text-lg font-bold text-gray-800">Email History</h3>
-                        @if($booking->invoice_emailed || $emailLogs->count() > 0)
-                        <button @click="historyClearModal = true" class="text-[10px] font-bold text-red-500 hover:text-red-700 uppercase tracking-tighter bg-red-50 px-2 py-1 rounded-md transition-all ml-2">Delete All</button>
-                        @endif
+
+    <template x-teleport="body">
+        <!-- HISTORY MODAL -->
+        <div x-show="historyModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+            <div x-show="historyModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="historyModal = false"></div>
+
+            <div x-show="historyModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl overflow-hidden z-10 flex flex-col max-h-[85vh]">
+                
+                <div class="px-8 py-6 border-b border-slate-50 flex justify-between items-center shrink-0 bg-white">
+                    <div class="flex items-center gap-3 text-slate-800">
+                        <span class="material-symbols-rounded text-[#9D686E] text-2xl font-bold">history</span>
+                        <h3 class="font-black text-lg uppercase tracking-tight">Transmission Log</h3>
                     </div>
-                    <button @click="historyModal = false" class="text-gray-400 hover:text-gray-600 transition"><span class="material-symbols-rounded">close</span></button>
+                    <button @click="historyModal = false" class="text-slate-400 hover:text-slate-600 transition p-1.5 hover:bg-slate-50 rounded-lg">
+                        <span class="material-symbols-rounded">close</span>
+                    </button>
                 </div>
-                <div class="space-y-3 overflow-y-auto custom-scrollbar pr-1 flex-grow">
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/20 p-8 space-y-4">
+                    @if($booking->invoice_emailed || $emailLogs->count() > 0)
+                    <div class="flex justify-end mb-4">
+                        <button @click="historyClearModal = true" class="text-[10px] font-black text-red-500 hover:text-red-600 uppercase tracking-widest bg-red-50 px-4 py-2 rounded-xl border border-red-100/50 transition-all flex items-center gap-2 shadow-sm">
+                            <span class="material-symbols-rounded text-sm">delete_sweep</span> Purge History
+                        </button>
+                    </div>
+                    @endif
+
                     @if($booking->invoice_emailed)
-                    <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100 mb-2 group relative">
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-full bg-green-200 text-green-700 flex items-center justify-center"><i class="fa-solid fa-check"></i></div>
+                    <div class="flex items-center justify-between p-5 bg-emerald-50 rounded-[20px] border border-emerald-100 group relative shadow-sm transition-all hover:scale-[1.01]">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-white text-emerald-500 flex items-center justify-center shadow-sm border border-emerald-50">
+                                <span class="material-symbols-rounded text-2xl">mark_email_read</span>
+                            </div>
                             <div>
-                                <p class="text-xs font-bold text-gray-700">Invoice Marked as Sent</p>
-                                <p class="text-[10px] text-gray-500">Legacy record</p>
+                                <p class="text-[11px] font-black text-slate-800 uppercase tracking-tighter">Invoice Emailed</p>
+                                <p class="text-[10px] text-slate-500 font-bold">Standard dispatch successful</p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <span class="text-[10px] font-bold text-green-600">SENT</span>
-                            <button @click="deleteLegacyModal = true"
-                                    class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 transition-all p-1.5 hover:bg-white rounded-md shadow-sm">
-                                <i class="fa-solid fa-trash-can text-[10px]"></i>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[9px] font-black bg-emerald-500 text-white px-2.5 py-1 rounded-lg uppercase tracking-widest shadow-sm">SENT</span>
+                            <button @click="deleteLegacyModal = true" class="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-all p-2 hover:bg-white rounded-xl">
+                                <span class="material-symbols-rounded text-lg font-bold">delete</span>
                             </button>
                         </div>
                     </div>
@@ -923,276 +1078,377 @@
 
                     @forelse($emailLogs as $log)
                     @php
-                    $icon = 'fa-envelope'; $color = 'text-gray-500 bg-gray-100'; $title = 'Email Sent';
-                    if (str_contains($log->type, 'invoice')) { $icon = 'fa-file-invoice-dollar'; $color = 'text-green-600 bg-green-50 border-green-200'; $title = 'Invoice Sent'; }
-                    elseif (str_contains($log->type, 'receipt')) { $icon = 'fa-receipt'; $color = 'text-blue-600 bg-blue-50 border-blue-200'; $title = 'Receipt Sent'; }
-                    elseif (str_contains($log->type, 'po')) { $icon = 'fa-file-contract'; $color = 'text-purple-600 bg-purple-50 border-purple-200'; $title = 'PO Sent'; }
-                    elseif (str_contains($log->type, 'debt')) { $icon = 'fa-money-bill-transfer'; $color = 'text-red-600 bg-red-50 border-red-200'; $title = 'Debt Sent'; }
+                    $icon = 'mail'; $color = 'text-slate-500 bg-slate-100 border-slate-200'; $accent = 'bg-slate-500';
+                    if (str_contains($log->type, 'invoice')) { $icon = 'description'; $color = 'text-emerald-500 bg-white border-emerald-100'; $accent = 'bg-emerald-500'; }
+                    elseif (str_contains($log->type, 'receipt')) { $icon = 'receipt_long'; $color = 'text-blue-500 bg-white border-blue-100'; $accent = 'bg-blue-500'; }
+                    elseif (str_contains($log->type, 'po')) { $icon = 'text_snippet'; $color = 'text-purple-500 bg-white border-purple-100'; $accent = 'bg-purple-500'; }
+                    elseif (str_contains($log->type, 'debt')) { $icon = 'payments'; $color = 'text-rose-500 bg-white border-rose-100'; $accent = 'bg-rose-500'; }
                     @endphp
-                    <div class="flex items-start gap-3 p-3 rounded-lg border {{ $color }} group relative">
-                        <div class="mt-1 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center shrink-0 shadow-sm"><i class="fa-solid {{ $icon }}"></i></div>
-                        <div class="flex-grow">
-                            <div class="flex justify-between items-start">
-                                <span class="text-xs font-bold uppercase tracking-wide opacity-90">{{ $title }}</span>
-                                <span class="text-[10px] font-medium opacity-70">{{ \Carbon\Carbon::parse($log->sent_at)->format('d/m/y H:i') }}</span>
-                            </div>
-                            <div class="text-xs font-medium mt-0.5 truncate max-w-[200px]">To: {{ $log->sent_to }}</div>
+                    <div class="flex items-start gap-4 p-5 rounded-[20px] border {{ explode(' ', $color)[1] === 'bg-white' ? 'bg-white border-slate-100 shadow-sm' : 'bg-slate-50 border-slate-100' }} group relative transition-all hover:translate-x-1">
+                        <div class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 shadow-inner border border-white">
+                            <span class="material-symbols-rounded {{ explode(' ', $color)[0] }} text-2xl font-bold">{{ $icon }}</span>
                         </div>
-                        <button @click="selectedLogToDelete = {{ $log->id }}; deleteSingleLogModal = true" 
-                                class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 transition-all p-1.5 hover:bg-white rounded-md shadow-sm">
-                            <i class="fa-solid fa-trash-can text-[10px]"></i>
+                        <div class="flex-grow min-w-0">
+                            <div class="flex justify-between items-start mb-1">
+                                <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">{{ str_replace('_', ' ', $log->type) }}</span>
+                                <span class="text-[9px] font-bold text-slate-400">{{ \Carbon\Carbon::parse($log->sent_at)->format('d M, H:i') }}</span>
+                            </div>
+                            <p class="text-xs font-black text-slate-700 truncate pr-8" title="{{ $log->sent_to }}">To: {{ $log->sent_to }}</p>
+                        </div>
+                        <button @click="$wire.set('selectedLogToDelete', {{ $log->id }}); deleteSingleLogModal = true" class="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-all p-3 hover:bg-red-50 rounded-2xl">
+                            <span class="material-symbols-rounded text-xl font-bold">delete</span>
                         </button>
                     </div>
                     @empty
                     @if(!$booking->invoice_emailed)
-                    <div class="text-center text-xs text-gray-400 italic py-4">No email history found.</div>
+                    <div class="text-center py-16 px-6 bg-white rounded-[32px] border border-dashed border-slate-200">
+                        <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
+                            <span class="material-symbols-rounded text-4xl font-bold">history_toggle_off</span>
+                        </div>
+                        <h4 class="text-slate-800 font-black text-sm uppercase tracking-tight">No History Found</h4>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Ready for primary dispatch</p>
+                    </div>
                     @endif
                     @endforelse
                 </div>
+
+                <div class="p-8 border-t border-slate-50 bg-white">
+                    <button @click="historyModal = false" class="w-full py-4 rounded-xl bg-slate-100 text-slate-500 font-black hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px]">Close History</button>
+                </div>
             </div>
         </div>
-    </div>
+    </template>
 
-    <!-- CALENDAR MODAL -->
-    <div x-show="calendarModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4 py-8">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="calendarModal = false"></div>
-            <div x-show="calendarModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-5 sm:p-6 w-full max-w-lg z-10 max-h-[90vh] overflow-y-auto custom-scrollbar">
-                <div class="flex justify-between items-center mb-6 shrink-0">
-                    <h3 class="font-bold text-gray-800 text-xl">Check Availability</h3>
-                    <button @click="calendarModal = false" class="text-gray-400 hover:text-gray-600"><span class="material-symbols-rounded">close</span></button>
-                </div>
 
-                <div class="flex items-center justify-between mb-4">
-                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">Limit: 7/day</p>
-                    <div class="flex items-center gap-3">
-                        <button wire:click="calPrev" class="text-slate-400 hover:text-slate-600"><span class="material-symbols-rounded text-lg">chevron_left</span></button>
-                        <p class="text-lg font-bold text-slate-800 w-36 text-center">{{ \Carbon\Carbon::create($calYear, $calMonth, 1)->format('F Y') }}</p>
-                        <button wire:click="calNext" class="text-slate-400 hover:text-slate-600"><span class="material-symbols-rounded text-lg">chevron_right</span></button>
+    <template x-teleport="body">
+        <!-- CALENDAR MODAL -->
+        <div x-show="calendarModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+            <div x-show="calendarModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="calendarModal = false"></div>
+
+            <div x-show="calendarModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-lg bg-white rounded-[24px] shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]">
+                
+                <div class="px-8 py-8 border-b border-slate-50 flex justify-between items-center shrink-0 bg-white">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-[#9D686E]/10 text-[#9D686E] flex items-center justify-center">
+                            <span class="material-symbols-rounded text-2xl font-bold">calendar_month</span>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-slate-800 text-xl uppercase tracking-tight">Capacity Check</h3>
+                            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">Global Schedule Review</p>
+                        </div>
                     </div>
+                    <button @click="calendarModal = false" class="text-slate-400 hover:text-slate-600 transition p-2 hover:bg-slate-50 rounded-xl">
+                        <span class="material-symbols-rounded text-2xl font-bold">close</span>
+                    </button>
                 </div>
 
-                <div class="grid grid-cols-7 text-xs font-extrabold text-slate-400 mb-2 uppercase tracking-wide">
-                    <div class="text-center">Sun</div>
-                    <div class="text-center">Mon</div>
-                    <div class="text-center">Tue</div>
-                    <div class="text-center">Wed</div>
-                    <div class="text-center">Thu</div>
-                    <div class="text-center">Fri</div>
-                    <div class="text-center">Sat</div>
-                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-white">
+                    <div class="bg-slate-50 p-6 rounded-[24px] mb-8 border border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-6">
+                            <button wire:click="calPrev" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_left</span></button>
+                            <p class="text-lg font-black text-slate-800 w-48 text-center truncate tracking-tight">{{ \Carbon\Carbon::create($calYear, $calMonth, 1)->format('F Y') }}</p>
+                            <button wire:click="calNext" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_right</span></button>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">Global Soft Limit</p>
+                            <p class="text-sm font-black text-[#9D686E]">7 Missions / Day</p>
+                        </div>
+                    </div>
 
-                <div class="grid grid-cols-7 gap-2">
-                    @foreach($calDays as $d)
-                    @if($d === null)
-                    <div></div>
-                    @else
-                    @php
-                    $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-200'; $dot = 'bg-emerald-500';
-                    if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-200'; $dot = 'bg-red-500'; }
-                    elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-200' ; $dot='bg-amber-500' ; }
-                        
-                        $isSelected = $d['date'] === $tempSelectedDate;
-                        $isOriginal = $d['date'] === $booking->event_date;
-                        
-                        $ring = $isSelected ? 'border-[#9D686E] bg-pink-50 ring-4 ring-[#9D686E]/30 shadow-md z-10' : '' ;
-                        $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9D686E] shadow-inner' : '';
-                        $opacity = ($d['left'] == 0 && !$isSelected && !$isOriginal) ? 'opacity-50' : '' ;
-                    @endphp
-                    <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')" 
-                            class="h-14 rounded-xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $originStyle }} {{ $opacity }} flex flex-col items-center justify-center cursor-pointer transition relative hover:-translate-y-0.5 hover:shadow-md hover:border-[#9D686E] group">
-                        @if($isOriginal)
-                            <div class="absolute -top-1 -right-1 bg-[#9D686E] text-white text-[7px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
+                    <div class="grid grid-cols-7 text-[11px] font-black text-slate-300 mb-4 uppercase tracking-widest px-1">
+                        <div class="text-center">Sun</div>
+                        <div class="text-center">Mon</div>
+                        <div class="text-center">Tue</div>
+                        <div class="text-center">Wed</div>
+                        <div class="text-center">Thu</div>
+                        <div class="text-center">Fri</div>
+                        <div class="text-center">Sat</div>
+                    </div>
+
+                    <div class="grid grid-cols-7 gap-3">
+                        @foreach($calDays as $d)
+                        @if($d === null)
+                        <div></div>
+                        @else
+                        @php
+                        $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-100'; $dot = 'bg-emerald-500';
+                        if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-100'; $dot = 'bg-red-500'; }
+                        elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-100' ; $dot='bg-amber-500' ; }
+                            
+                            $isSelected = $d['date'] === $tempSelectedDate;
+                            $isOriginal = $d['date'] === $booking->event_date;
+                            
+                            $ring = $isSelected ? 'border-[#9D686E] bg-pink-50 ring-4 ring-[#9D686E]/10 shadow-md z-10' : '' ;
+                            $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9D686E] shadow-inner' : '';
+                            $opacity = ($d['left'] == 0 && !$isSelected && !$isOriginal) ? 'opacity-40 grayscale-[0.5]' : '' ;
+                        @endphp
+                        <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')" 
+                                class="h-20 rounded-2xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $originStyle }} {{ $opacity }} flex flex-col items-center justify-center cursor-pointer transition-all relative hover:-translate-y-1 hover:shadow-lg group">
+                            @if($isOriginal)
+                                <div class="absolute -top-2 -right-1.5 bg-[#9D686E] text-white text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
+                            @endif
+                            <span class="font-black text-lg">{{ $d['day'] }}</span>
+                            <span class="text-[9px] uppercase tracking-tighter font-extrabold mt-0.5 opacity-60 group-hover:opacity-100">{{ $d['left'] }} Left</span>
+                        </button>
                         @endif
-                        <span class="font-bold text-sm">{{ $d['day'] }}</span>
-                        <span class="text-[9px] uppercase tracking-wide font-medium mt-0.5 group-hover:text-[#9D686E]">{{ $d['left'] }} Left</span>
-                        <span class="w-1.5 h-1.5 rounded-full mt-1 {{ $dot }}"></span>
-                    </button>
-                    @endif
-                    @endforeach
+                        @endforeach
+                    </div>
+
+                    <div class="mt-10 flex items-center gap-8 text-[10px] text-slate-400 font-extrabold justify-center border-t border-slate-50 pt-8">
+                        <span class="inline-flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-emerald-500 shadow-sm"></span>AVAILABLE</span>
+                        <span class="inline-flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-amber-500 shadow-sm"></span>BUSY (LIMIT)</span>
+                        <span class="inline-flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-red-500 shadow-sm"></span>FULL CAPACITY</span>
+                    </div>
                 </div>
 
-                <div class="mt-6 flex items-center gap-4 text-xs text-slate-500 font-bold justify-center bg-gray-50 p-2 rounded-lg">
-                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Open</span>
-                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>Busy</span>
-                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>Full</span>
-                </div>
-
-                <div class="flex justify-end pt-4 border-t border-gray-100 mt-4">
-                    <button wire:click="applySelectedDate" class="px-6 py-2.5 rounded-xl bg-[#9D686E] text-white font-bold shadow-lg shadow-[#9D686E]/20 hover:bg-[#855359] transition transform active:scale-95">Select Date</button>
+                <div class="p-8 border-t border-slate-50 bg-white">
+                    <button wire:click="applySelectedDate" class="w-full py-5 rounded-2xl bg-[#9D686E] text-white font-black shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359] transition-all transform active:scale-95 uppercase tracking-widest text-xs">Apply Selection</button>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
 
-    <!-- PAYMENT DETAILS MODAL -->
-    <div x-show="paymentDetailsModal" class="fixed inset-0 z-[9999] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4 py-8">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="paymentDetailsModal = false"></div>
-            <div x-show="paymentDetailsModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-10">
-                <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
-                    <h3 class="text-lg font-bold text-gray-800">Transaction Details</h3>
-                    <button @click="paymentDetailsModal = false" class="text-gray-400 hover:text-gray-600 transition"><span class="material-symbols-rounded">close</span></button>
-                </div>
-                <div class="space-y-3 text-sm text-gray-700 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
-                    <div x-show="!selectedPayment" class="text-center py-8 text-gray-400 italic">
-                        <span class="material-symbols-rounded animate-spin mb-2">progress_activity</span>
-                        <p>Loading details...</p>
+
+    <template x-teleport="body">
+        <!-- PAYMENT DETAILS MODAL -->
+        <div x-show="paymentDetailsModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+            <div x-show="paymentDetailsModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="paymentDetailsModal = false"></div>
+
+            <div x-show="paymentDetailsModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl overflow-hidden z-10 flex flex-col max-h-[80vh]">
+                
+                <div class="px-8 py-6 border-b border-slate-50 flex justify-between items-center shrink-0 bg-white">
+                    <div class="flex items-center gap-3 text-slate-800">
+                        <span class="material-symbols-rounded text-[#9D686E] text-2xl font-bold">receipt</span>
+                        <h3 class="font-black text-lg uppercase tracking-tight">Receipt Details</h3>
                     </div>
+                    <button @click="paymentDetailsModal = false" class="text-slate-400 hover:text-slate-600 transition p-1.5 hover:bg-slate-50 rounded-lg">
+                        <span class="material-symbols-rounded">close</span>
+                    </button>
+                </div>
 
-                    <div x-show="selectedPayment" class="mt-2">
-                        <template x-if="selectedPayment">
-                            <div class="space-y-4">
-                                <div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-50">
-                                    <span class="font-bold text-gray-400 uppercase text-[10px] tracking-widest">Amount Paid</span>
-                                    <span class="text-green-600 font-black text-lg">$<span x-text="parseFloat(selectedPayment.amount).toFixed(2)"></span></span>
-                                </div>
-
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="font-bold text-gray-400 uppercase text-[10px] tracking-widest">Transaction Date</span>
-                                    <span class="font-bold text-gray-700" x-text="new Date(selectedPayment.payment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })"></span>
-                                </div>
-
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="font-bold text-gray-400 uppercase text-[10px] tracking-widest">Payment Method</span>
-                                    <span class="font-extrabold text-[#9D686E]" x-text="selectedPayment.payment_method === 'Card Holder' ? 'Credit/Debit Card' : selectedPayment.payment_method"></span>
-                                </div>
-
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="font-bold text-gray-400 uppercase text-[10px] tracking-widest">Payment Type</span>
-                                    <span class="font-bold text-gray-600" x-text="selectedPayment.payment_type || 'N/A'"></span>
-                                </div>
-
-                                <!-- Card Details -->
-                                <template x-if="selectedPayment.payment_method === 'Card Holder' && selectedPayment.card_number">
-                                    <div class="bg-gray-50 p-3 rounded-xl border border-dashed border-gray-200 mt-4 space-y-2">
-                                        <div class="flex justify-between items-center text-[11px]">
-                                            <span class="text-gray-400 font-bold uppercase">Card Number</span>
-                                            <span class="font-mono font-black text-gray-700" x-text="'**** **** ' + selectedPayment.card_number.replace(/\s/g, '').slice(-8, -4) + ' ' + selectedPayment.card_number.replace(/\s/g, '').slice(-4)"></span>
-                                        </div>
-                                        <div class="flex justify-between items-center text-[11px]">
-                                            <span class="text-gray-400 font-bold uppercase">Network</span>
-                                            <span class="font-black text-blue-600" x-text="selectedPayment.card_network"></span>
-                                        </div>
-                                    </div>
-                                </template>
-
-                                <!-- Reference & Notes -->
-                                <template x-if="selectedPayment.reference || selectedPayment.notes">
-                                    <div class="mt-4 pt-4 border-t border-gray-100">
-                                        <span class="font-bold text-gray-400 uppercase text-[10px] tracking-widest block mb-2">Notes / Reference</span>
-                                        <div class="bg-[#9D686E]/5 p-3 rounded-lg text-xs italic text-slate-600 leading-relaxed border border-[#9D686E]/10">
-                                            <span x-text="selectedPayment.reference || ''"></span>
-                                            <template x-if="selectedPayment.reference && selectedPayment.notes"><span> - </span></template>
-                                            <span x-text="selectedPayment.notes || ''"></span>
-                                        </div>
-                                    </div>
-                                </template>
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-white">
+                    @if($selectedPayment)
+                    <div class="space-y-6">
+                        <div class="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner">
+                            <div>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Transaction</p>
+                                <p class="text-2xl font-black text-slate-800">${{ number_format($selectedPayment->amount, 2) }}</p>
                             </div>
-                        </template>
+                            <div class="text-right">
+                                <span class="bg-[#9D686E] text-white text-[9px] font-black px-3 py-1 rounded-lg uppercase tracking-widest shadow-sm shadow-[#9D686E]/20">{{ $selectedPayment->type }}</span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="p-4 bg-white border border-slate-100 rounded-2xl">
+                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Captured Date</p>
+                                    <p class="text-[11px] font-bold text-slate-700">{{ \Carbon\Carbon::parse($selectedPayment->payment_date)->format('d M, Y') }}</p>
+                                </div>
+                                <div class="p-4 bg-white border border-slate-100 rounded-2xl">
+                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Method</p>
+                                    <p class="text-[11px] font-bold text-slate-700">{{ $selectedPayment->payment_method }}</p>
+                                </div>
+                            </div>
+                            <div class="p-4 bg-white border border-slate-100 rounded-2xl">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Reference ID</p>
+                                <p class="text-[11px] font-bold text-slate-700 break-all">{{ $selectedPayment->reference_no ?: 'GEN-' . strtoupper(substr(md5($selectedPayment->id), 0, 8)) }}</p>
+                            </div>
+
+                            @if($selectedPayment->notes)
+                            <div class="p-5 bg-amber-50/50 border border-amber-100 rounded-2xl">
+                                <div class="flex items-center gap-2 mb-2 text-amber-600">
+                                    <span class="material-symbols-rounded text-base font-bold">sticky_note</span>
+                                    <p class="text-[10px] font-black uppercase tracking-widest">Internal Notes</p>
+                                </div>
+                                <p class="text-[11px] font-medium text-amber-900/70 leading-relaxed italic">"{{ $selectedPayment->notes }}"</p>
+                            </div>
+                            @endif
+
+                            @if($selectedPayment->card_network)
+                            <div class="p-5 bg-slate-900 text-white rounded-[24px] shadow-xl relative overflow-hidden group">
+                                <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:scale-110 transition-transform">
+                                    <span class="material-symbols-rounded text-6xl font-bold">credit_card</span>
+                                </div>
+                                <div class="relative z-10">
+                                    <div class="flex justify-between items-start mb-6">
+                                        <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Card Processor</p>
+                                        <span class="font-black italic text-sm text-amber-400">{{ $selectedPayment->card_network }}</span>
+                                    </div>
+                                    <p class="text-lg font-mono tracking-[4px] mb-6">**** **** **** {{ substr($selectedPayment->card_number, -4) }}</p>
+                                    <div class="flex gap-4">
+                                        <div>
+                                            <p class="text-[8px] font-black uppercase opacity-50 mb-1">Expiry</p>
+                                            <p class="text-[10px] font-bold font-mono">{{ $selectedPayment->card_expiry }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
                     </div>
+                    @endif
                 </div>
-                <button @click="paymentDetailsModal = false" class="w-full mt-6 py-2.5 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 font-bold transition">Close</button>
+
+                <div class="p-8 border-t border-slate-50 bg-white">
+                    <button @click="paymentDetailsModal = false" class="w-full py-4 rounded-xl bg-slate-100 text-slate-500 font-black hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px]">Close Details</button>
+                </div>
             </div>
         </div>
-    </div>
+    </template>
 
-    <!-- SENT SUCCESS MODAL -->
-    <div x-show="sentSuccessModal" class="fixed inset-0 z-[10001] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4 py-8">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="sentSuccessModal = false; $wire.resetEmailState()"></div>
+    <template x-teleport="body">
+        <!-- SENT SUCCESS MODAL -->
+        <div x-show="sentSuccessModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
             <div x-show="sentSuccessModal"
-                x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 scale-95"
-                x-transition:enter-end="opacity-100 scale-100"
-                class="relative bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-sm z-10 text-center">
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="sentSuccessModal = false"></div>
 
-                <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 text-green-500 ring-8 ring-green-50/50">
-                    <span class="material-symbols-rounded text-4xl">check_circle</span>
+            <div x-show="sentSuccessModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10 z-10 text-center">
+                <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-600">
+                    <span class="material-symbols-rounded text-4xl font-bold">check_circle</span>
                 </div>
-
-                <h3 class="text-2xl font-bold text-gray-800 mb-2">Email Sent!</h3>
-                <p class="text-gray-500 text-sm mb-8">
-                    The <span class="font-bold text-[#9D686E]">{{ $emailType === 'po' ? 'Purchase Order' : ($emailType === 'receipt' ? 'Receipt' : 'Invoice') }}</span> has been successfully sent to <span class="font-bold">{{ $emailTo }}</span>.
-                </p>
-
-                <button @click="sentSuccessModal = false; $wire.resetEmailState()" class="w-full py-4 bg-[#9D686E] text-white rounded-2xl font-bold hover:bg-[#855359] shadow-lg shadow-[#9D686E]/20 transition-all active:scale-[0.98]">
-                    Great, thanks!
-                </button>
+                <h3 class="text-2xl font-black text-slate-800 mb-3">Dispatch Success</h3>
+                <p class="text-sm font-medium text-slate-500 mb-8 px-4 leading-relaxed tracking-tight">The communication has been successfully routed and transmitted to the recipient.</p>
+                <button @click="sentSuccessModal = false" class="w-full py-4 bg-emerald-500 text-white hover:bg-emerald-600 font-black text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 uppercase tracking-[0.2em]">Perfect</button>
             </div>
         </div>
-    </div>
+    </template>
 
-    <!-- EMAIL CONFIRMATION MODAL -->
-    <div x-show="confirmEmailModal" class="fixed inset-0 z-[10000] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="confirmEmailModal = false"></div>
-            <div x-show="confirmEmailModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10 text-center">
-                <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600">
-                    <span class="material-symbols-rounded text-3xl">mark_email_unread</span>
+    <template x-teleport="body">
+        <!-- CONFIRM EMAIL MODAL -->
+        <div x-show="confirmEmailModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
+            <div x-show="confirmEmailModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="confirmEmailModal = false"></div>
+
+            <div x-show="confirmEmailModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-8 z-10 text-center">
+                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-5 text-blue-600">
+                    <span class="material-symbols-rounded text-3xl font-bold">mail</span>
                 </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">{{ $confirmEmailTitle }}</h3>
-                <div class="text-sm text-gray-500 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100 leading-relaxed text-left">
-                    {!! $confirmEmailMessage !!}
-                </div>
+                <h3 class="text-xl font-black text-slate-800 mb-2">Primary Dispatch?</h3>
+                <p class="text-[14px] font-medium text-slate-500 mb-8 leading-relaxed">Are you sure you want to send the initial invoice to <strong class="text-slate-700">{{ $booking->customer_email }}</strong>?</p>
                 <div class="flex justify-center gap-3">
-                    <button @click="confirmEmailModal = false" class="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-bold transition">Cancel</button>
-                    <button wire:click="proceedWithEmail" class="px-5 py-2.5 rounded-xl bg-[#9D686E] text-white hover:bg-[#855359] text-sm font-bold shadow-lg shadow-[#9D686E]/20 transition flex items-center gap-2">
-                        Yes, Proceed
-                    </button>
+                    <button @click="confirmEmailModal = false" class="flex-1 py-3.5 text-slate-600 font-black text-[11px] hover:bg-slate-50 rounded-xl transition-colors uppercase tracking-widest">Cancel</button>
+                    <button wire:click="sendInvoiceEmail" class="flex-1 py-3.5 bg-blue-500 text-white hover:bg-blue-600 font-black text-[11px] rounded-xl shadow-md shadow-blue-500/20 transition-all active:scale-95 uppercase tracking-widest text-xs">Execute Send</button>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
 
+    <template x-teleport="body">
+        <!-- DELETE SINGLE LOG MODAL -->
+        <div x-show="deleteSingleLogModal" class="fixed inset-0 z-[10001] flex items-center justify-center p-4" x-cloak>
+            <div x-show="deleteSingleLogModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="deleteSingleLogModal = false"></div>
 
-    <!-- DELETE SINGLE HISTORY MODAL -->
-    <div x-show="deleteSingleLogModal" class="fixed inset-0 z-[10001] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="deleteSingleLogModal = false"></div>
-            <div x-show="deleteSingleLogModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-10 text-center">
-                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600"><span class="material-symbols-rounded text-3xl">delete</span></div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">Delete Log?</h3>
-                <p class="text-sm text-gray-500 mb-6">Are you sure you want to remove this record from history? This will reset your email send count.</p>
+            <div x-show="deleteSingleLogModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-8 z-10 text-center">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5 text-red-600">
+                    <span class="material-symbols-rounded text-3xl font-bold">delete_forever</span>
+                </div>
+                <h3 class="text-xl font-black text-slate-800 mb-2">Delete Log Entry?</h3>
+                <p class="text-[14px] font-medium text-slate-500 mb-8 leading-relaxed">Permanently remove this transmission record? This action is irreversible.</p>
                 <div class="flex justify-center gap-3">
-                    <button @click="deleteSingleLogModal = false" class="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-bold transition">Cancel</button>
-                    <button wire:click="deleteEmailLog(selectedLogToDelete)" class="px-5 py-2.5 rounded-xl bg-red-500 text-white hover:bg-red-600 text-sm font-bold shadow-lg shadow-red-200 transition">Delete</button>
+                    <button @click="deleteSingleLogModal = false" class="flex-1 py-3.5 text-slate-600 font-black text-[11px] hover:bg-slate-50 rounded-xl transition-colors uppercase tracking-widest">Cancel</button>
+                    <button wire:click="deleteEmailLog(selectedLogToDelete)" class="flex-1 py-3.5 bg-red-500 text-white hover:bg-red-600 font-black text-[11px] rounded-xl shadow-md shadow-red-500/20 transition-all active:scale-95 uppercase tracking-widest">Confirm</button>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
 
-    <!-- CLEAR ALL HISTORY MODAL -->
-    <div x-show="historyClearModal" class="fixed inset-0 z-[10001] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="historyClearModal = false"></div>
-            <div x-show="historyClearModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-10 text-center">
-                <div class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white"><span class="material-symbols-rounded text-3xl">history</span></div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">Clear All History?</h3>
-                <p class="text-sm text-gray-500 mb-6 font-medium">This will permanently delete all email logs and reset all document send trackers. This action is irreversible.</p>
-                <div class="flex justify-center gap-3">
-                    <button @click="historyClearModal = false" class="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-bold transition">Cancel</button>
-                    <button wire:click="deleteAllEmailHistory" class="px-5 py-2.5 rounded-xl bg-red-600 text-white hover:bg-red-700 text-sm font-bold shadow-lg shadow-red-300 transition">Yes, Clear All</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <template x-teleport="body">
+        <!-- HISTORY CLEAR MODAL -->
+        <div x-show="historyClearModal" class="fixed inset-0 z-[10010] flex items-center justify-center p-4" x-cloak>
+            <div x-show="historyClearModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="historyClearModal = false"></div>
 
-    <!-- DELETE LEGACY LOG MODAL -->
-    <div x-show="deleteLegacyModal" class="fixed inset-0 z-[10001] overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="deleteLegacyModal = false"></div>
-            <div x-show="deleteLegacyModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-10 text-center">
-                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600"><span class="material-symbols-rounded text-3xl">history_edu</span></div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">Remove Legacy Record?</h3>
-                <p class="text-sm text-gray-500 mb-6">Remove the "Invoice Marked as Sent" flag from this booking?</p>
+            <div x-show="historyClearModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-8 z-10 text-center">
+                <div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-5 text-white">
+                    <span class="material-symbols-rounded text-3xl font-bold">delete_sweep</span>
+                </div>
+                <h3 class="text-xl font-black text-slate-800 mb-2">Purge Entire Log?</h3>
+                <p class="text-[14px] font-medium text-slate-500 mb-8 leading-relaxed">This will wipe ALL communication records for this booking. Continue with deletion?</p>
                 <div class="flex justify-center gap-3">
-                    <button @click="deleteLegacyModal = false" class="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-bold transition">Cancel</button>
-                    <button wire:click="deleteLegacyInvoiceLog" class="px-5 py-2.5 rounded-xl bg-[#9D686E] text-white hover:bg-[#855359] text-sm font-bold shadow-lg shadow-[#9D686E]/20 transition">Remove</button>
+                    <button @click="historyClearModal = false" class="flex-1 py-3.5 text-slate-600 font-black text-[11px] hover:bg-slate-50 rounded-xl transition-colors uppercase tracking-widest">Cancel</button>
+                    <button wire:click="clearHistory" class="flex-1 py-3.5 bg-red-600 text-white hover:bg-red-700 font-black text-[11px] rounded-xl shadow-md shadow-red-600/20 transition-all active:scale-95 uppercase tracking-widest">Purge All</button>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
+
+    <template x-teleport="body">
+        <!-- DELETE LEGACY MODAL -->
+        <div x-show="deleteLegacyModal" class="fixed inset-0 z-[10010] flex items-center justify-center p-4" x-cloak>
+            <div x-show="deleteLegacyModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="deleteLegacyModal = false"></div>
+
+            <div x-show="deleteLegacyModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-8 z-10 text-center">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5 text-red-600">
+                    <span class="material-symbols-rounded text-3xl font-bold">history_toggle_off</span>
+                </div>
+                <h3 class="text-xl font-black text-slate-800 mb-2">Reset Initial Flag?</h3>
+                <p class="text-[14px] font-medium text-slate-500 mb-8 leading-relaxed">Clear the primary "Invoice Sent" status flag? This allows a fresh primary dispatch.</p>
+                <div class="flex justify-center gap-3">
+                    <button @click="deleteLegacyModal = false" class="flex-1 py-3.5 text-slate-600 font-black text-[11px] hover:bg-slate-50 rounded-xl transition-colors uppercase tracking-widest">Cancel</button>
+                    <button wire:click="deleteLegacyLog" class="flex-1 py-3.5 bg-red-500 text-white hover:bg-red-600 font-black text-[11px] rounded-xl shadow-md shadow-red-500/20 transition-all active:scale-95 uppercase tracking-widest">Reset Flag</button>
+                </div>
+            </div>
+        </div>
+    </template>
 
     <div
         x-on:close-modal.window="paymentModal = false; emailModal = false; deleteModal = false; calendarModal = false; paymentDetailsModal = false; draftModal = false; statusConfirmModal = false; confirmEmailModal = false; historyClearModal = false; deleteSingleLogModal = false; deleteLegacyModal = false; quotaWarningModal = false; quotaLimitModal = false;"
@@ -1201,6 +1457,7 @@
             if (modalToOpen === 'paymentModal') paymentModal = true;
             if (modalToOpen === 'emailModal') emailModal = true;
             if (modalToOpen === 'calendarModal') calendarModal = true;
+            if (modalToOpen === 'paymentDetailsModal') paymentDetailsModal = true;
             if (modalToOpen === 'draftModal') draftModal = true;
             if (modalToOpen === 'statusConfirmModal') statusConfirmModal = true;
             if (modalToOpen === 'sentSuccessModal') sentSuccessModal = true;

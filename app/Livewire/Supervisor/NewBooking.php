@@ -145,6 +145,23 @@ class NewBooking extends Component
             : $default;
     }
 
+    public function toggleItem($name, $selected)
+    {
+        if ($selected) {
+            if (!in_array($name, $this->selected_products)) {
+                $this->selected_products[] = $name;
+            }
+        } else {
+            $this->selected_products = array_diff($this->selected_products, [$name]);
+        }
+    }
+
+    public function updateItemQty($name, $change)
+    {
+        // This is a placeholder for quantity-based logic if needed in the future
+        // For now, it ensures the frontend call doesn't 500
+    }
+
     public function render()
     {
         return view('livewire.supervisor.new-booking', [

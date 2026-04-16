@@ -217,12 +217,22 @@ document.addEventListener('alpine:init', () => {
         toasts: [],
         addToast(title, message, type = 'primary') {
             const id = Date.now();
+            
+            // Map types to premium icons
+            const iconMap = {
+                'success': 'check_circle',
+                'error': 'error',
+                'warning': 'warning',
+                'primary': 'info'
+            };
+            
             if (this.toasts.length >= 3) this.toasts.shift();
             this.toasts.push({
                 id,
                 title,
                 message,
                 type,
+                icon: iconMap[type] || 'notifications',
                 visible: true
             });
             setTimeout(() => {
@@ -437,9 +447,15 @@ window.checkRealTimeAvailability = async function(silent = false) {
         return;
     }
 
-    // Only show checking state if NOT silent (e.g. date changed or initial load)
+    // Only show checking state if NOT silent (e.g. date changed)
     if (!silent) {
         document.querySelectorAll('.status-badge').forEach(badge => {
+            badge.innerText = 'CHECKING...';
+            badge.className = 'status-badge status-checking';
+        });
+    } else {
+        // If silent, only update badges that are stuck in "CHECKING..."
+        document.querySelectorAll('.status-badge:not(.status-avail):not(.status-soldout):not(.status-limited)').forEach(badge => {
             badge.innerText = 'CHECKING...';
             badge.className = 'status-badge status-checking';
         });
@@ -619,10 +635,7 @@ window.handleSelection = function(checkbox) {
     const appEl = document.querySelector('[x-data="bookingApp"]');
     const alpine = appEl ? (appEl._x_dataStack ? appEl._x_dataStack[0] : (appEl.__x ? appEl.__x.$data : null)) : null;
 
-    // Toggle state immediately
-    checkbox.checked = !checkbox.checked;
-
-    // 1. Full Capacity Warning
+    // 1. Full Capacity Warning (checkbox state is already set by card's @click)
     if (checkbox.checked && isSoldOut) {
         checkbox.checked = false;
         if (alpine) alpine.modals.fullCapacityWarning = true;

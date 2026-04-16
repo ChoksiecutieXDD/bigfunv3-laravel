@@ -140,74 +140,120 @@
         </div>
     </div>
 
-    @if ($replyModalOpen)
-    <div class="fixed inset-0 z-[10000] overflow-y-auto">
-        <div class="flex items-center justify-center min-h-screen px-4 py-8">
-            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" wire:click="$set('replyModalOpen', false)"></div>
+    <template x-teleport="body">
+        <!-- SYSTEM RESPONSE MODAL -->
+        <div x-show="$wire.replyModalOpen" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
+            <div x-show="$wire.replyModalOpen"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="$wire.replyModalOpen = false"></div>
 
-            <div class="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl relative flex flex-col max-h-[90vh] overflow-hidden z-10">
-                <div class="bg-[#9E6B73] p-6 flex justify-between items-start shrink-0">
-                    <div>
-                        <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                            <span class="material-symbols-rounded">reply</span> Reply to Enquiry
-                        </h3>
-                        <p class="text-pink-100 text-sm mt-1">Replying to {{ $replyName }} ({{ $replyEmail }})</p>
+            <div x-show="$wire.replyModalOpen"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative bg-white w-full max-w-2xl rounded-[24px] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden z-10 transition-all">
+                
+                <div class="px-8 py-8 border-b border-slate-50 flex justify-between items-center bg-white shrink-0">
+                    <div class="flex items-center gap-4 text-[#9D686E]">
+                        <div class="w-12 h-12 rounded-xl bg-[#9D686E]/10 flex items-center justify-center">
+                            <span class="material-symbols-rounded text-2xl font-bold">reply</span>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-black text-slate-800 tracking-tight uppercase">System Response</h3>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5" x-text="'TARGET: ' + ($wire.replyName || 'Recipient Retrieval...')"></p>
+                        </div>
                     </div>
-                    <button wire:click="$set('replyModalOpen', false)" class="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition"><span class="material-symbols-rounded">close</span></button>
+                    <button type="button" @click="$wire.replyModalOpen = false" class="text-slate-400 hover:text-slate-600 transition p-2 hover:bg-slate-50 rounded-xl">
+                        <span class="material-symbols-rounded text-2xl font-bold">close</span>
+                    </button>
                 </div>
 
-                <div class="p-8 overflow-y-auto flex-1 custom-scrollbar">
-                    <form wire:submit="sendReply">
-                        <div class="mb-6">
-                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Original Message Snippet</label>
-                            <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 text-sm text-gray-600 italic leading-relaxed line-clamp-3">
-                                {{ $replySnippet }}
+                <div class="p-8 overflow-y-auto custom-scrollbar flex-grow bg-white">
+                    <form wire:submit="sendReply" class="space-y-8">
+                        @if ($replySnippet)
+                        <div class="bg-slate-50 p-6 rounded-[24px] border border-slate-100 relative group overflow-hidden">
+                            <div class="absolute top-0 right-0 p-4 opacity-5">
+                                <span class="material-symbols-rounded text-4xl font-bold">format_quote</span>
+                            </div>
+                            <label class="block text-[10px] font-black text-slate-300 mb-4 uppercase tracking-widest">Original Reference Matrix</label>
+                            <div class="text-[14px] font-bold text-slate-600 italic leading-relaxed line-clamp-4 relative z-10">
+                                "{{ $replySnippet }}"
                             </div>
                         </div>
+                        @endif
 
-                        <div class="mb-6">
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Subject</label>
-                            <input type="text" wire:model="replySubject" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#9E6B73] focus:ring-2 focus:ring-[#9E6B73]/20 transition font-medium" required>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Your Reply</label>
-                            <textarea wire:model="replyBody" rows="8" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#9E6B73] focus:ring-2 focus:ring-[#9E6B73]/20 transition resize-none" placeholder="Type your response here..." required></textarea>
-                        </div>
-
-                        <div class="mb-6">
-                            <input type="file" wire:model="attachments" id="attachments" multiple class="hidden">
-                            <div class="flex items-center gap-3">
-                                <label for="attachments" class="text-xs font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition flex items-center gap-2 border border-gray-200 cursor-pointer">
-                                    <span class="material-symbols-rounded text-sm">attach_file</span> Add Attachment
-                                </label>
-                                <span class="text-xs text-gray-400 italic" wire:loading.remove wire:target="attachments">Optional. Max 5MB.</span>
-                                <span class="text-xs text-[#9E6B73] font-bold italic" wire:loading wire:target="attachments">Uploading...</span>
+                        <div class="grid grid-cols-1 gap-8">
+                            <div class="input-group">
+                                <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Communication Subject</label>
+                                <input type="text" wire:model="replySubject" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[15px] font-black text-slate-800 transition-all" required>
                             </div>
-                            @if ($attachments)
-                            <div class="mt-3 flex flex-wrap gap-2">
-                                @foreach ($attachments as $file)
-                                <div class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold border border-blue-100 flex items-center gap-1">
-                                    <span class="material-symbols-rounded text-sm">description</span> {{ $file->getClientOriginalName() }}
+
+                            <div class="input-group">
+                                <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Message Payload</label>
+                                <textarea wire:model="replyBody" rows="10" class="w-full px-6 py-5 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[14px] font-medium leading-relaxed resize-none transition-all custom-scrollbar placeholder:text-slate-300" placeholder="Enter formal system response protocol..." required></textarea>
+                            </div>
+
+                            <div class="input-group">
+                                <div class="flex items-center justify-between mb-3">
+                                    <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest">Supporting Assets</label>
+                                    <span class="text-[10px] text-slate-300 font-bold uppercase tracking-widest">Optional · Max 5MB Limit</span>
                                 </div>
-                                @endforeach
+                                <div class="flex flex-col gap-4">
+                                    <input type="file" wire:model="attachments" id="reply_attachments" multiple class="hidden">
+                                    <label for="reply_attachments" class="flex items-center justify-center gap-4 w-full py-6 border-2 border-dashed border-slate-200 rounded-[24px] hover:border-[#9D686E]/40 hover:bg-slate-50 transition-all cursor-pointer group">
+                                        <div class="w-10 h-10 rounded-xl bg-slate-50 group-hover:bg-[#9D686E]/10 flex items-center justify-center text-slate-400 group-hover:text-[#9D686E] transition-all shadow-sm">
+                                            <span class="material-symbols-rounded text-xl font-bold">attach_file_add</span>
+                                        </div>
+                                        <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Select Assets For Retrieval</span>
+                                    </label>
+
+                                    <div wire:loading wire:target="attachments" class="flex items-center gap-4 p-5 bg-blue-50/50 rounded-2xl border border-blue-100 animate-pulse">
+                                        <div class="w-5 h-5 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
+                                        <span class="text-[11px] font-black text-blue-500 uppercase tracking-widest">Uploading Assets To Secure Storage...</span>
+                                    </div>
+
+                                    @if ($attachments)
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                                        @foreach ($attachments as $index => $file)
+                                        <div class="flex items-center justify-between p-4 bg-slate-50 rounded-[18px] border border-slate-100 group hover:border-[#9D686E]/20 transition-all">
+                                            <div class="flex items-center gap-3 overflow-hidden">
+                                                <div class="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 group-hover:text-[#9D686E] transition-colors shadow-sm">
+                                                    <span class="material-symbols-rounded text-lg font-bold">description</span>
+                                                </div>
+                                                <span class="text-[13px] font-bold text-slate-700 truncate">{{ $file->getClientOriginalName() }}</span>
+                                            </div>
+                                            <button type="button" wire:click="removeAttachment({{ $index }})" class="text-slate-300 hover:text-rose-500 transition-all transform hover:scale-110 shrink-0">
+                                                <span class="material-symbols-rounded text-xl font-bold">cancel</span>
+                                            </button>
+                                        </div>
+                                        @endforeach
+                                    </div>
+                                    @endif
+                                </div>
                             </div>
-                            @endif
                         </div>
 
-                        <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                            <button type="button" wire:click="$set('replyModalOpen', false)" class="px-6 py-3 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-50 transition">Cancel</button>
-                            <button type="submit" class="bg-[#9E6B73] hover:bg-[#86545C] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-[#9E6B73]/30 flex items-center gap-2 transition transform hover:scale-105 active:scale-95">
-                                <span wire:loading.remove wire:target="sendReply" class="material-symbols-rounded">send</span>
-                                <span wire:loading wire:target="sendReply" class="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
-                                <span wire:loading.remove wire:target="sendReply">Send Reply</span>
-                                <span wire:loading wire:target="sendReply">Sending...</span>
+                        <div class="pt-8 border-t border-slate-50 flex gap-4">
+                            <button type="button" @click="$wire.replyModalOpen = false" class="px-8 py-5 text-slate-600 font-black text-[11px] hover:bg-slate-50 rounded-2xl transition-all uppercase tracking-[0.2em] border border-slate-100">Cancel</button>
+                            <button type="submit" class="flex-grow py-5 bg-[#9D686E] text-white rounded-2xl font-black hover:bg-[#855359] shadow-xl shadow-[#9D686E]/20 transition-all active:scale-[0.98] uppercase tracking-[0.2em] text-[11px] flex items-center justify-center gap-3">
+                                <span wire:loading.remove wire:target="sendReply" class="flex items-center gap-3">
+                                    <span class="material-symbols-rounded text-lg font-bold">send</span>
+                                    Execute Transmission
+                                </span>
+                                <span wire:loading wire:target="sendReply" class="flex items-center gap-3">
+                                    <span class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                    Broadcasting...
+                                </span>
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
-    </div>
-    @endif
+    </template>
+
 </div>

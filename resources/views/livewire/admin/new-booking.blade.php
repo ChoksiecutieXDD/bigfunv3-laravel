@@ -1,24 +1,36 @@
 <div x-data="bookingApp" class="min-h-screen flex flex-col relative pb-8 bg-[#F8FAFC]">
-    <div class="fixed top-8 right-8 z-[999999] flex flex-col gap-3 pointer-events-none">
+    <!-- Premium Toast Notifications (system-settings style) -->
+    <div class="fixed top-6 right-6 z-[999999] flex flex-col gap-3 pointer-events-none" style="width:380px;">
         <template x-for="toast in toasts" :key="toast.id">
-            <div x-show="toast.visible" 
-                x-transition:enter="transition ease-out duration-500"
-                x-transition:enter-start="opacity-0 translate-x-full scale-90"
+            <div x-show="toast.visible"
+                x-transition:enter="transition ease-out duration-400"
+                x-transition:enter-start="opacity-0 translate-x-8 scale-95"
                 x-transition:enter-end="opacity-100 translate-x-0 scale-100"
                 x-transition:leave="transition ease-in duration-300"
                 x-transition:leave-start="opacity-100 translate-x-0 scale-100"
-                x-transition:leave-end="opacity-0 translate-x-full scale-90"
-                class="pointer-events-auto min-w-[320px] max-w-[420px] bg-white border border-gray-100 rounded-2xl shadow-2xl p-4 flex items-start gap-3 border-l-4"
-                :class="{'border-l-green-500': toast.type === 'success', 'border-l-red-500': toast.type === 'error', 'border-l-amber-500': toast.type === 'warning', 'border-l-[#9E6B73]': toast.type === 'primary'}">
-                <span class="material-symbols-rounded text-xl mt-0.5"
-                    :class="{'text-green-500': toast.type === 'success', 'text-red-500': toast.type === 'error', 'text-amber-500': toast.type === 'warning', 'text-[#9E6B73]': toast.type === 'primary'}"
-                    x-text="toast.icon"></span>
-                <div class="flex-1">
-                    <h4 class="font-bold text-sm text-slate-800" x-text="toast.title"></h4>
-                    <p class="text-xs text-slate-500 mt-1" x-text="toast.message"></p>
+                x-transition:leave-end="opacity-0 translate-x-8 scale-95"
+                class="pointer-events-auto w-full bg-slate-900/95 backdrop-blur-xl border rounded-2xl shadow-2xl p-4 flex items-start gap-3"
+                :class="{
+                    'border-emerald-500/40': toast.type === 'success',
+                    'border-red-500/40': toast.type === 'error',
+                    'border-amber-500/40': toast.type === 'warning',
+                    'border-[#9E6B73]/40': toast.type === 'primary'
+                }">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                    :class="{
+                        'bg-emerald-500/15 text-emerald-400': toast.type === 'success',
+                        'bg-red-500/15 text-red-400': toast.type === 'error',
+                        'bg-amber-500/15 text-amber-400': toast.type === 'warning',
+                        'bg-[#9E6B73]/15 text-[#9E6B73]': toast.type === 'primary'
+                    }">
+                    <span class="material-symbols-rounded text-xl" x-text="toast.icon"></span>
                 </div>
-                <button @click="toast.visible = false" class="text-slate-400 hover:text-slate-600">
-                    <span class="material-symbols-rounded text-sm">close</span>
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-bold text-sm text-white" x-text="toast.title"></h4>
+                    <p class="text-xs text-slate-400 mt-0.5 leading-relaxed" x-text="toast.message"></p>
+                </div>
+                <button @click="toast.visible = false" class="text-slate-600 hover:text-slate-300 transition shrink-0 p-1 rounded-lg hover:bg-white/10">
+                    <span class="material-symbols-rounded text-base">close</span>
                 </button>
             </div>
         </template>
@@ -222,7 +234,7 @@
                     <input type="hidden" name="deposit_amount" id="deposit_amount" value="0">
                 </div>
 
-                <div class="section-card">
+                <div class="section-card" wire:ignore>
                     <div class="flex items-center gap-3 border-b border-gray-100 pb-4">
                         <span class="material-symbols-rounded text-[#9E6B73] text-2xl">calendar_month</span>
                         <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Live Availability & Duration</h2>

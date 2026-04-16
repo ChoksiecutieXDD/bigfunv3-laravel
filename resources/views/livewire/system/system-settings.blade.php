@@ -466,95 +466,108 @@
         </div>
     </div>
 
-    <div x-show="showBrevoQuotaInfo" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4">
-        <div x-show="showBrevoQuotaInfo"
-            x-transition.opacity.duration.300ms
-            class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-            @click="showBrevoQuotaInfo = false"></div>
+    <div x-teleport="body">
+        <div x-show="showBrevoQuotaInfo" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+            <div x-show="showBrevoQuotaInfo"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="showBrevoQuotaInfo = false"></div>
 
-        <div x-show="showBrevoQuotaInfo"
-            x-transition:enter="transition ease-out duration-300 transform"
-            x-transition:enter-start="opacity-0 scale-90 translate-y-4"
-            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-            x-transition:leave="transition ease-in duration-200 transform"
-            x-transition:leave-start="opacity-100 scale-100 translate-y-0"
-            x-transition:leave-end="opacity-0 scale-90 translate-y-4"
-            class="relative w-full max-w-lg rounded-[24px] bg-white p-8 text-slate-600 shadow-2xl z-[10001]">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Brevo Quota Information</h3>
-            <div class="space-y-4 text-sm text-slate-500 leading-relaxed">
-                <p>
-                    Your primary mailer is currently tracking <strong>{{ $brevoUsed }}</strong> sent emails out of a daily limit of <strong>{{ $brevoLimit }}</strong>. 
-                    This limit is managed through your <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">.env</code> configuration file using the 
-                    <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_BREVO_DAILY_EMAIL_LIMIT</code> variable.
-                </p>
-                <p>
-                    The daily usage is tracked by the <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_BREVO_DAILY_EMAIL_USED</code> key. 
-                    If you reach the limit, the system will prevent further automated emails to avoid deliverability issues.
-                </p>
-                <div class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50 text-xs text-emerald-700">
-                    <span class="font-bold block mb-1">Administrative Note:</span>
-                    To reset the daily counter, you can use the button below. This will update the system tracking back to zero and clear the configuration cache.
+            <div x-show="showBrevoQuotaInfo"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative w-full max-w-lg rounded-[24px] bg-white p-8 text-slate-600 shadow-2xl z-[10001]">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">Brevo Quota Information</h3>
+                <div class="space-y-4 text-sm text-slate-500 leading-relaxed">
+                    <p>
+                        Your primary mailer is currently tracking <strong>{{ $brevoUsed }}</strong> sent emails out of a daily limit of <strong>{{ $brevoLimit }}</strong>. 
+                        This limit is managed through your <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">.env</code> configuration file using the 
+                        <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_BREVO_DAILY_EMAIL_LIMIT</code> variable.
+                    </p>
+                    <p>
+                        The daily usage is tracked by the <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_BREVO_DAILY_EMAIL_USED</code> key. 
+                        If you reach the limit, the system will prevent further automated emails to avoid deliverability issues.
+                    </p>
+                    <div class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50 text-xs text-emerald-700">
+                        <span class="font-bold block mb-1">Administrative Note:</span>
+                        To reset the daily counter, you can use the button below. This will update the system tracking back to zero and clear the configuration cache.
+                    </div>
+                </div>
+                <div class="mt-8 flex justify-between items-center">
+                    <button type="button"
+                        @click="$dispatch('open-modal', { 
+                            title: 'Reset Brevo Counter?', 
+                            message: 'This will reset the tracked daily email usage back to zero in the system. Proceed?', 
+                            type: 'warning', 
+                            event: 'execute-reset-quota',
+                            params: 'brevo'
+                        })"
+                        class="text-xs font-bold text-red-500 hover:text-red-600 transition underline underline-offset-4">
+                        Reset Daily Counter
+                    </button>
+                    <button type="button" @click="showBrevoQuotaInfo = false" class="rounded-xl bg-slate-100 px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-200 transition">Got it</button>
                 </div>
             </div>
-            <div class="mt-8 flex justify-between items-center">
-                <button type="button"
-                    @click="$dispatch('open-modal', { 
-                        title: 'Reset Brevo Counter?', 
-                        message: 'This will reset the tracked daily email usage back to zero in the system. Proceed?', 
-                        type: 'warning', 
-                        event: 'execute-reset-quota',
-                        params: 'brevo'
-                    })"
-                    class="text-xs font-bold text-red-500 hover:text-red-600 transition underline underline-offset-4">
-                    Reset Daily Counter
-                </button>
-                <button type="button" @click="showBrevoQuotaInfo = false" class="rounded-xl bg-slate-100 px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-200 transition">Got it</button>
+        </div>
+
+        <div x-show="showGoogleQuotaInfo" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+            <div x-show="showGoogleQuotaInfo"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="showGoogleQuotaInfo = false"></div>
+
+            <div x-show="showGoogleQuotaInfo"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative w-full max-w-lg rounded-[24px] bg-white p-8 text-slate-600 shadow-2xl z-[10001]">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">Gmail Quota Information</h3>
+                <div class="space-y-4 text-sm text-slate-500 leading-relaxed">
+                    <p>
+                        Your secondary Gmail mailer is currently tracking <strong>{{ $googleUsed }}</strong> sent emails out of a daily limit of <strong>{{ $googleLimit }}</strong>. 
+                        This limit is defined by the <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_GOOGLE_DAILY_EMAIL_LIMIT</code> variable in your configuration.
+                    </p>
+                    <p>
+                        The daily usage is tracked by the <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_GOOGLE_DAILY_EMAIL_USED</code> key. 
+                        Gmail typically has strict outbound limits, so ensure this value stays within your account's allowed throughput.
+                    </p>
+                    <div class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50 text-xs text-emerald-700">
+                        <span class="font-bold block mb-1">Administrative Note:</span>
+                        To reset the daily counter, you can use the button below. This will update the system tracking back to zero and clear the configuration cache.
+                    </div>
+                </div>
+                <div class="mt-8 flex justify-between items-center">
+                    <button type="button"
+                        @click="$dispatch('open-modal', { 
+                            title: 'Reset Gmail Counter?', 
+                            message: 'This will reset the tracked daily email usage back to zero in the system. Proceed?', 
+                            type: 'warning', 
+                            event: 'execute-reset-quota',
+                            params: 'google'
+                        })"
+                        class="text-xs font-bold text-red-500 hover:text-red-600 transition underline underline-offset-4">
+                        Reset Daily Counter
+                    </button>
+                    <button type="button" @click="showGoogleQuotaInfo = false" class="rounded-xl bg-slate-100 px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-200 transition">Got it</button>
+                </div>
             </div>
         </div>
     </div>
-
-    <div x-show="showGoogleQuotaInfo" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4">
-        <div x-show="showGoogleQuotaInfo"
-            x-transition.opacity.duration.300ms
-            class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-            @click="showGoogleQuotaInfo = false"></div>
-
-        <div x-show="showGoogleQuotaInfo"
-            x-transition:enter="transition ease-out duration-300 transform"
-            x-transition:enter-start="opacity-0 scale-90 translate-y-4"
-            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-            x-transition:leave="transition ease-in duration-200 transform"
-            x-transition:leave-start="opacity-100 scale-100 translate-y-0"
-            x-transition:leave-end="opacity-0 scale-90 translate-y-4"
-            class="relative w-full max-w-lg rounded-[24px] bg-white p-8 text-slate-600 shadow-2xl z-[10001]">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Gmail Quota Information</h3>
-            <div class="space-y-4 text-sm text-slate-500 leading-relaxed">
-                <p>
-                    Your secondary Gmail mailer is currently tracking <strong>{{ $googleUsed }}</strong> sent emails out of a daily limit of <strong>{{ $googleLimit }}</strong>. 
-                    This limit is defined by the <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_GOOGLE_DAILY_EMAIL_LIMIT</code> variable in your configuration.
-                </p>
-                <p>
-                    The daily usage is tracked by the <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_GOOGLE_DAILY_EMAIL_USED</code> key. 
-                    Gmail typically has strict outbound limits, so ensure this value stays within your account's allowed throughput.
-                </p>
-                <div class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50 text-xs text-emerald-700">
-                    <span class="font-bold block mb-1">Administrative Note:</span>
-                    To reset the daily counter, you can use the button below. This will update the system tracking back to zero and clear the configuration cache.
-                </div>
-            </div>
-            <div class="mt-8 flex justify-between items-center">
-                <button type="button"
-                    @click="$dispatch('open-modal', { 
-                        title: 'Reset Gmail Counter?', 
-                        message: 'This will reset the tracked daily email usage back to zero in the system. Proceed?', 
-                        type: 'warning', 
-                        event: 'execute-reset-quota',
-                        params: 'google'
-                    })"
-                    class="text-xs font-bold text-red-500 hover:text-red-600 transition underline underline-offset-4">
-                    Reset Daily Counter
-                </button>
-                <button type="button" @click="showGoogleQuotaInfo = false" class="rounded-xl bg-slate-100 px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-200 transition">Got it</button>
-            </div>
-        </div>
-    </div>
+</div>

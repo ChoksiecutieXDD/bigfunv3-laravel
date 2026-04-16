@@ -572,133 +572,426 @@
     </section>
 
     <template x-teleport="body">
-        <div style="z-index: 10000; position: relative;">
-            <div x-show="showConfirmModal" x-transition.opacity style="display: none;" class="fixed inset-0 bg-black/40 backdrop-blur-sm" @click="showConfirmModal = false"></div>
-            <div x-show="showConfirmModal" x-transition.scale style="display: none;" class="fixed inset-0 flex items-center justify-center" @click.self="showConfirmModal = false">
-                <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center">
-                    <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600"><span class="material-symbols-rounded text-3xl">help</span></div>
-                    <h3 class="text-lg font-bold text-gray-800 mb-2">Confirm Action</h3>
-                    <p class="text-sm text-gray-600 mb-6" x-text="confirmMessage"></p>
-                    <div class="flex justify-center gap-3">
-                        <button type="button" @click="showConfirmModal = false" class="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-bold">Cancel</button>
-                        <button type="button" @click="if(confirmAction) confirmAction(); showConfirmModal = false;" class="px-5 py-2.5 rounded-xl bg-[#9E6B73] hover:bg-[#86545C] text-white font-bold shadow-md">Confirm</button>
-                    </div>
+        <!-- GLOBAL CONFIRMATION MODAL -->
+        <div x-show="showConfirmModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
+            <div x-show="showConfirmModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="showConfirmModal = false"></div>
+
+            <div x-show="showConfirmModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative bg-white rounded-[24px] shadow-2xl p-10 max-w-sm w-full text-center z-10 overflow-hidden">
+                
+                <div class="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500 ring-8 ring-amber-50/50">
+                    <span class="material-symbols-rounded text-4xl font-bold">help_outline</span>
+                </div>
+                
+                <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight uppercase">Confirm Action</h3>
+                <p class="text-[14px] font-bold text-slate-500 mb-10 leading-relaxed px-2" x-text="confirmMessage"></p>
+                
+                <div class="flex gap-4">
+                    <button type="button" @click="showConfirmModal = false" class="flex-1 py-4 text-slate-600 font-black text-[11px] hover:bg-slate-50 rounded-2xl transition-all uppercase tracking-widest border border-slate-100">Cancel</button>
+                    <button type="button" @click="if(confirmAction) confirmAction(); showConfirmModal = false;" class="flex-1 py-4 bg-[#9D686E] text-white hover:bg-[#855359] rounded-2xl font-black text-[11px] shadow-xl shadow-[#9D686E]/20 transition-all active:scale-95 uppercase tracking-widest">Confirm</button>
                 </div>
             </div>
         </div>
     </template>
 
     <template x-teleport="body">
-        <div style="z-index: 9999; position: relative;">
-            <div x-show="showPaymentModal" x-transition.opacity style="display: none;" class="fixed inset-0 bg-black/50 backdrop-blur-sm" @click="showPaymentModal = false"></div>
-            <div x-show="showPaymentModal" x-transition.scale style="display: none;" class="fixed inset-0 flex items-center justify-center p-4" @click.self="showPaymentModal = false">
-                <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm flex flex-col max-h-[95vh] overflow-y-auto custom-scrollbar">
-                    <div class="flex justify-between items-center mb-5 shrink-0">
-                        <h3 class="text-xl font-extrabold text-gray-800">Record Payment</h3>
-                        <button type="button" @click="showPaymentModal = false" class="text-gray-400 hover:text-gray-600 transition"><span class="material-symbols-rounded">close</span></button>
+        <!-- RECORD TRANSACTION MODAL -->
+        <div x-show="showPaymentModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
+            <div x-show="showPaymentModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="showPaymentModal = false"></div>
+
+            <div x-show="showPaymentModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative bg-white rounded-[24px] shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden z-20">
+                
+                <div class="px-8 py-8 border-b border-slate-50 flex justify-between items-center bg-white shrink-0">
+                    <div class="flex items-center gap-4 text-[#9D686E]">
+                        <div class="w-12 h-12 rounded-xl bg-[#9D686E]/10 flex items-center justify-center">
+                            <span class="material-symbols-rounded text-2xl font-bold">payments</span>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-black text-slate-800 tracking-tight uppercase">Record Transaction</h3>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5" x-text="'INVOICE #' + (pay_context['invoice_num'] || 'PENDING')"></p>
+                        </div>
                     </div>
-                    <form wire:submit.prevent="processPayment" class="space-y-4">
-                        <div class="flex justify-between items-center text-xs text-gray-500 border-b border-gray-100 pb-2">
-                            <div>
-                                <div class="font-bold text-gray-700 truncate max-w-[180px]">{{ $pay_context['customer_name'] ?? '' }}</div>
-                                <span class="text-[10px] text-gray-400 font-mono mt-0.5 inline-block">INV {{ $pay_context['invoice_num'] ?? '' }}</span>
+                    <button type="button" @click="showPaymentModal = false" class="text-slate-400 hover:text-slate-600 transition p-2 hover:bg-slate-50 rounded-xl">
+                        <span class="material-symbols-rounded text-2xl font-bold">close</span>
+                    </button>
+                </div>
+
+                <div class="p-8 overflow-y-auto custom-scrollbar flex-grow bg-white">
+                    <form wire:submit.prevent="processPayment" class="space-y-8">
+                        <div class="bg-slate-900 rounded-[24px] p-8 text-white relative overflow-hidden shadow-xl shadow-slate-900/20">
+                            <div class="absolute top-0 right-0 w-32 h-32 bg-[#9D686E]/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none"></div>
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3" x-text="pay_context['customer_name'] || 'System Account'"></p>
+                            <div class="flex flex-col gap-1">
+                                <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Amount Outstanding Retrieval</span>
+                                <span class="text-4xl font-black tracking-tighter" x-text="'$' + Number(pay_context['owing'] || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
                             </div>
-                            <div class="text-right">
-                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-[1px]">Amount Due</div>
-                                <div class="text-sm font-black text-[#9E6B73]">${{ number_format($pay_context['owing'] ?? 0, 2) }}</div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-8">
+                            <div class="input-group">
+                                <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Entry Amount Retrieval ($)</label>
+                                <input type="number" wire:model="pay_amount" step="0.01" required class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[18px] font-black text-slate-800 transition-all">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-6">
+                                <div class="input-group">
+                                    <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Allocation Matrix</label>
+                                    <div class="relative">
+                                        <select wire:model.live="pay_type" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[13px] font-bold text-slate-700 cursor-pointer appearance-none transition-all">
+                                            <option value="Deposit">Deposit Capture</option>
+                                            <option value="Remaining Balance">Final Settlement</option>
+                                            <option value="Full Amount">Total Liquidation</option>
+                                            <option value="Partial Payment">Partial Allocation</option>
+                                        </select>
+                                        <span class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none material-symbols-rounded">expand_more</span>
+                                    </div>
+                                </div>
+
+                                <div class="input-group">
+                                    <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Process Method</label>
+                                    <div class="relative">
+                                        <select wire:model.live="pay_method" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[13px] font-bold text-slate-700 cursor-pointer appearance-none transition-all">
+                                            <option value="EFT">Electronic Transfer</option>
+                                            <option value="Card Holder">Credit Instrument</option>
+                                            <option value="Cash">Physical Currency</option>
+                                        </select>
+                                        <span class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none material-symbols-rounded">expand_more</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if ($pay_method === 'EFT')
+                            <div class="input-group animate-[fadeIn_0.3s_ease-out]">
+                                <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Specific Routing Protocol</label>
+                                <div class="relative">
+                                    <select wire:model="eft_specific_method" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[13px] font-bold text-slate-700 cursor-pointer appearance-none transition-all">
+                                        <option value="Direct Deposit">Direct Deposit</option>
+                                        <option value="Bank Transfer">Bank Transfer</option>
+                                        <option value="Osko">Osko Realtime</option>
+                                        <option value="PayID">PayID Matrix</option>
+                                    </select>
+                                    <span class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none material-symbols-rounded">expand_more</span>
+                                </div>
+                            </div>
+                            @elseif ($pay_method === 'Card Holder')
+                            <div class="p-8 bg-slate-50 rounded-[24px] border border-dashed border-slate-200 gap-6 grid grid-cols-1 animate-[fadeIn_0.3s_ease-out]">
+                                <div class="input-group">
+                                    <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Issuing Matrix</label>
+                                    <div class="relative">
+                                        <select wire:model="modal_card_network" class="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-xs font-bold text-slate-700 cursor-pointer appearance-none transition-all">
+                                            <option value="Visa">Visa Protocol</option>
+                                            <option value="Mastercard">Mastercard Protocol</option>
+                                            <option value="American Express">AMEX Matrix</option>
+                                            <option value="Discover">Discover Link</option>
+                                            <option value="Bankcard">Bankcard</option>
+                                            <option value="Bartercard">Bartercard Link</option>
+                                        </select>
+                                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none material-symbols-rounded">expand_more</span>
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Instrument Number</label>
+                                    <input type="text" wire:model="pay_card_number" x-on:input="$el.value = $el.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()" maxlength="19" class="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-sm font-mono font-black text-slate-800" placeholder="0000 0000 0000 0000">
+                                </div>
+                                <div class="grid grid-cols-2 gap-6">
+                                    <div class="input-group">
+                                        <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Expiry Window</label>
+                                        <input type="text" wire:model="pay_card_expiry" x-on:input="let v = $el.value.replace(/\D/g, ''); if (v.length > 2) v = v.substring(0,2) + '/' + v.substring(2,4); $el.value = v;" maxlength="5" class="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-sm text-center font-mono font-black text-slate-800" placeholder="MM/YY">
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Security CVV</label>
+                                        <input type="text" wire:model="pay_card_cvv" maxlength="4" class="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-sm text-center font-mono font-black text-slate-800" placeholder="***">
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
+                            <div class="grid grid-cols-2 gap-6">
+                                <div class="input-group">
+                                    <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Transaction Timestamp</label>
+                                    <input type="date" wire:model="pay_date" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[13px] font-bold text-slate-700 transition-all">
+                                </div>
+                                <div class="input-group">
+                                    <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Global Reference Link</label>
+                                    <input type="text" wire:model="pay_ref" placeholder="TXN-PROTOCOL-RETRIEVAL" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[13px] font-bold text-slate-700 font-mono transition-all">
+                                </div>
+                            </div>
+
+                            <div class="input-group">
+                                <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Operational Metadata</label>
+                                <textarea wire:model="pay_notes" rows="3" class="w-full px-6 py-5 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[13px] font-medium text-slate-700 resize-none transition-all placeholder:text-slate-300" placeholder="Logging administrative data..."></textarea>
                             </div>
                         </div>
 
+                        <div class="pt-8 border-t border-slate-50 flex gap-4">
+                            <button type="button" @click="showPaymentModal = false" class="px-8 py-5 text-slate-600 font-black text-[11px] hover:bg-slate-50 rounded-2xl transition-all uppercase tracking-[0.2em] border border-slate-100">Cancel</button>
+                            <button type="submit" class="flex-grow py-5 bg-[#9D686E] text-white rounded-2xl font-black hover:bg-[#855359] shadow-xl shadow-[#9D686E]/20 transition-all active:scale-[0.98] uppercase tracking-[0.2em] text-[11px] flex items-center justify-center gap-3">
+                                <span wire:loading.remove wire:target="processPayment" class="flex items-center gap-3">
+                                    <span class="material-symbols-rounded text-lg font-bold">verified_user</span>
+                                    Authorise Transaction
+                                </span>
+                                <span wire:loading wire:target="processPayment" class="flex items-center gap-3">
+                                    <span class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                    Syncing Protocol...
+                                </span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template x-teleport="body">
+        <!-- CARD MANAGEMENT MODAL -->
+        <div x-show="showCardModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
+            <div x-show="showCardModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="showCardModal = false"></div>
+
+            <div x-show="showCardModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative bg-white rounded-[24px] shadow-2xl w-full max-w-sm flex flex-col max-h-[90vh] overflow-hidden z-10 transition-all">
+                
+                <div class="px-8 py-8 border-b border-slate-50 flex justify-between items-center bg-white shrink-0">
+                    <div class="flex items-center gap-4 text-[#9D686E]">
+                        <div class="w-12 h-12 rounded-xl bg-[#9D686E]/10 flex items-center justify-center">
+                            <span class="material-symbols-rounded text-2xl font-bold">credit_score</span>
+                        </div>
                         <div>
-                            <label class="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Amount ($)</label>
-                            <input type="number" wire:model="pay_amount" step="0.01" required class="modal-input font-bold text-gray-800 focus:ring-2 focus:ring-[#9E6B73]/20">
+                            <h3 class="text-xl font-black text-slate-800 tracking-tight uppercase">Instrument Matrix</h3>
+                        </div>
+                    </div>
+                    <button type="button" @click="showCardModal = false" class="text-slate-400 hover:text-slate-600 transition p-2 hover:bg-slate-50 rounded-xl">
+                        <span class="material-symbols-rounded text-2xl font-bold">close</span>
+                    </button>
+                </div>
+
+                <div class="p-8 overflow-y-auto custom-scrollbar flex-grow bg-white">
+                    <form wire:submit.prevent="saveCardDetails" class="space-y-8">
+                        <div class="grid grid-cols-1 gap-8">
+                            <div class="input-group">
+                                <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Issuing Protocol</label>
+                                <div class="relative">
+                                    <select wire:model="edit_card_type" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[13px] font-bold text-slate-700 appearance-none cursor-pointer transition-all">
+                                        <option value="Visa">Visa Protocol</option>
+                                        <option value="Mastercard">Mastercard Protocol</option>
+                                        <option value="American Express">AMEX Matrix</option>
+                                        <option value="Discover">Discover Link</option>
+                                        <option value="Bankcard">Bankcard</option>
+                                        <option value="Bartercard">Bartercard Link</option>
+                                    </select>
+                                    <span class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none material-symbols-rounded">expand_more</span>
+                                </div>
+                            </div>
+
+                            <div class="input-group">
+                                <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Instrument Number Retrieval</label>
+                                <input type="text" wire:model="edit_card_number" x-on:input="$el.value = $el.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[15px] font-black text-slate-800 font-mono transition-all" placeholder="0000 0000 0000 0000" maxlength="19">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-6">
+                                <div class="input-group">
+                                    <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Expiry Window</label>
+                                    <input type="text" wire:model="edit_card_expiry" x-on:input="let v = $el.value.replace(/\D/g, ''); if (v.length > 2) v = v.substring(0,2) + '/' + v.substring(2,4); $el.value = v;" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[14px] font-black text-slate-800 text-center font-mono transition-all" placeholder="MM/YY" maxlength="5">
+                                </div>
+                                <div class="input-group">
+                                    <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Security CVV</label>
+                                    <input type="text" wire:model="edit_card_cvv" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[14px] font-black text-slate-800 text-center font-mono transition-all" placeholder="***" maxlength="4">
+                                </div>
+                            </div>
                         </div>
 
-                        <div>
-                            <label class="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Payment For</label>
-                            <select wire:model.live="pay_type" class="modal-input bg-white cursor-pointer focus:ring-2 focus:ring-[#9E6B73]/20">
-                                <option value="Deposit">Deposit</option>
-                                <option value="Remaining Balance">Remaining Balance</option>
-                                <option value="Full Amount">Full Amount</option>
-                                <option value="Partial Payment">Partial Payment</option>
-                            </select>
+                        <div class="pt-8 border-t border-slate-50 flex gap-4">
+                            <button type="button" @click="showCardModal = false" class="px-8 py-5 text-slate-600 font-black text-[11px] hover:bg-slate-50 rounded-2xl transition-all uppercase tracking-[0.2em] border border-slate-100">Cancel</button>
+                            <button type="submit" class="flex-grow py-5 bg-[#9D686E] text-white rounded-2xl font-black hover:bg-[#855359] shadow-xl shadow-[#9D686E]/20 transition-all active:scale-[0.98] uppercase tracking-[0.2em] text-[11px] flex items-center justify-center gap-3">
+                                <span class="material-symbols-rounded text-lg font-bold">save_as</span>
+                                Patch Changes
+                            </button>
                         </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
 
-                        <div>
-                            <label class="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Payment Method</label>
-                            <select wire:model.live="pay_method" class="modal-input bg-white cursor-pointer focus:ring-2 focus:ring-[#9E6B73]/20">
-                                <option value="EFT">EFT / Bank Transfer</option>
-                                <option value="Card Holder">Credit/Debit Card</option>
-                                <option value="Cash">Cash</option>
-                            </select>
-                        </div>
+    <template x-teleport="body">
+        <!-- EFT CONFIGURATION MODAL -->
+        <div x-show="showEftModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
+            <div x-show="showEftModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="showEftModal = false"></div>
 
-                        @if ($pay_method === 'EFT')
-                        <div>
-                            <label class="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Specific Method</label>
-                            <select wire:model="eft_specific_method" class="modal-input bg-white cursor-pointer">
-                                <option value="Direct Deposit">Direct Deposit</option>
-                                <option value="Bank Transfer">Bank Transfer</option>
-                                <option value="Osko">Osko</option>
-                                <option value="PayID">PayID</option>
-                            </select>
+            <div x-show="showEftModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative bg-white rounded-[24px] shadow-2xl w-full max-w-sm flex flex-col max-h-[90vh] overflow-hidden z-10 transition-all">
+                
+                <div class="px-8 py-8 border-b border-slate-50 flex justify-between items-center bg-white shrink-0">
+                    <div class="flex items-center gap-4 text-[#9D686E]">
+                        <div class="w-12 h-12 rounded-xl bg-[#9D686E]/10 flex items-center justify-center">
+                            <span class="material-symbols-rounded text-2xl font-bold">account_balance</span>
                         </div>
-                        @elseif ($pay_method === 'Card Holder')
-                        <div class="grid grid-cols-1 gap-3 bg-gray-50/50 p-3 rounded-lg border border-dashed border-gray-200">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">Network</label>
-                                <select wire:model="modal_card_network" class="modal-input bg-white text-xs text-gray-600 focus:ring-1 cursor-pointer">
-                                    <option value="Visa">Visa</option>
-                                    <option value="Mastercard">Mastercard</option>
-                                    <option value="American Express">American Express</option>
-                                    <option value="Discover">Discover</option>
-                                    <option value="Bankcard">Bankcard</option>
-                                    <option value="Bartercard">Bartercard</option>
+                        <div>
+                            <h3 class="text-xl font-black text-slate-800 tracking-tight uppercase">EFT Configuration</h3>
+                        </div>
+                    </div>
+                    <button type="button" @click="showEftModal = false" class="text-slate-400 hover:text-slate-600 transition p-2 hover:bg-slate-50 rounded-xl">
+                        <span class="material-symbols-rounded text-2xl font-bold">close</span>
+                    </button>
+                </div>
+
+                <div class="p-8 overflow-y-auto custom-scrollbar flex-grow bg-white">
+                    <form wire:submit.prevent="saveEftDetails" class="space-y-8">
+                        <div class="input-group">
+                            <label class="block text-[11px] font-black text-slate-400 mb-4 uppercase tracking-widest px-1">Electronic Payment Route Protocol</label>
+                            <div class="relative">
+                                <select wire:model="edit_eft_method" class="w-full px-6 py-5 bg-slate-50 border border-slate-100 rounded-[24px] focus:bg-white focus:border-[#9D686E]/30 outline-none text-[15px] font-black text-slate-800 appearance-none cursor-pointer transition-all shadow-sm">
+                                    <option value="Direct Deposit">Direct Deposit Protocol</option>
+                                    <option value="Bank Transfer">Bank Transfer Matrix</option>
+                                    <option value="Osko">Osko Realtime Link</option>
+                                    <option value="PayID">PayID Secure Matrix</option>
                                 </select>
+                                <span class="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none material-symbols-rounded font-bold">expand_more</span>
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">Card Number</label>
-                                <input type="text" wire:model="pay_card_number" 
-                                    x-on:input="$el.value = $el.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()"
-                                    maxlength="19" 
-                                    class="modal-input text-xs font-mono" placeholder="0000 0000 0000 0000">
+                        </div>
+
+                        <div class="pt-8 border-t border-slate-50 flex gap-4">
+                            <button type="button" @click="showEftModal = false" class="px-8 py-5 text-slate-600 font-black text-[11px] hover:bg-slate-50 rounded-2xl transition-all uppercase tracking-[0.2em] border border-slate-100">Cancel</button>
+                            <button type="submit" class="flex-grow py-5 bg-[#9D686E] text-white rounded-2xl font-black hover:bg-[#855359] shadow-xl shadow-[#9D686E]/20 transition-all active:scale-[0.98] uppercase tracking-[0.2em] text-[11px] flex items-center justify-center gap-3">
+                                <span class="material-symbols-rounded text-lg font-bold">published_with_changes</span>
+                                Update Route protocol
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template x-teleport="body">
+        <!-- EMAIL COMMUNICATION MODAL -->
+        <div x-show="showEmailModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
+            <div x-show="showEmailModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="showEmailModal = false"></div>
+
+            <div x-show="showEmailModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative bg-white rounded-[24px] shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden z-10 transition-all">
+                
+                <div class="px-8 py-8 border-b border-slate-50 flex justify-between items-center bg-white shrink-0">
+                    <div class="flex items-center gap-4 text-[#9D686E]">
+                        <div class="w-12 h-12 rounded-xl bg-[#9D686E]/10 flex items-center justify-center">
+                            <span class="material-symbols-rounded text-2xl font-bold">mail</span>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-black text-slate-800 tracking-tight uppercase">Draft Communication</h3>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5" x-text="'OUTBOUND RETRIEVAL: ' + ($wire.email_to || 'Recipient Pending...')"></p>
+                        </div>
+                    </div>
+                    <button type="button" @click="showEmailModal = false" class="text-slate-400 hover:text-slate-600 transition p-2 hover:bg-slate-50 rounded-xl">
+                        <span class="material-symbols-rounded text-2xl font-bold">close</span>
+                    </button>
+                </div>
+
+                <div class="p-8 overflow-y-auto custom-scrollbar flex-grow bg-white">
+                    <form wire:submit.prevent="sendEmail" class="space-y-8">
+                        <div class="space-y-4 bg-slate-50 p-8 rounded-[24px] border border-slate-100 relative group overflow-hidden shadow-inner">
+                            <div class="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                                <span class="material-symbols-rounded text-4xl font-bold">forward_to_inbox</span>
                             </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">Expiry</label>
-                                    <input type="text" wire:model="pay_card_expiry" 
-                                        x-on:input="
-                                            let v = $el.value.replace(/\D/g, '');
-                                            if (v.length > 2) v = v.substring(0,2) + '/' + v.substring(2,4);
-                                            $el.value = v;
-                                        "
-                                        maxlength="5" 
-                                        class="modal-input text-xs text-center font-mono" placeholder="MM/YY">
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                                <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest sm:w-24 text-left sm:text-right shrink-0">Source Matrix:</label>
+                                <div class="flex-grow flex items-center gap-2">
+                                    <span class="text-[11px] font-black text-slate-500 bg-white border border-slate-200 px-4 py-2 rounded-xl flex-grow shadow-sm">bigfun.qld.au@gmail.com</span>
+                                    <span class="text-[11px] font-black text-slate-500 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm">BigFun</span>
                                 </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">CVV</label>
-                                    <input type="text" wire:model="pay_card_cvv" maxlength="4" class="modal-input text-xs text-center font-mono" placeholder="123">
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                                <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest sm:w-24 text-left sm:text-right shrink-0">Recipient:</label>
+                                <input type="text" wire:model="email_to" class="flex-grow text-[14px] font-black text-slate-800 px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all shadow-sm">
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                                <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest sm:w-24 text-left sm:text-right shrink-0">Cc / Bcc Matrix:</label>
+                                <div class="flex-grow grid grid-cols-2 gap-4">
+                                    <input type="text" wire:model="email_cc" placeholder="Cc Recipient" class="text-[14px] font-black text-slate-800 px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all shadow-sm">
+                                    <input type="text" wire:model="email_bcc" placeholder="Bcc Recipient" class="text-[14px] font-black text-slate-800 px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all shadow-sm">
                                 </div>
+                            </div>
+                            <div class="h-px bg-slate-200/50 my-2"></div>
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                                <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest sm:w-24 text-left sm:text-right shrink-0">Subject Matrix:</label>
+                                <input type="text" wire:model="email_subject" class="flex-grow text-[14px] font-black text-slate-800 px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all shadow-sm">
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="block text-[11px] font-black text-slate-400 mb-4 uppercase tracking-widest px-2">Payload Content Matrix</label>
+                            <textarea wire:model="email_body" rows="12" class="w-full p-8 bg-slate-50 border border-slate-100 rounded-[24px] focus:bg-white focus:border-[#9D686E]/30 outline-none text-[14px] font-medium leading-relaxed resize-none transition-all custom-scrollbar" placeholder="Enter formal system transmission protocol..."></textarea>
+                        </div>
+
+                        @if ($email_attachment)
+                        <div class="flex items-center gap-4 bg-blue-50/50 p-6 rounded-[24px] border border-blue-100 shadow-sm group hover:border-blue-200 transition-all">
+                            <div class="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-blue-500 shadow-sm group-hover:scale-105 transition-transform">
+                                <span class="material-symbols-rounded text-2xl font-bold">attach_file</span>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1">Attached Document Retrieval</p>
+                                <p class="text-[13px] font-black text-blue-700 truncate" x-text="$wire.email_attachment"></p>
                             </div>
                         </div>
                         @endif
 
-                        <div>
-                            <label class="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Date</label>
-                            <input type="date" wire:model="pay_date" class="modal-input">
+                        <div class="pt-8 border-t border-slate-50 flex gap-4">
+                            <button type="button" @click="showEmailModal = false" class="px-8 py-5 text-slate-600 font-black text-[11px] hover:bg-slate-50 rounded-2xl transition-all uppercase tracking-[0.2em] border border-slate-100">Cancel</button>
+                            <button type="submit" class="flex-grow py-5 bg-[#9D686E] text-white rounded-2xl font-black hover:bg-[#855359] shadow-xl shadow-[#9D686E]/20 transition-all active:scale-[0.98] uppercase tracking-[0.2em] text-[11px] flex items-center justify-center gap-3">
+                                <span wire:loading.remove wire:target="sendEmail" class="flex items-center gap-3">
+                                    <span class="material-symbols-rounded text-lg font-bold">send</span>
+                                    Transmit Protocol
+                                </span>
+                                <span wire:loading wire:target="sendEmail" class="flex items-center gap-3">
+                                    <span class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                    Handshaking Matrix...
+                                </span>
+                            </button>
                         </div>
-                        <div>
-                            <label class="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Reference No.</label>
-                            <input type="text" wire:model="pay_ref" placeholder="e.g. INV-1234" class="modal-input">
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Notes (Optional)</label>
-                            <textarea wire:model="pay_notes" rows="2" class="modal-input resize-none"></textarea>
-                        </div>
-                        <button type="submit" class="w-full py-3 rounded-xl bg-[#9E6B73] hover:bg-[#86545C] text-white font-bold shadow-lg shadow-plum/20 transition transform active:scale-95 text-sm mt-2">
-                            <span wire:loading.remove wire:target="processPayment">Save Payment</span>
-                            <span wire:loading wire:target="processPayment">Processing...</span>
-                        </button>
                     </form>
                 </div>
             </div>
@@ -706,320 +999,264 @@
     </template>
 
     <template x-teleport="body">
-        <div style="z-index: 9999; position: relative;">
-            <div x-show="showCardModal" x-transition.opacity style="display: none;" class="fixed inset-0 bg-black/40 backdrop-blur-sm" @click="showCardModal = false"></div>
-            <div x-show="showCardModal" x-transition.scale style="display: none;" class="fixed inset-0 flex items-center justify-center" @click.self="showCardModal = false">
-                <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-all">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold text-gray-800">Edit Card Details</h3>
-                        <button type="button" @click="showCardModal = false" class="text-gray-400 hover:text-gray-600"><span class="material-symbols-rounded">close</span></button>
+        <!-- RECEIPT DETAIL MODAL -->
+        <div x-show="showPaymentDetailsModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
+            <div x-show="showPaymentDetailsModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="showPaymentDetailsModal = false"></div>
+
+            <div x-show="showPaymentDetailsModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative bg-white rounded-[24px] shadow-2xl p-8 max-w-sm w-full z-10 overflow-hidden transition-all">
+                
+                <div class="flex justify-between items-center mb-8 px-2">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 shadow-sm">
+                            <span class="material-symbols-rounded text-2xl font-bold">receipt</span>
+                        </div>
+                        <h3 class="text-xl font-black text-slate-800 tracking-tight uppercase">Receipt Protocol</h3>
                     </div>
-                    <form wire:submit.prevent="saveCardDetails" class="space-y-3">
-                        <div class="grid grid-cols-1 gap-3">
-                            <div>
-                                <label class="text-xs font-bold text-gray-500">Card Network</label>
-                                <select wire:model="edit_card_type" class="modal-input bg-white cursor-pointer">
-                                    <option value="Visa">Visa</option>
-                                    <option value="Mastercard">Mastercard</option>
-                                    <option value="American Express">American Express</option>
-                                    <option value="Discover">Discover</option>
-                                    <option value="Bankcard">Bankcard</option>
-                                    <option value="Bartercard">Bartercard</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold text-gray-500">Number</label>
-                            <input type="text" wire:model="edit_card_number" 
-                                x-on:input="$el.value = $el.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()"
-                                class="modal-input" placeholder="0000 0000 0000 0000" maxlength="19">
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-xs font-bold text-gray-500">Expiry</label>
-                                <input type="text" wire:model="edit_card_expiry" 
-                                    x-on:input="
-                                        let v = $el.value.replace(/\D/g, '');
-                                        if (v.length > 2) v = v.substring(0,2) + '/' + v.substring(2,4);
-                                        $el.value = v;
-                                    "
-                                    class="modal-input text-center" placeholder="MM/YY" maxlength="5">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-gray-500">CVV</label>
-                                <input type="text" wire:model="edit_card_cvv" class="modal-input text-center" placeholder="123" maxlength="4">
-                            </div>
-                        </div>
-                        <button type="submit" class="w-full mt-5 py-2 rounded-xl bg-[#9E6B73] hover:bg-[#86545C] text-white font-bold shadow-lg">Save</button>
-                    </form>
+                    <button type="button" @click="showPaymentDetailsModal = false" class="text-slate-400 hover:text-slate-600 transition p-2 hover:bg-slate-50 rounded-xl">
+                        <span class="material-symbols-rounded text-2xl font-bold">close</span>
+                    </button>
                 </div>
-            </div>
-        </div>
-    </template>
 
-    <template x-teleport="body">
-        <div style="z-index: 9999; position: relative;">
-            <div x-show="showEftModal" x-transition.opacity style="display: none;" class="fixed inset-0 bg-black/40 backdrop-blur-sm" @click="showEftModal = false"></div>
-            <div x-show="showEftModal" x-transition.scale style="display: none;" class="fixed inset-0 flex items-center justify-center" @click.self="showEftModal = false">
-                <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold text-gray-800">Edit EFT Details</h3>
-                        <button type="button" @click="showEftModal = false" class="text-gray-400 hover:text-gray-600"><span class="material-symbols-rounded">close</span></button>
+                <div class="space-y-8">
+                    @if ($view_payment_details)
+                    <div class="bg-slate-900 rounded-[24px] p-8 text-white text-center shadow-xl shadow-slate-900/20 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-24 h-24 bg-green-500/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-2xl"></div>
+                        <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Amount Processed Matrix</p>
+                        <p class="text-4xl font-black tracking-tighter text-green-400">${{ number_format($view_payment_details->amount, 2) }}</p>
                     </div>
-                    <form wire:submit.prevent="saveEftDetails" class="space-y-3">
-                        <div>
-                            <label class="text-xs font-bold text-gray-500">Specific Method</label>
-                            <select wire:model="edit_eft_method" class="modal-input bg-white cursor-pointer">
-                                <option value="Direct Deposit">Direct Deposit</option>
-                                <option value="Bank Transfer">Bank Transfer</option>
-                                <option value="Osko">Osko</option>
-                                <option value="PayID">PayID</option>
-                            </select>
+
+                    <div class="space-y-4 px-2">
+                        <div class="flex justify-between items-center py-4 border-b border-slate-50">
+                            <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Transaction Date</span>
+                            <span class="text-[14px] font-black text-slate-700">{{ \Carbon\Carbon::parse($view_payment_details->payment_date)->format('d M Y') }}</span>
                         </div>
-                        <button type="submit" class="w-full mt-5 py-2 rounded-xl bg-[#9E6B73] hover:bg-[#86545C] text-white font-bold shadow-lg">Save Details</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </template>
-
-    <template x-teleport="body">
-        <div style="z-index: 9999; position: relative;">
-            <div x-show="showEmailModal" x-transition.opacity style="display: none;" class="fixed inset-0 bg-black/40 backdrop-blur-sm" @click="showEmailModal = false"></div>
-            <div x-show="showEmailModal" x-transition.scale style="display: none;" class="fixed inset-0 flex items-center justify-center p-4" @click.self="showEmailModal = false">
-                <div class="relative bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
-                    <div class="px-4 sm:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white rounded-t-xl sm:rounded-t-2xl shrink-0">
-                        <div class="flex items-center gap-2 text-[#9E6B73]">
-                            <span class="material-symbols-rounded text-xl">mail</span>
-                            <h3 class="font-bold text-base sm:text-lg text-[#9E6B73]">Send Email</h3>
+                        <div class="flex justify-between items-center py-4 border-b border-slate-50">
+                            <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Entry ID Mapping</span>
+                            <span class="text-[14px] font-black text-slate-800 bg-slate-50 px-3 py-1 rounded-lg">#{{ $view_payment_details->id }}</span>
                         </div>
-                        <button type="button" @click="showEmailModal = false" class="text-gray-400 hover:text-gray-600 transition"><span class="material-symbols-rounded text-2xl">close</span></button>
-                    </div>
-                    <div class="p-4 sm:p-6 overflow-y-auto custom-scrollbar">
-                        <form wire:submit.prevent="sendEmail" class="space-y-4">
-                            <div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-0">
-                                <label class="text-[11px] font-bold text-slate-500 sm:w-24 sm:text-right sm:pr-3 sm:pt-2">From:</label>
-                                <div class="flex-grow space-y-2">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-[10px] font-bold text-gray-400 w-12 text-right">Address:</span>
-                                        <input type="text" value="bigfun.qld.au@gmail.com" class="flex-grow text-xs p-1.5 border border-slate-200 rounded bg-slate-100 text-slate-500 cursor-not-allowed" readonly title="Sent via system">
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-[10px] font-bold text-gray-400 w-12 text-right">Name:</span>
-                                        <input type="text" value="BigFun" class="flex-grow text-xs p-1.5 border border-slate-200 rounded bg-slate-100 text-slate-500 cursor-not-allowed" readonly>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
-                                <label class="text-[11px] font-bold text-slate-500 sm:w-24 sm:text-right sm:pr-3">To:</label>
-                                <input type="text" wire:model="email_to" class="flex-grow text-xs p-2 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9E6B73]">
-                            </div>
-                            <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
-                                <label class="text-[11px] font-bold text-slate-500 sm:w-24 sm:text-right sm:pr-3">Cc:</label>
-                                <input type="text" wire:model="email_cc" class="flex-grow text-xs p-2 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9E6B73]">
-                            </div>
-                            <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
-                                <label class="text-[11px] font-bold text-slate-500 sm:w-24 sm:text-right sm:pr-3">Bcc:</label>
-                                <input type="text" wire:model="email_bcc" class="flex-grow text-xs p-2 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9E6B73]">
-                            </div>
-                            <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
-                                <label class="text-[11px] font-bold text-slate-500 sm:w-24 sm:text-right sm:pr-3">Subject:</label>
-                                <input type="text" wire:model="email_subject" class="flex-grow text-xs p-2 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9E6B73] font-medium text-slate-800">
-                            </div>
-                            <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
-                                <label class="text-[11px] font-bold text-slate-500 sm:w-24 sm:text-right sm:pr-3">Attachment:</label>
-                                <div class="flex items-center gap-2 py-1">
-                                    <input type="checkbox" checked class="w-4 h-4 text-[#9E6B73] rounded border-gray-300">
-                                    <span class="text-[#3182ce] underline font-semibold text-xs sm:text-[13px] cursor-pointer break-all">{{ $email_attachment }}</span>
-                                </div>
-                            </div>
-                            <div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-0">
-                                <label class="text-[11px] font-bold text-slate-500 sm:w-24 sm:text-right sm:pr-3 sm:pt-2">Body:</label>
-                                <textarea wire:model="email_body" rows="8" class="flex-grow text-xs p-3 border border-slate-200 rounded bg-slate-50 focus:bg-white outline-none focus:border-[#9E6B73] font-mono leading-relaxed resize-none transition-all"></textarea>
-                            </div>
-
-                            <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                                <button type="button" @click="showEmailModal = false" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-600 text-xs font-bold hover:bg-gray-50 transition">Cancel</button>
-                                <button type="submit" class="px-6 py-2 rounded-lg bg-[#9E6B73] text-white text-xs font-bold shadow-md shadow-[#9E6B73]/20 hover:bg-[#86545C] transition flex items-center gap-2">
-                                    <span wire:loading.remove wire:target="sendEmail"><i class="fa-solid fa-paper-plane mr-1"></i> Send Email</span>
-                                    <span wire:loading wire:target="sendEmail">Sending...</span>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </template>
-
-    <template x-teleport="body">
-        <div style="z-index: 10000; position: relative;">
-            <div x-show="showPaymentDetailsModal" x-transition.opacity style="display: none;" class="fixed inset-0 bg-black/40 backdrop-blur-sm" @click="showPaymentDetailsModal = false"></div>
-            <div x-show="showPaymentDetailsModal" x-transition.scale style="display: none;" class="fixed inset-0 flex items-center justify-center p-4" @click.self="showPaymentDetailsModal = false">
-                <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto custom-scrollbar">
-                    <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3 shrink-0">
-                        <h3 class="text-lg font-bold text-gray-800">Transaction Details</h3>
-                        <button type="button" @click="showPaymentDetailsModal = false" class="text-gray-400 hover:text-gray-600 transition"><span class="material-symbols-rounded">close</span></button>
-                    </div>
-                    <div class="space-y-3 text-sm text-gray-700">
-                        @if ($view_payment_details)
-                        <div class="flex justify-between"><span class="font-bold text-gray-500">Amount:</span> <span class="text-green-600 font-bold">${{ number_format($view_payment_details->amount, 2) }}</span></div>
-                        <div class="flex justify-between"><span class="font-bold text-gray-500">Date:</span> <span class="font-medium">{{ \Carbon\Carbon::parse($view_payment_details->payment_date)->format('d/m/Y') }}</span></div>
-                        <div class="flex justify-between"><span class="font-bold text-gray-500">Method:</span> <span class="font-medium">{{ $view_payment_details->payment_method === 'Card Holder' ? 'Credit/Debit Card' : $view_payment_details->payment_method }}</span></div>
+                        <div class="flex justify-between items-center py-4 border-b border-slate-50">
+                            <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Process Method</span>
+                            <span class="text-[13px] font-black text-[#9D686E] uppercase tracking-wider">{{ $view_payment_details->payment_method === 'Card Holder' ? 'Credit Instrument' : $view_payment_details->payment_method }}</span>
+                        </div>
 
                         @if ($view_payment_details->payment_method === 'Card Holder')
-                        <div class="flex flex-col gap-1.5 mt-2 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
-                            <div class="flex justify-between items-center text-xs">
-                                <span class="font-bold text-gray-400 uppercase text-[10px]">Method:</span>
-                                <span class="font-bold text-gray-700">{{ $view_payment_details->booking->card_type ?? 'Card' }}</span>
+                        <div class="mt-6 p-6 bg-slate-50 rounded-[24px] border border-slate-100 space-y-4 shadow-inner">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Issuing Matrix</span>
+                                <span class="text-[12px] font-black text-slate-700 uppercase">{{ $view_payment_details->booking->card_type ?? 'Generic Card' }}</span>
                             </div>
-                            <div class="flex justify-between items-center text-xs">
-                                <span class="font-bold text-gray-400 uppercase text-[10px]">Card:</span>
-                                <span class="font-mono font-bold text-gray-700">**** **** {{ !empty($view_payment_details->booking->card_number) ? substr(str_replace(' ', '', $view_payment_details->booking->card_number), -8, 4) . ' ' . substr(str_replace(' ', '', $view_payment_details->booking->card_number), -4) : 'N/A' }}</span>
-                            </div>
-                            <div class="flex justify-between items-center text-xs">
-                                <span class="font-bold text-gray-400 uppercase text-[10px]">Expiry:</span>
-                                <span class="font-bold text-gray-700">**/**</span>
-                            </div>
-                            <div class="flex justify-between items-center text-xs">
-                                <span class="font-bold text-gray-400 uppercase text-[10px]">CVV:</span>
-                                <span class="font-bold text-gray-700">***</span>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Masked Access</span>
+                                <span class="text-[13px] font-mono font-black text-slate-800">**** **** {{ !empty($view_payment_details->booking->card_number) ? substr(str_replace(' ', '', $view_payment_details->booking->card_number), -4) : 'NULL' }}</span>
                             </div>
                         </div>
                         @elseif ($view_payment_details->payment_method === 'EFT')
-                        <div class="flex justify-between"><span class="font-bold text-gray-500">Via:</span> <span class="font-medium">{{ $view_payment_details->booking->eft_method ?? 'Direct Deposit' }}</span></div>
+                        <div class="flex justify-between items-center py-4 border-b border-slate-50">
+                            <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">EFT Routing Link</span>
+                            <span class="text-[14px] font-black text-slate-700">{{ $view_payment_details->booking->eft_method ?? 'Direct Deposit' }}</span>
+                        </div>
                         @endif
 
                         @if ($view_payment_details->notes)
-                        <div class="mt-3 pt-3 border-t border-gray-100">
-                            <span class="font-bold text-gray-500 block mb-1">Reference / Notes:</span>
-                            <div class="bg-gray-50 p-2 rounded text-xs italic text-gray-600">{{ $view_payment_details->notes }}</div>
+                        <div class="mt-6">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block px-1">Internal Reference Logging</span>
+                            <div class="bg-indigo-50/50 p-5 rounded-[18px] text-[13px] font-bold text-slate-600 italic leading-relaxed border border-indigo-100/50 shadow-sm">{{ $view_payment_details->notes }}</div>
                         </div>
                         @endif
-                        @endif
                     </div>
-                    <button type="button" @click="showPaymentDetailsModal = false" class="w-full mt-6 py-2.5 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 font-bold transition">Close</button>
+                    @endif
+                </div>
+
+                <div class="mt-10 px-2">
+                    <button type="button" @click="showPaymentDetailsModal = false" class="w-full py-5 bg-slate-900 text-white rounded-[24px] font-black hover:bg-slate-800 transition shadow-xl shadow-slate-900/20 uppercase tracking-[0.2em] text-[11px] active:scale-[0.98]">Dismiss Retrieval</button>
                 </div>
             </div>
         </div>
     </template>
 
     <template x-teleport="body">
-        <div style="z-index: 10001; position: relative;">
-            <div x-show="showSuccessModal" x-transition.opacity style="display: none;" class="fixed inset-0 bg-black/30 backdrop-blur-sm" @click="showSuccessModal = false"></div>
-            <div x-show="showSuccessModal" x-transition.scale style="display: none;" class="fixed inset-0 flex items-center justify-center" @click.self="showSuccessModal = false">
-                <div class="relative bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center">
-                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><span class="material-symbols-rounded text-3xl text-green-600">check_circle</span></div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">Email Sent!</h3>
-                    <p class="text-gray-600 mb-6">The email has been successfully sent to the customer.</p>
-                    <button type="button" @click="showSuccessModal = false" class="bg-[#9E6B73] hover:bg-[#86545C] text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-md transition w-full">OK, Got it</button>
+        <!-- GENERAL SUCCESS MODAL -->
+        <div x-show="showSuccessModal" class="fixed inset-0 z-[10001] flex items-center justify-center p-4" x-cloak>
+            <div x-show="showSuccessModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="showSuccessModal = false"></div>
+
+            <div x-show="showSuccessModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative bg-white rounded-[32px] shadow-2xl p-10 max-w-sm w-full text-center z-10 overflow-hidden border border-slate-50 transition-all">
+                
+                <div class="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 text-green-500 ring-8 ring-green-50/50 shadow-inner">
+                    <span class="material-symbols-rounded text-5xl font-bold">mark_email_read</span>
                 </div>
+                
+                <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight uppercase">Transmission Sent</h3>
+                <p class="text-[14px] font-bold text-slate-400 mb-10 px-4 leading-relaxed tracking-tight">The documentation has been successfully delivered via our outbound mail system protocol.</p>
+                
+                <button type="button" @click="showSuccessModal = false" class="w-full py-5 bg-slate-900 text-white rounded-[24px] font-black hover:bg-slate-800 transition shadow-xl shadow-slate-900/20 uppercase tracking-[0.2em] text-[11px] active:scale-[0.98]">Protocol Acknowledged</button>
             </div>
         </div>
     </template>
 
     <template x-teleport="body">
-        <div style="z-index: 10001; position: relative;">
-            <div x-show="showPaymentSuccessModal" x-transition.opacity style="display: none;" class="fixed inset-0 bg-black/30 backdrop-blur-sm" @click="showPaymentSuccessModal = false"></div>
-            <div x-show="showPaymentSuccessModal" x-transition.scale style="display: none;" class="fixed inset-0 flex items-center justify-center" @click.self="showPaymentSuccessModal = false">
-                <div class="relative bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center">
-                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><span class="material-symbols-rounded text-3xl text-green-600">payments</span></div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">Payment Saved!</h3>
-                    <p class="text-gray-600 mb-6">The payment record has been successfully updated.</p>
-                    <button type="button" @click="showPaymentSuccessModal = false" class="bg-[#9E6B73] hover:bg-[#86545C] text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-md transition w-full">OK, Got it</button>
+        <!-- PAYMENT SUCCESS MODAL -->
+        <div x-show="showPaymentSuccessModal" class="fixed inset-0 z-[10001] flex items-center justify-center p-4" x-cloak>
+            <div x-show="showPaymentSuccessModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="showPaymentSuccessModal = false"></div>
+
+            <div x-show="showPaymentSuccessModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative bg-white rounded-[32px] shadow-2xl p-10 max-w-sm w-full text-center z-10 overflow-hidden border border-slate-50 transition-all">
+                
+                <div class="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-8 text-emerald-500 ring-8 ring-emerald-50/50 shadow-inner">
+                    <span class="material-symbols-rounded text-5xl font-bold">verified</span>
                 </div>
+                
+                <h3 class="text-2xl font-black text-slate-800 mb-2 tracking-tight uppercase">Transaction Saved</h3>
+                <p class="text-[14px] font-bold text-slate-400 mb-10 px-4 leading-relaxed tracking-tight">The payment entry has been validated and recorded in our live ledger system matrix.</p>
+                
+                <button type="button" @click="showPaymentSuccessModal = false" class="w-full py-5 bg-slate-900 text-white rounded-[24px] font-black hover:bg-slate-800 transition shadow-xl shadow-slate-900/20 uppercase tracking-[0.2em] text-[11px] active:scale-[0.98]">Confirm Settlement</button>
             </div>
         </div>
     </template>
     
-    <!-- SENT SUCCESS MODAL (PREMIUM) -->
     <template x-teleport="body">
-        <div x-show="sentSuccessModal" class="fixed inset-0 z-[10001] overflow-y-auto" x-cloak>
-            <div class="flex items-center justify-center min-h-screen px-4 py-8">
-                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="sentSuccessModal = false; $wire.resetEmailState()"></div>
-                <div x-show="sentSuccessModal" 
-                     x-transition:enter="transition ease-out duration-300"
-                     x-transition:enter-start="opacity-0 scale-95"
-                     x-transition:enter-end="opacity-100 scale-100"
-                     class="relative bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-sm z-10 text-center">
-                    
-                    <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 text-green-500 ring-8 ring-green-50/50">
-                        <span class="material-symbols-rounded text-4xl">check_circle</span>
-                    </div>
+        <!-- COMMUNICATION SENT MODAL -->
+        <div x-show="sentSuccessModal" class="fixed inset-0 z-[10001] flex items-center justify-center p-4" x-cloak>
+            <div x-show="sentSuccessModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="sentSuccessModal = false; $wire.resetEmailState()"></div>
 
-                    <h3 class="text-2xl font-bold text-gray-800 mb-2">Email Sent!</h3>
-                    <p class="text-gray-500 text-sm mb-8">The email has been successfully delivered to the customer.</p>
-
-                    <button @click="sentSuccessModal = false; $wire.resetEmailState()" class="w-full py-4 bg-[#9E6B73] text-white rounded-2xl font-bold hover:bg-[#86545C] shadow-lg shadow-[#9E6B73]/20 transition-all active:scale-[0.98]">
-                        Great, thanks!
-                    </button>
+            <div x-show="sentSuccessModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative bg-white rounded-[32px] shadow-2xl p-10 max-w-sm w-full text-center z-10 overflow-hidden border border-slate-50 transition-all">
+                
+                <div class="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 text-green-600 ring-8 ring-green-50/50 shadow-inner">
+                    <span class="material-symbols-rounded text-5xl font-bold">mail_lock</span>
                 </div>
-            </div>
-        </div>
-    </template>
-
-    <!-- EMAIL CONFIRMATION MODAL -->
-    <template x-teleport="body">
-        <div x-show="confirmEmailModal" class="fixed inset-0 z-[10000] overflow-y-auto" x-cloak style="display: none;">
-            <div class="flex items-center justify-center min-h-screen px-4">
-                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="confirmEmailModal = false"></div>
-                <div x-show="confirmEmailModal" 
-                     x-transition:enter="transition ease-out duration-300"
-                     x-transition:enter-start="opacity-0 scale-95"
-                     x-transition:enter-end="opacity-100 scale-100"
-                     class="relative bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-md z-10 text-center">
-                    
-                    <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-600 ring-8 ring-amber-50/50">
-                        <span class="material-symbols-rounded text-3xl">priority_high</span>
-                    </div>
-                    
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">{{ $confirmEmailTitle }}</h3>
-                    <div class="text-sm text-gray-500 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100 leading-relaxed text-left">
-                        {!! $confirmEmailMessage !!}
-                    </div>
-                    
-                    <div class="flex justify-center gap-3">
-                        <button @click="confirmEmailModal = false" class="flex-1 py-3.5 rounded-2xl text-gray-600 hover:bg-gray-100 text-sm font-bold transition">Cancel</button>
-                        <button wire:click="proceedWithEmail" class="flex-1 py-3.5 rounded-2xl bg-[#9E6B73] text-white hover:bg-[#86545C] text-sm font-bold shadow-lg shadow-[#9E6B73]/20 transition flex items-center justify-center gap-2">
-                             Proceed
-                        </button>
-                    </div>
-                </div>
+                
+                <h3 class="text-2xl font-black text-slate-800 mb-2 tracking-tight uppercase">Sent confirmed</h3>
+                <p class="text-[14px] font-bold text-slate-400 mb-10 px-6 leading-relaxed tracking-tight">The customer communication has been successfully dispatched and confirmed by the server protocol.</p>
+                
+                <button @click="sentSuccessModal = false; $wire.resetEmailState()" class="w-full py-5 bg-[#9D686E] text-white rounded-[24px] font-black hover:bg-[#855359] shadow-xl shadow-[#9D686E]/20 transition-all active:scale-95 uppercase tracking-[0.2em] text-[11px]">Complete Process Matrix</button>
             </div>
         </div>
     </template>
 
     <template x-teleport="body">
-        <div x-show="quotaWarningModal" class="fixed inset-0 z-[10001] overflow-y-auto" x-cloak>
-            <div class="flex items-center justify-center min-h-screen px-4">
-                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="quotaWarningModal = false"></div>
-                <div x-show="quotaWarningModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10 text-center">
-                    <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600">
-                        <span class="material-symbols-rounded text-3xl">warning</span>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">{{ $quotaWarningTitle }}</h3>
-                    <p class="text-sm text-gray-500 mb-6">{{ $quotaWarningMessage }}</p>
-                    <div class="flex justify-center gap-3">
-                        <button @click="quotaWarningModal = false" class="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-bold transition">Cancel</button>
-                        <button wire:click="continueEmailAfterQuotaWarning" class="px-5 py-2.5 rounded-xl bg-amber-500 text-white hover:bg-amber-600 text-sm font-bold shadow-lg shadow-amber-200 transition">Continue</button>
-                    </div>
+        <div x-show="confirmEmailModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
+            <div x-show="confirmEmailModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="confirmEmailModal = false"></div>
+
+            <div x-show="confirmEmailModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative bg-white rounded-[32px] shadow-2xl p-12 max-w-md w-full text-center z-10 overflow-hidden border border-slate-50 transition-all">
+                
+                <div class="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-8 text-amber-600 ring-8 ring-amber-50/50 shadow-inner">
+                    <span class="material-symbols-rounded text-4xl font-bold">notification_important</span>
+                </div>
+                
+                <h3 class="text-2xl font-black text-slate-800 mb-4 tracking-tight uppercase" x-text="$wire.confirmEmailTitle"></h3>
+                <div class="text-[14px] font-bold text-slate-500 mb-10 bg-slate-50 p-8 rounded-[24px] border border-slate-100 leading-relaxed text-left shadow-inner tracking-tight" x-html="$wire.confirmEmailMessage"></div>
+                
+                <div class="flex gap-4">
+                    <button @click="confirmEmailModal = false" class="flex-1 py-5 text-slate-600 font-black text-[11px] hover:bg-slate-50 rounded-2xl transition-all uppercase tracking-[0.2em] border border-slate-100">Decline</button>
+                    <button wire:click="proceedWithEmail" class="flex-1 py-5 bg-[#9D686E] text-white hover:bg-[#855359] rounded-2xl font-black text-[11px] shadow-xl shadow-[#9D686E]/20 transition-all active:scale-95 uppercase tracking-[0.2em]">Authorise</button>
                 </div>
             </div>
         </div>
     </template>
 
     <template x-teleport="body">
-        <div x-show="quotaLimitModal" class="fixed inset-0 z-[10001] overflow-y-auto" x-cloak>
-            <div class="flex items-center justify-center min-h-screen px-4">
-                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="quotaLimitModal = false"></div>
-                <div x-show="quotaLimitModal" x-transition class="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10 text-center">
-                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
-                        <span class="material-symbols-rounded text-3xl">block</span>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">{{ $quotaLimitTitle }}</h3>
-                    <p class="text-sm text-gray-500 mb-6">{{ $quotaLimitMessage }}</p>
-                    <button @click="quotaLimitModal = false" class="px-6 py-2.5 rounded-xl bg-red-500 text-white hover:bg-red-600 text-sm font-bold shadow-lg shadow-red-200 transition">Understood</button>
+        <div x-show="quotaWarningModal" class="fixed inset-0 z-[10001] flex items-center justify-center p-4" x-cloak>
+            <div x-show="quotaWarningModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="quotaWarningModal = false"></div>
+
+            <div x-show="quotaWarningModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative bg-white rounded-[32px] shadow-2xl p-10 max-w-md w-full text-center z-10 overflow-hidden border border-slate-50 transition-all">
+                
+                <div class="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-8 text-rose-500 ring-8 ring-rose-50/50 shadow-inner">
+                    <span class="material-symbols-rounded text-4xl font-bold">warning</span>
                 </div>
+                
+                <h3 class="text-2xl font-black text-slate-800 mb-4 tracking-tight uppercase" x-text="$wire.quotaWarningTitle"></h3>
+                <p class="text-[14px] font-bold text-slate-500 mb-10 leading-relaxed px-4 tracking-tight" x-text="$wire.quotaWarningMessage"></p>
+                
+                <div class="flex gap-4">
+                    <button @click="quotaWarningModal = false" class="flex-1 py-5 text-slate-600 font-black text-[11px] hover:bg-slate-50 rounded-2xl transition-all uppercase tracking-[0.2em] border border-slate-100">Abort Matrix</button>
+                    <button wire:click="continueEmailAfterQuotaWarning" class="flex-1 py-5 bg-rose-500 text-white hover:bg-rose-600 rounded-2xl font-black text-[11px] shadow-xl shadow-rose-500/20 transition-all active:scale-95 uppercase tracking-[0.2em]">Bypass Quota</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template x-teleport="body">
+        <div x-show="quotaLimitModal" class="fixed inset-0 z-[10001] flex items-center justify-center p-4" x-cloak>
+            <div x-show="quotaLimitModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="quotaLimitModal = false"></div>
+
+            <div x-show="quotaLimitModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative bg-white rounded-[32px] shadow-2xl p-12 max-w-md w-full text-center z-10 overflow-hidden border border-slate-50 transition-all">
+                
+                <div class="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-8 text-rose-500 ring-8 ring-rose-50/50 shadow-inner">
+                    <span class="material-symbols-rounded text-5xl font-bold">block_flipped</span>
+                </div>
+                
+                <h3 class="text-2xl font-black text-slate-800 mb-4 tracking-tight uppercase" x-text="$wire.quotaLimitTitle"></h3>
+                <p class="text-[14px] font-bold text-slate-400 mb-12 leading-relaxed px-4 tracking-tight" x-text="$wire.quotaLimitMessage"></p>
+                
+                <button @click="quotaLimitModal = false" class="w-full py-5 bg-slate-900 text-white rounded-[24px] font-black hover:bg-slate-800 transition shadow-xl shadow-slate-900/20 uppercase tracking-[0.2em] text-[11px] active:scale-[0.98]">Protocol Understood</button>
             </div>
         </div>
     </template>

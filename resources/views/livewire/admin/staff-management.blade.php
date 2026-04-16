@@ -96,109 +96,181 @@
         <span class="material-symbols-rounded text-2xl">person_add</span>
     </button>
 
-    <div x-show="addModal" class="fixed inset-0 bg-black/35 flex items-center justify-center z-[9999] p-[18px]" x-cloak>
-        <div class="w-[560px] max-w-full bg-white rounded-[18px] shadow-[0_22px_60px_rgba(0,0,0,.22)] overflow-hidden" @click.away="addModal = false">
-            <div class="px-[18px] py-[16px] flex items-center justify-between border-b border-[#f0f0f0]">
-                <h3 class="text-[18px] font-black m-0">Add New Staff</h3>
-                <button type="button" @click="addModal = false" class="border-none bg-[#f6f6f6] w-[40px] h-[40px] rounded-[12px] cursor-pointer flex items-center justify-center">
-                    <span class="material-symbols-rounded">close</span>
-                </button>
-            </div>
-            <div class="px-[18px] pt-[16px] pb-[18px]">
-                <form wire:submit="addStaff">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-[12px]">
-                        <div>
-                            <label class="text-[12px] font-black text-[#6b7280] block mb-[6px]">First Name</label>
-                            <input wire:model="first_name" required class="w-full px-[12px] py-[11px] rounded-[12px] border border-[#e7e7e7] outline-none font-semibold focus:border-[#d3b0b4] focus:ring-4 focus:ring-[#9E6B73]/10">
-                        </div>
-                        <div>
-                            <label class="text-[12px] font-black text-[#6b7280] block mb-[6px]">Last Name</label>
-                            <input wire:model="last_name" required class="w-full px-[12px] py-[11px] rounded-[12px] border border-[#e7e7e7] outline-none font-semibold focus:border-[#d3b0b4] focus:ring-4 focus:ring-[#9E6B73]/10">
-                        </div>
-                        <div class="col-span-1 sm:col-span-2">
-                            <label class="text-[12px] font-black text-[#6b7280] block mb-[6px]">Email</label>
-                            <input type="email" wire:model="email" required class="w-full px-[12px] py-[11px] rounded-[12px] border border-[#e7e7e7] outline-none font-semibold focus:border-[#d3b0b4] focus:ring-4 focus:ring-[#9E6B73]/10">
-                            @error('email') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-                        <div>
-                            <label class="text-[12px] font-black text-[#6b7280] block mb-[6px]">Role</label>
-                            <select wire:model="role" required class="w-full px-[12px] py-[11px] rounded-[12px] border border-[#e7e7e7] outline-none font-semibold focus:border-[#d3b0b4] focus:ring-4 focus:ring-[#9E6B73]/10">
-                                <option value="Administrator">Administrator</option>
-                                <option value="Supervisor">Supervisor</option>
-                                <option value="Staff">Staff</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="text-[12px] font-black text-[#6b7280] block mb-[6px]">Contact No</label>
-                            <input wire:model="contact_no" placeholder="09xxxxxxxxx" class="w-full px-[12px] py-[11px] rounded-[12px] border border-[#e7e7e7] outline-none font-semibold focus:border-[#d3b0b4] focus:ring-4 focus:ring-[#9E6B73]/10">
-                        </div>
-                    </div>
-                    <div class="mt-[10px] text-[12px] text-[#6b7280] font-bold">
-                        Default password will be: <b class="text-gray-900">BigFun2025</b>
-                    </div>
-                    <div class="flex gap-[10px] justify-end mt-[14px]">
-                        <button type="button" @click="addModal = false" class="border border-[#e7e7e7] bg-white rounded-[12px] px-[14px] py-[10px] font-black cursor-pointer hover:bg-gray-50">Cancel</button>
-                        <button type="submit" class="border-none bg-[#9E6B73] text-white rounded-[12px] px-[14px] py-[10px] font-black cursor-pointer hover:bg-[#86545C]">
-                            <span wire:loading.remove wire:target="addStaff">Create Account</span>
-                            <span wire:loading wire:target="addStaff">Saving...</span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    <template x-teleport="body">
+        <!-- ADD STAFF MODAL -->
+        <div x-show="addModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+            <div x-show="addModal" 
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="addModal = false"></div>
 
-    <div x-show="editModal" class="fixed inset-0 bg-black/35 flex items-center justify-center z-[9999] p-[18px]" x-cloak>
-        <div class="w-[560px] max-w-full bg-white rounded-[18px] shadow-[0_22px_60px_rgba(0,0,0,.22)] overflow-hidden" @click.away="editModal = false">
-            <div class="px-[18px] py-[16px] flex items-center justify-between border-b border-[#f0f0f0]">
-                <h3 class="text-[18px] font-black m-0">Edit Staff</h3>
-                <button type="button" @click="editModal = false" class="border-none bg-[#f6f6f6] w-[40px] h-[40px] rounded-[12px] cursor-pointer flex items-center justify-center">
-                    <span class="material-symbols-rounded">close</span>
-                </button>
-            </div>
-            <div class="px-[18px] pt-[16px] pb-[18px]">
-                <form wire:submit="updateStaff">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-[12px]">
-                        <div>
-                            <label class="text-[12px] font-black text-[#6b7280] block mb-[6px]">First Name</label>
-                            <input wire:model="edit_first_name" required class="w-full px-[12px] py-[11px] rounded-[12px] border border-[#e7e7e7] outline-none font-semibold focus:border-[#d3b0b4] focus:ring-4 focus:ring-[#9E6B73]/10">
-                        </div>
-                        <div>
-                            <label class="text-[12px] font-black text-[#6b7280] block mb-[6px]">Last Name</label>
-                            <input wire:model="edit_last_name" required class="w-full px-[12px] py-[11px] rounded-[12px] border border-[#e7e7e7] outline-none font-semibold focus:border-[#d3b0b4] focus:ring-4 focus:ring-[#9E6B73]/10">
-                        </div>
-                        <div class="col-span-1 sm:col-span-2">
-                            <label class="text-[12px] font-black text-[#6b7280] block mb-[6px]">Email</label>
-                            <input type="email" wire:model="edit_email" required class="w-full px-[12px] py-[11px] rounded-[12px] border border-[#e7e7e7] outline-none font-semibold focus:border-[#d3b0b4] focus:ring-4 focus:ring-[#9E6B73]/10">
-                            @error('edit_email') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-                        <div>
-                            <label class="text-[12px] font-black text-[#6b7280] block mb-[6px]">Role</label>
-                            <select wire:model="edit_role" required class="w-full px-[12px] py-[11px] rounded-[12px] border border-[#e7e7e7] outline-none font-semibold focus:border-[#d3b0b4] focus:ring-4 focus:ring-[#9E6B73]/10">
-                                <option value="Administrator">Administrator</option>
-                                <option value="Supervisor">Supervisor</option>
-                                <option value="Staff">Staff</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="text-[12px] font-black text-[#6b7280] block mb-[6px]">Contact No</label>
-                            <input wire:model="edit_contact_no" class="w-full px-[12px] py-[11px] rounded-[12px] border border-[#e7e7e7] outline-none font-semibold focus:border-[#d3b0b4] focus:ring-4 focus:ring-[#9E6B73]/10">
-                        </div>
+            <div x-show="addModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative w-full max-w-lg bg-white rounded-[24px] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden z-10 border border-slate-100 font-sans">
+                
+                <!-- Header -->
+                <div class="px-8 py-5 border-b border-slate-50 flex justify-between items-center bg-white shrink-0">
+                    <div class="flex items-center gap-3 text-[#9D686E]">
+                        <span class="material-symbols-rounded text-2xl">person_add</span>
+                        <h3 class="font-black text-lg text-slate-800 tracking-tight uppercase">Add New Staff</h3>
                     </div>
-                    <div class="mt-[12px] flex gap-[10px] items-center">
-                        <input type="checkbox" wire:model="edit_is_active" id="is_active_check" class="w-[18px] h-[18px] text-[#9E6B73] rounded border-gray-300 focus:ring-[#9E6B73]">
-                        <label for="is_active_check" class="m-0 text-[13px] font-bold text-gray-700 cursor-pointer">Active</label>
-                    </div>
-                    <div class="flex gap-[10px] justify-end mt-[14px]">
-                        <button type="button" @click="editModal = false" class="border border-[#e7e7e7] bg-white rounded-[12px] px-[14px] py-[10px] font-black cursor-pointer hover:bg-gray-50">Cancel</button>
-                        <button type="submit" class="border-none bg-[#9E6B73] text-white rounded-[12px] px-[14px] py-[10px] font-black cursor-pointer hover:bg-[#86545C]">
-                            <span wire:loading.remove wire:target="updateStaff">Save Changes</span>
-                            <span wire:loading wire:target="updateStaff">Saving...</span>
-                        </button>
-                    </div>
-                </form>
+                    <button type="button" @click="addModal = false" class="text-slate-400 hover:text-slate-600 transition p-2 hover:bg-slate-50 rounded-xl">
+                        <span class="material-symbols-rounded">close</span>
+                    </button>
+                </div>
+
+                <!-- Body -->
+                <div class="p-8 flex-1 overflow-y-auto custom-scrollbar">
+                    <form wire:submit="addStaff" class="space-y-6" id="addStaffForm">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div class="input-group">
+                                <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest">First Name</label>
+                                <input wire:model="first_name" required class="w-full px-5 py-3.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-[13px] font-bold text-slate-700 transition-all">
+                            </div>
+                            <div class="input-group">
+                                <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest">Last Name</label>
+                                <input wire:model="last_name" required class="w-full px-5 py-3.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-[13px] font-bold text-slate-700 transition-all">
+                            </div>
+                            <div class="col-span-full">
+                                <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest">Email Address</label>
+                                <input type="email" wire:model="email" required class="w-full px-5 py-3.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-[13px] font-bold text-slate-700 transition-all">
+                                @error('email') <span class="text-rose-500 text-[10px] font-bold mt-2 ml-1 block uppercase tracking-wide">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="input-group">
+                                <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest">Assign Role</label>
+                                <div class="relative">
+                                    <select wire:model="role" required class="w-full px-5 py-3.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-[13px] font-bold text-slate-700 transition-all appearance-none cursor-pointer">
+                                        <option value="Administrator">Administrator</option>
+                                        <option value="Supervisor">Supervisor</option>
+                                        <option value="Staff">Staff Member</option>
+                                    </select>
+                                    <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest">Contact Number</label>
+                                <input wire:model="contact_no" placeholder="09xxxxxxxxx" class="w-full px-5 py-3.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-[13px] font-bold text-slate-700 transition-all">
+                            </div>
+                        </div>
+                        
+                        <div class="bg-amber-50 rounded-2xl p-5 border border-amber-100 flex items-start gap-4 shadow-sm">
+                            <span class="material-symbols-rounded text-amber-500 text-xl shrink-0 mt-0.5">lock_reset</span>
+                            <div>
+                                <p class="text-[11px] font-black text-amber-800 uppercase tracking-widest mb-1">Security Protocol</p>
+                                <p class="text-[12px] font-bold text-amber-700/80 leading-relaxed tracking-tight">The initial system access key is preset to <span class="text-slate-900 bg-white/80 px-2 py-0.5 rounded-lg border border-amber-200">BigFun2025</span>. Staff members should update this upon initial verification.</p>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Footer -->
+                <div class="px-8 py-6 border-t border-slate-50 bg-white shrink-0 flex gap-4">
+                    <button type="button" @click="addModal = false" class="flex-1 py-4.5 text-slate-500 font-black text-[11px] hover:bg-slate-50 rounded-[18px] transition-all uppercase tracking-[0.2em] border border-slate-100">Decline</button>
+                    <button type="submit" form="addStaffForm" class="flex-[1.5] py-4.5 bg-slate-900 text-white rounded-[18px] font-black hover:bg-slate-800 transition shadow-xl shadow-slate-900/20 active:scale-[0.98] uppercase tracking-[0.2em] text-[11px]">
+                        <span wire:loading.remove wire:target="addStaff">Authorise Account</span>
+                        <span wire:loading wire:target="addStaff" class="flex items-center justify-center gap-2">
+                            <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                            Processing...
+                        </span>
+                    </button>
+                </div>
             </div>
         </div>
+    </template>
+
+    <template x-teleport="body">
+        <!-- EDIT STAFF MODAL -->
+        <div x-show="editModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+            <div x-show="editModal" 
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="editModal = false"></div>
+
+            <div x-show="editModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                class="relative w-full max-w-lg bg-white rounded-[24px] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden z-10 border border-slate-100 font-sans">
+                
+                <!-- Header -->
+                <div class="px-8 py-5 border-b border-slate-50 flex justify-between items-center bg-white shrink-0">
+                    <div class="flex items-center gap-3 text-[#9D686E]">
+                        <span class="material-symbols-rounded text-2xl">manage_accounts</span>
+                        <h3 class="font-black text-lg text-slate-800 tracking-tight uppercase">Update Personnel</h3>
+                    </div>
+                    <button type="button" @click="editModal = false" class="text-slate-400 hover:text-slate-600 transition p-2 hover:bg-slate-50 rounded-xl">
+                        <span class="material-symbols-rounded">close</span>
+                    </button>
+                </div>
+
+                <!-- Body -->
+                <div class="p-8 flex-1 overflow-y-auto custom-scrollbar">
+                    <form wire:submit="updateStaff" class="space-y-6" id="updateStaffForm">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div class="input-group">
+                                <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest">First Name</label>
+                                <input wire:model="edit_first_name" required class="w-full px-5 py-3.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-[13px] font-bold text-slate-700 transition-all">
+                            </div>
+                            <div class="input-group">
+                                <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest">Last Name</label>
+                                <input wire:model="edit_last_name" required class="w-full px-5 py-3.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-[13px] font-bold text-slate-700 transition-all">
+                            </div>
+                            <div class="col-span-full">
+                                <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest">Email Identity</label>
+                                <input type="email" wire:model="edit_email" required class="w-full px-5 py-3.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-[13px] font-bold text-slate-700 transition-all">
+                                @error('edit_email') <span class="text-rose-500 text-[10px] font-bold mt-2 ml-1 block uppercase tracking-wide">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="input-group">
+                                <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest">Designated Role</label>
+                                <div class="relative">
+                                    <select wire:model="edit_role" required class="w-full px-5 py-3.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-[13px] font-bold text-slate-700 transition-all appearance-none cursor-pointer">
+                                        <option value="Administrator">Administrator</option>
+                                        <option value="Supervisor">Supervisor</option>
+                                        <option value="Staff">Staff Member</option>
+                                    </select>
+                                    <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest">Contact Identity</label>
+                                <input wire:model="edit_contact_no" class="w-full px-5 py-3.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-[13px] font-bold text-slate-700 transition-all">
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 rounded-2xl p-5 border border-slate-200 mt-2 flex items-center justify-between shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-rounded text-[#9D686E]">shield_person</span>
+                                <span class="text-[13px] font-bold text-slate-700 tracking-tight">Access Authority Status</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" wire:model="edit_is_active" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-[#9D686E]/10 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
+                                <span class="ml-3 text-[10px] font-black text-slate-400 uppercase tracking-widest w-16" x-text="$wire.edit_is_active ? 'Enabled' : 'Locked'"></span>
+                            </label>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Footer -->
+                <div class="px-8 py-6 border-t border-slate-50 bg-white shrink-0 flex gap-4">
+                    <button type="button" @click="editModal = false" class="flex-1 py-4.5 text-slate-500 font-black text-[11px] hover:bg-slate-50 rounded-[18px] transition-all uppercase tracking-[0.2em] border border-slate-100">Cancel</button>
+                    <button type="submit" form="updateStaffForm" class="flex-[1.5] py-4.5 bg-slate-900 text-white rounded-[18px] font-black hover:bg-slate-800 transition shadow-xl shadow-slate-900/20 active:scale-[0.98] uppercase tracking-[0.2em] text-[11px]">
+                        <span wire:loading.remove wire:target="updateStaff">Confirm Registry</span>
+                        <span wire:loading wire:target="updateStaff" class="flex items-center justify-center gap-2">
+                            <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                            Syncing...
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
     </div>
 
 </div>

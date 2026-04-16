@@ -259,12 +259,6 @@
         <span class="material-symbols-rounded text-2xl">add</span>
     </a>
 
-    <div x-show="remindersOpen"
-        x-transition.opacity
-        @click="remindersOpen = false"
-        class="reminder-overlay"
-        style="display: none;"></div>
-
     <div class="reminder-panel" :class="{ 'open': remindersOpen }">
         <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
             <h3 class="font-bold text-lg text-gray-800 flex items-center gap-2">
@@ -342,5 +336,6 @@
             </div>
         </div>
     </div>
+
 
 </div>
