@@ -85,7 +85,6 @@
 
     <!-- Main Content -->
     <main id="mainContent"
-        x-cloak
         :class="{ 'lg:ml-20': isCollapsed, 'lg:ml-72': !isCollapsed }"
         class="flex-1 transition-all duration-300 ease-in-out min-h-screen pt-16 lg:pt-0 flex flex-col">
 

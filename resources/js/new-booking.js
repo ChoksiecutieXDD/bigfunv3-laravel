@@ -15,6 +15,13 @@
     }
 })();
 
+// --- GLOBAL STATE ---
+let isProceeding = false;
+let duplicateCheckTimer;
+let calCursor = new Date();
+let lastCalRenderMonth = -1;
+let lastCalRenderYear = -1;
+
 document.addEventListener('alpine:init', () => {
     Alpine.data('bookingApp', () => ({
         paymentType: 'EFT',
@@ -255,16 +262,7 @@ window.showToast = function(title, message, type = 'primary') {
     }
 };
 
-// --- GLOBAL VARIABLES & API ---
-// NOTE: Single declaration - used as a module-scoped variable shared across all functions in this file
-let globalCategoryBooked = {};
-let isProceeding = false;
-let duplicateCheckTimer;
-let calCursor = new Date();
-let lastCalRenderMonth = -1;
-let lastCalRenderYear = -1;
-let availabilityCheckTimer;
-let availabilityAbortController;
+// --- API & HANDLERS ---
 
 
 window.apiPost = async function(action, payload = null) {
@@ -429,208 +427,20 @@ window.dateChanged = function() {
     checkRealTimeAvailability();
 };
 
-let lastCheckedDate = null;
-window.checkRealTimeAvailability = async function(silent = false) {
-    const dateEl = document.getElementById('event_date');
-    const invoiceEl = document.getElementById('invoice_number');
-    if (!dateEl) return;
-    
-    const date = dateEl.value;
-    const invoice = invoiceEl ? invoiceEl.value : '';
-    const bookingId = window.bookingAppData ? window.bookingAppData.bookingId : '';
-    
-    if (!date) {
-        document.querySelectorAll('.status-badge').forEach(badge => {
-            badge.innerText = 'SELECT DATE';
-            badge.className = 'status-badge status-checking';
-        });
-        return;
-    }
 
-    // Only show checking state if NOT silent (e.g. date changed)
-    if (!silent) {
-        document.querySelectorAll('.status-badge').forEach(badge => {
-            badge.innerText = 'CHECKING...';
-            badge.className = 'status-badge status-checking';
-        });
-    } else {
-        // If silent, only update badges that are stuck in "CHECKING..."
-        document.querySelectorAll('.status-badge:not(.status-avail):not(.status-soldout):not(.status-limited)').forEach(badge => {
-            badge.innerText = 'CHECKING...';
-            badge.className = 'status-badge status-checking';
-        });
-    }
-    
-    lastCheckedDate = date;
-
-    try {
-        console.log(`Syncing availability for date: ${date} (Silent: ${silent})`);
-        const response = await fetch(`/api/bookings/check-availability?date=${date}&invoice=${invoice}&booking_id=${bookingId}`);
-        if (!response.ok) {
-            const text = await response.text();
-            console.error("Availability API Error:", text);
-            throw new Error("API call failed: " + response.status);
-        }
-        const data = await response.json();
-
-        if (data.status === 'success' && data.products) {
-            globalCategoryBooked = {};
-
-            // Use the API's categorical counts as the base if provided
-            if (data.categories) {
-                for (let cat in data.categories) {
-                    globalCategoryBooked[cat.trim().toLowerCase()] = data.categories[cat].booked || 0;
-                }
-            }
-
-            document.querySelectorAll('.product-card').forEach(card => {
-                try {
-                    const rawName = card.dataset.name ? card.dataset.name.trim() : null;
-                    if (!rawName) return; 
-
-                    const cleanName = rawName.toLowerCase();
-                    const checkbox = card.querySelector('.ride-checkbox');
-                    const badge = card.querySelector('.status-badge');
-                    const actionText = card.querySelector('.action-text');
-                    const targetCat = (card.dataset.countsAgainst || '').trim().toLowerCase();
-                    const itemLimit = parseInt(card.dataset.dailyLimit) || 0;
-
-                    if (data.products[cleanName]) {
-                        const left = data.products[cleanName].left;
-
-                        if (left <= 0) {
-                            card.dataset.productSoldOut = 'true';
-                            card.classList.add('disabled-card');
-                            card.classList.remove('selected');
-                            if (checkbox) {
-                                checkbox.checked = false;
-                                checkbox.disabled = true;
-                            }
-                            if (badge) {
-                                badge.innerText = 'SOLD OUT';
-                                badge.className = 'status-badge status-soldout';
-                            }
-                            if (actionText) actionText.innerText = 'Not Available';
-                        } else {
-                            card.dataset.productSoldOut = 'false';
-                            card.classList.remove('disabled-card');
-                            if (checkbox) checkbox.disabled = false;
-                            if (badge) {
-                                if (left <= 2) {
-                                    badge.innerText = `ONLY ${left} LEFT`;
-                                    badge.className = 'status-badge status-limited';
-                                } else {
-                                    badge.innerText = `${left} AVAILABLE`;
-                                    badge.className = 'status-badge status-avail';
-                                }
-                            }
-                            if (actionText && !card.classList.contains('selected')) actionText.innerText = 'Click to select';
-                        }
-                    } else {
-                        card.dataset.productSoldOut = 'false';
-                        card.classList.remove('disabled-card');
-                        if (checkbox) checkbox.disabled = false;
-                        if (badge) {
-                            badge.innerText = (itemLimit > 0) ? `${itemLimit} AVAILABLE` : 'AVAILABLE';
-                            badge.className = 'status-badge status-avail';
-                        }
-                        if (actionText && !card.classList.contains('selected')) actionText.innerText = 'Click to select';
-                    }
-                } catch (cardErr) {
-                    console.error("Error processing product card:", cardErr, card);
-                }
-            });
-
-            updateDynamicExtras();
-            updateCategoryLimitsUI();
-        }
-    } catch (error) {
-        console.error("Availability Check Failed", error);
-        document.querySelectorAll('.status-badge').forEach(badge => {
-            if (badge.innerText === 'CHECKING...') {
-                badge.innerText = 'ERROR';
-                badge.className = 'status-badge status-checking';
-            }
-        });
-    }
-};
-
-window.updateCategoryLimitsUI = function() {
-    let usage = {};
-    const categories = window.bookingAppData.categories;
-    for (let cat in categories) usage[cat.trim().toLowerCase()] = globalCategoryBooked[cat.trim().toLowerCase()] || 0;
-
-    document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
-        const limitCategory = (cb.closest('.product-card').dataset.countsAgainst || '').trim().toLowerCase();
-        if (limitCategory) usage[limitCategory] = (usage[limitCategory] || 0) + 1;
-    });
-
-    // Also count selected Extras (Addons, Dropdowns, Questions)
-    document.querySelectorAll('.ext-price').forEach(el => {
-        if (!el.dataset.countsAgainst) return;
-        const catKey = el.dataset.countsAgainst.trim().toLowerCase();
-        let isSelected = false;
-        if (el.type === 'checkbox') isSelected = el.checked;
-        else if (el.tagName === 'SELECT') isSelected = el.value !== '' && el.value !== '0' && !el.value.includes('|no');
-        
-        if (isSelected) usage[catKey] = (usage[catKey] || 0) + 1;
-    });
-
-    document.querySelectorAll('.category-section').forEach(section => {
-        const catName = (section.dataset.category || '').trim().toLowerCase();
-        let catData = null;
-        for (let key in categories) {
-            if (key.trim().toLowerCase() === catName) {
-                catData = categories[key];
-                break;
-            }
-        }
-
-        if (catData && catData.limit > 0) {
-            const used = usage[catName] || 0;
-            const remaining = Math.max(0, catData.limit - used);
-            const badge = section.querySelector('.cat-limit-badge');
-            if (badge) {
-                badge.innerText = `Limit: ${catData.limit} (Left: ${remaining})`;
-                if (remaining <= 0) {
-                    badge.className = 'cat-limit-badge text-[10px] bg-red-100 text-red-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide border border-red-200';
-                } else {
-                    badge.className = 'cat-limit-badge text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide border border-amber-200';
-                }
-            }
-        }
-    });
-
-    document.querySelectorAll('.ride-checkbox').forEach(cb => {
-        const card = cb.closest('.product-card');
-        const targetCat = (card.dataset.countsAgainst || '').trim().toLowerCase();
-        if (card.dataset.productSoldOut === 'true') return;
-
-        let targetData = null;
-        for (let key in categories) {
-            if (key.trim().toLowerCase() === targetCat) {
-                targetData = categories[key];
-                break;
-            }
-        }
-
-        if (targetData && targetData.limit > 0) {
-            const used = usage[targetCat] || 0;
-            if (!cb.checked && used >= targetData.limit) {
-                cb.disabled = true;
-                card.classList.add('disabled-card');
-            } else {
-                cb.disabled = false;
-                card.classList.remove('disabled-card');
-            }
-        }
-    });
-};
 
 
 
 window.handleSelection = function(checkbox) {
     const card = checkbox.closest('.product-card');
+    const dateVal = document.getElementById('event_date')?.value;
+    
+    if (!dateVal) {
+        checkbox.checked = false;
+        showToast("Select Date First", "Please select a booking date before choosing an attraction.", "warning");
+        return;
+    }
+
     const isSoldOut = card.dataset.productSoldOut === 'true';
     const appEl = document.querySelector('[x-data="bookingApp"]');
     const alpine = appEl ? (appEl._x_dataStack ? appEl._x_dataStack[0] : (appEl.__x ? appEl.__x.$data : null)) : null;
@@ -720,10 +530,18 @@ window.updateItemQty = function(itemName, change) {
 };
 
 window.handleExtraSelection = function(element) {
+    const dateVal = document.getElementById('event_date')?.value;
+    const isSelected = (element.type === 'checkbox' ? element.checked : (element.value !== '' && element.value !== '0' && !element.value.includes('|no')));
+
+    if (isSelected && !dateVal) {
+        if (element.type === 'checkbox') element.checked = false;
+        else element.value = (element.tagName === 'SELECT') ? '' : '0';
+        showToast("Select Date First", "Please select a booking date before choosing this extra.", "warning");
+        return;
+    }
+
     const limitCategory = (element.dataset.countsAgainst || '').trim().toLowerCase();
     const categories = window.bookingAppData.categories;
-
-    const isSelected = (element.type === 'checkbox' ? element.checked : (element.value !== '' && element.value !== '0' && !element.value.includes('|no')));
 
     if (isSelected) {
         let catLimit = 0;
@@ -832,156 +650,6 @@ window.filterRides = function() {
     });
 };
 
-window.saveCurrentExtrasState = function(ignoreSync = false) {
-    if (!window.bookingAppData) return;
-    const container = document.getElementById('dynamicExtrasContainer');
-    if (!container) return;
-
-    container.querySelectorAll('.ext-price').forEach(el => {
-        if (el.type === 'checkbox') {
-            window.bookingAppData.savedExtras[el.name] = el.checked ? "1" : "0";
-        } else if (el.tagName === 'SELECT') {
-            window.bookingAppData.savedExtras[el.name] = el.value;
-        }
-    });
-
-    if (ignoreSync) return;
-
-    // Notify Livewire for dynamic financial updates if in Edit mode
-    const bridge = document.getElementById('booking-data-bridge');
-    if (bridge && bridge.dataset.id) {
-        const lwEl = document.querySelector('[wire\\:id]');
-        if (lwEl && window.Livewire) {
-             const lwComp = window.Livewire.find(lwEl.getAttribute('wire:id'));
-             if (lwComp) {
-                lwComp.syncExtras(window.bookingAppData.savedExtras);
-             }
-        }
-    }
-};
-
-window.updateDynamicExtras = function() {
-    saveCurrentExtrasState(true); // Don't sync to Livewire during refresh to avoid infinite loops!
-
-    const activeCategories = new Set();
-    document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
-        activeCategories.add(cb.closest('.product-card').dataset.category);
-    });
-
-    const container = document.getElementById('dynamicExtrasContainer');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    const configCategories = window.bookingAppData.categories;
-
-    function createBlockWithBadge(catName, html) {
-        if (!html) return '';
-        let badgeHtml = '';
-        const catKey = catName.trim().toLowerCase();
-        let catData = null;
-        for (let key in configCategories) {
-            if (key.trim().toLowerCase() === catKey) {
-                catData = configCategories[key];
-                break;
-            }
-        }
-        
-        // Final fallback if catData is still null
-        if (!catData) catData = configCategories[catName];
-        
-        if (catData && catData.limit > 0) {
-            badgeHtml = `<span class="cat-limit-badge text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide border border-amber-200 ml-auto">Limit: ${catData.limit}</span>`;
-        }
-        return `
-            <div class="category-section" data-category="${catName}">
-                <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-3">
-                    <span class="material-symbols-rounded text-[#9E6B73] text-sm">tune</span>
-                    <h4 class="text-xs font-extrabold text-slate-800 uppercase tracking-wider">${catName}</h4>
-                    ${badgeHtml}
-                </div>
-                ${html}
-            </div>
-        `;
-    }
-
-    let hasBlocks = false;
-    let glHtml = renderCategoryBlockHTML('General Logistics');
-    if (glHtml) {
-        container.innerHTML += createBlockWithBadge('General Logistics', glHtml);
-        hasBlocks = true;
-    }
-
-    activeCategories.forEach(catName => {
-        if (catName !== 'General Logistics') {
-            let cHtml = renderCategoryBlockHTML(catName);
-            if (cHtml) {
-                container.innerHTML += (hasBlocks ? '<div class="mt-8 pt-6 border-t border-slate-200"></div>' : '') + createBlockWithBadge(catName, cHtml);
-                hasBlocks = true;
-            }
-        }
-    });
-
-    if (!hasBlocks) {
-        container.innerHTML = '<p class="text-xs text-slate-500 italic py-4 col-span-full">Select attractions to view related extras.</p>';
-    }
-    
-    // Crucial: After rendering new HTML, we must recalculate limits and triggering standard logic
-    updateCategoryLimitsUI();
-    triggerRecalculate();
-};
-
-function renderCategoryBlockHTML(catName) {
-    let catHtml = '';
-    const config = window.bookingAppData.config;
-    const savedExtras = window.bookingAppData.savedExtras;
-
-    if (config.dropdowns[catName]) {
-        config.dropdowns[catName].forEach(dd => {
-            let key = `dd_${dd.id}`;
-            let val = savedExtras[key] || '';
-            let countsAgainst = (dd.counts_against || catName).trim();
-            let placeholder = `<option value="" data-price="0" ${val == '' ? 'selected' : ''}>-- Select Option --</option>`;
-            let opts = placeholder + dd.options.map(o => `<option value="${o.id}" data-price="${o.option_price}" ${val == o.id ? 'selected' : ''}>${o.option_label} (+$${o.option_price})</option>`).join('');
-            catHtml += `<div class="mt-3"><label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 ml-1">${dd.label}</label><select name="${key}" data-counts-against="${countsAgainst}" data-original-value="${val}" class="input-field !py-2 text-sm ext-price bg-white cursor-pointer" onchange="handleExtraSelection(this)">${opts}</select></div>`;
-        });
-    }
-
-    if (config.questions[catName]) {
-        config.questions[catName].forEach(q => {
-            let key = `q_${q.id}`;
-            let val = savedExtras[key] || '';
-            let countsAgainst = (q.counts_against || catName).trim();
-            let yesSel = (val == (q.yes_price + '|yes')) ? 'selected' : '';
-            let noSel = (val == (q.no_price + '|no')) ? 'selected' : '';
-            let placeholderSel = (!yesSel && !noSel) ? 'selected' : '';
-            catHtml += `<div class="mt-3"><label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 ml-1">${q.question_text}</label><select name="${key}" data-counts-against="${countsAgainst}" data-original-value="${val}" class="input-field !py-2 text-sm ext-price bg-white cursor-pointer" onchange="handleExtraSelection(this)"><option value="" data-price="0" ${placeholderSel}>-- Select Choice --</option><option value="${q.yes_price}|yes" data-price="${q.yes_price}" ${yesSel}>${q.yes_label} (+$${q.yes_price})</option><option value="${q.no_price}|no" data-price="${q.no_price}" ${noSel}>${q.no_label} (+$${q.no_price})</option></select></div>`;
-        });
-    }
-
-    if (config.addons[catName]) {
-        config.addons[catName].forEach(addon => {
-            let key = `add_${addon.id}`;
-            let isChecked = (savedExtras[key] == '1');
-            let countsAgainst = (addon.counts_against || catName).trim();
-            catHtml += `<label class="flex items-center gap-3 mt-3 p-3 bg-white border border-slate-200 rounded-xl hover:border-[#9E6B73] cursor-pointer transition shadow-sm h-[42px]"><input type="checkbox" name="${key}" value="1" class="ext-price w-4 h-4 text-[#9E6B73] focus:ring-[#9E6B73]" data-price="${addon.addon_price}" data-counts-against="${countsAgainst}" data-original-checked="${isChecked}" ${isChecked ? 'checked' : ''} onchange="handleExtraSelection(this)"><span class="text-sm font-bold text-slate-700 flex-1">${addon.addon_label}</span><span class="text-xs font-bold text-[#9E6B73] bg-[#9E6B73]/10 px-2 py-1 rounded-lg">+$${addon.addon_price}</span></label>`;
-        });
-    }
-
-    if (catHtml) {
-        return `
-            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                <div class="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
-                    <span class="material-symbols-rounded text-[#9E6B73]">category</span>
-                    <h4 class="font-extrabold text-slate-800 text-sm uppercase tracking-wide">${catName}</h4>
-                </div>
-                <div class="category-block-items">
-                    ${catHtml}
-                </div>
-            </div>
-        `;
-    }
-    return '';
-}
 
 window.calcDuration = function() {
     const sEl = document.getElementById('start_time');

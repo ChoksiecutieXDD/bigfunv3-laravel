@@ -183,14 +183,14 @@
                                 </div>
 
                                 <div class="relative">
-                                    <input type="text" name="card_number" id="card_number" placeholder=" " maxlength="19" 
+                                    <input type="text" name="card_number" id="card_number" placeholder=" " maxlength="19"
                                         x-on:input="$el.value = $el.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()"
                                         class="input-dark font-mono text-lg tracking-widest">
                                     <label class="input-floating-label">Card Number</label>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="relative">
-                                        <input type="text" name="card_expiry" id="card_expiry" placeholder=" " maxlength="5" 
+                                        <input type="text" name="card_expiry" id="card_expiry" placeholder=" " maxlength="5"
                                             x-on:input="
                                                 let v = $el.value.replace(/\D/g, '');
                                                 if (v.length > 2) v = v.substring(0,2) + '/' + v.substring(2,4);
@@ -340,7 +340,7 @@
                         <!-- Left Column: CONTACT INFO -->
                         <div class="space-y-6">
                             <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-4">Contact Info</h3>
-                            
+
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="input-group">
                                     <label class="input-label">First Name <span class="text-red-500">*</span></label>
@@ -520,7 +520,7 @@
                     </div>
                 </div>
 
-                <div class="section-card">
+                <div class="section-card" wire:ignore>
                     <div class="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-rounded text-[#9E6B73] text-2xl">celebration</span>
@@ -543,7 +543,7 @@
                                     <span class="w-8 h-8 rounded-lg bg-white text-[#9E6B73] flex items-center justify-center font-bold text-xs shadow-sm">{{ $catIndex }}</span>
                                     <h3 class="text-md font-bold text-slate-700 flex-1">{{ $catName }}</h3>
                                     @if ($catData['limit'] > 0)
-                                    <span class="cat-limit-badge text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide border border-amber-200">Checking Limit...</span>
+                                    <span class="cat-limit-badge text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide border border-amber-200">Syncing Limits</span>
                                     @endif
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-2">
@@ -553,12 +553,12 @@
                                     $countsAgainst = !empty($product['counts_against']) ? $product['counts_against'] : $catName;
                                     $isChecked = in_array($pName, $selected_products);
                                     @endphp
-                                    <div class="product-card group {{ $isChecked ? 'selected' : '' }} cursor-pointer" 
+                                    <div class="product-card group {{ $isChecked ? 'selected' : '' }} cursor-pointer"
                                         @click="let cb = $el.querySelector('.ride-checkbox'); if(cb && !cb.disabled) { cb.checked = !cb.checked; handleSelection(cb); }"
-                                        data-name="{{ $pName }}" 
-                                        data-category="{{ $catName }}" 
-                                        data-counts-against="{{ $countsAgainst }}" 
-                                        data-daily-limit="{{ (int)$product['daily_limit'] }}" 
+                                        data-name="{{ $pName }}"
+                                        data-category="{{ $catName }}"
+                                        data-counts-against="{{ $countsAgainst }}"
+                                        data-daily-limit="{{ (int)$product['daily_limit'] }}"
                                         data-specification="{{ $product['specification'] ?? '' }}"
                                         data-price="{{ $product['price'] ?? 0 }}"
                                         data-product-sold-out="false">
@@ -570,7 +570,7 @@
                                                         <span class="material-symbols-rounded text-lg">info</span>
                                                     </button>
                                                 </div>
-                                                <div class="mt-2 status-wrapper"><span class="status-badge status-checking">Checking...</span></div>
+                                                <div class="mt-2 status-wrapper"><span class="status-badge status-checking">Available</span></div>
                                             </div>
                                             <div class="custom-checkbox"></div>
                                             <input type="checkbox" name="products[]" value="{{ $pName }}" class="ride-checkbox hidden" @change="handleSelection($event.target)" {{ $isChecked ? 'checked' : '' }} @click.stop>
@@ -680,7 +680,7 @@
                                 </div>
                                 <p class="flex justify-between text-xs text-emerald-400"><span>Deposit Paid:</span> <span id="rev_deposit_paid" class="font-bold"></span></p>
                                 <p class="flex justify-between font-bold items-center border-t border-slate-600 pt-3 mt-2"><span class="text-[#9E6B73] uppercase text-xs tracking-wider">Balance Due:</span> <span id="rev_balance_due" class="text-2xl text-white"></span></p>
-                                
+
                                 <div id="rev_receipt_wrapper" class="hidden bg-slate-900 rounded-lg p-3 mt-3 border border-slate-700">
                                     <p class="flex justify-between text-[10px] items-center text-slate-400 uppercase font-bold tracking-tight"><span>Receipt Ref:</span> <span id="rev_receipt_id" class="text-white"></span></p>
                                 </div>
@@ -777,8 +777,8 @@
             </div>
             <h3 class="text-xl font-bold text-slate-800 mb-3 uppercase tracking-tight">Category Limit Reached</h3>
             <p class="text-sm text-slate-600 mb-8 leading-relaxed">
-                You have reached the maximum limit of <span class="font-bold text-slate-800" x-text="limitExceededLimit"></span> items for the 
-                <span class="font-extrabold text-[#9E6B73] underline decoration-2 underline-offset-4" x-text="limitExceededCategory"></span> category. 
+                You have reached the maximum limit of <span class="font-bold text-slate-800" x-text="limitExceededLimit"></span> items for the
+                <span class="font-extrabold text-[#9E6B73] underline decoration-2 underline-offset-4" x-text="limitExceededCategory"></span> category.
                 Please deselect an item before adding a new one.
             </p>
             <button type="button" @click="modals.limitExceeded = false" class="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition shadow-lg shadow-slate-200 uppercase tracking-widest text-xs">
@@ -828,7 +828,7 @@
             </div>
             <h3 class="text-xl font-bold text-slate-800 mb-3 uppercase tracking-tight">Full Capacity</h3>
             <p class="text-sm text-slate-600 mb-8 leading-relaxed">
-                This item has reached its <span class="font-bold text-red-600">daily limit</span> or is <span class="font-bold text-red-600">out of stock</span> for the selected date. 
+                This item has reached its <span class="font-bold text-red-600">daily limit</span> or is <span class="font-bold text-red-600">out of stock</span> for the selected date.
                 Please choose a different date or another attraction.
             </p>
             <button type="button" @click="modals.fullCapacityWarning = false" class="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition uppercase tracking-widest text-xs">
