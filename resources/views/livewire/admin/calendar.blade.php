@@ -213,20 +213,9 @@
                     <span class="font-medium text-gray-600">Total Collected (This View):</span>
                     <span class="font-bold text-green-600">${{ number_format($calendarData['stats']['mPaid'], 2) }}</span>
                 </div>
-                <div class="flex justify-between items-center text-sm">
-                    <span class="font-medium text-gray-600">Outstanding (This View):</span>
-                    <span class="font-bold text-red-500">${{ number_format($calendarData['stats']['mBal'], 2) }}</span>
-                </div>
 
-                <div class="p-4 bg-gray-50 rounded-xl border border-gray-200 mt-2">
-                    <div class="flex justify-between items-center text-sm">
-                        <span class="font-bold text-gray-700">Total Unpaid (All Time):</span>
-                        <span class="font-extrabold text-red-600 text-base">
-                            ${{ number_format($global_outstanding_balance, 2) }}
-                        </span>
-                    </div>
-                    <p class="text-[10px] text-gray-400 mt-1 italic">Total booking value minus total payments collected across all years.</p>
-                </div>
+
+
             </div>
         </div>
     </div>
@@ -280,16 +269,7 @@
                 </div>
             </div>
 
-            <!-- Legend -->
-            <div class="overflow-x-auto pb-1 -mb-1 w-full">
-                <div class="flex gap-2 text-[10px] lg:text-[11px] font-bold text-white bg-black/10 p-2.5 rounded-xl min-w-max xl:w-full xl:justify-center">
-                    <div class="flex items-center px-2 py-0.5 rounded-lg hover:bg-white/10"><span class="legend-dot dot-red"></span>No Deposit</div>
-                    <div class="flex items-center px-2 py-0.5 rounded-lg hover:bg-white/10"><span class="legend-dot dot-orange"></span>Deposit Paid</div>
-                    <div class="flex items-center px-2 py-0.5 rounded-lg hover:bg-white/10"><span class="legend-dot dot-blue"></span>Partial (50%+)</div>
-                    <div class="flex items-center px-2 py-0.5 rounded-lg hover:bg-white/10"><span class="legend-dot dot-purple"></span>Finalizing (80%+)</div>
-                    <div class="flex items-center px-2 py-0.5 rounded-lg hover:bg-white/10"><span class="legend-dot dot-green"></span>Fully Paid</div>
-                </div>
-            </div>
+
         </div>
 
         <!-- Scrollable Booking List -->
@@ -340,11 +320,6 @@
                         <div class="booking-value text-[#1e293b] text-base font-bold mt-0.5">${{ number_format($b->total_amount, 2) }}</div>
                         <div class="text-xs flex flex-col gap-0.5 mt-1">
                             <span class="text-[#9ca3af]">Paid: ${{ number_format($b->real_paid, 2) }}</span>
-                            @if($v['balance_due'] > 0)
-                            <span class="text-red-500 font-bold">Bal: ${{ number_format($v['balance_due'], 2) }}</span>
-                            @else
-                            <span class="text-green-500 font-bold">Fully Paid</span>
-                            @endif
                         </div>
                         <div class="text-[10px] text-gray-400 mt-2 flex items-center justify-start gap-1">
                             <span class="material-symbols-rounded text-[12px]">{{ $v['pay_icon'] }}</span> {{ $v['pay_label'] }}

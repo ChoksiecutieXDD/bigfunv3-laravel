@@ -153,7 +153,10 @@
                         </div>
                         <button wire:click="moveDate" class="bg-white text-gray-600 border border-gray-200 text-[10px] uppercase font-bold px-3 py-2 rounded shadow-sm hover:bg-gray-100 transition whitespace-nowrap">
                             <span wire:loading.remove wire:target="moveDate">Go</span>
-                            <span wire:loading wire:target="moveDate">Wait</span>
+                            <span wire:loading wire:target="moveDate" class="flex items-center gap-1.5">
+                                <span class="material-symbols-rounded animate-spin text-xs">sync</span>
+                                Syncing...
+                            </span>
                         </button>
                     </div>
 
@@ -169,7 +172,10 @@
                         </select>
                         <button wire:click="updateStatus" class="bg-white text-[#9D686E] border border-gray-200 text-[10px] uppercase font-bold px-3 py-2 rounded shadow-sm hover:bg-gray-50 transition whitespace-nowrap">
                             <span wire:loading.remove wire:target="updateStatus">Apply</span>
-                            <span wire:loading wire:target="updateStatus">...</span>
+                            <span wire:loading wire:target="updateStatus" class="flex items-center gap-1">
+                                <span class="material-symbols-rounded animate-spin text-[10px]">sync</span>
+                                Sync...
+                            </span>
                         </button>
                     </div>
                 </div>
@@ -181,6 +187,18 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 relative group">
         <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 text-[#9D686E]">
             <div class="flex items-center gap-2"><span class="material-symbols-rounded">payments</span><span class="text-sm font-bold uppercase tracking-wide">Financial Details</span></div>
+            <button wire:click="manualSync" 
+                    wire:loading.attr="disabled"
+                    class="group flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-200 text-[10px] font-black text-slate-400 hover:text-[#9D686E] hover:border-[#9D686E]/50 transition-all shadow-sm disabled:opacity-50">
+                <span wire:loading.remove wire:target="manualSync" class="flex items-center gap-2">
+                    <span class="material-symbols-rounded text-sm">cloud_sync</span> 
+                    SYNC TO CLOUD
+                </span>
+                <span wire:loading wire:target="manualSync" class="flex items-center gap-2">
+                    <span class="material-symbols-rounded animate-spin text-sm">sync</span> 
+                    SYNCING...
+                </span>
+            </button>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -267,14 +285,14 @@
                     @endif
                     @endforeach
 
-                    @if(($booking->duration_cost ?? 0) > 0)
+                    @if(($booking->duration_cost ?? 0) >= 0)
                     <div class="flex justify-between items-center text-[11px] border-b border-[#9D686E]/5 pb-1 mb-1">
-                        <span class="font-medium text-slate-500">Shift Duration Cost:</span>
+                        <span class="font-medium text-slate-500">Duration Cost:</span>
                         <span class="font-bold text-slate-700">${{ number_format($booking->duration_cost, 2) }}</span>
                     </div>
                     @endif
 
-                    @if($deliveryCost > 0)
+                    @if(($deliveryCost ?? 0) >= 0)
                     <div class="flex justify-between items-center text-[11px] border-b border-[#9D686E]/5 pb-1 mb-1">
                         <span class="font-medium text-slate-500">Delivery Fee:</span>
                         <span class="font-bold text-slate-700">${{ number_format($deliveryCost, 2) }}</span>
@@ -318,6 +336,34 @@
                     @endif
                     @endforeach
                     @endforeach
+
+                    @foreach($items as $item)
+                    @if($item->unit_price > 0)
+                    <div class="flex justify-between items-start text-[11px] border-b border-[#9D686E]/5 pb-1 last:border-0 mb-1">
+                        <span class="font-medium text-slate-500 flex-1">{{ $item->item_name }} ({{ $item->total_qty }})</span>
+                        <span class="font-bold text-slate-700 ml-4">${{ number_format($item->unit_price * $item->total_qty, 2) }}</span>
+                    </div>
+                    @endif
+                    @endforeach
+
+                    @if(($booking->duration_cost ?? 0) >= 0)
+                    <div class="flex justify-between items-center text-[11px] border-b border-[#9D686E]/5 pb-1 mb-1">
+                        <span class="font-medium text-slate-500">Duration Cost:</span>
+                        <span class="font-bold text-slate-700">${{ number_format($booking->duration_cost, 2) }}</span>
+                    </div>
+                    @endif
+
+                    @if(($deliveryCost ?? 0) >= 0)
+                    <div class="flex justify-between items-center text-[11px] border-b border-[#9D686E]/5 pb-1 mb-1">
+                        <span class="font-medium text-slate-500">Delivery Fee:</span>
+                        <span class="font-bold text-slate-700">${{ number_format($deliveryCost, 2) }}</span>
+                    </div>
+                    @endif
+
+                    <div class="flex justify-between items-center text-[11px] border-b border-[#9D686E]/5 pb-1 mb-1">
+                         <span class="font-medium text-slate-500">Operational Hour:</span>
+                         <span class="font-bold text-slate-700">{{ $booking->operational_hours ?: '-' }}</span>
+                    </div>
 
                     @if($isCard && $surcharge > 0)
                     <div class="flex justify-between items-center text-[11px] border-t border-dotted border-[#9D686E]/20 pt-1 mt-1 text-purple-600">
@@ -373,12 +419,11 @@
                     <div class="flex flex-col sm:flex-row justify-between items-baseline gap-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Event Date</span><span class="text-[0.75rem] font-medium text-slate-800">{{ \Carbon\Carbon::parse($booking->event_date)->format('l d/m/Y') }}</span></div>
                     <div class="flex flex-col sm:flex-row justify-between items-baseline gap-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Time</span><span class="text-[0.75rem] font-bold text-[#9D686E]">{{ $timeString }}</span></div>
                     <div class="flex flex-col sm:flex-row justify-between items-baseline gap-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Duration</span><span class="text-[0.75rem] font-bold text-gray-800">{{ $booking->duration ?: '-' }} @if($booking->duration_cost > 0) <span class="text-[#9D686E] ml-1">(${{ number_format($booking->duration_cost, 2) }})</span> @endif</span></div>
-                    @if($booking->operational_hours)
-                    <div class="flex flex-col sm:flex-row justify-between items-baseline gap-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Op. Hours</span><span class="text-[0.75rem] font-medium text-slate-800">{{ $booking->operational_hours }}</span></div>
-                    @endif
-                    @if($booking->hire_type)
-                    <div class="flex flex-col sm:flex-row justify-between items-baseline gap-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Hire Type</span><span class="text-[0.75rem] font-medium text-slate-800">{{ $booking->hire_type }}</span></div>
-                    @endif
+                    <div class="flex flex-col sm:flex-row justify-between items-baseline gap-1 pb-1 border-b border-dotted border-gray-200">
+                        <span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Operational Hour</span>
+                        <span class="text-[0.75rem] font-medium text-slate-800">{{ $booking->operational_hours ?: '-' }}</span>
+                    </div>
+
                     <div class="flex flex-col sm:flex-row justify-between items-baseline gap-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Delivery</span><span class="text-[0.75rem] font-bold text-gray-800">{{ $booking->delivery_area ?: 'Not Set' }} <span class="text-[#9D686E] ml-1">(${{ number_format($deliveryCost, 2) }})</span></span></div>
                     <div class="flex flex-col sm:flex-row justify-between items-baseline gap-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Pax</span><span class="text-[0.75rem] font-medium text-slate-800">{{ $booking->expected_people }}</span></div>
                     <div class="flex flex-col sm:flex-row justify-between items-baseline gap-1 pb-1"><span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Booked By</span><span class="text-[0.75rem] font-medium text-slate-800">{{ $booking->booked_by ?? 'System' }}</span></div>
@@ -771,7 +816,13 @@
                 </p>
                 <div class="flex justify-center gap-4">
                     <button @click="statusConfirmModal = false" class="flex-1 py-3.5 text-slate-600 font-bold text-[15px] hover:bg-slate-50 rounded-xl transition-colors">Cancel</button>
-                    <button wire:click="executeStatusUpdate" class="flex-1 py-3.5 bg-[#9D686E] text-white hover:bg-[#855359] font-bold text-[15px] rounded-xl shadow-md shadow-[#9D686E]/20 transition-all active:scale-95">Yes, Update</button>
+                    <button wire:click="executeStatusUpdate" wire:loading.attr="disabled" class="flex-1 py-3.5 bg-[#9D686E] text-white hover:bg-[#855359] font-bold text-[15px] rounded-xl shadow-md shadow-[#9D686E]/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-75">
+                        <span wire:loading.remove wire:target="executeStatusUpdate">Yes, Update</span>
+                        <span wire:loading wire:target="executeStatusUpdate" class="flex items-center gap-2">
+                            <span class="material-symbols-rounded animate-spin text-lg">sync</span>
+                            Syncing...
+                        </span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -805,7 +856,7 @@
                     </button>
                 </div>
 
-                <form wire:submit="savePayment" class="flex flex-col flex-1 overflow-hidden">
+                <form wire:submit.prevent="savePayment" class="flex flex-col flex-1 overflow-hidden">
                     <div class="p-8 overflow-y-auto custom-scrollbar flex-1 bg-white">
                         <div class="space-y-6">
                             <div>
@@ -924,9 +975,12 @@
                     </div>
 
                     <div class="p-8 border-t border-slate-50 shrink-0 bg-white">
-                        <button type="submit" class="w-full py-4 rounded-xl bg-[#9D686E] hover:bg-[#855359] text-white font-black shadow-xl shadow-[#9D686E]/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 uppercase tracking-widest text-xs">
+                        <button type="submit" wire:loading.attr="disabled" class="w-full py-4 rounded-xl bg-[#9D686E] hover:bg-[#855359] text-white font-black shadow-xl shadow-[#9D686E]/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 uppercase tracking-widest text-xs disabled:opacity-75">
                             <span wire:loading.remove wire:target="savePayment" class="flex items-center gap-3"><span class="material-symbols-rounded">check_circle</span> Save Transaction</span>
-                            <span wire:loading wire:target="savePayment" class="flex items-center gap-2"><span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Processing...</span>
+                            <span wire:loading wire:target="savePayment" class="flex items-center gap-2">
+                                <span class="material-symbols-rounded animate-spin text-lg">sync</span> 
+                                Syncing to Cloud...
+                            </span>
                         </button>
                     </div>
                 </form>
@@ -962,7 +1016,7 @@
                     </button>
                 </div>
 
-                <form wire:submit="sendEmail" class="flex flex-col flex-1 overflow-hidden">
+                <form wire:submit.prevent="sendEmail" class="flex flex-col flex-1 overflow-hidden">
                     <div class="p-8 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/30">
                         <div class="space-y-6">
                             <div class="space-y-4 bg-white p-8 rounded-[24px] border border-slate-100 shadow-sm">

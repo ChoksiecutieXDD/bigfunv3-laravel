@@ -16,6 +16,10 @@ class SystemSettings extends Component
 {
     public $isMaintenance;
     public $currentEnv;
+    public $showBrevoQuotaInfo = false;
+    public $showGoogleQuotaInfo = false;
+    public $showLogViewer = false;
+    public $logs = '';
 
     /**
      * Active application mailer: smtp (Brevo) or google (Gmail). Synced to MAIL_MAILER in .env.
@@ -280,6 +284,9 @@ class SystemSettings extends Component
             });
 
             $this->dispatch('show-toast', message: 'Test email sent! Please check your inbox.', type: 'success');
+            
+            // Increment quota in cache
+            app(\App\Services\MailService::class)->incrementDailyQuota('smtp');
         } catch (\Exception $e) {
             $this->dispatch('show-alert', message: 'SMTP Failed: ' . $e->getMessage(), type: 'error');
         }
@@ -305,6 +312,9 @@ class SystemSettings extends Component
             });
 
             $this->dispatch('show-toast', message: 'Test email sent! Please check your inbox.', type: 'success');
+
+            // Increment quota in cache
+            app(\App\Services\MailService::class)->incrementDailyQuota('google');
         } catch (\Exception $e) {
             $this->dispatch('show-alert', message: 'SMTP Failed: ' . $e->getMessage(), type: 'error');
         }
@@ -321,34 +331,22 @@ class SystemSettings extends Component
         }
 
         try {
-            $path = base_path('.env');
-            if (! file_exists($path)) {
-                $this->dispatch('show-toast', message: 'Cannot find .env file.', type: 'error');
-                return;
-            }
-
-            $envContent = file_get_contents($path);
-            if ($envContent === false) {
-                throw new \RuntimeException('Could not read .env file.');
-            }
-
-            $key = ($mailer === 'brevo') ? 'MAIL_BREVO_DAILY_EMAIL_USED' : 'MAIL_GOOGLE_DAILY_EMAIL_USED';
+            $key = ($mailer === 'brevo') ? 'smtp' : 'google';
+            $cacheKey = "email_quota_used_{$key}_" . now()->format('Y-m-d');
             
-            if (preg_match("/^{$key}=.*/m", $envContent)) {
-                $envContent = preg_replace("/^{$key}=.*/m", "{$key}=0", $envContent);
-            } else {
-                $envContent .= "\n{$key}=0\n";
-            }
-
-            if (file_put_contents($path, $envContent, LOCK_EX) === false) {
-                throw new \RuntimeException('Could not write .env file.');
-            }
-
-            Artisan::call('config:clear');
+            \Illuminate\Support\Facades\Cache::forget($cacheKey);
             
-            $this->dispatch('show-alert', message: ucfirst($mailer) . ' daily counter has been reset to 0.', type: 'success');
+            // Also reset the .env value to 0 if we want to be thorough, 
+            // but for avoiding restarts, we just use Cache now.
+            // If the user wants to reset the .env value too, they can do it manually,
+            // but keeping it in Cache is sufficient for daily operations.
             
-            // Refresh state
+            $this->showBrevoQuotaInfo = false;
+            $this->showGoogleQuotaInfo = false;
+            
+            $this->dispatch('show-alert', message: ucfirst($mailer) . ' daily counter has been reset to 0 in cache.', type: 'success');
+            
+            // Refresh state via Livewire redirect (using navigate: true for SPA feel)
             $this->redirect(route('system.settings'), navigate: true);
 
         } catch (\Exception $e) {
@@ -356,8 +354,145 @@ class SystemSettings extends Component
         }
     }
 
+    // ==========================================
+    // 7. MONITORING & LOGS
+    // ==========================================
+    public function openLogViewer()
+    {
+        $logPath = storage_path('logs/laravel.log');
+        if (file_exists($logPath)) {
+            // Read last 32KB of logs for performance
+            $size = filesize($logPath);
+            $handle = fopen($logPath, 'r');
+            $readSize = min($size, 32768); 
+            fseek($handle, -$readSize, SEEK_END);
+            $this->logs = fread($handle, $readSize);
+            fclose($handle);
+            
+            // Syntax clean up for the view
+            $this->logs = mb_convert_encoding($this->logs, 'UTF-8', 'auto');
+        } else {
+            $this->logs = "No log file found at {$logPath}";
+        }
+        
+        $this->showLogViewer = true;
+        $this->dispatch('open-logs');
+    }
+
+    public function retryFailedJobs()
+    {
+        try {
+            Artisan::call('queue:retry', ['id' => 'all']);
+            $this->dispatch('show-toast', message: 'Failed jobs have been re-queued.', type: 'success');
+        } catch (\Exception $e) {
+            $this->dispatch('show-alert', message: 'Error retrying jobs: ' . $e->getMessage(), type: 'error');
+        }
+    }
+
+    private function getDetailedStats(): array
+    {
+        // 1. Health Checks
+        $health = [
+            'db' => $this->checkDb(),
+            'cache' => $this->checkCache(),
+            'webhook' => $this->checkWebhook(),
+            'public_site' => $this->checkPublicSite(),
+        ];
+
+        // 2. Resource Monitor
+        $diskFree = @disk_free_space(base_path()) ?: 0;
+        $diskTotal = @disk_total_space(base_path()) ?: 1;
+        $diskUsed = $diskTotal - $diskFree;
+        $diskPercent = round(($diskUsed / $diskTotal) * 100);
+
+        // 3. Queue Stats
+        $pendingJobs = DB::table('jobs')->count();
+        $failedJobs = DB::table('failed_jobs')->count();
+
+        return [
+            'health' => $health,
+            'disk' => [
+                'percent' => $diskPercent,
+                'used' => $this->formatBytes($diskUsed),
+                'total' => $this->formatBytes($diskTotal),
+            ],
+            'queue' => [
+                'pending' => $pendingJobs,
+                'failed' => $failedJobs,
+            ],
+            'versions' => [
+                'laravel' => app()->version(),
+                'php' => PHP_VERSION,
+            ]
+        ];
+    }
+
+    private function checkDb(): bool
+    {
+        try {
+            DB::connection()->getPdo();
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    private function checkCache(): bool
+    {
+        try {
+            $key = 'health_check_' . now()->timestamp;
+            \Illuminate\Support\Facades\Cache::put($key, true, 5);
+            return \Illuminate\Support\Facades\Cache::has($key);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    private function checkWebhook(): bool
+    {
+        try {
+            $url = config('services.google.sheet_webhook');
+            if (!$url) return false;
+            
+            $response = \Illuminate\Support\Facades\Http::timeout(3)->get($url);
+            // Some webhooks return 405 or 401 but are still "there". 
+            // We just check if it's reachable.
+            return $response->status() < 500;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    private function checkPublicSite(): bool
+    {
+        try {
+            $url = 'https://bigfunbooking.online/';
+            $response = \Illuminate\Support\Facades\Http::timeout(3)->get($url);
+            return $response->successful();
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    private function formatBytes($bytes, $precision = 1)
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+        $bytes /= pow(1024, $pow);
+        return round($bytes, $precision) . ' ' . $units[$pow];
+    }
+
     public function render()
     {
-        return view('livewire.system.system-settings');
+        $quotaService = app(\App\Services\EmailQuotaService::class);
+        $stats = $this->getDetailedStats();
+        
+        return view('livewire.system.system-settings', [
+            'brevoQuota' => $quotaService->statusForMailer('smtp'),
+            'googleQuota' => $quotaService->statusForMailer('google'),
+            'stats' => $stats
+        ]);
     }
 }

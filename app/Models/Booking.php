@@ -28,4 +28,12 @@ class Booking extends Model
     {
         return $this->hasMany(BookingPayment::class);
     }
+
+    /**
+     * Get the total amount paid by summing all related payments.
+     */
+    public function getTotalPaidAttribute()
+    {
+        return (float) $this->payments->sum('amount');
+    }
 }

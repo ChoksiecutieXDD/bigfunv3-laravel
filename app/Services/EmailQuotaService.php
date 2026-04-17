@@ -17,7 +17,15 @@ class EmailQuotaService
     public function statusForMailer(string $mailer): array
     {
         $isGoogle = $mailer === 'google';
-        $usedRaw = config($isGoogle ? 'mail.google_quota.daily_email_used' : 'mail.brevo.daily_email_used');
+        $cacheKey = "email_quota_used_{$mailer}_" . now()->format('Y-m-d');
+        
+        $usedRaw = \Illuminate\Support\Facades\Cache::get($cacheKey);
+        
+        // Fallback to config if not in cache (represents the starting state in .env)
+        if ($usedRaw === null) {
+            $usedRaw = config($isGoogle ? 'mail.google_quota.daily_email_used' : 'mail.brevo.daily_email_used');
+        }
+        
         $limitRaw = config($isGoogle ? 'mail.google_quota.daily_email_limit' : 'mail.brevo.daily_email_limit');
 
         $used = is_numeric($usedRaw) ? (int) $usedRaw : 0;

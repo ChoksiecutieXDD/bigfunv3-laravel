@@ -48,7 +48,7 @@
                                     <span class="text-sm font-bold text-gray-800">Fan Favorite</span>
                                 </div>
                             </div>
-                            <div class="img-card absolute top-20 left-10 w-60 h-72 z-10 opacity-90" style="background-image: url('/assets/img/premiumbull.jpg'); transform: rotate(-8deg);"></div>
+                            <div class="img-card bull-card absolute top-20 left-10 w-60 h-72 z-10 opacity-90" style="background-image: url('/assets/img/premiumbull.jpg'); transform: rotate(-8deg);"></div>
                         </div>
                     </div>
                 </div>

@@ -57,11 +57,19 @@ class GoogleSheetService
                         $extraString .= "$ddLabel: $optLabel | ";
                     }
                 } elseif (str_starts_with($key, 'add_')) {
-                    // Checkboxes (addons) should only be included if value is '1'
                     if ((string)$val === '1') {
                         $addonId = str_replace('add_', '', $key);
                         $addonLabel = DB::table('category_addons')->where('id', $addonId)->value('addon_label') ?? "Addon";
                         $extraString .= "$addonLabel: Yes | ";
+                    }
+                } elseif (str_starts_with($key, 'q_')) {
+                    $qId = str_replace('q_', '', $key);
+                    $qLabel = DB::table('product_extras')->where('id', $qId)->value('question_text');
+                    $parts = explode('|', (string)$val);
+                    $answer = end($parts); // 'yes' or 'no'
+                    
+                    if ($qLabel) {
+                        $extraString .= "$qLabel: " . ucwords($answer) . " | ";
                     }
                 } else {
                     $cleanKey = ucwords(str_replace(['q_', '_'], ['', ' '], $key));
@@ -70,11 +78,15 @@ class GoogleSheetService
             }
             $extraString = rtrim($extraString, " | ");
 
+            $user = auth()->user();
+            $updatedBy = $user ? ($user->first_name . ' (' . $user->role . ')') : 'System';
+
             $payload = [
                 'invoice_number'        => $booking->invoice_number,
                 'status'                => $booking->status,
                 'payment_status'        => $booking->payment_status,
                 'booked_by'             => $booking->booked_by ?? 'System',
+                'updated_by'            => $updatedBy,
                 'event_date'            => \Carbon\Carbon::parse($booking->event_date)->format('Y-m-d'),
                 'original_event_date'   => \Carbon\Carbon::parse($booking->original_event_date ?? $booking->event_date)->format('Y-m-d'),
                 'start_time'            => $booking->start_time,

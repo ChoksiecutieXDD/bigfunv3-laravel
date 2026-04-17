@@ -8,6 +8,7 @@ use Livewire\WithFileUploads;
 use App\Models\Booking;
 use App\Models\BookingItem;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Carbon\Carbon;
 
 #[Layout('components.layouts.plain')]
@@ -25,6 +26,8 @@ class EditBooking extends Component
     public $subtotal = 0;
     public $surchargeAmount = 0;
     public $totalAmount = 0;
+    public $totalPaid = 0;
+    public $balanceDue = 0;
     public $depositRequired = 0;
 
     public $availability = [];
@@ -114,6 +117,22 @@ class EditBooking extends Component
             $this->form['custom_duration_text'] = '';
         }
 
+        // Initialize costs if they are zero but an area/duration is selected
+        if ((float)($this->form['delivery_cost'] ?? 0) === 0.0 && !empty($this->form['delivery_area']) && $this->form['delivery_area'] !== 'custom') {
+            $zone = DB::table('delivery_zones')->where('zone_name', $this->form['delivery_area'])->first();
+            if ($zone) {
+                $this->form['delivery_cost'] = $zone->price;
+            }
+        }
+
+        if ((float)($this->form['duration_cost'] ?? 0) === 0.0 && !empty($this->form['duration']) && $this->form['duration'] !== 'custom') {
+            $dur = DB::table('duration_prices')->where('label', $this->form['duration'])->first();
+            if ($dur) {
+                $this->form['duration_cost'] = $dur->price;
+            }
+        }
+
+        $this->totalPaid = (float) ($this->booking->total_paid ?? 0);
         $this->checkAvailability();
         $this->calculateTotals();
     }
@@ -141,8 +160,13 @@ class EditBooking extends Component
     {
         if ($this->form['delivery_area'] !== 'custom') {
             $zone = DB::table('delivery_zones')->where('zone_name', $this->form['delivery_area'])->first();
-            $this->form['delivery_cost'] = $zone ? $zone->price : 0;
+            $this->form['delivery_cost'] = $zone ? (float)$zone->price : 0;
         }
+        $this->calculateTotals();
+    }
+
+    public function updatedFormDeliveryCost()
+    {
         $this->calculateTotals();
     }
 
@@ -151,10 +175,15 @@ class EditBooking extends Component
         if ($this->form['duration'] !== 'custom') {
             $this->form['is_custom_duration'] = false;
             $dur = DB::table('duration_prices')->where('label', $this->form['duration'])->first();
-            $this->form['duration_cost'] = $dur ? $dur->price : 0;
+            $this->form['duration_cost'] = $dur ? (float)$dur->price : 0;
         } else {
             $this->form['is_custom_duration'] = true;
         }
+        $this->calculateTotals();
+    }
+
+    public function updatedFormDurationCost()
+    {
         $this->calculateTotals();
     }
 
@@ -236,12 +265,28 @@ class EditBooking extends Component
             $this->surchargeAmount = 0;
         }
 
+        $oldTotal = (float) $this->totalAmount;
         $this->totalAmount = $this->subtotal + $this->surchargeAmount;
         $this->depositRequired = $this->totalAmount * 0.5;
 
         $this->form['extra_logistics_cost'] = $this->extrasCost;
         $this->form['total_amount'] = $this->totalAmount;
         $this->form['deposit_required'] = $this->depositRequired;
+
+        $this->balanceDue = $this->totalAmount - $this->totalPaid;
+
+        // --- DISPATCH COST CHANGE EVENTS ---
+        if ($oldTotal > 0 && abs($this->totalAmount - $oldTotal) > 0.01) {
+            if ($this->totalAmount > $oldTotal) {
+                $this->dispatch('cost-increased', newTotal: $this->totalAmount, delta: $this->totalAmount - $oldTotal);
+            } else {
+                $this->dispatch('cost-decreased', newTotal: $this->totalAmount, delta: $oldTotal - $this->totalAmount);
+            }
+
+            if ($this->totalAmount < $this->totalPaid) {
+                $this->dispatch('negative-balance-alert', newTotal: $this->totalAmount, totalPaid: $this->totalPaid);
+            }
+        }
     }
 
     public function checkAvailability()
@@ -345,6 +390,12 @@ class EditBooking extends Component
             $saveData['duration'] = $this->form['custom_duration_text'];
         }
 
+        // --- PREVENT DATA CORRUPTION ---
+        // Do not overwrite amount_paid or owing_amount with stale form state.
+        // These should only be updated via the Payment processing logic.
+        unset($saveData['amount_paid']);
+        unset($saveData['owing_amount']);
+
         // --- ENCODE ALL EXTRAS ---
         $generalExtras = [];
         $specificExtras = [];
@@ -396,7 +447,38 @@ class EditBooking extends Component
         $saveData['specific_extra'] = json_encode($specificExtras);
         $saveData['extras_json'] = json_encode($this->dynamicExtras);
 
+        // --- MAP RECALCULATED TOTALS ---
+        $saveData['surcharge_amount'] = $this->surchargeAmount;
+        $saveData['total_amount'] = $this->totalAmount;
+
         // --- HANDLE ATTACHMENTS ---
+        $totalSize = 0;
+        for ($i = 1; $i <= 5; $i++) {
+            $field = ($i === 1) ? 'delivery_attachment' : 'delivery_attachment_' . $i;
+            
+            // Check if there is a new attachment for this slot
+            if (isset($this->newAttachments[$field]) && $this->newAttachments[$field]) {
+                $totalSize += $this->newAttachments[$field]->getSize();
+            } 
+            // Otherwise check if there is an existing attachment that wasn't deleted
+            elseif (!empty($this->booking->$field) && !in_array($field, $this->deletedAttachments)) {
+                $fileName = $this->booking->$field;
+                $path1 = public_path('uploads/' . $fileName);
+                $path2 = storage_path('app/public/uploads/' . $fileName);
+                
+                if (file_exists($path1)) {
+                    $totalSize += filesize($path1);
+                } elseif (file_exists($path2)) {
+                    $totalSize += filesize($path2);
+                }
+            }
+        }
+
+        if ($totalSize > 5 * 1024 * 1024) {
+            $this->dispatch('notify', title: 'Limit Exceeded!', message: 'Total size of all attachments must not exceed 5MB.', type: 'error');
+            return;
+        }
+
         foreach ($this->newAttachments as $field => $file) {
             if ($file) {
                 $filename = time() . '_' . $file->getClientOriginalName();
@@ -408,6 +490,9 @@ class EditBooking extends Component
         foreach ($this->deletedAttachments as $field) {
             $saveData[$field] = null;
         }
+
+        // Sync delivery cost to fee for compatibility
+        $saveData['delivery_fee'] = $saveData['delivery_cost'] ?? 0;
 
         // --- SAVE TO DB ---
         $this->booking->update($saveData);

@@ -309,14 +309,27 @@ class BookingApiController extends Controller
                     // Combined File Size Check (Max 5MB)
                     $totalSize = 0;
                     for ($i = 1; $i <= 5; $i++) {
-                        $inputName = ($i === 1) ? 'delivery_attachment' : 'delivery_attachment_' . $i;
+                        $suffix = ($i === 1) ? '' : "_$i";
+                        $inputName = "delivery_attachment$suffix";
+                        
                         if ($request->hasFile($inputName)) {
                             $totalSize += $request->file($inputName)->getSize();
+                        } elseif (!empty($existing_files[$i-1])) {
+                            // Existing file being kept
+                            $fileName = $existing_files[$i-1];
+                            $path1 = public_path('uploads/' . $fileName);
+                            $path2 = storage_path('app/public/uploads/' . $fileName);
+                            
+                            if (File::exists($path1)) {
+                                $totalSize += File::size($path1);
+                            } elseif (File::exists($path2)) {
+                                $totalSize += File::size($path2);
+                            }
                         }
                     }
 
                     if ($totalSize > 5 * 1024 * 1024) {
-                        return response()->json(['success' => false, 'status' => 'error', 'message' => 'Total size of attachments must not exceed 5MB.']);
+                        return response()->json(['success' => false, 'status' => 'error', 'message' => 'Total size of all attachments must not exceed 5MB.']);
                     }
 
                     // Handle File Uploads

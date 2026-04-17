@@ -514,7 +514,7 @@
                                 $existingFile=$this->getVal($dbCol);
                                 @endphp
                                 <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col justify-center">
-                                    <input type="file" name="delivery_attachment{{ $i > 1 ? "_$i" : "" }}" accept="image/png, image/jpeg, application/pdf" class="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#9E6B73]/10 file:text-[#9E6B73] hover:file:bg-[#9E6B73]/20 cursor-pointer">
+                                    <input type="file" name="delivery_attachment{{ $i > 1 ? "_$i" : "" }}" accept="image/png, image/jpeg, application/pdf" @change="checkTotalAttachmentSize($el)" class="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#9E6B73]/10 file:text-[#9E6B73] hover:file:bg-[#9E6B73]/20 cursor-pointer">
                                     @if ($existingFile)
                                     <a href="/storage/uploads/{{ $existingFile }}" target="_blank" class="text-xs font-bold text-[#9E6B73] hover:underline mt-2 flex items-center gap-1 view-attachment-link"><span class="material-symbols-rounded text-sm">open_in_new</span> View {{ $existingFile }}</a>
                                     @endif

@@ -31,7 +31,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div class="bg-[#F0FFF4] p-6 rounded-[2rem] shadow-lg relative overflow-hidden">
             <div class="absolute top-0 right-0 w-24 h-24 rounded-bl-full bg-[#dcfce7] opacity-50 pointer-events-none"></div>
             <div class="absolute right-6 top-6 w-10 h-10 bg-green-50 text-green-500 rounded-xl flex items-center justify-center z-10"><span class="material-symbols-rounded text-2xl">payments</span></div>
@@ -65,15 +65,6 @@
             </div>
         </div>
 
-        <div class="bg-[#FEF2F2] p-6 rounded-[2rem] shadow-lg relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-24 h-24 rounded-bl-full bg-[#fee2e2] opacity-50 pointer-events-none"></div>
-            <div class="absolute right-6 top-6 w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center z-10"><span class="material-symbols-rounded text-2xl">pending_actions</span></div>
-            <div class="relative z-10 pt-1">
-                <p class="text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Unpaid Balances</p>
-                <h3 class="text-2xl font-extrabold text-red-500 mt-2">${{ number_format($summary['unpaid'], 2) }}</h3>
-                <p class="text-xs font-bold text-red-400/70 mt-2">{{ count($unpaidList) }} pending bookings</p>
-            </div>
-        </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6"
@@ -140,64 +131,7 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden"
-        x-data="{ page: 1, perPage: 5, items: @js($unpaidList) }"
-        x-effect="items = @js($unpaidList); page = 1">
-        <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-red-50/50">
-            <h3 class="font-bold text-red-600 flex items-center gap-2"><span class="material-symbols-rounded">money_off</span> Outstanding Payments</h3>
-            <div class="flex gap-2">
-                <button @click="page > 1 ? page-- : null" :disabled="page === 1" class="px-3 py-1 text-xs rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50">Previous</button>
-                <button @click="page < Math.ceil(items.length / perPage) ? page++ : null" :disabled="page >= Math.ceil(items.length / perPage) || items.length === 0" class="px-3 py-1 text-xs rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50">Next</button>
-            </div>
-        </div>
-        <div class="overflow-x-auto max-h-96">
-            <table class="w-full text-left">
-                <thead class="text-xs font-bold text-gray-400 uppercase bg-gray-50/30 sticky top-0">
-                    <tr>
-                        <th class="px-6 py-4">Event Date</th>
-                        <th class="px-6 py-4">Customer</th>
-                        <th class="px-6 py-4">Method</th>
-                        <th class="px-6 py-4 text-right">Total</th>
-                        <th class="px-6 py-4 text-right">Paid</th>
-                        <th class="px-6 py-4 text-right">Balance Due</th>
-                        <th class="px-6 py-4 text-center">Action</th>
-                    </tr>
-                </thead>
-                <tbody class="text-sm divide-y divide-gray-50">
-                    <template x-for="u in items.slice((page - 1) * perPage, page * perPage)" :key="u.id">
-                        <tr class="hover:bg-red-50/30 transition">
-                            <td class="px-6 py-4 text-gray-500" x-text="u.event_date"></td>
-                            <td class="px-6 py-4 font-bold text-gray-700" x-text="u.name"></td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-2">
-                                    <template x-if="u.payment_type === 'Card Holder'">
-                                        <div class="flex items-center gap-1.5">
-                                            <i class="fa-brands fa-cc-visa text-blue-600" x-show="u.card_network?.toLowerCase().includes('visa')"></i>
-                                            <i class="fa-brands fa-cc-mastercard text-orange-500" x-show="u.card_network?.toLowerCase().includes('mastercard')"></i>
-                                            <i class="fa-brands fa-cc-amex text-blue-400" x-show="u.card_network?.toLowerCase().includes('amex') || u.card_network?.toLowerCase().includes('american express')"></i>
-                                            <i class="fa-brands fa-cc-discover text-orange-400" x-show="u.card_network?.toLowerCase().includes('discover')"></i>
-                                            <i class="fa-solid fa-credit-card text-gray-400" x-show="!u.card_network?.toLowerCase().includes('visa') && !u.card_network?.toLowerCase().includes('mastercard') && !u.card_network?.toLowerCase().includes('amex') && !u.card_network?.toLowerCase().includes('american express') && !u.card_network?.toLowerCase().includes('discover')"></i>
-                                            <span class="text-[10px] font-bold text-gray-600 uppercase">Card</span>
-                                        </div>
-                                    </template>
-                                    <template x-if="u.payment_type !== 'Card Holder'">
-                                        <span class="text-[10px] font-bold text-gray-400 uppercase" x-text="u.payment_type || 'N/A'"></span>
-                                    </template>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-right text-gray-500" x-text="'$' + u.total_amount.toFixed(2)"></td>
-                            <td class="px-6 py-4 text-right text-green-600 font-medium" x-text="'$' + u.paid_amount.toFixed(2)"></td>
-                            <td class="px-6 py-4 text-right font-bold text-red-500" x-text="'$' + u.balance.toFixed(2)"></td>
-                            <td class="px-6 py-4 text-center"><a :href="'/bookings/' + u.id" class="text-xs font-bold text-blue-500 hover:underline">View</a></td>
-                        </tr>
-                    </template>
-                    <tr x-show="items.length === 0">
-                        <td colspan="7" class="px-6 py-8 text-center text-gray-400 italic">No outstanding payments for this period!</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+
 
     <div class="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden"
         x-data="{ page: 1, perPage: 5, items: @js($paidList) }"
@@ -275,6 +209,7 @@
                         <th class="px-6 py-4">Method</th>
                         <th class="px-6 py-4">Type</th>
                         <th class="px-6 py-4 text-right">Amount</th>
+                        <th class="px-6 py-4 text-center">Action</th>
                     </tr>
                 </thead>
                 <tbody class="text-sm divide-y divide-gray-50">
@@ -301,6 +236,7 @@
                             </td>
                             <td class="px-6 py-4"><span class="px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs font-bold" x-text="t.event_type"></span></td>
                             <td class="px-6 py-4 text-right font-bold text-green-600" x-text="'+$' + t.total_amount.toFixed(2)"></td>
+                            <td class="px-6 py-4 text-center"><a :href="'/bookings/' + t.id" class="text-xs font-bold text-blue-500 hover:underline">View</a></td>
                         </tr>
                     </template>
                     <tr x-show="items.length === 0">

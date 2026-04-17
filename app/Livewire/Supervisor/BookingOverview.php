@@ -118,6 +118,10 @@ class BookingOverview extends Component
             $this->newStatus = 'Confirmed';
         }
         $this->booking->save();
+
+        // Sync to Google Sheet
+        app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
+
         $this->dispatch('notify', title: 'Success', message: 'Terms agreement updated.');
     }
 
@@ -148,6 +152,12 @@ class BookingOverview extends Component
     {
         $this->booking->delete();
         return redirect()->to('/supervisor/calendar');
+    }
+
+    public function manualSync()
+    {
+        app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
+        $this->dispatch('notify', title: 'Cloud Sync', message: 'Booking data synchronized to Google Sheets.');
     }
 
     // --- Payment Logic ---
@@ -185,17 +195,26 @@ class BookingOverview extends Component
         $depositReq = $this->booking->deposit_required > 0 ? $this->booking->deposit_required : ($totalAmount / 2);
 
         if ($value === 'Deposit Capture') {
-            $this->payAmount = $depositReq;
+            $this->payAmount = min($depositReq, $balanceDue);
         } elseif ($value === 'Final Settlement') {
             $this->payAmount = $balanceDue;
         } elseif ($value === 'Total Liquidation') {
-            $this->payAmount = $totalAmount;
+            $this->payAmount = $balanceDue;
         }
         // Partial Allocation keeps current amount
     }
 
     public function savePayment()
     {
+        $amountPaid = BookingPayment::where('booking_id', $this->booking->id)->sum('amount');
+        $totalAmount = (float) $this->booking->total_amount;
+        $balanceDue = max(0, $totalAmount - $amountPaid);
+
+        // Smart Safeguard: Avoid exceeding pay
+        if ($this->payAmount > $balanceDue && $this->payType !== 'Partial Allocation') {
+            $this->payAmount = $balanceDue;
+        }
+
         $this->validate([
             'payAmount' => 'required|numeric|min:0.01',
             'payMethod' => 'required|string',
@@ -545,7 +564,7 @@ class BookingOverview extends Component
             $surcharge = $totalAmount - $baseAmount;
         }
 
-        $deliveryCost = $this->booking->delivery_cost ?? $this->booking->delivery_fee ?? 0;
+        $deliveryCost = ($this->booking->delivery_cost ?: $this->booking->delivery_fee) ?: 0;
         $ridesCost = max(0, $baseAmount - $calculatedExtrasTotal - $deliveryCost);
 
         $statusColor = match ($this->booking->status) {

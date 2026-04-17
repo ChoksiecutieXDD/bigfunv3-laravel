@@ -28,7 +28,7 @@ class LogisticsInbox extends Component
     // Payment Processing
     public $pay_booking_id;
     public $pay_amount;
-    public $pay_type = 'Remaining Balance';
+    public $pay_type = 'Final Settlement';
     public $pay_method = 'EFT';
     public $pay_date;
     public $pay_ref;
@@ -139,9 +139,9 @@ class LogisticsInbox extends Component
 
     public function openPaymentModal($bookingId)
     {
-        $booking = Booking::findOrFail($bookingId);
+        $booking = Booking::with('payments')->findOrFail($bookingId);
         $total = (float)$booking->total_amount;
-        $paid = (float)$booking->amount_paid;
+        $paid = (float)$booking->total_paid;
         $owing = max(0, $total - $paid);
         $deposit = (float)$booking->deposit_required;
 
@@ -162,10 +162,10 @@ class LogisticsInbox extends Component
 
         // Smart defaults
         if ($paid <= 0 && $deposit > 0) {
-            $this->pay_type = 'Deposit';
-            $this->pay_amount = $deposit;
+            $this->pay_type = 'Deposit Capture';
+            $this->pay_amount = min($deposit, $owing);
         } else {
-            $this->pay_type = 'Remaining Balance';
+            $this->pay_type = 'Final Settlement';
             $this->pay_amount = $owing;
         }
 
@@ -183,14 +183,25 @@ class LogisticsInbox extends Component
     {
         if (empty($this->pay_context)) return;
 
-        if ($value === 'Remaining Balance') $this->pay_amount = $this->pay_context['owing'];
-        elseif ($value === 'Full Amount') $this->pay_amount = $this->pay_context['total'];
-        elseif ($value === 'Deposit') $this->pay_amount = $this->pay_context['deposit'];
-        else $this->pay_amount = null;
+        $owing = $this->pay_context['owing'];
+        $total = $this->pay_context['total'];
+        $deposit = $this->pay_context['deposit'];
+
+        if ($value === 'Final Settlement') $this->pay_amount = $owing;
+        elseif ($value === 'Total Liquidation') $this->pay_amount = $owing;
+        elseif ($value === 'Deposit Capture') $this->pay_amount = min($deposit, $owing);
+        // Partial Allocation keeps current amount
     }
 
     public function processPayment()
     {
+        $owing = (float)($this->pay_context['owing'] ?? 0);
+        
+        // Smart Safeguard: Avoid exceeding pay
+        if ($this->pay_amount > $owing && $this->pay_type !== 'Partial Allocation') {
+            $this->pay_amount = $owing;
+        }
+
         $this->validate([
             'pay_amount' => 'required|numeric|min:0.01',
             'pay_method' => 'required|string',
@@ -214,8 +225,8 @@ class LogisticsInbox extends Component
         ]);
 
         $booking = Booking::find($this->pay_booking_id);
-        $booking->amount_paid += $this->pay_amount;
-        $booking->owing_amount = max(0, $booking->total_amount - $booking->amount_paid);
+        $totalPaid = $booking->payments()->sum('amount');
+        $booking->owing_amount = max(0, $booking->total_amount - $totalPaid);
 
         if ($this->pay_method === 'Card Holder') {
             $booking->card_category = $this->modal_card_category;
@@ -509,8 +520,7 @@ class LogisticsInbox extends Component
         $enquiriesCount = Booking::where('status', 'Pending')->count();
 
         $paymentsQuery = Booking::with('payments')
-            ->whereIn('status', ['Pending', 'Confirmed'])
-            ->whereColumn('total_amount', '>', 'amount_paid');
+            ->whereIn('status', ['Pending', 'Confirmed']);
 
         if ($this->search_pay) {
             $paymentsQuery->where(function ($q) {

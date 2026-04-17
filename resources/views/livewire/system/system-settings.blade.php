@@ -2,7 +2,11 @@
     x-data="{
         showBrevoQuotaInfo: false,
         showGoogleQuotaInfo: false,
+        showLogViewer: false,
     }"
+    @open-brevo-info.window="showBrevoQuotaInfo = true"
+    @open-google-info.window="showGoogleQuotaInfo = true"
+    @open-logs.window="showLogViewer = true"
     @execute-clear-cache.window="$wire.clearCache()"
     @execute-change-mailer.window="$wire.executeChangeMailer($event.detail.params)"
     @execute-change-environment.window="$wire.changeEnvironment($event.detail.id)"
@@ -13,6 +17,169 @@
     <div class="fixed top-[-20%] left-[-10%] w-[500px] h-[500px] bg-plum rounded-full blur-[150px] opacity-20 pointer-events-none z-0"></div>
     <div class="fixed bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-900 rounded-full blur-[150px] opacity-20 pointer-events-none z-0"></div>
 
+    {{-- Log Viewer Modal --}}
+    <div x-show="showLogViewer" x-cloak class="fixed inset-0 z-[150] flex items-center justify-center p-4">
+        <div x-show="showLogViewer"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="absolute inset-0 bg-slate-950/90 backdrop-blur-xl"
+            @click="showLogViewer = false"></div>
+
+        <div x-show="showLogViewer"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 scale-95 translate-y-8"
+            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+            x-transition:leave-end="opacity-0 scale-95 translate-y-8"
+            class="relative w-full max-w-5xl h-[80vh] rounded-[32px] bg-slate-900 border border-slate-700/50 flex flex-col shadow-2xl overflow-hidden z-[151]">
+            
+            <div class="shrink-0 p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-plum/10 flex items-center justify-center text-plum text-xl">
+                        <span class="material-symbols-rounded">terminal</span>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Application Log</h3>
+                        <p class="text-xs text-slate-500">Showing last 32KB of records</p>
+                    </div>
+                </div>
+                <button type="button" @click="showLogViewer = false" class="w-10 h-10 rounded-xl hover:bg-slate-800 text-slate-400 flex items-center justify-center transition cursor-pointer">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+
+            <div class="flex-grow overflow-auto p-6 bg-slate-950 font-mono text-[11px] leading-relaxed custom-scrollbar">
+                <pre class="whitespace-pre-wrap text-slate-400">@php
+                    $formattedLogs = collect(explode("\n", $logs))->map(function($line) {
+                        if (str_contains($line, '.ERROR:')) return '<span class="text-red-400 font-bold">'.$line.'</span>';
+                        if (str_contains($line, '.WARNING:')) return '<span class="text-amber-400 italic">'.$line.'</span>';
+                        if (str_contains($line, '.INFO:')) return '<span class="text-blue-400">'.$line.'</span>';
+                        return $line;
+                    })->implode("\n");
+                @endphp{!! $formattedLogs !!}</pre>
+            </div>
+
+            <div class="shrink-0 p-4 border-t border-slate-800 flex justify-end bg-slate-900/50">
+                <button type="button" @click="showLogViewer = false" class="px-6 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold text-sm transition cursor-pointer">
+                    Close Logs
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- Quota Informational Modals --}}
+    <div x-show="showBrevoQuotaInfo" x-cloak class="fixed inset-0 z-[80] flex items-center justify-center p-4">
+        <div x-show="showBrevoQuotaInfo"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            @click="showBrevoQuotaInfo = false"></div>
+
+        <div x-show="showBrevoQuotaInfo"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+            x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+            class="relative w-full max-w-lg rounded-[24px] bg-slate-800 border border-slate-700 p-8 text-slate-300 shadow-2xl z-[81]">
+            <h3 class="text-xl font-bold text-white mb-4">Brevo Quota Information</h3>
+            <div class="space-y-4 text-sm text-slate-400 leading-relaxed">
+                <p>
+                    <strong class="text-white">Note:</strong> Your daily usage resets automatically every day at midnight.
+                </p>
+                @php
+                    $brevoUsed = $brevoQuota['used'] ?? 0;
+                    $brevoLimit = $brevoQuota['limit'] ?? 300;
+                @endphp
+                <p>
+                    Your primary mailer is currently tracking <strong class="text-emerald-400">{{ $brevoUsed }}</strong> sent emails out of a daily limit of <strong class="text-white">{{ $brevoLimit }}</strong>. 
+                    This limit is managed through your <code class="text-plum bg-slate-900 px-1 rounded font-mono">.env</code> configuration file.
+                </p>
+                <div class="p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 text-xs text-emerald-400">
+                    <span class="font-bold block mb-1">Administrative Note:</span>
+                    To reset the daily counter, you can use the button below. This will update the system tracking back to zero.
+                </div>
+            </div>
+            <div class="mt-8 flex justify-between items-center">
+                <button type="button"
+                    @click="showBrevoQuotaInfo = false; $dispatch('open-modal', { 
+                        title: 'Reset Brevo Counter?', 
+                        message: 'This will reset the tracked daily email usage back to zero in the system. Proceed?', 
+                        type: 'warning', 
+                        event: 'execute-reset-quota',
+                        params: 'brevo'
+                    })"
+                    class="text-xs font-bold text-red-500 hover:text-red-400 transition underline underline-offset-4 cursor-pointer">
+                    Reset Daily Counter
+                </button>
+                <button type="button" @click="showBrevoQuotaInfo = false" class="rounded-xl bg-slate-700 px-6 py-2.5 text-sm font-bold text-white hover:bg-slate-600 transition cursor-pointer">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="showGoogleQuotaInfo" x-cloak class="fixed inset-0 z-[80] flex items-center justify-center p-4">
+        <div x-show="showGoogleQuotaInfo"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            @click="showGoogleQuotaInfo = false"></div>
+
+        <div x-show="showGoogleQuotaInfo"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+            x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+            class="relative w-full max-w-lg rounded-[24px] bg-slate-800 border border-slate-700 p-8 text-slate-300 shadow-2xl z-[81]">
+            <h3 class="text-xl font-bold text-white mb-4">Gmail Quota Information</h3>
+            <div class="space-y-4 text-sm text-slate-400 leading-relaxed">
+                <p>
+                    <strong class="text-white">Note:</strong> Your daily usage resets automatically every day at midnight.
+                </p>
+                @php
+                    $googleUsed = $googleQuota['used'] ?? 0;
+                    $googleLimit = $googleQuota['limit'] ?? 500;
+                @endphp
+                <p>
+                    Your secondary Gmail mailer is currently tracking <strong class="text-blue-400">{{ $googleUsed }}</strong> sent emails out of a daily limit of <strong class="text-white">{{ $googleLimit }}</strong>. 
+                </p>
+                <div class="p-4 rounded-2xl border border-blue-500/20 bg-blue-500/5 text-xs text-blue-400">
+                    <span class="font-bold block mb-1">Administrative Note:</span>
+                    To reset the daily counter, you can use the button below. This will update the system tracking back to zero.
+                </div>
+            </div>
+            <div class="mt-8 flex justify-between items-center">
+                <button type="button"
+                    @click="showGoogleQuotaInfo = false; $dispatch('open-modal', { 
+                        title: 'Reset Gmail Counter?', 
+                        message: 'This will reset the tracked daily email usage back to zero in the system. Proceed?', 
+                        type: 'warning', 
+                        event: 'execute-reset-quota',
+                        params: 'google'
+                    })"
+                    class="text-xs font-bold text-red-500 hover:text-red-400 transition underline underline-offset-4 cursor-pointer">
+                    Reset Daily Counter
+                </button>
+                <button type="button" @click="showGoogleQuotaInfo = false" class="rounded-xl bg-slate-700 px-6 py-2.5 text-sm font-bold text-white hover:bg-slate-600 transition cursor-pointer">Got it</button>
+            </div>
+        </div>
+    </div>
+
     <div class="max-w-7xl mx-auto relative z-10 p-4 md:p-6">
 
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
@@ -21,7 +188,14 @@
                     <span class="material-symbols-rounded text-plum text-4xl">settings_system_daydream</span>
                     System Configuration
                 </h1>
-                <p class="text-slate-400 mt-1">Manage core application settings, databases, and mail servers.</p>
+                <div class="flex items-center gap-3 mt-1.5">
+                    <p class="text-slate-400 text-sm">Manage core settings and health.</p>
+                    <span class="text-slate-600">•</span>
+                    <a href="https://bigfunbooking.online/" target="_blank" class="text-plum hover:text-plum-dark text-xs font-bold flex items-center gap-1 transition">
+                        <span class="material-symbols-rounded text-sm">language</span>
+                        bigfunbooking.online
+                    </a>
+                </div>
             </div>
             <a href="/" wire:navigate class="shrink-0 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center gap-2 text-sm font-semibold">
                 <span class="material-symbols-rounded text-lg">arrow_back</span>
@@ -62,7 +236,7 @@
                         <span class="material-symbols-rounded text-slate-500 group-hover:text-white">chevron_right</span>
                     </a>
 
-                    <button wire:click="exportDb" class="w-full min-h-[76px] flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-emerald-500/50 hover:bg-slate-800 transition-all group disabled:opacity-50">
+                    <button wire:click="exportDb" class="w-full min-h-[76px] flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-emerald-500/50 hover:bg-slate-800 transition-all group disabled:opacity-50 cursor-pointer">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-rounded text-slate-400 group-hover:text-emerald-400 transition-colors">download</span>
                             <span class="font-medium text-slate-200" wire:loading.remove wire:target="exportDb">Export Full Backup (.sql)</span>
@@ -93,7 +267,7 @@
                             type: 'warning', 
                             event: 'execute-clear-cache' 
                         })"
-                        class="w-full min-h-[76px] flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-plum hover:bg-slate-800 transition-all group disabled:opacity-50">
+                        class="w-full min-h-[76px] flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-plum hover:bg-slate-800 transition-all group disabled:opacity-50 cursor-pointer">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-rounded text-slate-400 group-hover:text-plum transition-colors">cleaning_services</span>
                             <div class="text-left">
@@ -222,12 +396,10 @@
 
                 <!-- PRIMARY SMTP (BREVO) -->
                 @php
-                $brevoUsed = config('mail.brevo.daily_email_used');
-                $brevoLimit = config('mail.brevo.daily_email_limit');
+                $brevoUsed = $brevoQuota['used'];
+                $brevoLimit = $brevoQuota['limit'];
+                $brevoRemaining = $brevoQuota['remaining'];
                 $brevoKeyName = config('mail.brevo.smtp_key_name');
-                $brevoUsed = is_numeric($brevoUsed) ? (int) $brevoUsed : 0;
-                $brevoLimit = is_numeric($brevoLimit) ? max(1, (int) $brevoLimit) : 300;
-                $brevoRemaining = max(0, $brevoLimit - $brevoUsed);
                 @endphp
                 <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full">
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
@@ -259,7 +431,7 @@
                                 <span class="text-slate-400 font-semibold uppercase">Daily</span>
                                 <span>{{ $brevoUsed }} / {{ $brevoLimit }}</span>
                             </div>
-                            <button type="button" @click="showBrevoQuotaInfo = true" class="inline-flex items-center gap-1.5 bg-slate-700/40 text-slate-200 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide border border-slate-600/30 hover:border-slate-500/60 transition min-w-[95px] justify-center">
+                            <button type="button" @click="showBrevoQuotaInfo = true" class="inline-flex items-center gap-1.5 bg-slate-700/40 text-slate-200 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide border border-slate-600/30 hover:border-slate-500/60 transition min-w-[95px] justify-center cursor-pointer" title="Daily resets at midnight">
                                 <span class="material-symbols-rounded text-sm leading-none">info</span>
                                 Quota Info
                             </button>
@@ -307,7 +479,7 @@
                             event: 'execute-test-smtp' 
                         })"
                         wire:loading.attr="disabled" 
-                        class="w-full py-3 bg-plum hover:bg-plum-dark text-white text-sm font-bold rounded-xl transition-all duration-300 mt-6 flex items-center justify-center gap-2 shadow-lg shadow-plum/20">
+                        class="w-full py-3 bg-plum hover:bg-plum-dark text-white text-sm font-bold rounded-xl transition-all duration-300 mt-6 flex items-center justify-center gap-2 shadow-lg shadow-plum/20 cursor-pointer">
                         <span wire:loading.remove wire:target="testSmtp">Test Primary Connection</span>
                         <span wire:loading wire:target="testSmtp">Sending Test Email...</span>
                     </button>
@@ -315,11 +487,9 @@
 
                 <!-- SECONDARY SMTP (GOOGLE) -->
                 @php
-                $googleUsed = config('mail.google_quota.daily_email_used');
-                $googleLimit = config('mail.google_quota.daily_email_limit');
-                $googleUsed = is_numeric($googleUsed) ? (int) $googleUsed : 0;
-                $googleLimit = is_numeric($googleLimit) ? max(1, (int) $googleLimit) : 500;
-                $googleRemaining = max(0, $googleLimit - $googleUsed);
+                $googleUsed = $googleQuota['used'];
+                $googleLimit = $googleQuota['limit'];
+                $googleRemaining = $googleQuota['remaining'];
                 @endphp
                 <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full">
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
@@ -346,7 +516,7 @@
                                 <span class="text-slate-400 font-semibold uppercase">Daily</span>
                                 <span>{{ $googleUsed }} / {{ $googleLimit }}</span>
                             </div>
-                            <button type="button" @click="showGoogleQuotaInfo = true" class="inline-flex items-center gap-1.5 bg-slate-700/40 text-slate-200 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide border border-slate-600/30 hover:border-slate-500/60 transition min-w-[95px] justify-center">
+                            <button type="button" @click="showGoogleQuotaInfo = true" class="inline-flex items-center gap-1.5 bg-slate-700/40 text-slate-200 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide border border-slate-600/30 hover:border-slate-500/60 transition min-w-[95px] justify-center cursor-pointer" title="Daily resets at midnight">
                                 <span class="material-symbols-rounded text-sm leading-none">info</span>
                                 Quota Info
                             </button>
@@ -394,7 +564,7 @@
                             event: 'execute-test-google-smtp' 
                         })"
                         wire:loading.attr="disabled" 
-                        class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-xl transition-all duration-300 mt-6 flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]">
+                        class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-xl transition-all duration-300 mt-6 flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] cursor-pointer">
                         <span wire:loading.remove wire:target="testGoogleSmtp">Test Secondary Connection</span>
                         <span wire:loading wire:target="testGoogleSmtp">Sending Test Email...</span>
                     </button>
@@ -456,118 +626,120 @@
                             type: 'danger', 
                             event: 'execute-force-logout' 
                         })"
-                        class="w-full mt-6 py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 text-sm font-bold rounded-xl transition-colors flex justify-center items-center gap-2">
+                        class="w-full mt-6 py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 text-sm font-bold rounded-xl transition-colors flex justify-center items-center gap-2 cursor-pointer">
                         <span class="material-symbols-rounded text-lg">logout</span>
                         Force Logout All Sessions
                     </button>
                 </div>
             </div>
 
-        </div>
-    </div>
-
-    <div x-teleport="body">
-        <div x-show="showBrevoQuotaInfo" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4">
-            <div x-show="showBrevoQuotaInfo"
-                x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0"
-                x-transition:enter-end="opacity-100"
-                x-transition:leave="transition ease-in duration-200"
-                x-transition:leave-start="opacity-100"
-                x-transition:leave-end="opacity-0"
-                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-                @click="showBrevoQuotaInfo = false"></div>
-
-            <div x-show="showBrevoQuotaInfo"
-                x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
-                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-                x-transition:leave="transition ease-in duration-200"
-                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
-                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
-                class="relative w-full max-w-lg rounded-[24px] bg-white p-8 text-slate-600 shadow-2xl z-[10001]">
-                <h3 class="text-xl font-bold text-slate-800 mb-4">Brevo Quota Information</h3>
-                <div class="space-y-4 text-sm text-slate-500 leading-relaxed">
-                    <p>
-                        Your primary mailer is currently tracking <strong>{{ $brevoUsed }}</strong> sent emails out of a daily limit of <strong>{{ $brevoLimit }}</strong>. 
-                        This limit is managed through your <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">.env</code> configuration file using the 
-                        <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_BREVO_DAILY_EMAIL_LIMIT</code> variable.
-                    </p>
-                    <p>
-                        The daily usage is tracked by the <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_BREVO_DAILY_EMAIL_USED</code> key. 
-                        If you reach the limit, the system will prevent further automated emails to avoid deliverability issues.
-                    </p>
-                    <div class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50 text-xs text-emerald-700">
-                        <span class="font-bold block mb-1">Administrative Note:</span>
-                        To reset the daily counter, you can use the button below. This will update the system tracking back to zero and clear the configuration cache.
+            <!-- 5. MONITORING & HEALTH -->
+            <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full flex flex-col">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
+                            <span class="material-symbols-rounded">monitor_heart</span>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-white">Health Pulse</h2>
+                            <p class="text-xs text-slate-400">Real-time service status</p>
+                        </div>
                     </div>
                 </div>
-                <div class="mt-8 flex justify-between items-center">
-                    <button type="button"
-                        @click="$dispatch('open-modal', { 
-                            title: 'Reset Brevo Counter?', 
-                            message: 'This will reset the tracked daily email usage back to zero in the system. Proceed?', 
-                            type: 'warning', 
-                            event: 'execute-reset-quota',
-                            params: 'brevo'
-                        })"
-                        class="text-xs font-bold text-red-500 hover:text-red-600 transition underline underline-offset-4">
-                        Reset Daily Counter
+
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    @foreach([
+                        ['label' => 'Database', 'key' => 'db'],
+                        ['label' => 'Cache System', 'key' => 'cache'],
+                        ['label' => 'Google Webhook', 'key' => 'webhook'],
+                        ['label' => 'Public Site', 'key' => 'public_site'],
+                    ] as $item)
+                    <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-700 flex flex-col gap-2">
+                        <span class="text-[10px] uppercase font-extrabold tracking-widest text-slate-500">{{ $item['label'] }}</span>
+                        <div class="flex items-center gap-2">
+                            <div class="w-2.5 h-2.5 rounded-full {{ ($stats['health'][$item['key']] ?? false) ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.5)]' }}"></div>
+                            <span class="text-xs font-bold {{ ($stats['health'][$item['key']] ?? false) ? 'text-emerald-400' : 'text-red-400' }}">
+                                {{ ($stats['health'][$item['key']] ?? false) ? 'CONNECTED' : 'DISCONNECTED' }}
+                            </span>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+
+                <div class="space-y-4">
+                    <button wire:click="openLogViewer" class="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-plum hover:bg-slate-800 transition-all group cursor-pointer">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-rounded text-slate-400 group-hover:text-plum transition-colors">description</span>
+                            <span class="font-medium text-slate-200">Application Log Viewer</span>
+                        </div>
+                        <div class="px-2 py-1 rounded-lg bg-slate-800 text-[10px] font-bold text-slate-500 group-hover:text-slate-300">VIEW LATEST</div>
                     </button>
-                    <button type="button" @click="showBrevoQuotaInfo = false" class="rounded-xl bg-slate-100 px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-200 transition">Got it</button>
                 </div>
             </div>
-        </div>
 
-        <div x-show="showGoogleQuotaInfo" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4">
-            <div x-show="showGoogleQuotaInfo"
-                x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0"
-                x-transition:enter-end="opacity-100"
-                x-transition:leave="transition ease-in duration-200"
-                x-transition:leave-start="opacity-100"
-                x-transition:leave-end="opacity-0"
-                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-                @click="showGoogleQuotaInfo = false"></div>
-
-            <div x-show="showGoogleQuotaInfo"
-                x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 scale-95 translate-y-4"
-                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-                x-transition:leave="transition ease-in duration-200"
-                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
-                x-transition:leave-end="opacity-0 scale-95 translate-y-4"
-                class="relative w-full max-w-lg rounded-[24px] bg-white p-8 text-slate-600 shadow-2xl z-[10001]">
-                <h3 class="text-xl font-bold text-slate-800 mb-4">Gmail Quota Information</h3>
-                <div class="space-y-4 text-sm text-slate-500 leading-relaxed">
-                    <p>
-                        Your secondary Gmail mailer is currently tracking <strong>{{ $googleUsed }}</strong> sent emails out of a daily limit of <strong>{{ $googleLimit }}</strong>. 
-                        This limit is defined by the <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_GOOGLE_DAILY_EMAIL_LIMIT</code> variable in your configuration.
-                    </p>
-                    <p>
-                        The daily usage is tracked by the <code class="text-pink-600 bg-slate-50 px-1 rounded font-mono">MAIL_GOOGLE_DAILY_EMAIL_USED</code> key. 
-                        Gmail typically has strict outbound limits, so ensure this value stays within your account's allowed throughput.
-                    </p>
-                    <div class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50 text-xs text-emerald-700">
-                        <span class="font-bold block mb-1">Administrative Note:</span>
-                        To reset the daily counter, you can use the button below. This will update the system tracking back to zero and clear the configuration cache.
+            <!-- 6. RESOURCES & QUEUES -->
+            <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full flex flex-col">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
+                        <span class="material-symbols-rounded">speed</span>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Resources & Queues</h2>
+                        <p class="text-xs text-slate-400">System capacity & jobs</p>
                     </div>
                 </div>
-                <div class="mt-8 flex justify-between items-center">
-                    <button type="button"
-                        @click="$dispatch('open-modal', { 
-                            title: 'Reset Gmail Counter?', 
-                            message: 'This will reset the tracked daily email usage back to zero in the system. Proceed?', 
-                            type: 'warning', 
-                            event: 'execute-reset-quota',
-                            params: 'google'
-                        })"
-                        class="text-xs font-bold text-red-500 hover:text-red-600 transition underline underline-offset-4">
-                        Reset Daily Counter
-                    </button>
-                    <button type="button" @click="showGoogleQuotaInfo = false" class="rounded-xl bg-slate-100 px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-200 transition">Got it</button>
+
+                <div class="space-y-6">
+                    {{-- Disk Usage --}}
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-slate-400">DISK SPACE ({{ $stats['disk']['used'] ?? '0' }} / {{ $stats['disk']['total'] ?? '0' }})</span>
+                            <span class="text-xs font-bold text-white">{{ $stats['disk']['percent'] ?? '0' }}%</span>
+                        </div>
+                        <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden" 
+                             style="--disk-progress: {{ $stats['disk']['percent'] ?? 0 }}%">
+                            <div class="h-full bg-gradient-to-r from-plum to-plum-dark transition-all duration-1000" 
+                                 style="width: var(--disk-progress)"></div>
+                        </div>
+                    </div>
+
+                    {{-- Versions --}}
+                    <div class="flex gap-4">
+                        <div class="flex-1 p-3 rounded-xl bg-slate-900/50 border border-slate-700 flex flex-col items-center">
+                            <span class="text-[9px] uppercase font-bold text-slate-500 mb-1">Laravel</span>
+                            <span class="text-sm font-bold text-white">v{{ $stats['versions']['laravel'] ?? '?' }}</span>
+                        </div>
+                        <div class="flex-1 p-3 rounded-xl bg-slate-900/50 border border-slate-700 flex flex-col items-center">
+                            <span class="text-[9px] uppercase font-bold text-slate-500 mb-1">PHP</span>
+                            <span class="text-sm font-bold text-white">v{{ $stats['versions']['php'] ?? '?' }}</span>
+                        </div>
+                    </div>
+
+                    {{-- Queues --}}
+                    <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-700">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-xs font-extrabold text-slate-200">BACKGROUND JOBS</span>
+                            <button type="button" 
+                                wire:click="retryFailedJobs" 
+                                @disabled(($stats['queue']['failed'] ?? 0) == 0) 
+                                class="text-[10px] font-bold text-plum hover:text-plum-dark disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer">
+                                RETRY FAILED
+                            </button>
+                        </div>
+                        <div class="flex gap-8">
+                            <div class="flex flex-col">
+                                <span class="text-2xl font-black text-white">{{ $stats['queue']['pending'] ?? 0 }}</span>
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pending</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-2xl font-black {{ ($stats['queue']['failed'] ?? 0) > 0 ? 'text-red-400' : 'text-slate-400' }}">{{ $stats['queue']['failed'] ?? 0 }}</span>
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Failed</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
         </div>
     </div>
 </div>

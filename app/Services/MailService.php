@@ -211,31 +211,24 @@ class MailService
     }
 
     /**
-     * Increment the daily email used quota for the current mailer in .env and runtime config.
+     * Increment the daily email used quota for the current mailer in Cache.
      */
-    private function incrementDailyQuota($mailer)
+    public function incrementDailyQuota($mailer)
     {
-        $envKey = $mailer === 'google' ? 'MAIL_GOOGLE_DAILY_EMAIL_USED' : 'MAIL_BREVO_DAILY_EMAIL_USED';
-        $configKey = $mailer === 'google' ? 'mail.google_quota.daily_email_used' : 'mail.brevo.daily_email_used';
+        $cacheKey = "email_quota_used_{$mailer}_" . now()->format('Y-m-d');
         
-        $currentUsed = (int) config($configKey, 0);
-        $newUsed = $currentUsed + 1;
-        
-        $path = base_path('.env');
-        if (file_exists($path)) {
-            $envContent = file_get_contents($path);
-            if ($envContent === false) {
-                return;
+        // Increment the cache value. It will initialize to 0 if not exists.
+        try {
+            if (!\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+                // If not in cache, try to initialize from config (fallback to 0)
+                $configKey = $mailer === 'google' ? 'mail.google_quota.daily_email_used' : 'mail.brevo.daily_email_used';
+                $initial = (int) config($configKey, 0);
+                \Illuminate\Support\Facades\Cache::put($cacheKey, $initial, now()->addDay());
             }
-            if (preg_match('/^' . $envKey . '=.*/m', $envContent)) {
-                $envContent = preg_replace('/^' . $envKey . '=.*/m', $envKey . '=' . $newUsed, $envContent);
-            } else {
-                $envContent .= "\n" . $envKey . '=' . $newUsed . "\n";
-            }
-            if (file_put_contents($path, $envContent, LOCK_EX) !== false) {
-                // Update runtime config so subsequent emails in the same request use the new value
-                \Illuminate\Support\Facades\Config::set($configKey, $newUsed);
-            }
+            
+            \Illuminate\Support\Facades\Cache::increment($cacheKey);
+        } catch (\Exception $e) {
+            Log::warning("Failed to increment email quota in cache: " . $e->getMessage());
         }
     }
 }

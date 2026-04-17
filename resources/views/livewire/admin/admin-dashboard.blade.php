@@ -169,10 +169,10 @@
                         this.chartInstance = new Chart(ctx, {
                             type: 'doughnut',
                             data: {
-                                labels: ['Fully Paid', 'Partial', 'Unpaid'],
+                                labels: ['Fully Paid', 'Partial'],
                                 datasets: [{
-                                    data: [{{ $payment_breakdown['Paid'] }}, {{ $payment_breakdown['Partial'] }}, {{ $payment_breakdown['Unpaid'] }}],
-                                    backgroundColor: ['#22c55e', '#3b82f6', '#ef4444'],
+                                    data: [{{ $payment_breakdown['Paid'] }}, {{ $payment_breakdown['Partial'] }}],
+                                    backgroundColor: ['#22c55e', '#3b82f6'],
                                     borderWidth: 0,
                                     hoverOffset: 10
                                 }]
@@ -195,7 +195,7 @@
                  }"
                  @update-payment-chart.window="
                     if (chartInstance) {
-                        chartInstance.data.datasets[0].data = [$event.detail.paid, $event.detail.partial, $event.detail.unpaid];
+                        chartInstance.data.datasets[0].data = [$event.detail.paid, $event.detail.partial];
                         chartInstance.update();
                     }
                  ">
@@ -217,13 +217,7 @@
                     </span>
                     <span class="font-black text-gray-800">{{ $payment_breakdown['Partial'] }}</span>
                 </div>
-                <div class="flex justify-between items-center text-sm p-3 bg-red-50/50 rounded-2xl">
-                    <span class="flex items-center gap-3 font-semibold text-gray-600">
-                        <span class="w-3 h-3 rounded-full bg-red-500 shadow-sm shadow-red-200"></span> 
-                        Unpaid
-                    </span>
-                    <span class="font-black text-gray-800">{{ $payment_breakdown['Unpaid'] }}</span>
-                </div>
+
             </div>
         </div>
 

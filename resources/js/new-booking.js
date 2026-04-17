@@ -42,6 +42,10 @@ document.addEventListener('alpine:init', () => {
             fullCapacityWarning: false,
             changeExtrasConfirm: false,
             fileSizeAlert: false,
+            costIncrease: false,
+            costDecrease: false,
+            negativeBalance: false,
+            costDelta: 0,
         },
         limitExceededCategory: '',
         limitExceededLimit: 0,
@@ -613,6 +617,23 @@ window.finalizeBooking = async function() {
 
     const form = document.getElementById('combinedBookingForm');
     const fd = new FormData(form);
+
+    // --- FILE SIZE VALIDATION (Max 5MB Total) ---
+    let totalSize = 0;
+    let fileCount = 0;
+    for (let [key, value] of fd.entries()) {
+        if (value instanceof File && value.size > 0 && key.startsWith('delivery_attachment')) {
+            totalSize += value.size;
+            fileCount++;
+        }
+    }
+
+    if (totalSize > 5 * 1024 * 1024) {
+        showToast("Storage Limit", "Total size of all attachments must not exceed 5MB. Current: " + (totalSize / (1024 * 1024)).toFixed(2) + "MB", "error");
+        isProceeding = false;
+        return;
+    }
+
     fd.append('action', 'save_full_booking');
 
     // Ensure we have a final total even if override is empty
@@ -641,6 +662,32 @@ window.finalizeBooking = async function() {
         btn.disabled = false;
         isProceeding = false;
     }
+};
+
+window.checkTotalAttachmentSize = function(currentInput) {
+    const inputs = document.querySelectorAll('input[type="file"]');
+    let total = 0;
+    inputs.forEach(input => {
+        // Look for any input that looks like a delivery attachment
+        if (input.name.includes('delivery_attachment') || input.getAttribute('wire:model')?.includes('newAttachments')) {
+            if (input.files && input.files[0]) {
+                total += input.files[0].size;
+            }
+        }
+    });
+
+    if (total > 5 * 1024 * 1024) {
+        showToast("Storage Limit", "Total size of all new attachments must not exceed 5MB. Current: " + (total / (1024 * 1024)).toFixed(2) + "MB", "error");
+        if (currentInput) currentInput.value = ""; // Clear the input that caused the overflow
+        
+        // If we have access to Alpine modals (Edit mode)
+        if (window.bookingApp && typeof window.bookingApp.modals !== 'undefined') {
+            // We could trigger the internal modal if we wanted, but toast is enough
+        }
+        
+        return false;
+    }
+    return true;
 };
 
 window.filterRides = function() {

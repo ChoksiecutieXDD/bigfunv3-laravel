@@ -155,7 +155,7 @@
                     @forelse ($pendingPayments as $row)
                     @php
                     $total = (float)$row->total_amount;
-                    $paid = (float)$row->amount_paid;
+                    $paid = (float)$row->total_paid;
                     $outstanding = max(0, $total - $paid);
                     $isCard = stripos($row->payment_type, 'Card') !== false;
                     $isCash = $row->payment_type === 'Cash';
@@ -169,10 +169,15 @@
                             <div class="flex flex-col items-start gap-1 justify-start h-full">
                                 <div class="font-bold text-gray-800 text-sm">{{ $row->customer_first_name }} {{ $row->customer_last_name }}</div>
                                 <div class="text-xs text-gray-500 font-medium">{{ $row->customer_organization }}</div>
-                                <div class="mt-2 flex items-center gap-2">
+                                <div class="mt-2 flex items-center gap-2 flex-wrap">
                                     <a href="{{ route('supervisor.bookings.overview', ['id' => $row->id, 'back' => route('supervisor.logistics')]) }}"
- class="bg-gray-100 text-gray-600 hover:bg-[#9E6B73] hover:text-white transition text-[10px] font-bold px-2 py-0.5 rounded border border-gray-200 no-underline">ID: #{{ $row->id }}</a>
+                                        class="bg-gray-100 text-gray-600 hover:bg-[#9E6B73] hover:text-white transition text-[10px] font-bold px-2 py-0.5 rounded border border-gray-200 no-underline">ID: #{{ $row->id }}</a>
                                     <span class="text-[10px] text-gray-400">{{ \Carbon\Carbon::parse($row->event_date)->format('d/m/y') }}</span>
+                                    @if($outstanding > 0)
+                                    <span class="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[9px] font-black border border-red-100 uppercase tracking-tighter">Debt</span>
+                                    @else
+                                    <span class="bg-green-50 text-green-600 px-2 py-0.5 rounded text-[9px] font-black border border-green-100 uppercase tracking-tighter">Paid</span>
+                                    @endif
                                 </div>
                             </div>
                         </td>
@@ -183,7 +188,8 @@
                                     <div class="flex justify-between"><span class="text-gray-400">Paid:</span> <span class="font-bold text-green-600">${{ number_format($paid, 2) }}</span></div>
                                     <div class="flex justify-between"><span class="text-gray-400">Deposit Req:</span> <span class="font-bold text-orange-400">${{ number_format($row->deposit_required, 2) }}</span></div>
                                     <div class="border-t border-gray-100 my-0.5"></div>
-                                    <div class="flex justify-between"><span class="text-gray-500 font-bold">Owing:</span> <span class="font-bold text-red-500">${{ number_format($outstanding, 2) }}</span></div>
+                                    <div class="flex justify-between items-center"><span class="text-gray-500 font-bold">Owing:</span> <span class="font-bold {{ $outstanding > 0 ? 'text-red-500' : 'text-green-600' }}">${{ number_format($outstanding, 2) }}</span></div>
+
                                 </div>
                             </div>
                         </td>
@@ -261,13 +267,13 @@
                                     </button>
                                 </div>
                                 @if ($outstanding > 0)
-                                <button wire:click="openPaymentModal({{ $row->id }})" class="w-full bg-[#9E6B73] hover:bg-[#86545C] text-white py-1.5 rounded-lg shadow-sm transition transform active:scale-95 text-xs font-bold flex items-center justify-center gap-1">
+                                <button wire:click="openPaymentModal({{ $row->id }})" class="w-full bg-[#9D686E] hover:bg-[#86545C] text-white py-1.5 rounded-lg shadow-sm transition transform active:scale-95 text-xs font-bold flex items-center justify-center gap-1">
                                     <span class="material-symbols-rounded text-[16px] text-white">payments</span> Process
                                 </button>
                                 @else
-                                <div class="w-full bg-green-50 text-green-700 border border-green-200 py-1.5 rounded-lg shadow-sm text-xs font-bold flex items-center justify-center gap-1">
-                                    <span class="material-symbols-rounded text-[16px]">check_circle</span> Fully Paid
-                                </div>
+                                <a href="{{ route('supervisor.bookings.overview', ['id' => $row->id, 'back' => route('supervisor.logistics')]) }}" class="w-full bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 py-1.5 rounded-lg shadow-sm text-xs font-bold flex items-center justify-center gap-1 transition-colors no-underline">
+                                    <span class="material-symbols-rounded text-[16px]">visibility</span> View Overview
+                                </a>
                                 @endif
                             </div>
                         </td>
@@ -464,8 +470,8 @@
                     @forelse ($debtors as $deb)
                     @php
                     $debTotal = (float)$deb->total_amount;
-                    $debPaid = (float)$deb->amount_paid;
-                    $amountDue = $debTotal - $debPaid;
+                    $debPaid = (float)$deb->total_paid;
+                    $amountDue = max(0, $debTotal - $debPaid);
                     @endphp
                     <tr class="group hover:bg-gray-50 transition-colors">
                         <td class="p-4 font-bold text-gray-700 align-top text-left">
@@ -627,7 +633,7 @@
                         </div>
                         <div>
                             <h3 class="text-xl font-black text-slate-800 tracking-tight uppercase">Record Transaction</h3>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5" x-text="'INVOICE #' + (pay_context['invoice_num'] || 'PENDING')"></p>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5" x-text="'INVOICE #' + ($wire.pay_context['invoice_num'] || 'PENDING')"></p>
                         </div>
                     </div>
                     <button type="button" @click="showPaymentModal = false" class="text-slate-400 hover:text-slate-600 transition p-2 hover:bg-slate-50 rounded-xl">
@@ -639,10 +645,10 @@
                     <form wire:submit.prevent="processPayment" class="space-y-8">
                         <div class="bg-slate-900 rounded-[24px] p-8 text-white relative overflow-hidden shadow-xl shadow-slate-900/20">
                             <div class="absolute top-0 right-0 w-32 h-32 bg-[#9D686E]/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none"></div>
-                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3" x-text="pay_context['customer_name'] || 'System Account'"></p>
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3" x-text="$wire.pay_context['customer_name'] || 'System Account'"></p>
                             <div class="flex flex-col gap-1">
                                 <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Amount Outstanding Retrieval</span>
-                                <span class="text-4xl font-black tracking-tighter" x-text="'$' + Number(pay_context['owing'] || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                                <span class="text-4xl font-black tracking-tighter" x-text="'$' + Number($wire.pay_context['owing'] || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
                             </div>
                         </div>
 
@@ -657,10 +663,10 @@
                                     <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Allocation Matrix</label>
                                     <div class="relative">
                                         <select wire:model.live="pay_type" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[13px] font-bold text-slate-700 cursor-pointer appearance-none transition-all">
-                                            <option value="Deposit">Deposit Capture</option>
-                                            <option value="Remaining Balance">Final Settlement</option>
-                                            <option value="Full Amount">Total Liquidation</option>
-                                            <option value="Partial Payment">Partial Allocation</option>
+                                            <option value="Deposit Capture">Deposit Capture</option>
+                                            <option value="Final Settlement">Final Settlement</option>
+                                            <option value="Total Liquidation">Total Liquidation</option>
+                                            <option value="Partial Allocation">Partial Allocation</option>
                                         </select>
                                         <span class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none material-symbols-rounded">expand_more</span>
                                     </div>

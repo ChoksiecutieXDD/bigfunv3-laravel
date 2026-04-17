@@ -3,8 +3,56 @@
         showCustomDelivery = @entangle('form.delivery_area').live === 'custom' || (@entangle('form.delivery_area').live !== '' && !@js($deliveryOptions->pluck('zone_name')->contains($form['delivery_area'] ?? '')));
         showCustomDuration = @entangle('form.duration').live === 'custom';
         $watch('modals.history', val => { if(val) loadPreviousCustomers(); });
+
+        window.addEventListener('cost-increased', e => {
+            modals.costIncrease = true;
+            modals.costDelta = e.detail.delta;
+        });
+        window.addEventListener('cost-decreased', e => {
+            modals.costDecrease = true;
+            modals.costDelta = e.detail.delta;
+        });
+        window.addEventListener('negative-balance-alert', e => {
+            modals.negativeBalance = true;
+        });
     "
     class="w-full relative pb-8">
+    <!-- Premium Toast Notifications (system-settings style) -->
+    <div class="fixed top-6 right-6 z-[999999] flex flex-col gap-3 pointer-events-none" style="width:380px;">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div x-show="toast.visible"
+                x-transition:enter="transition ease-out duration-400"
+                x-transition:enter-start="opacity-0 translate-x-8 scale-95"
+                x-transition:enter-end="opacity-100 translate-x-0 scale-100"
+                x-transition:leave="transition ease-in duration-300"
+                x-transition:leave-start="opacity-100 translate-x-0 scale-100"
+                x-transition:leave-end="opacity-0 translate-x-8 scale-95"
+                class="pointer-events-auto w-full bg-slate-900/95 backdrop-blur-xl border rounded-2xl shadow-2xl p-4 flex items-start gap-3"
+                :class="{
+                    'border-emerald-500/40': toast.type === 'success',
+                    'border-red-500/40': toast.type === 'error',
+                    'border-amber-500/40': toast.type === 'warning',
+                    'border-[#9E6B73]/40': toast.type === 'primary'
+                }">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                    :class="{
+                        'bg-emerald-500/15 text-emerald-400': toast.type === 'success',
+                        'bg-red-500/15 text-red-400': toast.type === 'error',
+                        'bg-amber-500/15 text-amber-400': toast.type === 'warning',
+                        'bg-[#9E6B73]/15 text-[#9E6B73]': toast.type === 'primary'
+                    }">
+                    <span class="material-symbols-rounded text-xl" x-text="toast.icon"></span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-bold text-sm text-white" x-text="toast.title"></h4>
+                    <p class="text-xs text-slate-400 mt-0.5 leading-relaxed" x-text="toast.message"></p>
+                </div>
+                <button @click="toast.visible = false" class="text-slate-600 hover:text-slate-300 transition shrink-0 p-1 rounded-lg hover:bg-white/10">
+                    <span class="material-symbols-rounded text-base">close</span>
+                </button>
+            </div>
+        </template>
+    </div>
 
     <div class="flex w-full relative overflow-hidden">
         <main class="flex-1 pt-4 pb-16 px-0 max-w-[1440px] mx-auto w-full">
@@ -54,9 +102,15 @@
                             <span class="material-symbols-rounded text-[#9E6B73] text-3xl">account_balance_wallet</span>
                             <h2 class="text-xl font-bold text-white uppercase tracking-wide">Financials & Payment</h2>
                         </div>
-                        <div class="text-right">
-                            <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Total Amount</p>
-                            <p class="text-4xl font-extrabold tracking-tighter text-white" id="disp_total">${{ number_format($totalAmount, 2) }}</p>
+                        <div class="flex gap-10">
+                            <div class="text-right">
+                                <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Outstanding Balance</p>
+                                <p class="text-4xl font-extrabold tracking-tighter {{ $balanceDue > 0.01 ? 'text-rose-400' : 'text-emerald-400' }}" id="disp_balance">${{ number_format($balanceDue, 2) }}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Total Amount</p>
+                                <p class="text-4xl font-extrabold tracking-tighter text-white/50" id="disp_total">${{ number_format($totalAmount, 2) }}</p>
+                            </div>
                         </div>
                     </div>
 
@@ -93,6 +147,17 @@
                             <div class="flex justify-between items-center text-sm mt-2">
                                 <span class="text-slate-400">Processing Fee ({{ in_array(($form['payment_type'] ?? ''), ['Card Holder', 'credit_card']) ? '2.9%' : '0%' }})</span>
                                 <span class="font-medium text-slate-300">${{ number_format($surchargeAmount, 2) }}</span>
+                            </div>
+
+                            <div class="h-px bg-slate-700/50 my-4"></div>
+
+                            <div class="flex justify-between items-center text-sm font-bold text-emerald-400/90">
+                                <span class="flex items-center gap-2"><span class="material-symbols-rounded text-xs">payments</span> Total Paid (Track Record)</span>
+                                <span class="font-bold">-${{ number_format($totalPaid, 2) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-base font-black text-white mt-1.5 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                <span class="flex items-center gap-2 font-bold uppercase tracking-wider text-[11px]">Outstanding Balance</span>
+                                <span class="text-xl {{ $balanceDue > 0.01 ? 'text-rose-400' : 'text-emerald-400' }}">${{ number_format($balanceDue, 2) }}</span>
                             </div>
 
                             <div class="bg-slate-800/50 rounded-xl p-4 mt-6 border border-slate-700">
@@ -418,7 +483,7 @@
                     <div class="pt-6 border-t border-gray-100 mt-6">
                         <label class="input-label mb-2 flex items-center justify-between">
                             <span class="flex items-center gap-2">Delivery Attachments <span class="font-black text-slate-500">(Up to 5)</span></span>
-                            <span class="flex items-center gap-1.5 text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider"><span class="material-symbols-rounded text-xs">folder_limited</span>Max 5MB per file</span>
+                            <span class="flex items-center gap-1.5 text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider"><span class="material-symbols-rounded text-xs">folder_limited</span>Max 5MB Total</span>
                         </label>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             @foreach([
@@ -440,13 +505,7 @@
                                 @else
                                 <input type="file" accept="image/png,image/jpeg,application/pdf"
                                     wire:model="newAttachments.{{ $field }}"
-                                    @change="
-                                        const file = $event.target.files[0];
-                                        if (file && file.size > 5 * 1024 * 1024) {
-                                            $event.target.value = '';
-                                            modals.fileSizeAlert = true;
-                                        }
-                                    "
+                                    @change="checkTotalAttachmentSize($el)"
                                     class="text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-[#9E6B73]/10 file:text-[#9E6B73] hover:file:bg-[#9E6B73]/20 cursor-pointer">
                                 @endif
                             </div>
@@ -588,8 +647,8 @@
                                 Confirm & Save Booking
                             </span>
                             <span wire:loading wire:target="saveBooking" class="flex items-center gap-2.5">
-                                <span class="material-symbols-rounded animate-spin text-xl leading-none flex items-center justify-center">progress_activity</span>
-                                Saving — Please Wait...
+                                <span class="material-symbols-rounded animate-spin text-xl leading-none flex items-center justify-center">sync</span>
+                                Syncing to Cloud...
                             </span>
                         </button>
                         <button
@@ -895,6 +954,58 @@
                 <div class="p-4 bg-slate-50 border-t border-gray-100 flex justify-end">
                     <button type="button" @click="productDetails.visible = false" class="px-6 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200">Got it, close</button>
                 </div>
+            </div>
+        </div>
+    </template>
+
+    <template x-teleport="body">
+        <!-- COST INCREASE MODAL -->
+        <div x-show="modals.costIncrease" class="fixed inset-0 z-[10005] flex items-center justify-center p-4" x-cloak>
+            <div x-show="modals.costIncrease" x-transition.opacity.duration.300ms class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="modals.costIncrease = false"></div>
+            <div x-show="modals.costIncrease" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="opacity-0 scale-90 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-8 text-center z-10 border-t-8 border-rose-500">
+                <div class="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-5 text-rose-500">
+                    <span class="material-symbols-rounded text-3xl font-bold">trending_up</span>
+                </div>
+                <h3 class="text-xl font-black text-slate-800 mb-2 uppercase tracking-tight">Cost Increase</h3>
+                <p class="text-[13px] font-medium text-slate-500 mb-6 leading-relaxed">The total amount will increase by <span class="font-bold text-rose-600">$<span x-text="parseFloat(modals.costDelta).toFixed(2)"></span></span>. Please ensure this is authorized.</p>
+                <button @click="modals.costIncrease = false" class="w-full py-4 bg-rose-500 text-white rounded-xl font-bold hover:bg-rose-600 transition shadow-lg shadow-rose-100 uppercase tracking-widest text-[10px]">Acknowledge</button>
+            </div>
+        </div>
+    </template>
+
+    <template x-teleport="body">
+        <!-- COST DECREASE MODAL -->
+        <div x-show="modals.costDecrease" class="fixed inset-0 z-[10005] flex items-center justify-center p-4" x-cloak>
+            <div x-show="modals.costDecrease" x-transition.opacity.duration.300ms class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="modals.costDecrease = false"></div>
+            <div x-show="modals.costDecrease" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="opacity-0 scale-90 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-8 text-center z-10 border-t-8 border-emerald-500">
+                <div class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-5 text-emerald-500">
+                    <span class="material-symbols-rounded text-3xl font-bold">trending_down</span>
+                </div>
+                <h3 class="text-xl font-black text-slate-800 mb-2 uppercase tracking-tight">Cost Decrease</h3>
+                <p class="text-[13px] font-medium text-slate-500 mb-6 leading-relaxed">The total amount will decrease by <span class="font-bold text-emerald-600">$<span x-text="parseFloat(modals.costDelta).toFixed(2)"></span></span>.</p>
+                <button @click="modals.costDecrease = false" class="w-full py-4 bg-emerald-500 text-white rounded-xl font-bold hover:bg-emerald-600 transition shadow-lg shadow-emerald-100 uppercase tracking-widest text-[10px]">Acknowledge</button>
+            </div>
+        </div>
+    </template>
+
+    <template x-teleport="body">
+        <!-- NEGATIVE BALANCE MODAL -->
+        <div x-show="modals.negativeBalance" class="fixed inset-0 z-[10006] flex items-center justify-center p-4" x-cloak>
+            <div x-show="modals.negativeBalance" x-transition.opacity.duration.300ms class="absolute inset-0 bg-red-900/40 backdrop-blur-md" @click="modals.negativeBalance = false"></div>
+            <div x-show="modals.negativeBalance" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="opacity-0 scale-90 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10 text-center z-10 border-t-8 border-amber-500">
+                <div class="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500 shadow-inner">
+                    <span class="material-symbols-rounded text-4xl font-bold">account_balance_wallet</span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight uppercase">Negative Balance</h3>
+                <p class="text-[14px] font-medium text-slate-500 mb-8 leading-relaxed px-4">
+                    Your total amount will decrease below what was already paid. The customer will have a <span class="font-black text-amber-600 underline underline-offset-4 decoration-2">credit balance</span>.
+                </p>
+                <button type="button" @click="modals.negativeBalance = false" class="w-full py-4 bg-amber-500 text-white rounded-2xl font-black hover:bg-amber-600 transition shadow-xl shadow-amber-100 uppercase tracking-widest text-[11px]">
+                    Understood
+                </button>
             </div>
         </div>
     </template>
