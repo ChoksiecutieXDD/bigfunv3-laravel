@@ -39,6 +39,17 @@ class EditBooking extends Component
     public $newAttachments = [];
     public $deletedAttachments = [];
 
+    // --- MOVE LOGISTICS PROPERTIES ---
+    public $bookedAttractions = [];
+    public $dailyAttractions = [];
+    public $categoryLimits = [];
+    public $dailyUsage = [];
+    public $bookingImpact = [];
+    public $modalConflicts = [];
+    public $modalCapacityBreaches = [];
+    public $modalNameConflicts = [];
+    public $lastToastDate = null;
+
     public $config = [];
     public $categories = [];
     public $saved_extras = [];
@@ -321,12 +332,43 @@ class EditBooking extends Component
         }
     }
 
+    public function openCalendarModal()
+    {
+        // 1. Get Category Limits
+        $this->categoryLimits = DB::table('product_categories')
+            ->where('daily_limit', '>', 0)
+            ->pluck('daily_limit', 'category_name')
+            ->toArray();
+
+        // 2. Calculate impact of CURRENT selected items (not just DB)
+        $this->bookingImpact = [];
+        $names = array_keys(array_filter($this->selectedItems));
+        if (!empty($names)) {
+            $impactRes = DB::table('products')
+                ->whereIn(DB::raw('LOWER(TRIM(name))'), $names)
+                ->selectRaw('LOWER(TRIM(name)) as name, COALESCE(NULLIF(counts_against, ""), category) as cat')
+                ->get();
+
+            foreach ($impactRes as $row) {
+                $qty = $this->selectedItems[$row->name] ?? 0;
+                $this->bookingImpact[$row->cat] = ($this->bookingImpact[$row->cat] ?? 0) + $qty;
+            }
+        }
+
+        // 3. Keep track of what attractions are currently selected for conflict check
+        $this->bookedAttractions = $names;
+
+        $this->loadCalendar();
+        $this->dispatch('open-modal', 'calendarModal');
+    }
+
     public function loadCalendar()
     {
         $this->tempSelectedDate = $this->form['event_date'];
         $start = Carbon::create($this->calYear, $this->calMonth, 1);
         $end = $start->copy()->endOfMonth();
 
+        // 1. Get Daily Booking Counts (Soft Limit Check)
         $counts = Booking::whereBetween('event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
             ->where('id', '!=', $this->booking->id)
             ->whereNotIn('status', ['Cancelled'])
@@ -335,44 +377,95 @@ class EditBooking extends Component
             ->pluck('cnt', 'event_date')
             ->toArray();
 
+        // 2. Get Daily Attraction Names (Conflict Check)
+        $this->dailyAttractions = DB::table('booking_items')
+            ->join('bookings', 'booking_items.booking_id', '=', 'bookings.id')
+            ->whereBetween('bookings.event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+            ->where('bookings.id', '!=', $this->booking->id)
+            ->whereNotIn('bookings.status', ['Cancelled'])
+            ->selectRaw('bookings.event_date, LOWER(TRIM(booking_items.item_name)) as name')
+            ->get()
+            ->groupBy('event_date')
+            ->map(fn($items) => $items->pluck('name')->unique()->toArray())
+            ->toArray();
+
+        // 3. Get Daily Category Usage (Capacity Check) using a subquery to avoid ONLY_FULL_GROUP_BY issues
+        $sub = DB::table('booking_items')
+            ->join('bookings', 'booking_items.booking_id', '=', 'bookings.id')
+            ->join('products', DB::raw('LOWER(TRIM(booking_items.item_name))'), '=', DB::raw('LOWER(TRIM(products.name))'))
+            ->whereBetween('bookings.event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+            ->where('bookings.id', '!=', $this->booking->id)
+            ->whereNotIn('bookings.status', ['Cancelled'])
+            ->selectRaw('bookings.event_date, COALESCE(NULLIF(products.counts_against, ""), products.category) as cat, booking_items.qty');
+
+        $this->dailyUsage = DB::table($sub, 't')
+            ->selectRaw('event_date, cat, SUM(qty) as total')
+            ->groupBy('event_date', 'cat')
+            ->get()
+            ->groupBy('event_date')
+            ->map(fn($day) => $day->pluck('total', 'cat')->toArray())
+            ->toArray();
+
         $this->calDays = [];
         for ($i = 0; $i < $start->dayOfWeek; $i++) $this->calDays[] = null;
 
-        $dailyLimit = 7;
+        $globalDailyLimit = 7;
         for ($day = 1; $day <= $start->daysInMonth; $day++) {
             $dateStr = $start->copy()->day($day)->format('Y-m-d');
             $used = $counts[$dateStr] ?? 0;
+
+            // Check for category breaches on this day
+            $breachedCategories = [];
+            $usageOnDay = $this->dailyUsage[$dateStr] ?? [];
+            foreach ($this->bookingImpact as $cat => $demand) {
+                $limit = $this->categoryLimits[$cat] ?? 0;
+                if ($limit > 0) {
+                    $currentUsage = $usageOnDay[$cat] ?? 0;
+                    if (($currentUsage + $demand) > $limit) {
+                        $breachedCategories[] = $cat;
+                    }
+                }
+            }
+
             $this->calDays[] = [
                 'date' => $dateStr,
                 'day' => $day,
-                'left' => max(0, $dailyLimit - $used)
+                'left' => max(0, $globalDailyLimit - $used),
+                'breach' => !empty($breachedCategories)
             ];
         }
     }
 
-    public function calPrev()
-    {
-        $d = Carbon::create($this->calYear, $this->calMonth, 1)->subMonth();
-        $this->calMonth = $d->month;
-        $this->calYear = $d->year;
-        $this->loadCalendar();
-    }
-
-    public function calNext()
-    {
-        $d = Carbon::create($this->calYear, $this->calMonth, 1)->addMonth();
-        $this->calMonth = $d->month;
-        $this->calYear = $d->year;
-        $this->loadCalendar();
-    }
-
     public function applySelectedDate()
     {
-        if ($this->tempSelectedDate) {
-            $this->form['event_date'] = $this->tempSelectedDate;
-            $this->checkAvailability();
-            $this->dispatch('close-modal', 'calendarModal');
+        if (!$this->tempSelectedDate) return;
+
+        // Validation 1: Attraction Conflict
+        $dayAttractions = $this->dailyAttractions[$this->tempSelectedDate] ?? [];
+        foreach ($this->bookedAttractions as $att) {
+            if (in_array($att, $dayAttractions)) {
+                $this->dispatch('notify', title: 'Conflict!', message: "The attraction '$att' is already booked on this day.", type: 'error');
+                return;
+            }
         }
+
+        // Validation 2: Category Capacity Breach
+        $usageOnDay = $this->dailyUsage[$this->tempSelectedDate] ?? [];
+        foreach ($this->bookingImpact as $cat => $demand) {
+            $limit = $this->categoryLimits[$cat] ?? 0;
+            if ($limit > 0) {
+                $current = $usageOnDay[$cat] ?? 0;
+                if (($current + $demand) > $limit) {
+                    $this->dispatch('notify', title: 'Capacity Breach!', message: "Category '$cat' exceeds limit on this day ($current + $demand > $limit).", type: 'error');
+                    return;
+                }
+            }
+        }
+
+        $this->form['event_date'] = $this->tempSelectedDate;
+        $this->checkAvailability();
+        $this->dispatch('close-modal', 'calendarModal');
+        $this->dispatch('notify', title: 'Date Moved!', message: "Booking date set to " . Carbon::parse($this->tempSelectedDate)->format('d M Y'), type: 'success');
     }
 
     public function markAttachmentDeleted($field)
@@ -584,6 +677,56 @@ class EditBooking extends Component
         // Ensure dynamicExtras is an associative array (JSON object) for the JS bridge
         $this->saved_extras = (object)($this->dynamicExtras ?? []);
         $selectedItemsClean = $this->selectedItems;
+
+        // Calculate conflicts for current tempSelectedDate if any (Capacity Check Modal)
+        $this->modalConflicts = [];
+        $this->modalCapacityBreaches = [];
+        $this->modalNameConflicts = [];
+
+        if ($this->tempSelectedDate) {
+            // 1. Attraction Conflicts
+            $dayAtts = $this->dailyAttractions[$this->tempSelectedDate] ?? [];
+            foreach ($this->bookedAttractions as $myAtt) {
+                if (in_array($myAtt, $dayAtts)) {
+                    $this->modalConflicts[] = $myAtt;
+                }
+            }
+
+            // 2. Capacity Breaches
+            $usageOnDay = $this->dailyUsage[$this->tempSelectedDate] ?? [];
+            foreach ($this->bookingImpact as $cat => $demand) {
+                $limit = $this->categoryLimits[$cat] ?? 0;
+                if ($limit > 0) {
+                    $curr = $usageOnDay[$cat] ?? 0;
+                    if (($curr + $demand) > $limit) {
+                        $this->modalCapacityBreaches[$cat] = [
+                            'current' => $curr,
+                            'added' => $demand,
+                            'limit' => $limit
+                        ];
+                    }
+                }
+            }
+
+            // 3. Name Duplicates
+            $this->modalNameConflicts = Booking::where('customer_first_name', $this->booking->customer_first_name)
+                ->where('customer_last_name', $this->booking->customer_last_name)
+                ->where('event_date', $this->tempSelectedDate)
+                ->where('id', '!=', $this->booking->id)
+                ->whereNotIn('status', ['Cancelled'])
+                ->get()
+                ->toArray();
+
+            // Notify if newly discovered
+            if (!empty($this->modalNameConflicts) && $this->lastToastDate !== $this->tempSelectedDate) {
+                $this->dispatch('notify', 
+                    title: 'Duplicate Contact Detected', 
+                    message: "This customer already has a booking on " . \Carbon\Carbon::parse($this->tempSelectedDate)->format('d M Y'),
+                    type: 'warning'
+                );
+                $this->lastToastDate = $this->tempSelectedDate;
+            }
+        }
 
         // Note: passing just other standard variables.
         return view('livewire.supervisor.edit-booking', compact('deliveryOptions', 'durationOptions', 'activeCategories', 'selectedItemsClean'));

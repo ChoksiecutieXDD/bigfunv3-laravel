@@ -263,12 +263,13 @@
 
         .terms-section {
             font-size: 9px;
-            margin-top: 15px;
+            margin-top: 8px;
+            line-height: 1.25;
         }
 
         .terms-section ol {
-            padding-left: 20px;
-            margin-top: 5px;
+            padding-left: 15px;
+            margin-top: 2px;
         }
 
         .terms-section li {
@@ -283,13 +284,14 @@
         .cols-table td {
             width: 50%;
             vertical-align: top;
-            padding-right: 15px;
-            font-size: 8px;
+            padding-right: 12px;
+            font-size: 8.5px;
             text-align: justify;
+            line-height: 1.2;
         }
 
         .term-block {
-            margin-bottom: 8px;
+            margin-bottom: 3px;
         }
     </style>
 </head>
@@ -424,7 +426,7 @@
                             </span>
                         </div>
 
-                        @if($deposit_required > 0)
+                        @if($deposit_required > 0 && $balance_due > 0)
                             <div class="finance-row">
                                 <span class="fin-label">Deposit Required</span>
                                 <span class="fin-val">{{ money($deposit_required) }}</span>
@@ -606,49 +608,6 @@
         Thank you for booking with us - please carefully check the booking details and conditions of this booking, sign and send (mail or fax) back to us.
     </div>
 
-    <div class="terms-section">
-        <span class="bold">Booking Conditions:</span>
-        <ol>
-            <li>Your booking is now confirmed and guaranteed. Your deposit (at least 50%) is now due now. See below for payment options.</li>
-            <li>Bookings made within 7 days of the event date must be deposited within 24 hours.</li>
-            <li>Full payment is due no later than the day preceding the event.</li>
-            <li>Our inflatable rides (& Sumo suits) may not be suitable for children 12 years and younger. If you need to cater for this age group please contact us.</li>
-            <li>The employer shall accept full responsibility for providing a safe environment and for the safety of the performer, equipment and the audience during the performance.</li>
-            <li>An area sufficient to house the rides is required. If power is not available within 20 meters you may need to book a generator (power not required for some items). Big Fun accepts no responsibility if ample electricity has not been provided on the day of the event.</li>
-            <li>The employer agrees to provide an adequate number of attendants to maintain crowd control.</li>
-            <li>The employer shall indemnify the performer for any loss, damage or injury, actual or consequential, of whatever kind during the subsistence of this agreement. Please be aware self-supervised rides will not be covered by our insurance policy. Water rides are not covered.</li>
-            <li>The Employer may terminate this agreement by delivery of written notice to Big Fun not later than 21 days before the date of the performance. If such notice is not given full payment is due. All deposits are non-refundable.</li>
-        </ol>
-        <div style="font-style: italic;">I have read, understood and accept the booking and performance conditions above and overleaf.</div>
-    </div>
-
-    <div style="margin-top: 15px; border-bottom: 1px solid #000; padding-bottom: 10px;">
-        <div style="float:left; width: 50%;">
-            Signed __________________________________
-            <div style="font-size: 9px; margin-top: 2px;">(for & on behalf of employer/organisation/venue/promoter)</div>
-        </div>
-        <div style="float:right; width: 30%;">
-            Date ________________________
-        </div>
-        <div style="clear: both;"></div>
-    </div>
-
-    <div style="margin-top: 15px;">
-        <div style="float:left; width: 50%;">
-            <span class="bold" style="font-size: 11px;">Big Fun Queensland</span><br>
-            ABN: 20 956 190 125<br>
-            145 Ferguson Rd Seven Hills, 4170 QLD<br>
-            Email: bigfun.qld.au@gmail.com
-        </div>
-        <div style="float:right; width: 45%;">
-            <span class="bold">Payment Details:</span><br>
-            <span class="bold">Big Fun</span><br>
-            BSB 067872 Account Number 19935785<br>
-            Please include your invoice number or your full name as reference.<br>
-            Please pay 50% for the deposit and 50% on the week of the event.
-        </div>
-        <div style="clear: both;"></div>
-    </div>
 
     <div class="page-break"></div>
 
@@ -750,6 +709,61 @@
             </td>
         </tr>
     </table>
+
+    <div class="terms-section">
+        <span class="bold" style="font-size: 10px; border-bottom: 1px solid #000; display: block; margin-bottom: 5px;">Booking Conditions:</span>
+        <table class="cols-table">
+            <tr>
+                <td style="padding-right: 20px; font-size: 9px; text-align: left;">
+                    <ol style="margin: 0; padding-left: 15px;">
+                        <li>Your booking is now confirmed and guaranteed. Your deposit (at least 50%) is now due now. See below for payment options.</li>
+                        <li>Bookings made within 7 days of the event date must be deposited within 24 hours.</li>
+                        <li>Full payment is due no later than the day preceding the event.</li>
+                        <li>Our inflatable rides (& Sumo suits) may not be suitable for children 12 years and younger.</li>
+                        <li>The employer shall accept full responsibility for providing a safe environment and for the safety of the performer and equipment.</li>
+                    </ol>
+                </td>
+                <td style="font-size: 9px; text-align: left;">
+                    <ol start="6" style="margin: 0; padding-left: 15px;">
+                        <li>An area sufficient to house the rides is required. If power is not available within 20m you may need a generator.</li>
+                        <li>The employer agrees to provide an adequate number of attendants to maintain crowd control.</li>
+                        <li>The employer shall indemnify the performer for any loss, damage or injury during the subsistence of this agreement.</li>
+                        <li>Employer may terminate this agreement by written notice not later than 21 days before delivery. Deposits are non-refundable.</li>
+                    </ol>
+                </td>
+            </tr>
+        </table>
+        <div style="font-style: italic; margin-top: 5px; font-size: 8.5px;">I have read, understood and accept the booking and performance conditions above.</div>
+    </div>
+
+    <div style="margin-top: 25px; border-bottom: 1px solid #000; padding-bottom: 15px;">
+        <div style="float:left; width: 50%;">
+            <span style="font-size: 11px;">Signed</span> <span style="font-size: 11px;">__________________________________________</span>
+            <div style="font-size: 9px; margin-top: 6px; color: #444;">(for & on behalf of employer/organisation/venue/promoter)</div>
+        </div>
+        <div style="float:right; width: 35%;">
+            <span style="font-size: 11px;">Date</span> <span style="font-size: 11px;">________________________</span>
+        </div>
+        <div style="clear: both;"></div>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <div style="float:left; width: 55%;">
+            <span class="bold" style="font-size: 11px;">Big Fun Queensland</span><br>
+            <span style="font-size: 9px; line-height: 1.4;">
+                ABN: 20 956 190 125 | 145 Ferguson Rd Seven Hills, 4170 QLD<br>
+                Email: bigfun.qld.au@gmail.com
+            </span>
+        </div>
+        <div style="float:right; width: 40%;">
+            <span class="bold" style="font-size: 11px;">Payment Details:</span><br>
+            <div style="font-size: 9px; line-height: 1.4;">
+                BSB 067872 Acc: 19935785 | Ref: Invoice # or Full Name<br>
+                Please pay 50% for deposit & 50% week of event.
+            </div>
+        </div>
+        <div style="clear: both;"></div>
+    </div>
 
 </body>
 </html>

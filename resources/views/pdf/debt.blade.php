@@ -11,7 +11,7 @@
 
     // --- FINANCIALS ---
     $total_amount = (float)($booking->total_amount ?? 0);
-    $amount_paid = isset($amountPaid) ? (float)$amountPaid : (isset($booking->amount_paid) ? (float)$booking->amount_paid : (float)($booking->payments ? $booking->payments->sum('amount') : 0));
+    $amount_paid = (float)($booking->payments ? $booking->payments->sum('amount') : 0);
     $balance_due  = $total_amount - $amount_paid;
 
     // Payment Type Logic
@@ -87,7 +87,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <style>
         @page {
-            margin: 40px;
+            margin: 0.7in 0.5in 1in 0.5in;
         }
 
         body {
@@ -121,20 +121,28 @@
             text-transform: uppercase;
         }
 
-        /* Watermark Stamp - Positioned relative to totals container */
-        .overdue-stamp {
+        /* Watermark Stamp styles */
+        .stamp {
             position: absolute;
             top: 5px;
             right: 20px;
-            border: 4px solid #d9534f;
-            color: #d9534f;
+            border: 4px solid #28a745;
+            color: #28a745;
             font-size: 40px;
             font-weight: bold;
             padding: 5px 15px;
             text-transform: uppercase;
             transform: rotate(-10deg);
-            opacity: 0.3; /* Increased for better visibility over text */
-            z-index: 9999; /* Maintain front placement */
+            opacity: 0.3;
+            z-index: 9999;
+        }
+        .stamp-partial {
+            border-color: #ffc107;
+            color: #ffc107;
+        }
+        .stamp-debt {
+            border-color: #d9534f;
+            color: #d9534f;
         }
 
         .row {
@@ -231,16 +239,18 @@
         }
 
         .footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
+            margin-top: 30px;
             font-size: 10px;
             text-align: center;
             border-top: 1px solid #ccc;
-            padding-top: 10px;
+            padding-top: 15px;
             color: #555;
+            width: 100%;
+        }
+
+        .totals-section {
+            page-break-inside: avoid;
+            position: relative;
         }
     </style>
 </head>
@@ -434,57 +444,69 @@
     </table>
 
 
-    <div style="position: relative; float: right; width: 55%; margin-top: 10px;">
-        <table class="totals-table" style="width: 100%; float: none;">
-            @if($isCard && $surcharge > 0)
-                <tr>
-                    <td>Base Amount:</td>
-                    <td style="text-align:right;">{{ money($baseAmount) }}</td>
-                </tr>
-                <tr>
-                    <td>Card Fee (+2.9%):</td>
-                    <td style="text-align:right;">{{ money($surcharge) }}</td>
-                </tr>
-                <tr>
-                    <td><strong>Total Invoice Amount:</strong></td>
-                    <td style="text-align:right;"><strong>{{ money($total_amount) }}</strong></td>
-                </tr>
-            @else
-                <tr>
-                    <td>Total Invoice Amount:</td>
-                    <td style="text-align:right;">{{ money($total_amount) }}</td>
-                </tr>
-            @endif
-    
+    <div style="margin-top: 20px;">
+        {{-- Layout Table for Totals and Stamp --}}
+        <table style="width: 100%; border: none; margin-top: 10px;">
             <tr>
-                <td>Total Paid to Date:</td>
-                <td style="text-align:right;">{{ money($amount_paid) }}</td>
-            </tr>
-    
-            <tr class="total-row">
-                <td>Amount Outstanding:</td>
-                <td style="text-align:right;">{{ money($balance_due) }}</td>
+                <td style="width: 40%; vertical-align: top; border: none; padding: 0;">
+                    <div style="font-size: 11px; line-height: 1.5;">
+                        <span class="bold">Payment Instructions:</span><br>
+                        All payments via Electronic Funds Transfer (EFT).<br>
+                        Please quote Invoice No <strong>{{ $invNo }}</strong>.<br>
+                        Questions? Phone 1800 244 386.
+                    </div>
+                </td>
+                <td style="width: 60%; vertical-align: top; border: none; padding: 0;">
+                    <div class="totals-section">
+                        <table class="totals-table" style="width: 100%; float: none;">
+                            @if($isCard && $surcharge > 0)
+                                <tr>
+                                    <td>Base Amount:</td>
+                                    <td style="text-align:right;">{{ money($baseAmount) }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Card Fee (+2.9%):</td>
+                                    <td style="text-align:right;">{{ money($surcharge) }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Invoice Amount:</strong></td>
+                                    <td style="text-align:right;"><strong>{{ money($total_amount) }}</strong></td>
+                                </tr>
+                            @else
+                                <tr>
+                                    <td>Total Invoice Amount:</td>
+                                    <td style="text-align:right;">{{ money($total_amount) }}</td>
+                                </tr>
+                            @endif
+                    
+                            <tr>
+                                <td>Total Paid to Date:</td>
+                                <td style="text-align:right;">{{ money($amount_paid) }}</td>
+                            </tr>
+                    
+                            <tr class="total-row">
+                                <td>Amount Outstanding:</td>
+                                <td style="text-align:right;">{{ money($balance_due) }}</td>
+                            </tr>
+                        </table>
+                        
+                        @if($balance_due <= 0.01)
+                            <div class="stamp">PAID</div>
+                        @elseif($amount_paid > 0)
+                            <div class="stamp stamp-partial">PARTIAL</div>
+                        @else
+                            <div class="stamp stamp-debt">DEBT</div>
+                        @endif
+                    </div>
+                </td>
             </tr>
         </table>
-        
-        @if($balance_due > 0)
-            <div class="overdue-stamp">OVERDUE</div>
-        @endif
-    </div>
 
-    <div class="clear"></div>
-
-    <div style="margin-top: 40px; font-size: 11px; line-height: 1.5;">
-        <strong>Payment Instructions:</strong><br>
-        All payments should be made via Electronic Funds Transfer (EFT) to Big Fun.<br>
-        Please quote Invoice No <strong>{{ $invNo }}</strong> as the payment reference.<br>
-        If you have any questions or to discuss this account, please phone our office on 1800 244 386.
-    </div>
-
-    <div class="footer">
-        <strong>Big Fun Queensland</strong> | ABN: 20 956 190 125 <br>
-        145 Ferguson Rd Seven Hills, 4170 QLD | 1800 244 386<br>
-        This is an automatically generated document.
+        <div class="footer">
+            <strong>Big Fun Queensland</strong> | ABN: 20 956 190 125 <br>
+            145 Ferguson Rd Seven Hills, 4170 QLD | 1800 244 386<br>
+            This is an automatically generated document.
+        </div>
     </div>
 
 </body>

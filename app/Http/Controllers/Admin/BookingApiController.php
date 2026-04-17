@@ -246,7 +246,6 @@ class BookingApiController extends Controller
                     $date = $request->input('date');
                     $firstName = trim($request->input('first_name', ''));
                     $lastName = trim($request->input('last_name', ''));
-                    $email = trim($request->input('email', ''));
                     $currentInvoice = $request->input('current_invoice', '');
                     $warnings = [];
 
@@ -263,23 +262,7 @@ class BookingApiController extends Controller
                                     });
                             })->count();
                         if ($cnt > 0) {
-                            $warnings[] = "Customer <strong>$firstName $lastName</strong> already has a booking on <strong>$date</strong>.";
-                        }
-                    }
-
-                    if ($date && $email) {
-                        $cnt = DB::table('bookings')
-                            ->where('event_date', $date)
-                            ->where('customer_email', $email)
-                            ->where('invoice_number', '!=', $currentInvoice)
-                            ->where(function ($q) {
-                                $q->whereIn('status', ['Pending', 'Confirmed', 'Paid'])
-                                    ->orWhere(function ($q2) {
-                                        $q2->where('status', 'Draft')->where('created_at', '>=', now()->subMinutes(20));
-                                    });
-                            })->count();
-                        if ($cnt > 0) {
-                            $warnings[] = "The email <strong>$email</strong> is already used for a booking on <strong>$date</strong>.";
+                            $warnings[] = "Customer <strong>$firstName $lastName</strong> already has a booking/draft scheduled for <strong>$date</strong>.";
                         }
                     }
                     return response()->json(['success' => true, 'status' => 'success', 'warnings' => $warnings]);

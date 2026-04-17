@@ -23,6 +23,7 @@ let duplicateCheckTimer;
 let calCursor = new Date();
 let lastCalRenderMonth = -1;
 let lastCalRenderYear = -1;
+window.hasBookingDuplicates = false;
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('bookingApp', () => ({
@@ -46,6 +47,7 @@ document.addEventListener('alpine:init', () => {
             costDecrease: false,
             negativeBalance: false,
             costDelta: 0,
+            saveDuplicateConfirm: false,
         },
         limitExceededCategory: '',
         limitExceededLimit: 0,
@@ -140,7 +142,14 @@ document.addEventListener('alpine:init', () => {
             
             this.modals.history = false;
             showToast("Details Filled", "Customer information has been populated.", "success");
-            checkDuplicates();
+            
+            // Trigger duplicate check asynchronously and toast if found
+            setTimeout(async () => {
+                const found = await checkDuplicates();
+                if (found) {
+                    showToast("Duplicate Detected", "This customer already has a booking/draft scheduled for the selected date.", "warning");
+                }
+            }, 100);
         },
 
         togglePaymentStatus() {
@@ -299,46 +308,63 @@ window.apiPost = async function(action, payload = null) {
     }
 };
 
-window.checkDuplicates = function() {
-    clearTimeout(duplicateCheckTimer);
-    duplicateCheckTimer = setTimeout(async () => {
-        const dateEl = document.getElementById('event_date');
-        const fNameEl = document.getElementById('cust_first_name');
-        const lNameEl = document.getElementById('cust_last_name');
-        const emailEl = document.getElementById('customer_email_address');
-        const invoiceEl = document.getElementById('invoice_number');
+window.checkDuplicates = async function() {
+    // We optionally use a timer for blur events, but for fillCustomerDetails we call it directly.
+    const dateEl = document.getElementById('event_date');
+    const fNameEl = document.getElementById('cust_first_name');
+    const lNameEl = document.getElementById('cust_last_name');
+    const invoiceEl = document.getElementById('invoice_number');
 
-        if (!dateEl) return;
-        
-        const date = dateEl.value;
-        const fName = fNameEl ? fNameEl.value.trim() : '';
-        const lName = lNameEl ? lNameEl.value.trim() : '';
-        const email = emailEl ? emailEl.value.trim() : '';
-        const invoice = invoiceEl ? invoiceEl.value : '';
+    const date = dateEl ? dateEl.value : '';
+    const firstName = fNameEl ? fNameEl.value.trim() : '';
+    const lastName = lNameEl ? lNameEl.value.trim() : '';
+    const invoice = invoiceEl ? invoiceEl.value : '';
 
-        if (!date || (!email && (!fName || !lName))) return;
-
+    if (date && firstName && lastName) {
         try {
             const data = await apiPost('check_duplicates', {
                 date: date,
-                first_name: fName,
-                last_name: lName,
-                email: email,
+                first_name: firstName,
+                last_name: lastName,
                 current_invoice: invoice
             });
-            if (data.warnings && data.warnings.length > 0) {
+            
+            const hasDupes = data.warnings && data.warnings.length > 0;
+            window.hasBookingDuplicates = hasDupes;
+
+            if (hasDupes) {
+                const warningHtml = data.warnings.map(w => `<p>• ${w}</p>`).join('');
+                
+                // Main Form Banner
                 const bannerBody = document.getElementById('duplicateBannerBody');
-                if (bannerBody) bannerBody.innerHTML = data.warnings.map(w => `<p>• ${w}</p>`).join('');
+                if (bannerBody) bannerBody.innerHTML = warningHtml;
                 const banner = document.getElementById('duplicateBanner');
                 if (banner) banner.classList.remove('hidden');
+
+                // Review Modal Banner
+                const revBannerBody = document.getElementById('rev_duplicate_list');
+                if (revBannerBody) revBannerBody.innerHTML = warningHtml;
+                const revBanner = document.getElementById('rev_duplicate_warning');
+                if (revBanner) revBanner.classList.remove('hidden');
             } else {
                 const banner = document.getElementById('duplicateBanner');
                 if (banner) banner.classList.add('hidden');
+
+                const revBanner = document.getElementById('rev_duplicate_warning');
+                if (revBanner) revBanner.classList.add('hidden');
             }
+            return hasDupes;
         } catch (e) {
             console.error("Duplicate check failed", e);
         }
-    }, 500);
+    } else {
+        window.hasBookingDuplicates = false;
+        const banner = document.getElementById('duplicateBanner');
+        if (banner) banner.classList.add('hidden');
+        const revBanner = document.getElementById('rev_duplicate_warning');
+        if (revBanner) revBanner.classList.add('hidden');
+    }
+    return false;
 };
 
 function fmtDate(d) {
@@ -434,6 +460,7 @@ window.selectDate = function(dateStr, left) {
 
 window.dateChanged = function() {
     checkRealTimeAvailability();
+    checkDuplicates(); // Re-verify duplicates whenever the date changes
 };
 
 
@@ -878,7 +905,10 @@ window.calculateFinalTotals = function() {
     if (depAmount) depAmount.value = (tot / 2).toFixed(2);
 };
 
-window.openReviewModal = function() {
+window.openReviewModal = async function() {
+    // Re-verify duplicates before opening modal to ensure state is fresh
+    await checkDuplicates();
+
     const dateEl = document.getElementById('event_date');
     const startEl = document.getElementById('start_time');
     const endEl = document.getElementById('end_time');
@@ -908,6 +938,18 @@ window.openReviewModal = function() {
     if (!phone) missing.push("Mobile");
     if (!addr) missing.push("Address");
     if (delZone === "") missing.push("Delivery Zone");
+
+    if (missing.length > 0) {
+        const warningBox = document.getElementById('rev_missing_warning');
+        const listEl = document.getElementById('rev_missing_list');
+        if (warningBox && listEl) {
+            listEl.innerHTML = missing.map(m => `<li>${m}</li>`).join('');
+            warningBox.classList.remove('hidden');
+        }
+    } else {
+        const warningBox = document.getElementById('rev_missing_warning');
+        if (warningBox) warningBox.classList.add('hidden');
+    }
 
     const checkedRides = document.querySelectorAll('.ride-checkbox:checked');
     if (checkedRides.length === 0) {
@@ -1061,6 +1103,16 @@ window.openReviewModal = function() {
         if (warningBox) warningBox.classList.remove('hidden');
     } else {
         if (warningBox) warningBox.classList.add('hidden');
+    }
+
+    // Sync Duplicate Banner for Review Modal
+    const revDupBanner = document.getElementById('rev_duplicate_warning');
+    if (revDupBanner) {
+        if (window.hasBookingDuplicates) {
+            revDupBanner.classList.remove('hidden');
+        } else {
+            revDupBanner.classList.add('hidden');
+        }
     }
 
     alpine.modals.review = true;

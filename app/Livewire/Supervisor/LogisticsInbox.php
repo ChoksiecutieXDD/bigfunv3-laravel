@@ -349,8 +349,7 @@ class LogisticsInbox extends Component
 
         // 1. Smart Debt Warning (Even for first send)
         $isOverdue = Carbon::parse($booking->event_date)->startOfDay()->isBefore(now()->startOfDay());
-        $isCompleted = $booking->status === 'Completed';
-        $hasDebt = $balanceDue > 0 && ($isOverdue || $isCompleted);
+        $hasDebt = $balanceDue > 0 && $isOverdue;
 
         if ($hasDebt && in_array($type, ['receipt', 'invoice', 'po'])) {
             $warnings[] = "This booking has an outstanding debt of $" . number_format($balanceDue, 2) . ".";
@@ -551,7 +550,10 @@ class LogisticsInbox extends Component
         }
         $orders = $ordersQuery->orderBy('event_date', 'asc')->paginate(10, ['*'], 'page_ord');
 
-        $debtorsQuery = Booking::with('payments')->where('status', 'Completed')->whereColumn('total_amount', '>', 'amount_paid');
+        $debtorsQuery = Booking::with('payments')
+            ->where('status', 'Completed')
+            ->whereColumn('total_amount', '>', 'amount_paid')
+            ->where('event_date', '<', now()->toDateString());
         if ($this->search_deb) {
             $debtorsQuery->where(function ($q) {
                 $q->where('customer_first_name', 'like', "%{$this->search_deb}%")

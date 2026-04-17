@@ -60,6 +60,13 @@ class BookingOverview extends Component
     public $calYear;
     public $calDays = [];
     public $tempSelectedDate;
+    public $bookedAttractions = []; // For the current booking
+    public $dailyAttractions = []; // To store what's booked each day this month
+    public $categoryLimits = [];   // [category_name => limit]
+    public $dailyUsage = [];       // [date => [category_name => count]]
+    public $bookingImpact = [];
+    public $modalNameConflicts = [];
+    public $lastToastDate = null;    // [category_name => count] for current booking
 
     // --- Detail Selection ---
     public $selectedPayment;
@@ -134,6 +141,74 @@ class BookingOverview extends Component
 
     public function moveDate()
     {
+        // 1. ATTRACTION CONFLICT CHECK
+        $currentItems = BookingItem::where('booking_id', $this->booking->id)
+            ->where('is_custom', 0)
+            ->pluck('item_name')
+            ->toArray();
+
+        // Find conflicts on the new date
+        $conflicts = DB::table('booking_items')
+            ->join('bookings', 'booking_items.booking_id', '=', 'bookings.id')
+            ->where('bookings.event_date', $this->newDate)
+            ->where('bookings.id', '!=', $this->booking->id)
+            ->whereNotIn('bookings.status', ['Cancelled'])
+            ->whereIn('booking_items.item_name', $currentItems)
+            ->pluck('booking_items.item_name')
+            ->unique()
+            ->toArray();
+
+        if (!empty($conflicts)) {
+            $this->dispatch('notify', 
+                title: 'Move Blocked', 
+                message: 'Conflict detected: ' . implode(', ', $conflicts) . ' already booked for this day.',
+                type: 'error'
+            );
+            return;
+        }
+
+        // 2. CATEGORY LIMIT CHECK
+        $impact = DB::table('booking_items')
+            ->join('products', 'booking_items.item_name', '=', 'products.name')
+            ->where('booking_items.booking_id', $this->booking->id)
+            ->where('booking_items.is_custom', 0)
+            ->selectRaw('COALESCE(NULLIF(products.counts_against, ""), products.category) as cat, SUM(booking_items.qty) as total')
+            ->groupBy('cat')
+            ->pluck('total', 'cat')
+            ->toArray();
+
+        $usage = DB::table('booking_items')
+            ->join('bookings', 'booking_items.booking_id', '=', 'bookings.id')
+            ->join('products', 'booking_items.item_name', '=', 'products.name')
+            ->where('bookings.event_date', $this->newDate)
+            ->whereNotIn('bookings.status', ['Cancelled'])
+            ->where('bookings.id', '!=', $this->booking->id)
+            ->where('booking_items.is_custom', 0)
+            ->selectRaw('COALESCE(NULLIF(products.counts_against, ""), products.category) as cat, SUM(booking_items.qty) as total')
+            ->groupBy('cat')
+            ->pluck('total', 'cat')
+            ->toArray();
+
+        $limits = DB::table('product_categories')
+            ->where('daily_limit', '>', 0)
+            ->pluck('daily_limit', 'category_name')
+            ->toArray();
+
+        foreach ($impact as $cat => $qty) {
+            $limit = $limits[$cat] ?? 0;
+            if ($limit > 0) {
+                $current = $usage[$cat] ?? 0;
+                if ($current + $qty > $limit) {
+                    $this->dispatch('notify', 
+                        title: 'Move Blocked', 
+                        message: "The daily limit for '{$cat}' has been reached on this date.",
+                        type: 'error'
+                    );
+                    return;
+                }
+            }
+        }
+
         // Capture original date on FIRST move only
         if (empty($this->booking->original_event_date)) {
             $this->booking->original_event_date = $this->booking->getOriginal('event_date') ?? $this->booking->event_date;
@@ -233,6 +308,14 @@ class BookingOverview extends Component
             'card_cvv' => $this->payMethod === 'Card Holder' ? $this->cardCvv : null,
             'card_network' => $this->payMethod === 'Card Holder' ? $this->cardNetwork : null,
         ]);
+
+        // RE-CALCULATE AND UPDATE CACHED COLUMNS
+        $totalPaid = BookingPayment::where('booking_id', $this->booking->id)->sum('amount');
+        $this->booking->update([
+            'amount_paid' => $totalPaid,
+            'owing_amount' => max(0, (float)$this->booking->total_amount - $totalPaid)
+        ]);
+        $this->booking->refresh();
 
         // Sync to Google Sheet (Update debt info)
         app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
@@ -469,6 +552,33 @@ class BookingOverview extends Component
     public function openCalendarModal()
     {
         $this->tempSelectedDate = $this->booking->event_date;
+        
+        // 1. Current Booking Attractions
+        $this->bookedAttractions = BookingItem::where('booking_id', $this->booking->id)
+            ->where('is_custom', 0)
+            ->pluck('item_name')
+            ->unique()
+            ->toArray();
+
+        // 2. Category Limits
+        $this->categoryLimits = DB::table('product_categories')
+            ->where('daily_limit', '>', 0)
+            ->pluck('daily_limit', 'category_name')
+            ->toArray();
+
+        // 3. Current Booking Impact per Category
+        $impactSub = DB::table('booking_items')
+            ->join('products', 'booking_items.item_name', '=', 'products.name')
+            ->where('booking_items.booking_id', $this->booking->id)
+            ->where('booking_items.is_custom', 0)
+            ->selectRaw('COALESCE(NULLIF(products.counts_against, ""), products.category) as cat, booking_items.qty');
+
+        $this->bookingImpact = DB::table($impactSub, 't')
+            ->selectRaw('cat, SUM(qty) as total')
+            ->groupBy('cat')
+            ->pluck('total', 'cat')
+            ->toArray();
+
         $this->loadCalendar();
         $this->dispatch('open-modal', 'calendarModal');
     }
@@ -494,12 +604,48 @@ class BookingOverview extends Component
         $start = Carbon::create($this->calYear, $this->calMonth, 1);
         $end = $start->copy()->endOfMonth();
 
+        // Get daily counts
         $counts = Booking::whereBetween('event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
             ->whereNotIn('status', ['Cancelled'])
             ->selectRaw('event_date, COUNT(*) as cnt')
             ->groupBy('event_date')
             ->pluck('cnt', 'event_date')
             ->toArray();
+
+        // Get daily attractions names for conflict dots/warnings
+        $attractions = DB::table('booking_items')
+            ->join('bookings', 'booking_items.booking_id', '=', 'bookings.id')
+            ->whereBetween('bookings.event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+            ->whereNotIn('bookings.status', ['Cancelled'])
+            ->where('bookings.id', '!=', $this->booking->id) // Exclude current booking
+            ->where('booking_items.is_custom', 0)
+            ->select('bookings.event_date', 'booking_items.item_name')
+            ->get()
+            ->groupBy('event_date')
+            ->map(fn($group) => $group->pluck('item_name')->unique()->values()->toArray())
+            ->toArray();
+
+        $this->dailyAttractions = $attractions;
+
+        // Get daily category usage using subquery for SQL compatibility
+        $usageSub = DB::table('booking_items')
+            ->join('bookings', 'booking_items.booking_id', '=', 'bookings.id')
+            ->join('products', 'booking_items.item_name', '=', 'products.name')
+            ->whereBetween('bookings.event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+            ->whereNotIn('bookings.status', ['Cancelled'])
+            ->where('bookings.id', '!=', $this->booking->id)
+            ->where('booking_items.is_custom', 0)
+            ->selectRaw('bookings.event_date, COALESCE(NULLIF(products.counts_against, ""), products.category) as cat, booking_items.qty');
+
+        $usage = DB::table($usageSub, 't')
+            ->selectRaw('event_date, cat, SUM(qty) as total')
+            ->groupBy('event_date', 'cat')
+            ->get()
+            ->groupBy('event_date')
+            ->map(fn($group) => $group->pluck('total', 'cat')->toArray())
+            ->toArray();
+
+        $this->dailyUsage = $usage;
 
         $daysInMonth = $start->daysInMonth;
         $startDow = $start->dayOfWeek;
@@ -515,10 +661,29 @@ class BookingOverview extends Component
         for ($day = 1; $day <= $daysInMonth; $day++) {
             $dateStr = $start->copy()->day($day)->format('Y-m-d');
             $used = $counts[$dateStr] ?? 0;
+            $dayItems = $attractions[$dateStr] ?? [];
+            $dayUsage = $usage[$dateStr] ?? [];
+
+            // Check if ANY category in this day is over capacity for the current booking
+            $hasCapBreach = false;
+            foreach ($this->bookingImpact as $cat => $qty) {
+                $limit = $this->categoryLimits[$cat] ?? 0;
+                if ($limit > 0) {
+                    $current = $dayUsage[$cat] ?? 0;
+                    if ($current + $qty > $limit) {
+                        $hasCapBreach = true;
+                        break;
+                    }
+                }
+            }
+            
             $this->calDays[] = [
                 'date' => $dateStr,
                 'day' => $day,
-                'left' => max(0, $dailyLimit - $used)
+                'left' => max(0, $dailyLimit - $used),
+                'items' => $dayItems,
+                'usage' => $dayUsage,
+                'breach' => $hasCapBreach
             ];
         }
     }
@@ -526,6 +691,28 @@ class BookingOverview extends Component
     public function applySelectedDate()
     {
         if ($this->tempSelectedDate) {
+            // 1. Conflict Check
+            $dayItems = $this->dailyAttractions[$this->tempSelectedDate] ?? [];
+            $conflicts = array_intersect($this->bookedAttractions, $dayItems);
+            
+            if (!empty($conflicts)) {
+                $this->dispatch('notify', title: 'Invalid Selection', message: 'You cannot move to this date due to attraction conflicts.', type: 'error');
+                return;
+            }
+
+            // 2. Category Limit Check
+            $dayUsage = $this->dailyUsage[$this->tempSelectedDate] ?? [];
+            foreach ($this->bookingImpact as $cat => $qty) {
+                $limit = $this->categoryLimits[$cat] ?? 0;
+                if ($limit > 0) {
+                    $current = $dayUsage[$cat] ?? 0;
+                    if ($current + $qty > $limit) {
+                        $this->dispatch('notify', title: 'Category Limit', message: "Moving to this date exceeds the daily limit for {$cat}.", type: 'error');
+                        return;
+                    }
+                }
+            }
+
             $this->newDate = \Carbon\Carbon::parse($this->tempSelectedDate)->format('Y-m-d');
             $this->dispatch('close-modal', 'calendarModal');
         }
@@ -545,10 +732,63 @@ class BookingOverview extends Component
         $payments = BookingPayment::where('booking_id', $this->booking->id)->orderBy('payment_date', 'asc')->get();
         $emailLogs = DB::table('email_logs')->where('booking_id', $this->booking->id)->orderBy('sent_at', 'desc')->get();
 
+        $modalConflicts = [];
+        $modalCapacityBreaches = [];
+        $this->modalNameConflicts = [];
+
+        if ($this->tempSelectedDate) {
+            // Attraction Conflict
+            $dayItems = $this->dailyAttractions[$this->tempSelectedDate] ?? [];
+            $modalConflicts = array_intersect($this->bookedAttractions, $dayItems);
+
+            // Capacity Breach
+            $dayUsage = $this->dailyUsage[$this->tempSelectedDate] ?? [];
+            foreach ($this->bookingImpact as $cat => $qty) {
+                $limit = $this->categoryLimits[$cat] ?? 0;
+                if ($limit > 0) {
+                    $current = $dayUsage[$cat] ?? 0;
+                    if ($current + $qty > $limit) {
+                        $modalCapacityBreaches[$cat] = [
+                            'current' => $current,
+                            'added' => $qty,
+                            'limit' => $limit
+                        ];
+                    }
+                }
+            }
+
+            // Name Duplicate Check
+            $this->modalNameConflicts = Booking::where('customer_first_name', $this->booking->customer_first_name)
+                ->where('customer_last_name', $this->booking->customer_last_name)
+                ->where('event_date', $this->tempSelectedDate)
+                ->where('id', '!=', $this->booking->id)
+                ->whereNotIn('status', ['Cancelled'])
+                ->get()
+                ->toArray();
+
+            // Notify if newly discovered
+            if (!empty($this->modalNameConflicts) && $this->lastToastDate !== $this->tempSelectedDate) {
+                $this->dispatch('notify', 
+                    title: 'Duplicate Contact Detected', 
+                    message: "This customer already has a booking on " . \Carbon\Carbon::parse($this->tempSelectedDate)->format('d M Y'),
+                    type: 'warning'
+                );
+                $this->lastToastDate = $this->tempSelectedDate;
+            }
+        }
+
         $amountPaid = $payments->sum('amount');
         $totalAmount = (float) $this->booking->total_amount;
         $balanceDue = max(0, $totalAmount - $amountPaid);
         $depositReq = $this->booking->deposit_required > 0 ? $this->booking->deposit_required : ($totalAmount / 2);
+
+        // Check if Debt Indicators should be active (Must have balance AND be in the past)
+        $isPastDate = Carbon::parse($this->booking->event_date)->startOfDay()->isBefore(now()->startOfDay());
+        $isDebt = $balanceDue > 0 && ($isPastDate || $this->booking->status === 'Completed');
+        // Actually, the user wants it to ONLY activate if the date has passed.
+        // But usually, if it's marked 'Completed' manually, it might be a debt too.
+        // Let's stick closer to the user's wish: "it will activate if the date of event has passed on"
+        $isDebt = $balanceDue > 0 && $isPastDate;
 
         $extrasList = array_merge(
             json_decode($this->booking->general_extra ?? '[]', true) ?? [],
@@ -638,7 +878,10 @@ class BookingOverview extends Component
             'galleryFiles',
             'activeCategories',
             'config',
-            'selectedExtras'
+            'selectedExtras',
+            'modalConflicts',
+            'modalCapacityBreaches',
+            'isDebt'
         ));
     }
 }

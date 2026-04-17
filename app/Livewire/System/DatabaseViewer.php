@@ -18,6 +18,10 @@ class DatabaseViewer extends Component
 
     public function mount()
     {
+        if (!session('system_unlocked')) {
+            return redirect()->route('system.settings');
+        }
+
         // 1. Fetch all tables in the database
         $tablesList = DB::select('SHOW TABLES');
 

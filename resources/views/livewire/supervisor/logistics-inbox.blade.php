@@ -173,10 +173,17 @@
                                     <a href="{{ route('supervisor.bookings.overview', ['id' => $row->id, 'back' => route('supervisor.logistics')]) }}"
                                         class="bg-gray-100 text-gray-600 hover:bg-[#9E6B73] hover:text-white transition text-[10px] font-bold px-2 py-0.5 rounded border border-gray-200 no-underline">ID: #{{ $row->id }}</a>
                                     <span class="text-[10px] text-gray-400">{{ \Carbon\Carbon::parse($row->event_date)->format('d/m/y') }}</span>
-                                    @if($outstanding > 0)
-                                    <span class="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[9px] font-black border border-red-100 uppercase tracking-tighter">Debt</span>
+                                    @php
+                                        $isOverdue = \Carbon\Carbon::parse($row->event_date)->startOfDay()->isBefore(now()->startOfDay());
+                                        $isCompleted = $row->status === 'Completed';
+                                        $showDebt = $outstanding > 0 && ($isOverdue || $isCompleted);
+                                    @endphp
+                                    @if($showDebt)
+                                        <span class="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[9px] font-black border border-red-100 uppercase tracking-tighter">Debt</span>
+                                    @elseif($outstanding > 0)
+                                        <span class="bg-amber-50 text-amber-600 px-2 py-0.5 rounded text-[9px] font-black border border-amber-100 uppercase tracking-tighter">Owe</span>
                                     @else
-                                    <span class="bg-green-50 text-green-600 px-2 py-0.5 rounded text-[9px] font-black border border-green-100 uppercase tracking-tighter">Paid</span>
+                                        <span class="bg-green-50 text-green-600 px-2 py-0.5 rounded text-[9px] font-black border border-green-100 uppercase tracking-tighter">Paid</span>
                                     @endif
                                 </div>
                             </div>

@@ -16,7 +16,8 @@
         selectedLogToDelete: null,
         deleteLegacyModal: false,
         quotaWarningModal: false,
-        quotaLimitModal: false
+        quotaLimitModal: false,
+        termsConfirmModal: false
     }"
     class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
@@ -31,7 +32,7 @@
             </div>
         </div>
         <div class="flex flex-wrap items-center gap-4">
-            @if($balanceDue > 0 && $booking->status === 'Completed')
+            @if($isDebt)
             <span class="bg-red-50 text-red-600 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border border-red-200 shadow-sm flex items-center gap-1">
                 <span class="material-symbols-rounded text-sm">warning</span> Debt: ${{ number_format($balanceDue, 2) }}
             </span>
@@ -109,7 +110,7 @@
                     <button wire:click="openEmailModal('po')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E] active:scale-95">
                         <i class="fa-regular fa-file-lines"></i> Email PO
                     </button>
-                    @if($balanceDue > 0 && $booking->status === 'Completed')
+                    @if($isDebt)
                     <button wire:click="openEmailModal('debt')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition whitespace-nowrap bg-red-600 border border-red-600 text-white shadow-sm hover:bg-white hover:text-red-600 active:scale-95">
                         <i class="fa-solid fa-file-invoice-dollar"></i> Email Debt
                     </button>
@@ -121,7 +122,7 @@
                     <a href="{{ route('pdf.invoice', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E] no-underline"><i class="fa-solid fa-print"></i> Invoice</a>
                     <a href="{{ route('pdf.envelope', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E] no-underline"><i class="fa-solid fa-envelope-open-text"></i> Envelope</a>
                     <a href="{{ route('pdf.po', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E] no-underline"><i class="fa-solid fa-file-invoice"></i> PO/Quote</a>
-                    @if($balanceDue > 0 && $booking->status === 'Completed')
+                    @if($isDebt)
                     <a href="{{ route('pdf.debt', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition whitespace-nowrap bg-red-600 border border-red-600 text-white shadow-sm hover:bg-white hover:text-red-600 no-underline"><i class="fa-solid fa-file-invoice-dollar"></i> Debt</a>
                     @endif
                 </div>
@@ -389,8 +390,16 @@
         <div class="mt-4 border-t border-gray-100 pt-4 flex flex-wrap justify-between items-center gap-4">
             <div class="flex items-center gap-2 text-xs">
                 <span class="text-gray-500">Terms Agreed?</span>
-                <button wire:click="toggleTerms" class="px-1.5 py-0.5 rounded text-[10px] font-bold transition {{ $booking->terms_agreed ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-red-50 text-red-600 hover:bg-red-100' }}">
-                    {{ $booking->terms_agreed ? 'Yes' : 'No' }}
+                <button @click="termsConfirmModal = true" 
+                        wire:loading.attr="disabled"
+                        class="px-2 py-1 rounded text-[10px] font-bold transition flex items-center gap-1.5 {{ $booking->terms_agreed ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-red-50 text-red-600 hover:bg-red-100' }}">
+                    <span wire:loading.remove wire:target="toggleTerms">
+                        {{ $booking->terms_agreed ? 'Agreed' : 'No' }}
+                    </span>
+                    <span wire:loading wire:target="toggleTerms" class="flex items-center gap-1">
+                        <span class="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                        Syncing...
+                    </span>
                 </button>
             </div>
 
@@ -1207,15 +1216,19 @@
                 </div>
 
                 <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-white">
-                    <div class="bg-slate-50 p-6 rounded-[24px] mb-8 border border-slate-100 flex items-center justify-between">
-                        <div class="flex items-center gap-6">
-                            <button wire:click="calPrev" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_left</span></button>
-                            <p class="text-lg font-black text-slate-800 w-48 text-center truncate tracking-tight">{{ \Carbon\Carbon::create($calYear, $calMonth, 1)->format('F Y') }}</p>
-                            <button wire:click="calNext" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_right</span></button>
+                    <div class="bg-slate-50 p-6 rounded-[24px] mb-8 border border-slate-100">
+                        <div class="flex items-center justify-center mb-4">
+                            <div class="flex items-center gap-4">
+                                <button wire:click="calPrev" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_left</span></button>
+                                <p class="text-lg font-black text-slate-800 w-48 text-center truncate tracking-widest">{{ \Carbon\Carbon::create($calYear, $calMonth, 1)->format('F Y') }}</p>
+                                <button wire:click="calNext" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_right</span></button>
+                            </div>
                         </div>
-                        <div class="text-right">
-                            <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">Global Soft Limit</p>
-                            <p class="text-sm font-black text-[#9D686E]">7 Missions / Day</p>
+                        <div class="flex items-center justify-center">
+                            <div class="inline-flex items-center gap-2 bg-[#9D686E]/10 border border-[#9D686E]/20 rounded-full px-4 py-2">
+                                <span class="material-symbols-rounded text-[#9D686E] text-sm">shield</span>
+                                <span class="text-[11px] font-extrabold text-[#9D686E] uppercase tracking-widest">Global Soft Limit: 7 Missions / Day</span>
+                            </div>
                         </div>
                     </div>
 
@@ -1235,14 +1248,19 @@
                         <div></div>
                         @else
                         @php
-                        $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-100'; $dot = 'bg-emerald-500';
-                        if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-100'; $dot = 'bg-red-500'; }
-                        elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-100' ; $dot='bg-amber-500' ; }
+                            $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-100'; $dot = 'bg-emerald-500';
+                            if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-100'; $dot = 'bg-red-500'; }
+                            elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-100' ; $dot='bg-amber-500' ; }
                             
                             $isSelected = $d['date'] === $tempSelectedDate;
                             $isOriginal = $d['date'] === $booking->event_date;
                             
+                            $dayConflicts = array_intersect($bookedAttractions, $d['items'] ?? []);
+                            $hasConflict = count($dayConflicts) > 0;
+                            
                             $ring = $isSelected ? 'border-[#9D686E] bg-pink-50 ring-4 ring-[#9D686E]/10 shadow-md z-10' : '' ;
+                            if($hasConflict) $ring .= ' ring-2 ring-red-500/50';
+                            
                             $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9D686E] shadow-inner' : '';
                             $opacity = ($d['left'] == 0 && !$isSelected && !$isOriginal) ? 'opacity-40 grayscale-[0.5]' : '' ;
                         @endphp
@@ -1251,6 +1269,16 @@
                             @if($isOriginal)
                                 <div class="absolute -top-2 -right-1.5 bg-[#9D686E] text-white text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
                             @endif
+                            @if($hasConflict)
+                                <div class="absolute -top-1.5 -left-1.5 bg-red-600 text-white p-1 rounded-lg shadow-sm animate-pulse z-20">
+                                    <span class="material-symbols-rounded text-[10px] font-black">warning</span>
+                                </div>
+                            @endif
+                            @if($d['breach'] ?? false)
+                                <div class="absolute -top-1.5 -right-1.5 bg-amber-600 text-white p-1 rounded-lg shadow-sm animate-pulse z-20">
+                                    <span class="material-symbols-rounded text-[10px] font-black">inventory_2</span>
+                                </div>
+                            @endif
                             <span class="font-black text-lg">{{ $d['day'] }}</span>
                             <span class="text-[9px] uppercase tracking-tighter font-extrabold mt-0.5 opacity-60 group-hover:opacity-100">{{ $d['left'] }} Left</span>
                         </button>
@@ -1258,15 +1286,129 @@
                         @endforeach
                     </div>
 
+                    @if($tempSelectedDate)
+                    <div class="mt-8 p-6 bg-slate-50 border border-slate-100 rounded-[24px]">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Selected Date: {{ \Carbon\Carbon::parse($tempSelectedDate)->format('d M Y') }}</h4>
+                            @if(count($modalConflicts) > 0 || count($modalCapacityBreaches) > 0)
+                            <span class="bg-red-50 text-red-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-red-100 flex items-center gap-1.5">
+                                <span class="material-symbols-rounded text-sm">block</span> Move Blocked
+                            </span>
+                            @else
+                            <span class="bg-emerald-50 text-emerald-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-emerald-100 flex items-center gap-1.5">
+                                <span class="material-symbols-rounded text-sm">check_circle</span> Optimized Path
+                            </span>
+                            @endif
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-500 uppercase mb-2">Booked on this day:</p>
+                                <div class="flex flex-wrap gap-2">
+                                    @php $dayItems = $dailyAttractions[$tempSelectedDate] ?? []; @endphp
+                                    @forelse($dayItems as $itemName)
+                                        @php $isConflict = in_array($itemName, $bookedAttractions); @endphp
+                                        <span class="px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all {{ $isConflict ? 'bg-red-50 text-red-600 border-red-200 shadow-sm shadow-red-500/10' : 'bg-white text-slate-600 border-slate-200' }}">
+                                            {{ $itemName }}
+                                        </span>
+                                    @empty
+                                        <p class="text-[10px] font-bold text-slate-400 italic">No attractions reserved for this day.</p>
+                                    @endforelse
+                                </div>
+                            </div>
+
+                            @if(count($modalConflicts) > 0)
+                            <div class="p-4 bg-red-100/50 border border-red-200 rounded-2xl flex items-start gap-4">
+                                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-red-600 shrink-0 shadow-sm">
+                                    <span class="material-symbols-rounded text-2xl font-bold">report_problem</span>
+                                </div>
+                                <div>
+                                    <p class="text-[11px] font-black text-red-800 uppercase tracking-tight">Scheduling Prohibition</p>
+                                    <p class="text-[10px] font-bold text-red-700/80 leading-relaxed mt-0.5">
+                                        Movement to this date is blocked. The following items are already committed to other bookings:
+                                        <span class="font-black underline">{{ implode(', ', $modalConflicts) }}</span>
+                                    </p>
+                                </div>
+                            </div>
+                            @endif
+
+                            @if(count($modalCapacityBreaches) > 0)
+                            <div class="p-4 bg-amber-100/50 border border-amber-200 rounded-2xl flex items-start gap-4">
+                                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-amber-600 shrink-0 shadow-sm">
+                                    <span class="material-symbols-rounded text-2xl font-bold">inventory_2</span>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-[11px] font-black text-amber-800 uppercase tracking-tight">Category Capacity Breach</p>
+                                    <div class="mt-2 space-y-1">
+                                        @foreach($modalCapacityBreaches as $cat => $data)
+                                        <div class="flex justify-between items-center bg-white/50 p-1.5 px-2.5 rounded-lg border border-amber-200/50">
+                                            <span class="text-[10px] font-bold text-amber-900">{{ $cat }}</span>
+                                            <div class="flex items-center gap-3">
+                                                <span class="text-[9px] font-black text-slate-500">{{ $data['current'] }} + {{ $data['added'] }}</span>
+                                                <span class="material-symbols-rounded text-xs text-amber-600">arrow_forward</span>
+                                                <span class="text-[10px] font-black text-red-600">{{ $data['current'] + $data['added'] }} / {{ $data['limit'] }}</span>
+                                            </div>
+                                        </div>
+                                        @endforeach
+                                    </div>
+                                    <p class="text-[10px] font-bold text-amber-700/80 leading-relaxed mt-2">
+                                        Select another date. This date has reached its maximum daily equipment allocation for the categories shown above.
+                                    </p>
+                                </div>
+                            </div>
+                            @endif
+                            @if(!empty($modalNameConflicts))
+                            <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-4 animate-[fadeIn_0.3s_ease-out]">
+                                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-amber-600 shrink-0 shadow-sm border border-amber-100">
+                                    <span class="material-symbols-rounded text-2xl font-bold">person_alert</span>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-[11px] font-black text-amber-800 uppercase tracking-tight">Potential Duplicate Detected</p>
+                                    <p class="text-[10px] font-bold text-amber-700/80 leading-relaxed mt-0.5">
+                                        The customer <span class="font-black underline">{{ $booking->customer_first_name }} {{ $booking->customer_last_name }}</span> already has existing bookings on this date:
+                                    </p>
+                                    <div class="mt-2 space-y-1">
+                                        @foreach($modalNameConflicts as $nc)
+                                        <div class="flex justify-between items-center bg-white/50 p-1.5 px-3 rounded-lg border border-amber-200/50">
+                                            <span class="text-[9px] font-black text-amber-900">#{{ $nc['invoice_number'] ?? $nc['id'] }}</span>
+                                            <span class="text-[9px] font-bold text-slate-500 italic">{{ strtoupper($nc['status']) }}</span>
+                                        </div>
+                                        @endforeach
+                                    </div>
+                                    <p class="text-[10px] font-bold text-amber-600/80 mt-2 uppercase tracking-tighter italic">Warning only - you can still move if authorized.</p>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
+
                     <div class="mt-10 flex items-center gap-8 text-[10px] text-slate-400 font-extrabold justify-center border-t border-slate-50 pt-8">
                         <span class="inline-flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-emerald-500 shadow-sm"></span>AVAILABLE</span>
-                        <span class="inline-flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-amber-500 shadow-sm"></span>BUSY (LIMIT)</span>
-                        <span class="inline-flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-red-500 shadow-sm"></span>FULL CAPACITY</span>
+                        <span class="inline-flex items-center gap-2.5 text-red-500"><span class="material-symbols-rounded text-sm">warning</span> CONFLICT</span>
+                        <span class="inline-flex items-center gap-2.5 text-amber-500"><span class="material-symbols-rounded text-sm">inventory_2</span> CAPACITY</span>
+                        <span class="inline-flex items-center gap-2.5 text-amber-600 font-black"><span class="material-symbols-rounded text-sm">person_alert</span> DUPLICATE</span>
                     </div>
                 </div>
 
                 <div class="p-8 border-t border-slate-50 bg-white">
-                    <button wire:click="applySelectedDate" class="w-full py-5 rounded-2xl bg-[#9D686E] text-white font-black shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359] transition-all transform active:scale-95 uppercase tracking-widest text-xs">Apply Selection</button>
+                    <button wire:click="applySelectedDate()" 
+                            @if(count($modalConflicts) > 0 || count($modalCapacityBreaches) > 0) disabled @endif
+                            class="w-full py-5 rounded-2xl font-black transition-all transform active:scale-95 uppercase tracking-widest text-xs {{ (count($modalConflicts) > 0 || count($modalCapacityBreaches) > 0) ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-[#9D686E] text-white shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359]' }}">
+                        @if(count($modalConflicts) > 0)
+                            <span class="flex items-center justify-center gap-2">
+                                <span class="material-symbols-rounded text-sm">block</span>
+                                Attraction Conflict
+                            </span>
+                        @elseif(count($modalCapacityBreaches) > 0)
+                            <span class="flex items-center justify-center gap-2">
+                                <span class="material-symbols-rounded text-sm">inventory_2</span>
+                                Capacity Breach
+                            </span>
+                        @else
+                            Apply Selection
+                        @endif
+                    </button>
                 </div>
             </div>
         </div>
@@ -1504,8 +1646,56 @@
         </div>
     </template>
 
+    <template x-teleport="body">
+        <!-- TERMS CONFIRM MODAL -->
+        <div x-show="termsConfirmModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4" x-cloak>
+            <div x-show="termsConfirmModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="termsConfirmModal = false"></div>
+
+            <div x-show="termsConfirmModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200 transform"
+                x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                class="relative w-full max-w-md bg-white rounded-[32px] shadow-2xl p-10 z-10 text-center overflow-hidden border border-gray-100">
+                
+                <div class="absolute top-0 right-0 w-32 h-32 bg-[#9D686E]/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                
+                <div class="w-20 h-20 {{ $booking->terms_agreed ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-500' }} rounded-full flex items-center justify-center mx-auto mb-6 transition-colors shadow-inner">
+                    <span class="material-symbols-rounded text-4xl">{{ $booking->terms_agreed ? 'history_edu' : 'assignment_turned_in' }}</span>
+                </div>
+
+                <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">
+                    {{ $booking->terms_agreed ? 'Withdraw Agreement?' : 'Acknowledge Terms?' }}
+                </h3>
+                
+                <p class="text-[14px] font-bold text-slate-500 mb-10 leading-relaxed px-2">
+                    @if($booking->terms_agreed)
+                        You are about to mark these terms as <strong>NOT</strong> agreed. The booking status will remain <strong>{{ $booking->status }}</strong>.
+                    @else
+                        By confirming, you acknowledge that the customer has formally agreed to the Big Fun terms and conditions. 
+                        @if(in_array($booking->status, ['Pending', 'Draft']))
+                            <br><br><span class="text-green-600 font-black">NOTE: This will automatically move the booking to CONFIRMED status.</span>
+                        @endif
+                    @endif
+                </p>
+
+                <div class="flex gap-4">
+                    <button @click="termsConfirmModal = false" class="flex-1 py-4 text-slate-600 font-extrabold text-[12px] hover:bg-slate-50 rounded-2xl transition-all border border-slate-100 uppercase tracking-widest">Cancel</button>
+                    <button wire:click="toggleTerms" @click="termsConfirmModal = false" class="flex-1 py-4 bg-[#9D686E] text-white hover:bg-[#855359] rounded-2xl font-black text-[12px] shadow-xl shadow-[#9D686E]/20 transition-all active:scale-95 uppercase tracking-widest">
+                        Yes, Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+
     <div
-        x-on:close-modal.window="paymentModal = false; emailModal = false; deleteModal = false; calendarModal = false; paymentDetailsModal = false; draftModal = false; statusConfirmModal = false; confirmEmailModal = false; historyClearModal = false; deleteSingleLogModal = false; deleteLegacyModal = false; quotaWarningModal = false; quotaLimitModal = false;"
+        x-on:close-modal.window="paymentModal = false; emailModal = false; deleteModal = false; calendarModal = false; paymentDetailsModal = false; draftModal = false; statusConfirmModal = false; confirmEmailModal = false; historyClearModal = false; deleteSingleLogModal = false; deleteLegacyModal = false; quotaWarningModal = false; quotaLimitModal = false; termsConfirmModal = false;"
         x-on:open-modal.window="
             let modalToOpen = typeof $event.detail === 'string' ? $event.detail : $event.detail[0];
             if (modalToOpen === 'paymentModal') paymentModal = true;

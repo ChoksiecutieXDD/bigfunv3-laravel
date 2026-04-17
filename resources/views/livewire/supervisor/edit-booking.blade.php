@@ -262,7 +262,7 @@
                             <label class="input-label">Event Date</label>
                             <div class="flex gap-2">
                                 <input type="date" id="event_date" name="event_date" wire:model.live="form.event_date" value="{{ $form['event_date'] }}" class="input-field" @change="dateChanged()">
-                                <button wire:click="loadCalendar(); $dispatch('open-modal', 'calendarModal')" type="button" class="bg-[#9E6B73] text-white px-4 rounded-xl flex items-center justify-center hover:bg-[#855359] transition">
+                                <button wire:click="openCalendarModal" type="button" class="bg-[#9E6B73] text-white px-4 rounded-xl flex items-center justify-center hover:bg-[#855359] transition shadow-md shadow-[#9E6B73]/20">
                                     <span class="material-symbols-rounded">calendar_month</span>
                                 </button>
                             </div>
@@ -803,11 +803,31 @@
                             $ring = $isSelected ? 'border-[#9D686E] bg-pink-50 ring-4 ring-[#9D686E]/10 shadow-md z-10' : '' ;
                             $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9D686E] shadow-inner' : '';
                             @endphp
+                            @php
+                            $dayAtts = $dailyAttractions[$d['date']] ?? [];
+                            $hasConflict = false;
+                            foreach($bookedAttractions as $myAtt) {
+                                if(in_array($myAtt, $dayAtts)) { $hasConflict = true; break; }
+                            }
+                            @endphp
                             <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')"
-                                class="h-20 rounded-2xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $originStyle }} flex flex-col items-center justify-center cursor-pointer transition-all relative hover:-translate-y-1 shadow-sm group hover:border-[#9D686E]">
+                                class="h-20 rounded-2xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $originStyle }} {{ $hasConflict ? 'ring-2 ring-red-500 ring-offset-2' : '' }} flex flex-col items-center justify-center cursor-pointer transition-all relative hover:-translate-y-1 shadow-sm group hover:border-[#9D686E]">
                                 @if($isOriginal)
                                 <div class="absolute -top-1.5 -right-1.5 bg-[#9D686E] text-white text-[7px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
                                 @endif
+                                
+                                @if($hasConflict)
+                                <div class="absolute top-1 right-1 flex items-center justify-center w-5 h-5 bg-red-500 text-white rounded-full shadow-sm animate-pulse">
+                                    <span class="material-symbols-rounded text-sm font-bold">warning</span>
+                                </div>
+                                @endif
+
+                                @if($d['breach'] ?? false)
+                                <div class="absolute top-1 left-1 flex items-center justify-center w-5 h-5 bg-amber-500 text-white rounded-full shadow-sm">
+                                    <span class="material-symbols-rounded text-sm font-bold">inventory_2</span>
+                                </div>
+                                @endif
+
                                 <span class="font-black text-lg">{{ $d['day'] }}</span>
                                 <span class="text-[9px] uppercase font-extrabold tracking-tighter group-hover:text-[#9D686E]">{{ $d['left'] }} Left</span>
                             </button>
@@ -815,15 +835,116 @@
                             @endforeach
                     </div>
 
-                    <div class="mt-10 flex items-center gap-8 text-[10px] text-slate-400 font-extrabold justify-center border-t border-slate-50 pt-8">
-                        <span class="inline-flex items-center gap-2.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span>AVAILABLE</span>
-                        <span class="inline-flex items-center gap-2.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm"></span>BUSY</span>
-                        <span class="inline-flex items-center gap-2.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm"></span>FULL</span>
+                    <div class="mt-10 flex items-center gap-6 text-[9px] text-slate-400 font-extrabold justify-center border-t border-slate-50 pt-8 uppercase tracking-widest">
+                        <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span>AVAILABLE</span>
+                        <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm"></span>BUSY</span>
+                        <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm"></span>FULL</span>
+                        <span class="inline-flex items-center gap-2 p-1.5 bg-red-50 text-red-600 rounded-lg"><span class="material-symbols-rounded text-xs">warning</span> CONFLICT</span>
+                        <span class="inline-flex items-center gap-2 p-1.5 bg-amber-50 text-amber-600 rounded-lg"><span class="material-symbols-rounded text-xs">inventory_2</span> AT CAPACITY</span>
                     </div>
+
+                    @if($tempSelectedDate)
+                    <div class="mt-8 animate-[fadeIn_0.3s_ease-out]">
+                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <span class="material-symbols-rounded text-sm">event_note</span>
+                            Schedule for {{ \Carbon\Carbon::parse($tempSelectedDate)->format('d M Y') }}
+                        </h4>
+                        <div class="bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
+                            @php
+                            $dayBookings = DB::table('bookings')
+                                ->where('event_date', $tempSelectedDate)
+                                ->where('id', '!=', $booking->id)
+                                ->whereNotIn('status', ['Cancelled'])
+                                ->get();
+                            @endphp
+                            
+                            @if($dayBookings->isEmpty())
+                                <div class="p-6 text-center text-xs text-slate-400 font-medium">No other bookings found for this date.</div>
+                            @else
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left border-collapse">
+                                        <thead class="bg-slate-100/50">
+                                            <tr class="text-[9px] text-slate-500 uppercase tracking-widest">
+                                                <th class="px-4 py-3 font-black">Invoice</th>
+                                                <th class="px-4 py-3 font-black">Customer</th>
+                                                <th class="px-4 py-3 font-black">Booked Items</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            @foreach($dayBookings as $db)
+                                            <tr class="hover:bg-white transition-colors">
+                                                <td class="px-4 py-3 text-[10px] font-black text-[#9D686E]">{{ $db->invoice_number }}</td>
+                                                <td class="px-4 py-3 text-[11px] font-bold text-slate-700">{{ $db->customer_first_name }} {{ $db->customer_last_name }}</td>
+                                                <td class="px-4 py-3">
+                                                    @php
+                                                    $dbItems = DB::table('booking_items')->where('booking_id', $db->id)->pluck('item_name')->toArray();
+                                                    @endphp
+                                                    <div class="flex flex-wrap gap-1">
+                                                        @foreach($dbItems as $dbi)
+                                                        @php 
+                                                            $isConflict = in_array(strtolower(trim($dbi)), $bookedAttractions);
+                                                        @endphp
+                                                        <span class="px-2 py-0.5 rounded text-[9px] font-bold {{ $isConflict ? 'bg-red-100 text-red-700' : 'bg-slate-200 text-slate-600' }}">
+                                                            {{ $dbi }}
+                                                        </span>
+                                                        @endforeach
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
                 </div>
 
+                @if($tempSelectedDate)
+                    @if(!empty($modalConflicts) || !empty($modalCapacityBreaches) || !empty($modalNameConflicts))
+                    <div class="px-8 pb-4">
+                        <div class="bg-red-50/50 border border-red-100 rounded-2xl p-4 flex flex-col gap-3">
+                            @foreach($modalConflicts as $ca)
+                            <div class="flex items-center gap-3 text-red-700 text-[11px] font-black uppercase tracking-tight">
+                                <span class="material-symbols-rounded text-base">warning</span>
+                                Conflict: '{{ $ca }}' is already booked on this day.
+                            </div>
+                            @endforeach
+
+                            @foreach($modalCapacityBreaches as $cat => $data)
+                            <div class="flex items-center gap-3 text-amber-700 text-[11px] font-black uppercase tracking-tight">
+                                <span class="material-symbols-rounded text-base">inventory_2</span>
+                                Capacity: Category {{ $cat }} ({{ $data['current'] }} + {{ $data['added'] }} > {{ $data['limit'] }})
+                            </div>
+                            @endforeach
+
+                            @if(!empty($modalNameConflicts))
+                            <div class="pt-2 border-t border-red-100/50 mt-1">
+                                <p class="text-[10px] font-black text-amber-800 uppercase tracking-tight mb-2 flex items-center gap-2">
+                                    <span class="material-symbols-rounded text-sm">person_alert</span>
+                                    Potential Duplicate Detected
+                                </p>
+                                <div class="space-y-1">
+                                    @foreach($modalNameConflicts as $nc)
+                                    <div class="flex justify-between items-center bg-white/60 p-1.5 px-3 rounded-lg border border-amber-200/30">
+                                        <span class="text-[9px] font-black text-amber-900 uppercase">#{{ $nc['invoice_number'] ?? $nc['id'] }}</span>
+                                        <span class="text-[9px] font-bold text-slate-500 italic">{{ strtoupper($nc['status']) }}</span>
+                                    </div>
+                                    @endforeach
+                                </div>
+                                <p class="text-[9px] font-bold text-amber-600/80 mt-2 italic uppercase tracking-tighter">Existing bookings found for this customer on this date.</p>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
+                @endif
+
                 <div class="p-8 border-t border-slate-50 bg-white">
-                    <button wire:click="applySelectedDate" class="w-full py-5 rounded-2xl bg-[#9D686E] text-white font-black shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359] transition-all transform active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
+                    <button wire:click="applySelectedDate" 
+                        {{ ($tempSelectedDate && (!empty($modalConflicts) || !empty($modalCapacityBreaches))) ? 'disabled' : '' }}
+                        class="w-full py-5 rounded-2xl bg-[#9D686E] text-white font-black shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359] transition-all transform active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale">
                         <span class="material-symbols-rounded text-base">event_available</span>
                         Apply Selection
                     </button>

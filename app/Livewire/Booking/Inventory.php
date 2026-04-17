@@ -46,6 +46,10 @@ class Inventory extends Component
 
     public function mount()
     {
+        if (!session('system_unlocked')) {
+            return redirect()->route('system.settings');
+        }
+
         $this->activeTab = session('active_tab', 'categories');
     }
 

@@ -87,7 +87,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <style>
         @page {
-            margin: 40px;
+            margin: 60px 40px 80px 40px;
         }
 
         body {
@@ -121,8 +121,8 @@
             text-transform: uppercase;
         }
 
-        /* Watermark Stamp - Positioned relative to totals container */
-        .paid-stamp {
+        /* Watermark Stamp styles */
+        .stamp {
             position: absolute;
             top: 5px;
             right: 20px;
@@ -133,8 +133,16 @@
             padding: 5px 15px;
             text-transform: uppercase;
             transform: rotate(-10deg);
-            opacity: 0.3; /* Increased for better visibility over text */
-            z-index: 9999; /* Maintain front placement */
+            opacity: 0.3;
+            z-index: 9999;
+        }
+        .stamp-partial {
+            border-color: #ffc107;
+            color: #ffc107;
+        }
+        .stamp-debt {
+            border-color: #d9534f;
+            color: #d9534f;
         }
 
         .row {
@@ -457,8 +465,12 @@
             </tr>
         </table>
         
-        @if($isFullyPaid)
-            <div class="paid-stamp">PAID</div>
+        @if($balance_due <= 0.01)
+            <div class="stamp">PAID</div>
+        @elseif($amount_paid > 0)
+            <div class="stamp stamp-partial">PARTIAL</div>
+        @else
+            <div class="stamp stamp-debt">DEBT</div>
         @endif
     </div>
 

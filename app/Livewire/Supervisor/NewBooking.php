@@ -58,15 +58,14 @@ class NewBooking extends Component
         }
         if (empty($this->operators_list)) $this->operators_list = ["No staff found"];
 
-        // 2. Fetch Past Customers
+        // 2. Fetch Past Customers (Group by Name/Email/Address to allow variations)
         $this->past_customers = DB::table('bookings')
             ->select('customer_first_name', 'customer_last_name', 'customer_email', 'customer_phone', 'customer_organization', 'customer_abn', 'employer_name', 'customer_business_phone', 'address_line_1', 'business_address', 'suburb', 'state', 'postcode')
             ->whereIn('id', function ($query) {
                 $query->select(DB::raw('MAX(id)'))
                     ->from('bookings')
-                    ->whereNotNull('customer_email')
-                    ->where('customer_email', '!=', '')
-                    ->groupBy('customer_email');
+                    ->where('customer_first_name', '!=', '')
+                    ->groupBy('customer_first_name', 'customer_last_name', 'customer_email', 'address_line_1');
             })
             ->orderBy('id', 'desc')
             ->limit(200)

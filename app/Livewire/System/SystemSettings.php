@@ -16,10 +16,12 @@ class SystemSettings extends Component
 {
     public $isMaintenance;
     public $currentEnv;
-    public $showBrevoQuotaInfo = false;
-    public $showGoogleQuotaInfo = false;
     public $showLogViewer = false;
     public $logs = '';
+    
+    // Password protection
+    public $systemPassword = '';
+    public $isUnlocked = false;
 
     /**
      * Active application mailer: smtp (Brevo) or google (Gmail). Synced to MAIL_MAILER in .env.
@@ -29,10 +31,31 @@ class SystemSettings extends Component
 
     public function mount()
     {
+        $this->isUnlocked = session('system_unlocked', false);
+        
         $this->isMaintenance = app()->isDownForMaintenance();
         $this->currentEnv = config('app.env');
         $m = (string) config('mail.default');
         $this->defaultMailer = in_array($m, ['smtp', 'google'], true) ? $m : '';
+    }
+
+    public function unlockSystem()
+    {
+        if ($this->systemPassword === 'bigfun_isfun') {
+            session(['system_unlocked' => true]);
+            $this->isUnlocked = true;
+            $this->systemPassword = '';
+            $this->dispatch('show-toast', message: 'System Unlocked!', type: 'success');
+        } else {
+            $this->dispatch('show-toast', message: 'Invalid Password', type: 'error');
+        }
+    }
+
+    public function lockSystem()
+    {
+        session()->forget('system_unlocked');
+        $this->isUnlocked = false;
+        return redirect('/');
     }
 
     public function updatedDefaultMailer(?string $value): void

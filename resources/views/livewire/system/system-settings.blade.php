@@ -17,6 +17,7 @@
     <div class="fixed top-[-20%] left-[-10%] w-[500px] h-[500px] bg-plum rounded-full blur-[150px] opacity-20 pointer-events-none z-0"></div>
     <div class="fixed bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-900 rounded-full blur-[150px] opacity-20 pointer-events-none z-0"></div>
 
+    @if($isUnlocked)
     {{-- Log Viewer Modal --}}
     <div x-show="showLogViewer" x-cloak class="fixed inset-0 z-[150] flex items-center justify-center p-4">
         <div x-show="showLogViewer"
@@ -197,10 +198,10 @@
                     </a>
                 </div>
             </div>
-            <a href="/" wire:navigate class="shrink-0 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center gap-2 text-sm font-semibold">
+            <button type="button" wire:click="lockSystem" class="shrink-0 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center gap-2 text-sm font-semibold cursor-pointer">
                 <span class="material-symbols-rounded text-lg">arrow_back</span>
                 Return to App
-            </a>
+            </button>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
@@ -742,4 +743,47 @@
 
         </div>
     </div>
+    @else
+    {{-- LOCKED STATE --}}
+    <div class="min-h-screen flex flex-col items-center justify-center p-4 relative z-10">
+        <div class="w-24 h-24 rounded-3xl bg-plum/10 text-plum flex items-center justify-center mb-8 animate-bounce">
+            <span class="material-symbols-rounded text-5xl font-bold">lock</span>
+        </div>
+        
+        <div class="w-full max-w-md bg-slate-800/40 backdrop-blur-2xl border border-slate-700/50 p-10 rounded-[40px] shadow-2xl">
+            <div class="text-center mb-10">
+                <h1 class="text-3xl font-black text-white mb-2 uppercase tracking-tight">System Locked</h1>
+                <p class="text-slate-400 text-sm font-medium">Please enter administrative password to continue</p>
+            </div>
+
+            <form wire:submit="unlockSystem" class="space-y-6">
+                <div>
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <span class="material-symbols-rounded text-slate-500 group-focus-within:text-plum transition-colors">key</span>
+                        </div>
+                        <input type="password" 
+                            wire:model="systemPassword"
+                            class="block w-full pl-12 pr-4 py-4 bg-slate-900/50 border border-slate-700 rounded-2xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-plum/50 focus:border-plum transition-all text-center tracking-[0.5em] font-bold" 
+                            placeholder="••••••••" 
+                            required>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <button type="submit" class="w-full py-4 bg-plum hover:bg-plum-dark text-white font-black rounded-2xl transition-all shadow-xl shadow-plum/20 transform active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
+                        <span class="material-symbols-rounded text-base">verified_user</span>
+                        Authorize Access
+                    </button>
+                    
+                    <a href="/" wire:navigate class="w-full py-4 bg-slate-700/30 hover:bg-slate-700/50 text-slate-400 hover:text-white font-bold rounded-2xl transition-all text-center uppercase tracking-widest text-[10px]">
+                        Return to Dashboard
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <p class="mt-8 text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em]">BigFun Entertainment · System v3.0</p>
+    </div>
+    @endif
 </div>

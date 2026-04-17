@@ -10,6 +10,8 @@
     }
 
     $total_amount = (float)($booking->total_amount ?? 0);
+    $amount_paid = isset($amountPaid) ? (float)$amountPaid : (isset($booking->amount_paid) ? (float)$booking->amount_paid : (float)($booking->payments ? $booking->payments->sum('amount') : 0));
+    $balance_due  = $total_amount - $amount_paid;
     $quote_no = $booking->id;
 
     // Dates & Time
@@ -48,6 +50,11 @@
     if (!$include_attraction_cost) {
         $total_amount -= $attraction_subtotal;
     }
+
+    // Extract General and Specific Extras
+    $general_extras = !empty($booking->general_extra) ? (is_string($booking->general_extra) ? json_decode($booking->general_extra, true) : $booking->general_extra) : [];
+    $specific_extras = !empty($booking->specific_extra) ? (is_string($booking->specific_extra) ? json_decode($booking->specific_extra, true) : $booking->specific_extra) : [];
+    $col_span = $include_attraction_cost ? 4 : 3;
  @endphp
 
 <!DOCTYPE html>
@@ -255,7 +262,7 @@
                             <span class="fin-label">Total Proposed:</span>
                             <span class="fin-val bold">{{ money($total_amount) }}</span>
                         </div>
-                        @if(!empty($booking->deposit_required) && $booking->deposit_required > 0)
+                        @if(!empty($booking->deposit_required) && $booking->deposit_required > 0 && $balance_due > 0)
                             <div class="finance-row" style="color: #666; font-size: 10px; margin-top: 5px;">
                                 <span class="fin-label">Deposit (if accepted):</span>
                                 <span class="fin-val">{{ money($booking->deposit_required) }}</span>
@@ -324,8 +331,73 @@
                         @endif
                     </tr>
                 @endforeach
+
+                @php
+                    $extra_cost_fallback = (float)($booking->extra_logistics_cost ?? 0);
+                    $has_json_extras = !empty($general_extras) || !empty($specific_extras);
+                    $show_extras_section = $has_json_extras || !empty($booking->logistics_surfaces) || (!$has_json_extras && $extra_cost_fallback > 0);
+                @endphp
+
+                @if($show_extras_section)
+                    {{-- General Logistic Extras --}}
+                    @if(!empty($general_extras) || !empty($booking->logistics_surfaces) || (!$has_json_extras && $extra_cost_fallback > 0))
+                        <tr>
+                            <td colspan="{{ $col_span }}" style="padding: 10px 8px 5px 8px; border-bottom: 1px solid #000; background-color: #f9f9f9;">
+                                <span class="bold" style="font-size: 11px;">General Logistic Extras:</span>
+                            </td>
+                        </tr>
+                        @if(!empty($booking->logistics_surfaces))
+                            <tr style="border-bottom: 1px dashed #eee;">
+                                <td @if($include_attraction_cost) colspan="2" @endif style="padding: 5px 8px 5px 15px; font-size: 10px;">
+                                    &bull; Logistics Surface: {{ $booking->logistics_surfaces }}
+                                </td>
+                                <td @if(!$include_attraction_cost) colspan="2" @endif class="text-center" style="padding: 5px; font-size: 10px;">1</td>
+                                @if($include_attraction_cost)
+                                <td class="text-right" style="font-size: 10px;">-</td>
+                                @endif
+                            </tr>
+                        @endif
+                        @if(is_array($general_extras))
+                            @foreach($general_extras as $label => $cost)
+                                <tr style="border-bottom: 1px dashed #eee;">
+                                    <td @if($include_attraction_cost) colspan="2" @endif style="padding: 5px 8px 5px 15px; font-size: 10px;">
+                                        &bull; {{ $label }}
+                                    </td>
+                                    <td @if(!$include_attraction_cost) colspan="2" @endif class="text-center" style="padding: 5px; font-size: 10px;">1</td>
+                                    @if($include_attraction_cost)
+                                    <td class="text-right" style="font-size: 10px;">
+                                        {{ ($include_attraction_cost && (float)$cost > 0) ? money($cost) : '-' }}
+                                    </td>
+                                    @endif
+                                </tr>
+                            @endforeach
+                        @endif
+                    @endif
+
+                    {{-- Specific Extras --}}
+                    @if(!empty($specific_extras))
+                        <tr>
+                            <td colspan="{{ $col_span }}" style="padding: 10px 8px 5px 8px; border-bottom: 1px solid #000; background-color: #f9f9f9;">
+                                <span class="bold" style="font-size: 11px;">Specific Extras:</span>
+                            </td>
+                        </tr>
+                        @foreach($specific_extras as $label => $cost)
+                            <tr style="border-bottom: 1px dashed #eee;">
+                                <td @if($include_attraction_cost) colspan="2" @endif style="padding: 5px 8px 5px 15px; font-size: 10px;">
+                                    &bull; {{ $label }}
+                                </td>
+                                <td @if(!$include_attraction_cost) colspan="2" @endif class="text-center" style="padding: 5px; font-size: 10px;">1</td>
+                                @if($include_attraction_cost)
+                                <td class="text-right" style="font-size: 10px;">
+                                    {{ ($include_attraction_cost && (float)$cost > 0) ? money($cost) : '-' }}
+                                </td>
+                                @endif
+                            </tr>
+                        @endforeach
+                    @endif
+                @endif
             @else
-                <tr><td colspan="{{ $include_attraction_cost ? 4 : 3 }}" class="text-center" style="padding: 20px;">No items listed.</td></tr>
+                <tr><td colspan="{{ $col_span }}" class="text-center" style="padding: 20px;">No items listed.</td></tr>
             @endif
         </tbody>
     </table>

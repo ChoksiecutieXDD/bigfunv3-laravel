@@ -79,7 +79,7 @@
                     </header>
                 </div>
 
-                <div class="financial-panel">
+                <div class="financial-panel" wire:ignore>
                     <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-[#9E6B73]/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
 
                     <div class="flex items-center justify-between border-b border-slate-700 pb-4 relative z-10">
@@ -618,6 +618,16 @@
                     <ul id="rev_missing_list" class="text-xs text-amber-700 list-disc list-inside font-medium"></ul>
                 </div>
 
+                <!-- Duplicate Alert Banner in Review Modal -->
+                <div id="rev_duplicate_warning" class="hidden mb-2 bg-red-50 border border-red-200 rounded-xl p-4">
+                    <div class="flex items-center gap-2 mb-2 text-red-700">
+                        <span class="material-symbols-rounded">warning</span>
+                        <h4 class="font-bold text-sm text-red-800">Potential Duplicate Detected</h4>
+                    </div>
+                    <div id="rev_duplicate_list" class="text-xs text-red-700 space-y-1 mb-2"></div>
+                    <p class="text-[10px] font-bold text-red-600">Please verify if this is a double booking before proceeding.</p>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                         <h4 class="text-xs font-bold text-[#9E6B73] uppercase mb-3 border-b pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">person</span> Customer Info</h4>
@@ -728,7 +738,8 @@
                     <div class="p-3 bg-white border border-gray-100 rounded-xl hover:border-green-300 hover:bg-green-50 cursor-pointer flex justify-between items-center transition group" @click="fillCustomerDetails(c)">
                         <div>
                             <p class="font-bold text-slate-800" x-text="(c.customer_first_name + ' ' + (c.customer_last_name || '')).trim()"></p>
-                            <p class="text-xs text-gray-500" x-text="(c.customer_organization || 'Private') + ' • ' + (c.customer_email || '')"></p>
+                            <p class="text-[10px] font-black text-[#9E6B73] uppercase tracking-tighter" x-show="c.suburb" x-text="c.suburb + (c.state ? ', ' + c.state : '')"></p>
+                            <p class="text-xs text-gray-400 mt-0.5" x-text="(c.customer_organization || 'Private') + ' • ' + (c.customer_email || c.customer_phone || '')"></p>
                         </div>
                         <span class="text-xs font-bold text-green-600 opacity-0 group-hover:opacity-100 transition">Select</span>
                     </div>
@@ -897,5 +908,4 @@
                 <button type="button" @click="productDetails.visible = false" class="px-6 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200">Got it, close</button>
             </div>
         </div>
-    </div>
 </div>
