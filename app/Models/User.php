@@ -13,6 +13,9 @@ class User extends Authenticatable
     // 1. Override the default 'id' primary key
     protected $primaryKey = 'user_id';
 
+    // 2. Disable automatic timestamps (table lacks updated_at)
+    public $timestamps = false;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -29,7 +32,9 @@ class User extends Authenticatable
         'birthday',
         'gender',
         'contact_no',
-        'is_active', // Included based on your login logic
+        'is_active',
+        'reset_token',
+        'reset_expires',
         'change_passtime', // <-- ADD THIS
     ];
 
@@ -52,6 +57,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'reset_expires' => 'datetime',
             'password_hash' => 'hashed', // Hash the correct column
         ];
     }
