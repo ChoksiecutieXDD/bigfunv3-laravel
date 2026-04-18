@@ -78,16 +78,16 @@
 
                 document.querySelectorAll('.product-card').forEach(card => {
                     try {
+                        const badge = card.querySelector('.status-badge');
+                        // DEEP FIX: Prioritize cleanup at the very top of the processed loop
+                        if (badge) badge.classList.remove('opacity-50', 'animate-pulse');
+
                         const rawName = card.dataset.name ? card.dataset.name.trim() : null;
                         if (!rawName) return;
 
                         // Sanitize cleanName to ensure exact match with backend (lowercase, trimmed, single-spaced)
                         const cleanName = rawName.toLowerCase().replace(/\s+/g, ' ').trim();
                         const checkbox = card.querySelector('.ride-checkbox');
-                        const badge = card.querySelector('.status-badge');
-
-                        // Stop the pulse once we have a badge to update
-                        if (badge) badge.classList.remove('opacity-50', 'animate-pulse');
 
                         const actionText = card.querySelector('.action-text');
                         const targetCat = (card.dataset.countsAgainst || '').trim().toLowerCase();
@@ -115,27 +115,39 @@
                                 card.classList.remove('disabled-card');
                                 if (checkbox) checkbox.disabled = false;
                                 if (badge) {
-                                    if (left <= 2) {
-                                        badge.innerText = `ONLY ${left} LEFT`;
-                                        badge.className = 'status-badge status-limited';
+                                    const prodApiData = normalizedApiProducts[cleanName];
+                                    if (prodApiData && prodApiData.daily_limit === 0) {
+                                        badge.innerText = 'UNLIMITED';
+                                        badge.className = 'status-badge status-avail';
                                     } else {
                                         badge.innerText = `${left} AVAILABLE`;
-                                        badge.className = 'status-badge status-avail';
+                                        badge.className = (left <= 2) ? 'status-badge status-limited' : 'status-badge status-avail';
                                     }
                                 }
-                                if (actionText && !card.classList.contains('selected')) actionText.innerText = 'Click to select';
+                                if (actionText) actionText.innerText = card.classList.contains('selected') ? 'Selected' : 'Click to select';
                             }
                         } else {
                             card.dataset.productSoldOut = 'false';
                             card.classList.remove('disabled-card');
                             if (checkbox) checkbox.disabled = false;
                             if (badge) {
-                                badge.innerText = (itemLimit > 0) ? `${itemLimit} AVAILABLE` : 'AVAILABLE';
-                                badge.className = 'status-badge status-avail';
+                                if (itemLimit === 0) {
+                                    badge.innerText = 'UNLIMITED';
+                                    badge.className = 'status-badge status-avail';
+                                } else {
+                                    badge.innerText = `${itemLimit} AVAILABLE`;
+                                    badge.className = (itemLimit <= 2) ? 'status-badge status-limited' : 'status-badge status-avail';
+                                }
                             }
-                            if (actionText && !card.classList.contains('selected')) actionText.innerText = 'Click to select';
+                            if (actionText) actionText.innerText = card.classList.contains('selected') ? 'Selected' : 'Click to select';
                         }
-                    } catch (cardErr) {
+                        
+                        // IMPORTANT: Always clear any temporary "Syncing..." or "pulse" state
+                        if (badge) {
+                            badge.classList.remove('opacity-50', 'animate-pulse');
+                            badge.style.opacity = '1';
+                        }
+                   } catch (cardErr) {
                         console.error("Error processing product card:", cardErr, card);
                     }
                 });
@@ -144,15 +156,34 @@
                 window.updateCategoryLimitsUI();
             }
         } catch (error) {
-            if (error.name === 'AbortError') return; // Silent skip for aborted requests
-            console.error("Availability Check Failed", error);
+            if (error.name === 'AbortError') {
+                console.log("Availability check aborted (superseded by new request).");
+            } else {
+                console.error("Availability Check Critical Error:", error);
+            }
+        } finally {
+            // BULLETPROOF: Global sweep of ALL status badges on the page
             document.querySelectorAll('.status-badge').forEach(badge => {
                 badge.classList.remove('opacity-50', 'animate-pulse');
-                if (badge.innerText === 'CHECKING...') {
-                    badge.innerText = 'OFFLINE';
-                    badge.className = 'status-badge status-checking';
+                badge.style.opacity = '1';
+
+                const badgeText = (badge.innerText || '').trim().toUpperCase();
+                // Match case-insensitively and detect common variants/styling
+                if (badgeText.includes('SYNCING') || badgeText.includes('CHECKING')) {
+                    const card = badge.closest('.product-card');
+                    if (card) {
+                        const itemLimit = parseInt(card.dataset.dailyLimit) || 0;
+                        if (itemLimit === 0) {
+                            badge.innerText = 'UNLIMITED';
+                            badge.className = 'status-badge status-avail';
+                        } else {
+                            badge.innerText = `${itemLimit} AVAILABLE`;
+                            badge.className = (itemLimit <= 2) ? 'status-badge status-limited' : 'status-badge status-avail';
+                        }
+                    }
                 }
             });
+            window.availabilityAbortController = null;
         }
     };
 

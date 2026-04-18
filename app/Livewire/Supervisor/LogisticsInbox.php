@@ -225,8 +225,6 @@ class LogisticsInbox extends Component
         ]);
 
         $booking = Booking::find($this->pay_booking_id);
-        $totalPaid = $booking->payments()->sum('amount');
-        $booking->owing_amount = max(0, $booking->total_amount - $totalPaid);
 
         if ($this->pay_method === 'Card Holder') {
             $booking->card_category = $this->modal_card_category;
@@ -238,6 +236,9 @@ class LogisticsInbox extends Component
             $booking->eft_method = $this->eft_specific_method;
         }
         $booking->save();
+
+        // RE-CALCULATE AND UPDATE CACHED COLUMNS (Including Payment Status)
+        $booking->syncFinancials();
 
         $this->dispatch('close-modal', 'paymentModal');
         // Dispatch the success modal instead of a notification

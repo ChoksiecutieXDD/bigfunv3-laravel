@@ -109,7 +109,6 @@ document.addEventListener('alpine:init', () => {
                 // If it's edit mode, we might want to pre-load some things
                 setTimeout(() => {
                     if (typeof checkRealTimeAvailability === 'function') checkRealTimeAvailability();
-                    if (typeof calLoad === 'function') calLoad();
                 }, 100);
             }
         },
@@ -369,108 +368,26 @@ window.checkDuplicates = async function() {
     return false;
 };
 
-function fmtDate(d) {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-window.calLoad = async function() {
-    const s = new Date(calCursor.getFullYear(), calCursor.getMonth(), 1);
-    const e = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 0);
-    const labelEl = document.getElementById('calLabel');
-    if (labelEl) labelEl.innerText = s.toLocaleString('default', {
-        month: 'long',
-        year: 'numeric'
-    });
-
-    try {
-        const res = await apiPost('get_calendar_slots', {
-            start: fmtDate(s),
-            end: fmtDate(e)
-        });
-        const grid = document.getElementById('calGrid');
-        if (!grid) return;
-        
-        grid.innerHTML = '';
-        for (let i = 0; i < s.getDay(); i++) grid.innerHTML += '<div></div>';
-
-        const todayKey = fmtDate(new Date());
-        const dateInput = document.getElementById('event_date');
-        const currentVal = dateInput ? dateInput.value : '';
-        const dailyLimit = res.daily_limit || 5;
-        
-        const summaryEl = document.getElementById('calSummary');
-        if (summaryEl) summaryEl.innerText = `Daily limit: ${dailyLimit} bookings`;
-
-        for (let d = 1; d <= e.getDate(); d++) {
-            let dStr = `${calCursor.getFullYear()}-${String(calCursor.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            let used = (res.counts && res.counts[dStr]) ? parseInt(res.counts[dStr]) : 0;
-            let left = Math.max(0, dailyLimit - used);
-
-            let bg = left === 0 ? 'bg-red-50 border-red-200 text-red-500 opacity-60' : (left <= 2 ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700');
-            let todayBadge = todayKey === dStr ? '<span class="absolute top-2 right-2 w-3 h-3 rounded-full bg-[#9E6B73]/40"></span>' : '';
-
-            grid.innerHTML += `<div class="cal-day ${bg} p-4 sm:p-6 min-h-[80px] sm:min-h-[100px] border rounded-2xl cursor-pointer flex flex-col items-center justify-center relative hover:shadow-md transition-all duration-300" 
-                data-date="${dStr}"
-                onclick="selectDate('${dStr}', ${left})">
-                ${todayBadge}
-                <span class="font-extrabold text-xl sm:text-3xl leading-none mb-2">${d}</span>
-                <span class="text-[10px] sm:text-xs font-bold bg-white/80 px-2 py-1 rounded-full leading-none shadow-sm">${left===0?'Full':left + ' Left'}</span>
-            </div>`;
-        }
-    } catch (e) {
-        console.error("Calendar Load Error:", e);
-        const summaryEl = document.getElementById('calSummary');
-        if (summaryEl) summaryEl.innerText = "Failed to load slots.";
-    }
-
-    // Always sync selection after grid is built
-    window.updateCalSelection();
-};
-
-window.updateCalSelection = function() {
-    const dateInput = document.getElementById('event_date');
-    const currentVal = dateInput ? dateInput.value : '';
-    
-    document.querySelectorAll('.cal-day').forEach(day => {
-        // Clear ALL possible ring/border/scale classes
-        day.classList.remove(
-            'ring-2', 'ring-4', 'ring-[#9E6B73]', 'ring-[#9D686E]', 
-            'ring-offset-2', 'ring-offset-4', 
-            'border-[#9E6B73]', 'border-[#9D686E]', 
-            'scale-110', 'shadow-xl', 'z-10'
-        );
-
-        if (day.dataset.date === currentVal) {
-            day.classList.add('ring-4', 'ring-[#9D686E]', 'ring-offset-4', 'border-[#9D686E]', 'scale-110', 'shadow-xl', 'z-10');
-        }
-    });
-};
-
-window.calPrev = function() {
-    calCursor.setMonth(calCursor.getMonth() - 1);
-    calLoad();
-};
-
-window.calNext = function() {
-    calCursor.setMonth(calCursor.getMonth() + 1);
-    calLoad();
-};
-
-window.selectDate = function(dateStr, left) {
-    if (left <= 0) {
-        showToast("Sold Out", "This date is fully booked.", "error");
-        return;
-    }
-    const dateInput = document.getElementById('event_date');
-    if (dateInput) dateInput.value = dateStr;
-    updateCalSelection();
-    dateChanged();
-    showToast("Date Selected", "Date updated to " + dateStr, "success");
-};
-
 window.dateChanged = function() {
-    checkRealTimeAvailability();
-    checkDuplicates(); // Re-verify duplicates whenever the date changes
+    const dateInput = document.getElementById('event_date');
+    const val = dateInput ? dateInput.value : '';
+    
+    // Communicate to Livewire
+    if (window.lwBookingComponent) {
+        window.lwBookingComponent.set('form.event_date', val);
+        // Wait for Livewire to finish its update before checking real-time availability
+        setTimeout(() => {
+            if (typeof checkRealTimeAvailability === 'function') {
+                checkRealTimeAvailability(true);
+            }
+        }, 600);
+    } else {
+        if (typeof checkRealTimeAvailability === 'function') {
+            checkRealTimeAvailability(true);
+        }
+    }
+    
+    if (typeof checkDuplicates === 'function') checkDuplicates(); 
 };
 
 
@@ -504,10 +421,25 @@ window.handleSelection = function(checkbox) {
         return;
     }
 
-    // IN NEW BOOKING: REMOVE IMMEDIATELY WITHOUT MODAL
-    if (!checkbox.checked) {
-        processSelection(checkbox, card);
-        return;
+    // Toggling in Edit mode is now direct
+    const isChecked = checkbox.checked;
+    
+    // Pulse the badge to show syncing
+    const badge = card.querySelector('.status-badge');
+    if (badge) {
+        badge.innerText = 'Syncing...';
+        badge.classList.add('opacity-50', 'animate-pulse');
+        // ULTIMATE SAFETY: If for some reason the sync module misses this, clear it after 10s
+        setTimeout(() => {
+            const currentText = (badge.innerText || '').trim().toUpperCase();
+            if (currentText.includes('SYNCING') && typeof checkRealTimeAvailability === 'function') {
+                checkRealTimeAvailability(true);
+            }
+        }, 2000);
+    }
+
+    if (window.toggleItemUI) {
+        window.toggleItemUI(checkbox, card);
     }
 
     processSelection(checkbox, card);

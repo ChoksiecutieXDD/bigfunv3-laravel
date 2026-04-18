@@ -845,7 +845,6 @@
             <button type="button" @click="modals.fullCapacityWarning = false" class="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition uppercase tracking-widest text-xs">
                 I Understand
             </button>
-        </div>
     </div>
 
     <div id="booking-data-bridge"
@@ -908,4 +907,59 @@
                 <button type="button" @click="productDetails.visible = false" class="px-6 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition shadow-lg shadow-slate-200">Got it, close</button>
             </div>
         </div>
+    </div>
+
+    @vite(['resources/js/availability-sync.js', 'resources/js/new-booking.js'])
+
+    @script
+    <script>
+        document.addEventListener('livewire:navigated', () => {
+             if (typeof window.initBookingAppData === 'function') {
+                 window.initBookingAppData();
+             }
+             setTimeout(() => {
+                if (typeof checkRealTimeAvailability === 'function') {
+                    checkRealTimeAvailability(true);
+                }
+                if (typeof window.triggerRecalculate === 'function') {
+                    window.triggerRecalculate();
+                }
+             }, 500);
+             window.lwBookingComponent = $wire;
+             
+             // Bridge UI actions to Livewire
+             const originalToggleItemUI = window.toggleItemUI;
+             window.toggleItemUI = function(checkbox, card) {
+                 if (typeof originalToggleItemUI === 'function') {
+                    originalToggleItemUI(checkbox, card);
+                 }
+                 if (window.lwBookingComponent) {
+                     window.lwBookingComponent.toggleItem(card.dataset.name, checkbox.checked);
+                 }
+             };
+
+             const originalSaveExtras = window.saveCurrentExtrasState;
+             window.saveCurrentExtrasState = function(ignoreSync = false) {
+                 if (typeof originalSaveExtras === 'function') {
+                    originalSaveExtras(true);
+                 }
+                 if (!ignoreSync && window.lwBookingComponent) {
+                     window.lwBookingComponent.syncExtras(window.bookingAppData.savedExtras);
+                 }
+             };
+        });
+
+        document.addEventListener('livewire:initialized', () => {
+             setTimeout(() => {
+                if (typeof checkRealTimeAvailability === 'function') {
+                    checkRealTimeAvailability(true);
+                }
+                if (typeof window.triggerRecalculate === 'function') {
+                    window.triggerRecalculate();
+                }
+             }, 300);
+             window.lwBookingComponent = $wire;
+        });
+    </script>
+    @endscript
 </div>

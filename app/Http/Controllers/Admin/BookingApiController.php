@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Models\Booking;
+use App\Models\BookingPayment;
 
 class BookingApiController extends Controller
 {
@@ -187,6 +189,8 @@ class BookingApiController extends Controller
                 }
 
                 $prodData['left'] = $left;
+                // Add the actual daily_limit to the response for visual logic on frontend
+                $prodData['daily_limit'] = $iLimit;
             }
             unset($prodData);
 
@@ -207,10 +211,11 @@ class BookingApiController extends Controller
     // --- 2. MAIN POST HANDLER ---
     public function handler(Request $request)
     {
-        $action = $request->input('action', '');
-        $DAILY_TOTAL_LIMIT = 7;
-
+        $action = $request->input('action');
         try {
+            // Fetch Dynamic Daily Limit (Baseline of 5, or max of category limits)
+            $DAILY_TOTAL_LIMIT = max(5, DB::table('product_categories')->max('daily_limit') ?: 0);
+            
             switch ($action) {
                 case 'delete_draft':
                     $del_id = (int)$request->input('booking_id', 0);
@@ -228,9 +233,10 @@ class BookingApiController extends Controller
                         ->select('event_date', DB::raw('COUNT(*) as cnt'))
                         ->whereBetween('event_date', [$start, $end])
                         ->where(function ($q) {
-                            $q->whereIn('status', ['Pending', 'Confirmed', 'Paid'])
-                                ->orWhere(function ($q2) {
-                                    $q2->where('status', 'Draft')->where('created_at', '>=', now()->subMinutes(20));
+                            $q->whereNotIn('status', ['Cancelled'])
+                                ->where(function ($q2) {
+                                    $q2->where('status', '!=', 'Draft')
+                                        ->orWhere('created_at', '>=', now()->subMinutes(20));
                                 });
                         })
                         ->groupBy('event_date')
@@ -483,7 +489,42 @@ class BookingApiController extends Controller
                         'specific_extra' => json_encode($specific_extra)
                     ]);
 
+                    // --- 6. AUTO-CREATE PAYMENT FOR "DEPOSIT PAID" STATUS ---
+                    if ($payment_status === 'Deposit Paid') {
+                        $deposit_amount = (float)$request->input('deposit_amount', 0);
+                        
+                        // Check current payment total to prevent duplicates on manual update
+                        $existing_paid = DB::table('booking_payments')
+                            ->where('booking_id', $booking_id)
+                            ->sum('amount');
+
+                        if ($existing_paid < $deposit_amount) {
+                            $remainder = $deposit_amount - $existing_paid;
+                            
+                            DB::table('booking_payments')->insert([
+                                'booking_id' => $booking_id,
+                                'amount' => $remainder,
+                                'payment_method' => $request->input('payment_method') ?: $request->input('payment_type', 'EFT'),
+                                'payment_type' => 'Deposit Capture',
+                                'payment_date' => now()->format('Y-m-d'),
+                                'reference' => $request->input('payment_reference'),
+                                'notes' => 'Auto-recorded during booking creation/update as Deposit Paid.',
+                                'card_number' => $request->input('payment_type') === 'Card Holder' ? $request->input('card_number') : null,
+                                'card_expiry' => $request->input('payment_type') === 'Card Holder' ? $request->input('card_expiry') : null,
+                                'card_cvv' => $request->input('payment_type') === 'Card Holder' ? $request->input('card_cvv') : null,
+                                'card_network' => $request->input('payment_type') === 'Card Holder' ? $request->input('card_network') : null,
+                            ]);
+                        }
+                    }
+
+                    // --- 7. UPDATE CACHED TOTALS ---
                     DB::commit();
+
+                    // Refresh financials (Includes Payment Status logic) using the Model
+                    $model = \App\Models\Booking::find($booking_id);
+                    if ($model) {
+                        $model->syncFinancials();
+                    }
 
                     // Trigger Google Sheet Sync
                     $this->syncToGoogleSheet($booking_id, !$is_update);

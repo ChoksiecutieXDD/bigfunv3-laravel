@@ -36,4 +36,39 @@ class Booking extends Model
     {
         return (float) $this->payments->sum('amount');
     }
+
+    /**
+     * Re-calculates and updates cached financial columns and payment status.
+     */
+    public function syncFinancials()
+    {
+        $totalPaid = (float) $this->payments()->sum('amount');
+        $totalAmount = (float) $this->total_amount;
+        $owingAmount = max(0, $totalAmount - $totalPaid);
+        $depositRequired = (float) $this->deposit_required > 0 ? (float) $this->deposit_required : ($totalAmount / 2);
+
+        $eventDate = \Carbon\Carbon::parse($this->event_date)->startOfDay();
+        $today = \Carbon\Carbon::today();
+
+        // Determine Payment Status
+        if ($owingAmount <= 0.01) {
+            $paymentStatus = 'Paid';
+        } elseif ($eventDate->isBefore($today) && $owingAmount > 0) {
+            $paymentStatus = 'Overdue';
+        } elseif ($totalPaid >= $depositRequired) {
+            $paymentStatus = 'Deposit Paid';
+        } elseif ($totalPaid > 0) {
+            $paymentStatus = 'Partial';
+        } else {
+            $paymentStatus = 'Pending';
+        }
+
+        $this->update([
+            'amount_paid' => $totalPaid,
+            'owing_amount' => $owingAmount,
+            'payment_status' => $paymentStatus
+        ]);
+
+        $this->refresh();
+    }
 }

@@ -33,12 +33,10 @@ class GoogleSheetService
             $totalAmount = (float) $booking->total_amount;
             $balanceDue = max(0, $totalAmount - $amountPaid);
 
-            // Calculate Attraction Costing
+            // Calculate Attraction Costing (Sum of items * their actual recorded price)
             $attractionCost = DB::table('booking_items')
-                ->leftJoin('products', 'booking_items.item_name', '=', 'products.name')
                 ->where('booking_id', $bookingId)
-                ->where('booking_items.is_custom', 0)
-                ->selectRaw('SUM(booking_items.qty * IFNULL(products.price, 0)) as total')
+                ->selectRaw('SUM(qty * item_price) as total')
                 ->value('total') ?? 0;
 
 
@@ -113,7 +111,7 @@ class GoogleSheetService
                 'total_amount'          => number_format($totalAmount, 2, '.', ''),
                 'amount_paid'           => number_format($amountPaid, 2, '.', ''),
                 'balance_due'           => number_format($balanceDue, 2, '.', ''),
-                'is_debtor'             => $balanceDue > 0 ? 'YES' : 'NO',
+                'is_debtor'             => ($balanceDue > 0 && \Carbon\Carbon::parse($booking->event_date)->startOfDay()->isBefore(\Carbon\Carbon::today())) ? 'YES' : 'NO',
                 'surcharge_amount'      => number_format($booking->surcharge_amount, 2, '.', ''),
                 'deposit_required'      => number_format($booking->deposit_required, 2, '.', ''),
                 'payment_type'          => $booking->payment_type,
@@ -135,6 +133,9 @@ class GoogleSheetService
                 'is_new_booking'        => $isNew ? 'YES' : 'NO',
                 'synced_at'             => now()->toDateTimeString(),
             ];
+
+            // Log Payload for debugging
+            Log::info("Google Sheet Sync Payload for Invoice: {$booking->invoice_number}", $payload);
 
             $response = Http::withoutVerifying()->post($webhookUrl, $payload);
 

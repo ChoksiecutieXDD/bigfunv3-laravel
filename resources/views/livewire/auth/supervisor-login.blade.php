@@ -1,4 +1,4 @@
-<div class="flex w-full h-full" x-data="{ showLogoutModal: @json(session('logged_out')) }">
+<div class="flex w-full h-full" x-data="{ showLogoutModal: @json(session('logged_out')), showResetModal: @json(session('password_reset_success')) }">
     <div class="hidden lg:flex w-7/12 bg-login-image relative items-center justify-center overflow-hidden h-full">
         <div class="absolute inset-0 bg-gradient-to-tr from-[#86545C]/90 to-[#9E6B73]/40 mix-blend-multiply"></div>
 
@@ -81,6 +81,26 @@
             <p class="text-gray-500 text-center text-sm">Verifying credentials and preparing your workspace.</p>
         </div>
     </div>
+
+    <!-- PASSWORD RESET SUCCESS MODAL -->
+    <template x-if="showResetModal">
+        <div class="fixed inset-0 z-[110] flex items-center justify-center px-4">
+            <div x-transition.opacity @click="showResetModal = false" class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"></div>
+            
+            <div x-transition.scale.origin.bottom class="bg-white rounded-[2.5rem] p-8 shadow-2xl relative z-10 max-w-sm w-full border border-gray-100 flex flex-col items-center text-center animate-enter">
+                <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-6">
+                    <span class="material-symbols-rounded text-green-500 text-4xl animate-bounce">lock_reset</span>
+                </div>
+                
+                <h3 class="text-2xl font-black text-gray-800 mb-2">Password Updated!</h3>
+                <p class="text-gray-500 font-medium mb-8">Your supervisor account password has been successfully reset. You can now log in.</p>
+                
+                <button @click="showResetModal = false" class="w-full py-4 bg-[#9E6B73] text-white font-bold rounded-2xl hover:bg-[#86545C] transition-all shadow-lg hover:shadow-[#9E6B73]/20 active:scale-95">
+                    Login Now
+                </button>
+            </div>
+        </div>
+    </template>
 
     <!-- LOGOUT NOTIFICATION MODAL -->
     <template x-if="showLogoutModal">

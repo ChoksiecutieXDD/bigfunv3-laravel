@@ -54,17 +54,12 @@ class ResetPassword extends Component
                 'reset_expires' => null,
             ]);
 
-            // 5. Success - Log user in and redirect
-            Auth::login($user);
-
-            // Redirect based on role logic from your earlier files
-            if ($user->role === 'Administrator' || $user->role === 'Admin') {
-                return redirect()->intended('/system/settings');
-            } elseif ($user->role === 'Supervisor') {
-                return redirect('/supervisor/calendar');
-            } else {
-                return redirect()->intended('/enquiries');
+            // 5. Success - Redirect to login with success message
+            if ($user->role === 'Supervisor') {
+                return redirect('/supervisor/login')->with('password_reset_success', true);
             }
+
+            return redirect('/login')->with('password_reset_success', true);
         }
 
         $this->addError('password', 'Session expired. Please try again.');

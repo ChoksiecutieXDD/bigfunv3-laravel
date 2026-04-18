@@ -19,6 +19,10 @@ class NewBooking extends Component
     public $selected_products = [];
     public $default_event_date = '';
     public $operational_hours = '';
+    public $availability = [];
+    public $categoryLimits = [];
+    public $calDays = [];
+    public $calMonth, $calYear;
 
     // UI Data Arrays
     public $operators_list = [];
@@ -42,6 +46,15 @@ class NewBooking extends Component
         } elseif ($req_invoice) {
             $this->loadExistingBooking(DB::table('bookings')->where('invoice_number', $req_invoice)->first());
         }
+
+        if (empty($this->default_event_date)) {
+            $this->default_event_date = date('Y-m-d');
+        }
+        
+        $this->calMonth = Carbon::parse($this->default_event_date)->month;
+        $this->calYear = Carbon::parse($this->default_event_date)->year;
+
+        $this->checkAvailability();
     }
 
     private function loadInitialData()
@@ -80,6 +93,9 @@ class NewBooking extends Component
         $cats = DB::table('product_categories')->orderBy('sort_order', 'asc')->get();
         foreach ($cats as $c) {
             $this->categories[$c->category_name] = ['limit' => (int)$c->daily_limit, 'products' => []];
+            if ($c->daily_limit > 0) {
+                $this->categoryLimits[$c->category_name] = (int)$c->daily_limit;
+            }
         }
 
         $prods = DB::table('products')->where('is_active', 1)->orderBy('category')->orderBy('name')->get();
@@ -136,12 +152,43 @@ class NewBooking extends Component
         }
     }
 
-    // Helper method to safely get values for the blade view
     public function getVal($key, $default = '')
     {
         return isset($this->existing_data[$key]) && $this->existing_data[$key] !== ''
             ? htmlspecialchars($this->existing_data[$key], ENT_QUOTES)
             : $default;
+    }
+
+    public function checkAvailability()
+    {
+        $date = $this->default_event_date ?: date('Y-m-d');
+
+        $usage = DB::table('booking_items')
+            ->join('bookings', 'booking_items.booking_id', '=', 'bookings.id')
+            ->where('bookings.event_date', $date)
+            ->where('bookings.id', '!=', $this->booking_id)
+            ->whereNotIn('bookings.status', ['Cancelled'])
+            ->selectRaw('LOWER(TRIM(booking_items.item_name)) as name, SUM(booking_items.qty) as total')
+            ->groupBy('name')
+            ->pluck('total', 'name')
+            ->toArray();
+
+        $products = DB::table('products')->where('is_active', 1)->get();
+        $this->availability = [];
+
+        foreach ($products as $p) {
+            $cleanName = strtolower(trim($p->name));
+            $limit = (int) $p->daily_limit;
+            $used = $usage[$cleanName] ?? 0;
+            $left = ($limit > 0) ? max(0, $limit - $used) : 999;
+
+            $this->availability[$cleanName] = [
+                'used' => $used,
+                'limit' => $limit,
+                'left' => $left,
+                'sold_out' => ($limit > 0 && $left <= 0)
+            ];
+        }
     }
 
     public function toggleItem($name, $selected)
@@ -153,12 +200,19 @@ class NewBooking extends Component
         } else {
             $this->selected_products = array_diff($this->selected_products, [$name]);
         }
+        $this->checkAvailability();
     }
 
     public function updateItemQty($name, $change)
     {
         // This is a placeholder for quantity-based logic if needed in the future
         // For now, it ensures the frontend call doesn't 500
+    }
+
+    public function syncExtras($extras)
+    {
+        $this->saved_extras = $extras;
+        // Logic for re-calculating totals can be added here if needed for live preview
     }
 
     public function render()

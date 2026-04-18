@@ -217,6 +217,9 @@ class BookingOverview extends Component
         $this->booking->event_date = $this->newDate;
         $this->booking->save();
 
+        // Refresh financials (e.g., check if it's still 'Overdue' on the new date)
+        $this->booking->syncFinancials();
+
         // Sync to Google Sheet (Moving event date)
         app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
 
@@ -225,7 +228,16 @@ class BookingOverview extends Component
 
     public function deleteBooking()
     {
+        // 1. Mark status as 'Deleted' temporarily for the sync payload
+        // (This status matches the logic in GoogleSheetService to set is_deleted='YES')
+        $this->booking->status = 'Deleted';
+        
+        // 2. Sync to Google Sheets BEFORE database deletion
+        app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
+
+        // 3. Final deletion from database
         $this->booking->delete();
+        
         return redirect()->to('/supervisor/calendar');
     }
 
@@ -310,12 +322,7 @@ class BookingOverview extends Component
         ]);
 
         // RE-CALCULATE AND UPDATE CACHED COLUMNS
-        $totalPaid = BookingPayment::where('booking_id', $this->booking->id)->sum('amount');
-        $this->booking->update([
-            'amount_paid' => $totalPaid,
-            'owing_amount' => max(0, (float)$this->booking->total_amount - $totalPaid)
-        ]);
-        $this->booking->refresh();
+        $this->booking->syncFinancials();
 
         // Sync to Google Sheet (Update debt info)
         app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
@@ -657,7 +664,7 @@ class BookingOverview extends Component
         }
 
         // Actual days
-        $dailyLimit = 7;
+        $dailyLimit = 5;
         for ($day = 1; $day <= $daysInMonth; $day++) {
             $dateStr = $start->copy()->day($day)->format('Y-m-d');
             $used = $counts[$dateStr] ?? 0;

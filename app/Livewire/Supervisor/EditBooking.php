@@ -9,6 +9,7 @@ use App\Models\Booking;
 use App\Models\BookingItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 #[Layout('components.layouts.plain')]
@@ -69,8 +70,22 @@ class EditBooking extends Component
         if (empty($this->form['eft_method']) && $this->form['payment_type'] === 'EFT') $this->form['eft_method'] = 'Direct Deposit';
 
         $items = BookingItem::where('booking_id', $id)->get();
+        // Pre-fetch product prices for fallback if needed
+        $productPrices = DB::table('products')->pluck('price', DB::raw('LOWER(TRIM(name))'))->toArray();
+
         foreach ($items as $item) {
-            $this->selectedItems[strtolower(trim($item->item_name))] = (int) $item->qty;
+            $key = strtolower(trim($item->item_name));
+            $storedPrice = (float) $item->item_price;
+            
+            // Fallback: If stored price is 0, use the current product default
+            if ($storedPrice < 0.01 && isset($productPrices[$key])) {
+                $storedPrice = (float) $productPrices[$key];
+            }
+
+            $this->selectedItems[$key] = [
+                'qty' => (int) $item->qty,
+                'price' => $storedPrice
+            ];
         }
 
         // --- LOADING EXTRAS ---
@@ -136,6 +151,12 @@ class EditBooking extends Component
             }
         }
 
+        // --- CONNECT INVENTORY LIMITS ---
+        $this->categoryLimits = DB::table('product_categories')
+            ->where('daily_limit', '>', 0)
+            ->pluck('daily_limit', 'category_name')
+            ->toArray();
+
         if ((float)($this->form['duration_cost'] ?? 0) === 0.0 && !empty($this->form['duration']) && $this->form['duration'] !== 'custom') {
             $dur = DB::table('duration_prices')->where('label', $this->form['duration'])->first();
             if ($dur) {
@@ -144,6 +165,7 @@ class EditBooking extends Component
         }
 
         $this->totalPaid = (float) ($this->booking->total_paid ?? 0);
+        $this->loadCalendar(); // Initialize calendar grid
         $this->checkAvailability();
         $this->calculateTotals();
     }
@@ -202,7 +224,13 @@ class EditBooking extends Component
     {
         $key = strtolower(trim($itemName));
         if ($isChecked === true) {
-            $this->selectedItems[$key] = 1;
+            if (!isset($this->selectedItems[$key])) {
+                $product = DB::table('products')->whereRaw('LOWER(TRIM(name)) = ?', [$key])->first();
+                $this->selectedItems[$key] = [
+                    'qty' => 1,
+                    'price' => $product ? (float)$product->price : 0
+                ];
+            }
         } elseif ($isChecked === false) {
             unset($this->selectedItems[$key]);
         } else {
@@ -210,7 +238,11 @@ class EditBooking extends Component
             if (isset($this->selectedItems[$key])) {
                 unset($this->selectedItems[$key]);
             } else {
-                $this->selectedItems[$key] = 1;
+                $product = DB::table('products')->whereRaw('LOWER(TRIM(name)) = ?', [$key])->first();
+                $this->selectedItems[$key] = [
+                    'qty' => 1,
+                    'price' => $product ? (float)$product->price : 0
+                ];
             }
         }
         $this->updatedSelectedItems();
@@ -220,9 +252,9 @@ class EditBooking extends Component
     {
         $key = strtolower(trim($itemName));
         if (isset($this->selectedItems[$key])) {
-            $newQty = $this->selectedItems[$key] + $change;
+            $newQty = $this->selectedItems[$key]['qty'] + $change;
             if ($newQty > 0) {
-                $this->selectedItems[$key] = $newQty;
+                $this->selectedItems[$key]['qty'] = $newQty;
             }
         }
         $this->updatedSelectedItems();
@@ -239,10 +271,8 @@ class EditBooking extends Component
         $ridesTotal = 0;
         $products = DB::table('products')->pluck('price', DB::raw('LOWER(TRIM(name))'))->toArray();
 
-        foreach ($this->selectedItems as $name => $qty) {
-            if (isset($products[$name])) {
-                $ridesTotal += ((float)$products[$name] * $qty);
-            }
+        foreach ($this->selectedItems as $name => $data) {
+            $ridesTotal += ((float)$data['price'] * $data['qty']);
         }
 
         $extrasTotal = 0;
@@ -368,20 +398,18 @@ class EditBooking extends Component
         $start = Carbon::create($this->calYear, $this->calMonth, 1);
         $end = $start->copy()->endOfMonth();
 
-        // 1. Get Daily Booking Counts (Soft Limit Check)
+        // 1. Get Daily Booking Counts (Correctly Counted as all status in the limit)
         $counts = Booking::whereBetween('event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
-            ->where('id', '!=', $this->booking->id)
             ->whereNotIn('status', ['Cancelled'])
             ->selectRaw('event_date, COUNT(*) as cnt')
             ->groupBy('event_date')
             ->pluck('cnt', 'event_date')
             ->toArray();
 
-        // 2. Get Daily Attraction Names (Conflict Check)
+        // 2. Get Daily Attraction Names (Inclusive of all status)
         $this->dailyAttractions = DB::table('booking_items')
             ->join('bookings', 'booking_items.booking_id', '=', 'bookings.id')
             ->whereBetween('bookings.event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
-            ->where('bookings.id', '!=', $this->booking->id)
             ->whereNotIn('bookings.status', ['Cancelled'])
             ->selectRaw('bookings.event_date, LOWER(TRIM(booking_items.item_name)) as name')
             ->get()
@@ -389,15 +417,13 @@ class EditBooking extends Component
             ->map(fn($items) => $items->pluck('name')->unique()->toArray())
             ->toArray();
 
-        // 3. Get Daily Category Usage (Capacity Check) using a subquery to avoid ONLY_FULL_GROUP_BY issues
+        // 3. Get Daily Category Usage (All status included)
         $sub = DB::table('booking_items')
             ->join('bookings', 'booking_items.booking_id', '=', 'bookings.id')
             ->join('products', DB::raw('LOWER(TRIM(booking_items.item_name))'), '=', DB::raw('LOWER(TRIM(products.name))'))
             ->whereBetween('bookings.event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
-            ->where('bookings.id', '!=', $this->booking->id)
             ->whereNotIn('bookings.status', ['Cancelled'])
             ->selectRaw('bookings.event_date, COALESCE(NULLIF(products.counts_against, ""), products.category) as cat, booking_items.qty');
-
         $this->dailyUsage = DB::table($sub, 't')
             ->selectRaw('event_date, cat, SUM(qty) as total')
             ->groupBy('event_date', 'cat')
@@ -409,7 +435,7 @@ class EditBooking extends Component
         $this->calDays = [];
         for ($i = 0; $i < $start->dayOfWeek; $i++) $this->calDays[] = null;
 
-        $globalDailyLimit = 7;
+        $globalDailyLimit = 5;
         for ($day = 1; $day <= $start->daysInMonth; $day++) {
             $dateStr = $start->copy()->day($day)->format('Y-m-d');
             $used = $counts[$dateStr] ?? 0;
@@ -427,13 +453,26 @@ class EditBooking extends Component
                 }
             }
 
+            // Check for attraction conflicts on this day
+            $dayAttractions = $this->dailyAttractions[$dateStr] ?? [];
+            $hasConflict = !empty(array_intersect($this->bookedAttractions, $dayAttractions));
+
             $this->calDays[] = [
                 'date' => $dateStr,
                 'day' => $day,
                 'left' => max(0, $globalDailyLimit - $used),
-                'breach' => !empty($breachedCategories)
+                'breach' => !empty($breachedCategories),
+                'conflict' => $hasConflict
             ];
         }
+    }
+
+    public function selectDate($dateStr)
+    {
+        $this->form['event_date'] = $dateStr;
+        $this->tempSelectedDate = $dateStr;
+        $this->checkAvailability();
+        $this->dispatch('date-selected', date: $dateStr);
     }
 
     public function applySelectedDate()
@@ -591,21 +630,32 @@ class EditBooking extends Component
         $this->booking->update($saveData);
 
         BookingItem::where('booking_id', $this->booking->id)->delete();
-        foreach ($this->selectedItems as $name => $qty) {
+        foreach ($this->selectedItems as $name => $data) {
             $product = DB::table('products')->whereRaw('LOWER(TRIM(name)) = ?', [$name])->first();
             BookingItem::create([
                 'booking_id' => $this->booking->id,
                 'item_name' => $product ? $product->name : ucwords($name),
-                'qty' => $qty,
+                'qty' => $data['qty'],
+                'item_price' => $data['price'],
                 'is_custom' => $product ? 0 : 1
             ]);
         }
 
-        // Sync to Google Sheet (After all updates)
-        app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
+        // RE-CALCULATE AND UPDATE CACHED COLUMNS (Ensure financials are correct before sync)
+        // Force recalculation and update database before syncing
+        $this->calculateTotals();
+        $this->booking->save(); // Save basic form data
+        $this->booking->syncFinancials(); // Update owing, paid, status
 
-        $this->dispatch('notify', title: 'Saved!', message: 'Booking successfully updated.', type: 'success');
-        
+        try {
+            // Re-fetch to ensure we have the most accurate snapshot for GS
+            $this->booking = $this->booking->fresh();
+            app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
+            $this->dispatch('booking-saved');
+        } catch (\Exception $e) {
+            // Log but don't block user
+            Log::error("GS Sync Error: " . $e->getMessage());
+        }
         if ($this->isSupervisor) {
             return redirect()->route('supervisor.bookings.overview', $this->booking->id);
         } else {
@@ -715,6 +765,12 @@ class EditBooking extends Component
                 ->where('id', '!=', $this->booking->id)
                 ->whereNotIn('status', ['Cancelled'])
                 ->get()
+                ->map(function($b) {
+                    $arr = $b->toArray();
+                    $items = DB::table('booking_items')->where('booking_id', $b->id)->pluck('item_name')->toArray();
+                    $arr['item_names_summary'] = count($items) > 0 ? implode(', ', array_slice($items, 0, 2)) . (count($items) > 2 ? '...' : '') : 'No Items';
+                    return $arr;
+                })
                 ->toArray();
 
             // Notify if newly discovered
