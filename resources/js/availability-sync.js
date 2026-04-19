@@ -92,6 +92,8 @@
                         const actionText = card.querySelector('.action-text');
                         const targetCat = (card.dataset.countsAgainst || '').trim().toLowerCase();
                         const itemLimit = parseInt(card.dataset.dailyLimit) || 0;
+                        const initialStock = parseInt(card.dataset.stock) || 999;
+                        const UNLIMITED_THRESHOLD = 99;
 
                         // 2. CHANGE THIS: Check against our new normalizedApiProducts object
                         if (normalizedApiProducts[cleanName]) {
@@ -115,8 +117,7 @@
                                 card.classList.remove('disabled-card');
                                 if (checkbox) checkbox.disabled = false;
                                 if (badge) {
-                                    const prodApiData = normalizedApiProducts[cleanName];
-                                    if (prodApiData && prodApiData.daily_limit === 0) {
+                                    if (left >= UNLIMITED_THRESHOLD) {
                                         badge.innerText = 'UNLIMITED';
                                         badge.className = 'status-badge status-avail';
                                     } else {
@@ -131,12 +132,15 @@
                             card.classList.remove('disabled-card');
                             if (checkbox) checkbox.disabled = false;
                             if (badge) {
-                                if (itemLimit === 0) {
+                                if (initialStock >= UNLIMITED_THRESHOLD) {
                                     badge.innerText = 'UNLIMITED';
                                     badge.className = 'status-badge status-avail';
+                                } else if (initialStock > 0) {
+                                    badge.innerText = `${initialStock} AVAILABLE`;
+                                    badge.className = (initialStock <= 2) ? 'status-badge status-limited' : 'status-badge status-avail';
                                 } else {
-                                    badge.innerText = `${itemLimit} AVAILABLE`;
-                                    badge.className = (itemLimit <= 2) ? 'status-badge status-limited' : 'status-badge status-avail';
+                                    badge.innerText = 'SOLD OUT';
+                                    badge.className = 'status-badge status-soldout';
                                 }
                             }
                             if (actionText) actionText.innerText = card.classList.contains('selected') ? 'Selected' : 'Click to select';
@@ -202,12 +206,35 @@
         });
 
         // Also count selected Extras (Addons, Dropdowns, Questions)
+        // CRITICAL: Avoid double-counting items that are also selected as rides (synced items)
+        const selectedRideNames = new Set(Object.keys(window.bookingAppData.selectedItems || {}).map(s => s.toLowerCase().trim()));
+
         document.querySelectorAll('.ext-price').forEach(el => {
             if (!el.dataset.countsAgainst) return;
             const catKey = el.dataset.countsAgainst.trim().toLowerCase();
             let isSelected = false;
-            if (el.type === 'checkbox') isSelected = el.checked;
-            else if (el.tagName === 'SELECT') isSelected = el.value !== '' && el.value !== '0' && !el.value.includes('|no');
+            let label = "";
+
+            if (el.type === 'checkbox') {
+                isSelected = el.checked;
+                label = (el.closest('label').querySelector('span')?.innerText || "").toLowerCase().trim();
+            } else if (el.tagName === 'SELECT') {
+                isSelected = el.value !== '' && el.value !== '0' && !el.value.includes('|no');
+                // For selects/questions/dropdowns, identify the label
+                const labelEl = el.closest('div').querySelector('label');
+                label = (labelEl?.innerText || "").toLowerCase().trim();
+                // If it's a dropdown, also check the selected option label
+                if (isSelected && el.options[el.selectedIndex]) {
+                    const optLabel = el.options[el.selectedIndex].text.split('(')[0].toLowerCase().trim();
+                    if (selectedRideNames.has(optLabel)) {
+                        // This specific option matches a ride, skip counting
+                        return;
+                    }
+                }
+            }
+
+            // If the addon label matches a selected ride, don't double count
+            if (isSelected && selectedRideNames.has(label)) return;
 
             if (isSelected) usage[catKey] = (usage[catKey] || 0) + 1;
         });
@@ -253,6 +280,7 @@
 
             if (targetData && targetData.limit > 0) {
                 const used = usage[targetCat] || 0;
+                // Only disable if NOT checked and limit is reached
                 if (!cb.checked && used >= targetData.limit) {
                     cb.disabled = true;
                     card.classList.add('disabled-card');
@@ -262,12 +290,98 @@
                 }
             }
         });
+
+        // Loop through all Extras and disable them if group limit is reached
+        document.querySelectorAll('.ext-price').forEach(el => {
+            if (!el.dataset.countsAgainst) return;
+            const targetCat = el.dataset.countsAgainst.trim().toLowerCase();
+            
+            let targetData = null;
+            for (let key in categories) {
+                if (key.trim().toLowerCase() === targetCat) {
+                    targetData = categories[key];
+                    break;
+                }
+            }
+
+            if (targetData && targetData.limit > 0) {
+                const used = usage[targetCat] || 0;
+                let isSelected = false;
+                if (el.type === 'checkbox') isSelected = el.checked;
+                else if (el.tagName === 'SELECT') isSelected = el.value !== '' && el.value !== '0' && !el.value.includes('|no');
+
+                // Only disable if NOT selected and limit is reached/exceeded
+                if (!isSelected && used >= targetData.limit) {
+                    el.disabled = true;
+                    if (el.type === 'checkbox') {
+                        el.closest('label').classList.add('opacity-40', 'pointer-events-none');
+                    } else {
+                        el.classList.add('opacity-40', 'pointer-events-none');
+                    }
+                } else {
+                    el.disabled = false;
+                    if (el.type === 'checkbox') {
+                        el.closest('label').classList.remove('opacity-40', 'pointer-events-none');
+                    } else {
+                        el.classList.remove('opacity-40', 'pointer-events-none');
+                    }
+                }
+            }
+        });
     };
 
     /**
      * Refresh the dynamic extras sidebar based on selected attractions and category dependencies.
      */
     window.updateDynamicExtras = function () {
+        const selectedRideNames = new Set(Object.keys(window.bookingAppData.selectedItems || {}).map(s => s.toLowerCase().trim()));
+
+        // --- Just-in-Time Parity Sync ---
+        // CRITICAL: Run this BEFORE saving state so we don't accidentally wipe selections on first render
+        if (window.bookingAppData && window.bookingAppData.config) {
+            
+            // 1. Sync Addons
+            if (window.bookingAppData.config.addons) {
+                for (let cat in window.bookingAppData.config.addons) {
+                    window.bookingAppData.config.addons[cat].forEach(addon => {
+                        const addonName = (addon.addon_label || '').toLowerCase().trim();
+                        if (addonName && selectedRideNames.has(addonName)) {
+                            window.bookingAppData.savedExtras[`add_${addon.id}`] = "1";
+                        }
+                    });
+                }
+            }
+
+            // 2. Sync Questions
+            if (window.bookingAppData.config.questions) {
+                for (let cat in window.bookingAppData.config.questions) {
+                    window.bookingAppData.config.questions[cat].forEach(q => {
+                        const qName = (q.question_text || '').toLowerCase().trim();
+                        if (qName && selectedRideNames.has(qName)) {
+                            window.bookingAppData.savedExtras[`q_${q.id}`] = `${q.yes_price}|yes`;
+                        }
+                    });
+                }
+            }
+
+            // 3. Sync Dropdowns (Match Option Labels)
+            if (window.bookingAppData.config.dropdowns) {
+                for (let cat in window.bookingAppData.config.dropdowns) {
+                    window.bookingAppData.config.dropdowns[cat].forEach(dd => {
+                        if (dd.options) {
+                            dd.options.forEach(opt => {
+                                const optName = (opt.option_label || '').toLowerCase().trim();
+                                if (optName && selectedRideNames.has(optName)) {
+                                    window.bookingAppData.savedExtras[`dd_${dd.id}`] = opt.id;
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+        }
+
+        // Now save the current state from any existing DOM elements
         window.saveCurrentExtrasState(true);
 
         const activeCategories = new Set();
@@ -342,6 +456,7 @@
         if (!window.bookingAppData) return '';
         const config = window.bookingAppData.config;
         const savedExtras = window.bookingAppData.savedExtras;
+        const selectedRideNames = new Set(Object.keys(window.bookingAppData.selectedItems || {}).map(s => s.toLowerCase().trim()));
 
         if (config.dropdowns[catName]) {
             config.dropdowns[catName].forEach(dd => {
@@ -369,7 +484,9 @@
         if (config.addons[catName]) {
             config.addons[catName].forEach(addon => {
                 let key = `add_${addon.id}`;
-                let isChecked = (savedExtras[key] == '1');
+                let addonLabel = (addon.addon_label || '').toLowerCase().trim();
+                // FORCE CHECK if it was in the savedExtras OR if it matches a selected ride item
+                let isChecked = (savedExtras[key] == '1' || selectedRideNames.has(addonLabel));
                 let countsAgainst = (addon.counts_against || catName).trim();
                 catHtml += `<label class="flex items-center gap-3 mt-3 p-3 bg-white border border-slate-200 rounded-xl hover:border-[#9E6B73] cursor-pointer transition shadow-sm h-[42px]"><input type="checkbox" name="${key}" value="1" class="ext-price w-4 h-4 text-[#9E6B73] focus:ring-[#9E6B73]" data-price="${addon.addon_price}" data-counts-against="${countsAgainst}" data-original-checked="${isChecked}" ${isChecked ? 'checked' : ''} onchange="window.handleExtraSelection(this)"><span class="text-sm font-bold text-slate-700 flex-1">${addon.addon_label}</span><span class="text-xs font-bold text-[#9E6B73] bg-[#9E6B73]/10 px-2 py-1 rounded-lg">+$${addon.addon_price}</span></label>`;
             });

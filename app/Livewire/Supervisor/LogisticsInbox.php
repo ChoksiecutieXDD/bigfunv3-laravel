@@ -9,6 +9,7 @@ use App\Models\Booking;
 use App\Models\BookingPayment;
 use App\Models\User;
 use App\Services\EmailQuotaService;
+use App\Services\GoogleSheetService;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -19,6 +20,7 @@ class LogisticsInbox extends Component
 
     // --- Search Filters ---
     public $search_pay = '';
+    public $search_full = '';
     public $search_inv = '';
     public $search_ord = '';
     public $search_deb = '';
@@ -36,6 +38,7 @@ class LogisticsInbox extends Component
     public $eft_specific_method = 'Direct Deposit';
     public $modal_card_category = 'Debit Card';
     public $modal_card_network = 'Visa';
+    public $pay_card_holder;
     public $pay_card_number;
     public $pay_card_expiry;
     public $pay_card_cvv;
@@ -43,6 +46,7 @@ class LogisticsInbox extends Component
 
     // Edit Card
     public $card_booking_id;
+    public $edit_card_holder;
     public $edit_card_category;
     public $edit_card_type;
     public $edit_card_number;
@@ -71,6 +75,7 @@ class LogisticsInbox extends Component
     // Define unique query string keys for multiple paginators
     protected $queryString = [
         'search_pay' => ['except' => ''],
+        'search_full' => ['except' => ''],
         'search_inv' => ['except' => ''],
         'search_ord' => ['except' => ''],
         'search_deb' => ['except' => ''],
@@ -86,6 +91,10 @@ class LogisticsInbox extends Component
     public function updatingSearchPay()
     {
         $this->resetPage('page_pay');
+    }
+    public function updatingSearchFull()
+    {
+        $this->resetPage('page_full');
     }
     public function updatingSearchInv()
     {
@@ -134,6 +143,10 @@ class LogisticsInbox extends Component
     public function savePaymentType($bookingId, $method)
     {
         Booking::where('id', $bookingId)->update(['payment_type' => $method]);
+        
+        // Sync to Google Sheet
+        app(GoogleSheetService::class)->sync($bookingId);
+
         $this->dispatch('notify', title: 'Success', message: 'Payment method saved!');
     }
 
@@ -175,7 +188,11 @@ class LogisticsInbox extends Component
             default => 'EFT',
         };
 
-        $this->reset(['pay_ref', 'pay_notes']);
+        $this->reset(['pay_ref', 'pay_notes', 'pay_card_holder', 'pay_card_number', 'pay_card_expiry', 'pay_card_cvv']);
+        
+        // Default card holder to customer name
+        $this->pay_card_holder = $this->pay_context['customer_name'];
+
         $this->dispatch('open-modal', 'paymentModal');
     }
 
@@ -218,6 +235,7 @@ class LogisticsInbox extends Component
             'payment_method' => $this->pay_method,
             'payment_date' => $this->pay_date,
             'notes' => $combinedNotes,
+            'card_holder' => $this->pay_method === 'Card Holder' ? $this->pay_card_holder : null,
             'card_number' => $this->pay_method === 'Card Holder' ? $this->pay_card_number : null,
             'card_expiry' => $this->pay_method === 'Card Holder' ? $this->pay_card_expiry : null,
             'card_cvv' => $this->pay_method === 'Card Holder' ? $this->pay_card_cvv : null,
@@ -227,6 +245,7 @@ class LogisticsInbox extends Component
         $booking = Booking::find($this->pay_booking_id);
 
         if ($this->pay_method === 'Card Holder') {
+            $booking->card_holder = $this->pay_card_holder;
             $booking->card_category = $this->modal_card_category;
             $booking->card_type = $this->modal_card_network;
             $booking->card_number = $this->pay_card_number;
@@ -240,6 +259,9 @@ class LogisticsInbox extends Component
         // RE-CALCULATE AND UPDATE CACHED COLUMNS (Including Payment Status)
         $booking->syncFinancials();
 
+        // Sync to Google Sheet
+        app(GoogleSheetService::class)->sync($booking->id);
+
         $this->dispatch('close-modal', 'paymentModal');
         // Dispatch the success modal instead of a notification
         $this->dispatch('open-modal', 'paymentSuccessModal');
@@ -249,6 +271,7 @@ class LogisticsInbox extends Component
     {
         $booking = Booking::findOrFail($bookingId);
         $this->card_booking_id = $bookingId;
+        $this->edit_card_holder = $booking->card_holder ?? ($booking->customer_first_name . ' ' . $booking->customer_last_name);
         $this->edit_card_category = $booking->card_category ?? 'Credit Card';
         $this->edit_card_type = $booking->card_type ?? 'Visa';
         $this->edit_card_number = $booking->card_number;
@@ -261,12 +284,17 @@ class LogisticsInbox extends Component
     public function saveCardDetails()
     {
         Booking::where('id', $this->card_booking_id)->update([
+            'card_holder' => $this->edit_card_holder,
             'card_category' => $this->edit_card_category,
             'card_type' => $this->edit_card_type,
             'card_number' => $this->edit_card_number,
             'card_expiry' => $this->edit_card_expiry,
             'card_cvv' => $this->edit_card_cvv,
         ]);
+
+        // Sync to Google Sheet
+        app(GoogleSheetService::class)->sync($this->card_booking_id);
+
         $this->dispatch('close-modal', 'cardModal');
         $this->dispatch('notify', title: 'Success', message: 'Card details updated!');
     }
@@ -285,6 +313,10 @@ class LogisticsInbox extends Component
         Booking::where('id', $this->eft_booking_id)->update([
             'eft_method' => $this->edit_eft_method,
         ]);
+
+        // Sync to Google Sheet
+        app(GoogleSheetService::class)->sync($this->eft_booking_id);
+
         $this->dispatch('close-modal', 'eftModal');
         $this->dispatch('notify', title: 'Success', message: 'EFT details updated!');
     }
@@ -519,8 +551,13 @@ class LogisticsInbox extends Component
     {
         $enquiriesCount = Booking::where('status', 'Pending')->count();
 
+        // 1. Pending Payments (Still owe money)
         $paymentsQuery = Booking::with('payments')
-            ->whereIn('status', ['Pending', 'Confirmed']);
+            ->whereIn('status', ['Pending', 'Confirmed'])
+            ->where(function ($q) {
+                $q->whereColumn('amount_paid', '<', 'total_amount')
+                    ->orWhere('owing_amount', '>', 0.01);
+            });
 
         if ($this->search_pay) {
             $paymentsQuery->where(function ($q) {
@@ -531,6 +568,22 @@ class LogisticsInbox extends Component
             });
         }
         $pendingPayments = $paymentsQuery->orderBy('event_date', 'asc')->paginate(10, ['*'], 'page_pay');
+
+        // 2. Fully Paid Bookings (All settled bookings, including completed)
+        $fullyPaidQuery = Booking::with('payments')
+            ->whereIn('status', ['Pending', 'Confirmed', 'Completed'])
+            ->where('total_amount', '>', 0)
+            ->whereColumn('amount_paid', '>=', 'total_amount');
+
+        if ($this->search_full) {
+            $fullyPaidQuery->where(function ($q) {
+                $q->where('id', 'like', "%{$this->search_full}%")
+                    ->orWhere('customer_first_name', 'like', "%{$this->search_full}%")
+                    ->orWhere('customer_last_name', 'like', "%{$this->search_full}%")
+                    ->orWhere('customer_organization', 'like', "%{$this->search_full}%");
+            });
+        }
+        $fullyPaidBookings = $fullyPaidQuery->orderBy('event_date', 'desc')->paginate(5, ['*'], 'page_full');
 
         $invoicesQuery = Booking::where('invoice_emailed', 0)->where('status', '!=', 'Cancelled');
         if ($this->search_inv) {
@@ -576,6 +629,7 @@ class LogisticsInbox extends Component
         return view('livewire.supervisor.logistics-inbox', [
             'enquiriesCount' => $enquiriesCount,
             'pendingPayments' => $pendingPayments,
+            'fullyPaidBookings' => $fullyPaidBookings,
             'invoices' => $invoices,
             'orders' => $orders,
             'debtors' => $debtors,

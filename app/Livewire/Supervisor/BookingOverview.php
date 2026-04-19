@@ -25,6 +25,7 @@ class BookingOverview extends Component
     public $payType = 'Remaining Balance';
     public $payMethod = 'EFT';
     public $eftMethod = 'Direct Deposit';
+    public $payCardHolder;
     public $cardNumber;
     public $cardExpiry;
     public $cardCvv;
@@ -72,6 +73,8 @@ class BookingOverview extends Component
     public $selectedPayment;
     public $selectedLogToDelete;
 
+    public $backUrl;
+
     public function mount($id)
     {
         $this->booking = Booking::findOrFail($id);
@@ -81,6 +84,12 @@ class BookingOverview extends Component
 
         $this->calMonth = Carbon::parse($this->newDate)->month;
         $this->calYear = Carbon::parse($this->newDate)->year;
+
+        // Dynamic Back Redirect Logic
+        $prev = url()->previous();
+        $this->backUrl = ($prev === url()->current() || empty($prev)) 
+            ? route('supervisor.calendar') 
+            : $prev;
     }
 
     // --- Core Updates ---
@@ -228,9 +237,9 @@ class BookingOverview extends Component
 
     public function deleteBooking()
     {
-        // 1. Mark status as 'Deleted' temporarily for the sync payload
+        // 1. Mark status as 'Deleted' in database for the sync payload
         // (This status matches the logic in GoogleSheetService to set is_deleted='YES')
-        $this->booking->status = 'Deleted';
+        $this->booking->update(['status' => 'Deleted']);
         
         // 2. Sync to Google Sheets BEFORE database deletion
         app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
@@ -271,6 +280,10 @@ class BookingOverview extends Component
             'Cash' => 'Cash',
             default => 'EFT',
         };
+
+        $this->payCardHolder = $this->booking->card_holder ?? ($this->booking->customer_first_name . ' ' . $this->booking->customer_last_name);
+
+        $this->reset(['payRef', 'payNotes']);
         $this->dispatch('open-modal', 'paymentModal');
     }
 
@@ -307,19 +320,36 @@ class BookingOverview extends Component
             'payMethod' => 'required|string',
         ]);
 
+        $combinedNotes = $this->payNotes;
+        if ($this->payMethod === 'EFT') {
+            $combinedNotes = "Method: {$this->eftMethod} | " . $combinedNotes;
+        }
+
         BookingPayment::create([
             'booking_id' => $this->booking->id,
             'amount' => $this->payAmount,
-            'payment_method' => $this->payMethod === 'EFT' ? 'EFT (' . $this->eftMethod . ')' : $this->payMethod,
+            'payment_method' => $this->payMethod,
             'payment_type' => $this->payType,
             'payment_date' => $this->payDate,
             'reference' => $this->payRef,
-            'notes' => $this->payNotes,
+            'notes' => $combinedNotes,
+            'card_holder' => $this->payMethod === 'Card Holder' ? $this->payCardHolder : null,
             'card_number' => $this->payMethod === 'Card Holder' ? $this->cardNumber : null,
             'card_expiry' => $this->payMethod === 'Card Holder' ? $this->cardExpiry : null,
             'card_cvv' => $this->payMethod === 'Card Holder' ? $this->cardCvv : null,
             'card_network' => $this->payMethod === 'Card Holder' ? $this->cardNetwork : null,
         ]);
+
+        if ($this->payMethod === 'Card Holder') {
+            $this->booking->update([
+                'card_holder' => $this->payCardHolder,
+                'card_category' => $this->cardCategory,
+                'card_type' => $this->cardNetwork,
+                'card_number' => $this->cardNumber,
+                'card_expiry' => $this->cardExpiry,
+                'card_cvv' => $this->cardCvv,
+            ]);
+        }
 
         // RE-CALCULATE AND UPDATE CACHED COLUMNS
         $this->booking->syncFinancials();
@@ -664,7 +694,7 @@ class BookingOverview extends Component
         }
 
         // Actual days
-        $dailyLimit = 5;
+        $dailyLimit = 7;
         for ($day = 1; $day <= $daysInMonth; $day++) {
             $dateStr = $start->copy()->day($day)->format('Y-m-d');
             $used = $counts[$dateStr] ?? 0;
@@ -851,6 +881,38 @@ class BookingOverview extends Component
         }
 
         $selectedExtras = json_decode($this->booking->extras_json ?? '[]', true) ?? [];
+
+        // --- DATA RECOVERY & PARITY CHECK FOR OVERVIEW ---
+        // Ensure that if a ride item is selected (like Generator or Dropbox), it is shown in Extra Logistics table 
+        // even if not explicitly in extras_json.
+        $lowercaseItems = array_map(fn($it) => strtolower(trim($it->item_name)), $items->all());
+
+        // 1. Sync Addons
+        $addonsLookup = DB::table('category_addons')->get();
+        foreach ($addonsLookup as $a) {
+            $addonKey = 'add_' . $a->id;
+            if (!isset($selectedExtras[$addonKey]) && in_array(strtolower(trim($a->addon_label)), $lowercaseItems)) {
+                $selectedExtras[$addonKey] = "1";
+            }
+        }
+
+        // 2. Sync Questions
+        $questionsLookup = DB::table('product_extras')->get();
+        foreach ($questionsLookup as $q) {
+            $qKey = 'q_' . $q->id;
+            if (!isset($selectedExtras[$qKey]) && in_array(strtolower(trim($q->question_text)), $lowercaseItems)) {
+                $selectedExtras[$qKey] = $q->yes_price . '|yes';
+            }
+        }
+
+        // 3. Sync Dropdowns
+        $dropdownOptions = DB::table('dropdown_options')->get();
+        foreach ($dropdownOptions as $opt) {
+            $ddKey = 'dd_' . $opt->dropdown_id;
+            if (!isset($selectedExtras[$ddKey]) && in_array(strtolower(trim($opt->option_label)), $lowercaseItems)) {
+                $selectedExtras[$ddKey] = $opt->id;
+            }
+        }
 
         $startTime = Carbon::parse($this->booking->start_time);
         $timeString = $startTime->format('g:i A');

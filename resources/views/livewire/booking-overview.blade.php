@@ -136,102 +136,6 @@
                         <div class="flex justify-between mb-1 pb-1"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Expected Pax</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->expected_people }}</span></div>
                     </div>
 
-                    {{-- EXTRA CONFIGURATIONS SECTION --}}
-                    <div class="mt-8 pt-6 border-t border-gray-100">
-                        <div class="flex items-center gap-2 mb-5 text-[#9D686E]">
-                            <span class="material-symbols-rounded">tune</span>
-                            <span class="text-sm font-bold uppercase tracking-wide">Extra Configurations</span>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            @foreach($activeCategories as $cat)
-                            @php
-                            $catAddons = $config['addons'][$cat] ?? [];
-                            $catQuestions = $config['questions'][$cat] ?? [];
-                            $catDropdowns = $config['dropdowns'][$cat] ?? [];
-                            $hasSelectedAddon = collect($catAddons)->contains(fn($a) => isset($selectedExtras['add_'.$a->id]));
-                            $hasSelectedQuestion = collect($catQuestions)->contains(function($q) use ($selectedExtras) {
-                            $val = $selectedExtras['extra_'.$q->id] ?? $selectedExtras['q_'.$q->id] ?? null;
-                            if (!$val) return false;
-                            $parts = explode('|', $val);
-                            return ($parts[1] ?? 'yes') === 'yes';
-                            });
-                            $hasSelectedDropdown = collect($catDropdowns)->contains(function($dd) use ($selectedExtras) {
-                            $val = $selectedExtras['dd_'.$dd['id']] ?? null;
-                            return $val && $val !== 'Not Selected' && $val !== 'None';
-                            });
-                            $hasLogistics = ($cat === 'General Logistics' && ($booking->hire_type || $booking->logistics_surfaces));
-                            $shouldShowCategory = $hasSelectedAddon || $hasSelectedQuestion || $hasSelectedDropdown || $hasLogistics;
-                            @endphp
-                            @if($shouldShowCategory)
-                            <div class="bg-gray-50/30 rounded-2xl border border-gray-100 overflow-hidden flex flex-col">
-                                <div class="bg-gray-100/50 px-4 py-2.5 border-b border-gray-200 flex justify-between items-center">
-                                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">{{ $cat }}</span>
-                                    <span class="text-[8px] font-bold text-[#9D686E] uppercase tracking-tighter">Active Config</span>
-                                </div>
-                                <div class="p-4 space-y-3 flex-1">
-                                    @if(!empty($catDropdowns))
-                                    <div class="space-y-2">
-                                        @foreach($catDropdowns as $dd)
-                                        @php $val = $selectedExtras['dd_'.$dd['id']] ?? null; @endphp
-                                        @if($val && $val !== 'Not Selected')
-                                        <div>
-                                            <label class="text-[9px] font-bold text-gray-400 uppercase mb-1 block">{{ $dd['label'] }}</label>
-                                            <div class="text-[11px] font-bold text-[#9D686E] border border-[#9D686E]/20 bg-[#9D686E]/5 rounded-xl px-3 py-1.5 shadow-sm inline-block">{{ $val }}</div>
-                                        </div>
-                                        @endif
-                                        @endforeach
-                                    </div>
-                                    @endif
-                                    @if(!empty($catAddons) || !empty($catQuestions) || ($cat === 'General Logistics' && $booking->logistics_surfaces))
-                                    <div class="space-y-2">
-                                        @if($cat === 'General Logistics' && $booking->logistics_surfaces)
-                                        <div class="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-emerald-100 shadow-sm">
-                                            <div class="flex items-center gap-2">
-                                                <div class="w-4 h-4 rounded bg-emerald-500 text-white flex items-center justify-center"><span class="material-symbols-rounded text-[10px]">check</span></div>
-                                                <span class="text-[11px] font-bold text-slate-700">{{ $booking->logistics_surfaces }}</span>
-                                            </div>
-                                        </div>
-                                        @endif
-                                        @foreach($catAddons as $addon)
-                                        @php $isSelected = isset($selectedExtras['add_'.$addon->id]); @endphp
-                                        @if($isSelected)
-                                        <div class="flex items-center justify-between px-3 py-2 rounded-xl border bg-white border-emerald-100 shadow-sm transition-all">
-                                            <div class="flex items-center gap-2">
-                                                <div class="w-4 h-4 rounded bg-emerald-500 text-white flex items-center justify-center"><span class="material-symbols-rounded text-[10px]">check</span></div>
-                                                <span class="text-[11px] font-bold text-slate-700">{{ $addon->addon_label }}</span>
-                                            </div>
-                                            @if($addon->addon_price > 0)
-                                            <span class="text-[9px] font-black text-[#9D686E]">+${{ number_format($addon->addon_price, 2) }}</span>
-                                            @endif
-                                        </div>
-                                        @endif
-                                        @endforeach
-                                        @foreach($catQuestions as $q)
-                                        @php
-                                        $val = $selectedExtras['extra_'.$q->id] ?? null;
-                                        if (!$val) $val = $selectedExtras['q_'.$q->id] ?? null;
-                                        $price = $q->yes_price;
-                                        $isYes = false;
-                                        if ($val) { $parts = explode('|', $val); $price = (float)($parts[0] ?? 0); $answer = $parts[1] ?? 'yes'; $isYes = ($answer === 'yes'); }
-                                        @endphp
-                                        @if($isYes)
-                                        <div class="flex items-center justify-between px-3 py-2 rounded-xl border bg-white border-emerald-100 shadow-sm transition-all">
-                                            <div class="flex items-center gap-2">
-                                                <div class="w-4 h-4 rounded bg-emerald-500 text-white flex items-center justify-center"><span class="material-symbols-rounded text-[10px]">check</span></div>
-                                                <span class="text-[11px] font-bold text-slate-700">{{ $q->question_text }}</span>
-                                            </div>
-                                            @if($price > 0)<span class="text-[9px] font-black text-[#9D686E]">+${{ number_format($price, 2) }}</span>@endif
-                                        </div>
-                                        @endif
-                                        @endforeach
-                                    </div>
-                                    @endif
-                                </div>
-                            </div>
-                            @endif
-                            @endforeach
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -270,7 +174,11 @@
                         </div>
                         @endif
                         @foreach($activeCategories as $cat)
-                        @php $catAddons = $config['addons'][$cat] ?? []; $catQuestions = $config['questions'][$cat] ?? []; @endphp
+                        @php 
+                            $catAddons = $config['addons'][$cat] ?? []; 
+                            $catQuestions = $config['questions'][$cat] ?? []; 
+                            $catDropdowns = $config['dropdowns'][$cat] ?? [];
+                        @endphp
                         @foreach($catAddons as $addon)
                         @php $isSelected = isset($selectedExtras['add_'.$addon->id]); @endphp
                         @if($isSelected && $addon->addon_price > 0)
@@ -290,6 +198,23 @@
                         <div class="flex justify-between items-start text-xs border-b border-[#9D686E]/5 pb-2">
                             <span class="font-medium text-slate-500 flex-1">{{ $q->question_text }}</span>
                             <span class="font-bold text-[#9D686E] ml-2 shrink-0">${{ number_format($price, 2) }}</span>
+                        </div>
+                        @endif
+                        @endforeach
+                        @foreach($catDropdowns as $dd)
+                        @php
+                            $val = $selectedExtras['dd_'.$dd['id']] ?? null;
+                            $selectedOpt = null;
+                            if ($val) {
+                                foreach($dd['options'] as $opt) {
+                                    if($opt['id'] == $val) { $selectedOpt = $opt; break; }
+                                }
+                            }
+                        @endphp
+                        @if($selectedOpt && $selectedOpt['option_price'] > 0)
+                        <div class="flex justify-between items-start text-xs border-b border-[#9D686E]/5 pb-2">
+                            <span class="font-medium text-slate-500 flex-1">{{ $dd['label'] }}: {{ $selectedOpt['option_label'] }}</span>
+                            <span class="font-bold text-[#9D686E] ml-2 shrink-0">${{ number_format($selectedOpt['option_price'], 2) }}</span>
                         </div>
                         @endif
                         @endforeach
@@ -379,38 +304,79 @@
                         <div class="text-center py-8 text-gray-300 text-xs font-bold uppercase tracking-widest italic">No assets catalogued</div>
                         @endforelse
 
-                        {{-- Extras --}}
+                        {{-- Consolidated Extras --}}
                         @foreach($activeCategories as $cat)
-                        @php $catAddons = $config['addons'][$cat] ?? []; $catQuestions = $config['questions'][$cat] ?? []; @endphp
+                        @php 
+                            $catAddons = $config['addons'][$cat] ?? []; 
+                            $catQuestions = $config['questions'][$cat] ?? []; 
+                            $catDropdowns = $config['dropdowns'][$cat] ?? []; 
+                        @endphp
+                        
+                        @if($cat === 'General Logistics' && $booking->logistics_surfaces)
+                        <div class="grid grid-cols-12 gap-2 items-center bg-slate-50/50 rounded-xl px-3 py-2.5 border border-slate-100 hover:bg-white hover:shadow-sm transition-all duration-200">
+                            <div class="col-span-5 flex items-center gap-2">
+                                <span class="material-symbols-rounded text-xs text-[#9D686E]">local_shipping</span>
+                                <span class="text-[0.7rem] font-bold text-slate-600 uppercase tracking-tight">Surface: {{ $booking->logistics_surfaces }}</span>
+                            </div>
+                            <div class="col-span-4 text-[9px] italic text-slate-400">Logistics Configuration</div>
+                            <div class="col-span-1 flex justify-center"><span class="px-2 py-0.5 bg-white rounded-lg font-bold text-slate-400 border border-gray-100 text-[10px]">1</span></div>
+                            <div class="col-span-2 text-right text-[0.7rem] font-black text-[#9D686E]">-</div>
+                        </div>
+                        @endif
+
                         @foreach($catAddons as $addon)
                         @php $isSelected = isset($selectedExtras['add_'.$addon->id]); @endphp
-                        @if($isSelected && $addon->addon_price > 0)
+                        @if($isSelected)
                         <div class="grid grid-cols-12 gap-2 items-center bg-slate-50/50 rounded-xl px-3 py-2.5 border border-slate-100 hover:bg-white hover:shadow-sm transition-all duration-200">
                             <div class="col-span-5 flex items-center gap-2">
                                 <span class="material-symbols-rounded text-xs text-[#9D686E]">add_circle</span>
                                 <span class="text-[0.7rem] font-bold text-slate-600 uppercase tracking-tight">{{ $addon->addon_label }}</span>
                             </div>
-                            <div class="col-span-4 text-[9px] italic text-slate-400">Extra / Logistics</div>
+                            <div class="col-span-4 text-[9px] italic text-slate-400">Extra / Configuration</div>
                             <div class="col-span-1 flex justify-center"><span class="px-2 py-0.5 bg-white rounded-lg font-bold text-slate-400 border border-gray-100 text-[10px]">1</span></div>
-                            <div class="col-span-2 text-right text-[0.7rem] font-black text-[#9D686E]">${{ number_format($addon->addon_price, 2) }}</div>
+                            <div class="col-span-2 text-right text-[0.7rem] font-black text-[#9D686E]">{{ $addon->addon_price > 0 ? '$'.number_format($addon->addon_price, 2) : '-' }}</div>
                         </div>
                         @endif
                         @endforeach
+
                         @foreach($catQuestions as $q)
                         @php
                         $val = $selectedExtras['extra_'.$q->id] ?? $selectedExtras['q_'.$q->id] ?? null;
                         $price = 0; $isYes = false;
                         if ($val) { $parts = explode('|', $val); $price = (float)($parts[0] ?? 0); $answer = $parts[1] ?? 'yes'; $isYes = ($answer === 'yes'); }
                         @endphp
-                        @if($isYes && $price > 0)
+                        @if($isYes)
                         <div class="grid grid-cols-12 gap-2 items-center bg-slate-50/50 rounded-xl px-3 py-2.5 border border-slate-100 hover:bg-white hover:shadow-sm transition-all duration-200">
                             <div class="col-span-5 flex items-center gap-2">
-                                <span class="material-symbols-rounded text-xs text-[#9D686E]">add_circle</span>
+                                <span class="material-symbols-rounded text-xs text-[#9D686E]">help_center</span>
                                 <span class="text-[0.7rem] font-bold text-slate-600 uppercase tracking-tight">{{ $q->question_text }}</span>
                             </div>
-                            <div class="col-span-4 text-[9px] italic text-slate-400">Extra / Logistics</div>
+                            <div class="col-span-4 text-[9px] italic text-slate-400">Extra / Configuration</div>
                             <div class="col-span-1 flex justify-center"><span class="px-2 py-0.5 bg-white rounded-lg font-bold text-slate-400 border border-gray-100 text-[10px]">1</span></div>
-                            <div class="col-span-2 text-right text-[0.7rem] font-black text-[#9D686E]">${{ number_format($price, 2) }}</div>
+                            <div class="col-span-2 text-right text-[0.7rem] font-black text-[#9D686E]">{{ $price > 0 ? '$'.number_format($price, 2) : '-' }}</div>
+                        </div>
+                        @endif
+                        @endforeach
+
+                        @foreach($catDropdowns as $dd)
+                        @php
+                            $val = $selectedExtras['dd_'.$dd['id']] ?? null;
+                            $selectedOpt = null;
+                            if ($val) {
+                                foreach($dd['options'] as $opt) {
+                                    if($opt['id'] == $val) { $selectedOpt = $opt; break; }
+                                }
+                            }
+                        @endphp
+                        @if($selectedOpt)
+                        <div class="grid grid-cols-12 gap-2 items-center bg-slate-50/50 rounded-xl px-3 py-2.5 border border-slate-100 hover:bg-white hover:shadow-sm transition-all duration-200">
+                            <div class="col-span-5 flex items-center gap-2">
+                                <span class="material-symbols-rounded text-xs text-[#9D686E]">settings_input_component</span>
+                                <span class="text-[0.7rem] font-bold text-slate-600 uppercase tracking-tight">{{ $dd['label'] }}: {{ $selectedOpt['option_label'] }}</span>
+                            </div>
+                            <div class="col-span-4 text-[9px] italic text-slate-400">Extra / Configuration</div>
+                            <div class="col-span-1 flex justify-center"><span class="px-2 py-0.5 bg-white rounded-lg font-bold text-slate-400 border border-gray-100 text-[10px]">1</span></div>
+                            <div class="col-span-2 text-right text-[0.7rem] font-black text-[#9D686E]">{{ $selectedOpt['option_price'] > 0 ? '$'.number_format($selectedOpt['option_price'], 2) : '-' }}</div>
                         </div>
                         @endif
                         @endforeach

@@ -563,6 +563,7 @@
                                         data-category="{{ $catName }}"
                                         data-counts-against="{{ $countsAgainst }}"
                                         data-daily-limit="{{ (int)$product['daily_limit'] }}"
+                                        data-stock="{{ (int)$product['total_quantity'] }}"
                                         data-specification="{{ $product['specification'] ?? '' }}"
                                         data-price="{{ $product['price'] ?? 0 }}"
                                         data-product-sold-out="false">

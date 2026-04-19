@@ -49,6 +49,7 @@ document.addEventListener('alpine:init', () => {
             costDelta: 0,
             saveDuplicateConfirm: false,
             removeConfirm: false,
+            calendarModal: false,
         },
         itemToRemove: '',
         limitExceededCategory: '',

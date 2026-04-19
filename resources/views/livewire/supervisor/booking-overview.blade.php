@@ -23,7 +23,7 @@
 
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1 sm:px-0">
         <div class="flex items-center gap-3 sm:gap-4 w-full md:w-auto">
-            <a href="{{ route('supervisor.calendar') }}" wire:navigate class="bg-white hover:bg-gray-50 text-slate-600 p-2 sm:p-2.5 rounded-xl border border-gray-200 transition shadow-sm flex items-center justify-center shrink-0">
+            <a href="{{ $backUrl }}" wire:navigate class="bg-white hover:bg-gray-50 text-slate-600 p-2 sm:p-2.5 rounded-xl border border-gray-200 transition shadow-sm flex items-center justify-center shrink-0">
                 <span class="material-symbols-rounded text-xl sm:text-2xl">arrow_back</span>
             </a>
             <div class="min-w-0">
@@ -643,6 +643,33 @@
                             </tr>
                             @endif
                             @endforeach
+
+                            {{-- RENDER DROPDOWNS --}}
+                            @php $catDropdowns = $config['dropdowns'][$cat] ?? []; @endphp
+                            @foreach($catDropdowns as $dd)
+                            @php
+                            $val = $selectedExtras['dd_'.$dd['id']] ?? null;
+                            $selectedOpt = null;
+                            if ($val) {
+                            foreach($dd['options'] as $opt) {
+                            if($opt['id'] == $val) { $selectedOpt = $opt; break; }
+                            }
+                            }
+                            @endphp
+                            @if($selectedOpt && $selectedOpt['option_price'] > 0)
+                            <tr class="hover:bg-gray-50 transition border-b border-gray-50 last:border-0 bg-slate-50/30">
+                                <td class="p-2 font-bold text-slate-600 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-symbols-rounded text-sm text-[#9D686E]">add_circle</span>
+                                        <span class="text-xs uppercase tracking-tight">{{ $dd['label'] }}: {{ $selectedOpt['option_label'] }}</span>
+                                    </div>
+                                </td>
+                                <td class="p-2 py-4 italic text-[10px] text-slate-400">Extra / Logistics</td>
+                                <td class="p-2 text-center font-bold text-slate-500 py-4">1</td>
+                                <td class="p-2 text-right font-black text-[#9D686E] py-4">${{ number_format($selectedOpt['option_price'], 2) }}</td>
+                            </tr>
+                            @endif
+                            @endforeach
                             @endforeach
                         </tbody>
                     </table>
@@ -763,7 +790,15 @@
                 <p class="text-[14px] font-medium text-slate-500 mb-8 leading-relaxed">Are you sure you want to permanently delete Booking #{{ $booking->id }}? This cannot be undone.</p>
                 <div class="flex justify-center gap-3">
                     <button @click="deleteModal = false" class="flex-1 py-3.5 text-slate-600 font-bold text-[15px] hover:bg-slate-50 rounded-xl transition-colors">Cancel</button>
-                    <button wire:click="deleteBooking" class="flex-1 py-3.5 bg-red-500 text-white hover:bg-red-600 font-bold text-[15px] rounded-xl shadow-md shadow-red-500/20 transition-all active:scale-95">Yes, Delete It</button>
+                    <button wire:click="deleteBooking" 
+                            wire:loading.attr="disabled"
+                            class="flex-1 py-3.5 bg-red-500 text-white hover:bg-red-600 font-bold text-[15px] rounded-xl shadow-md shadow-red-500/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <span wire:loading.remove wire:target="deleteBooking">Yes, Delete It</span>
+                        <span wire:loading wire:target="deleteBooking" class="flex items-center gap-2">
+                            <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            Processing...
+                        </span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -938,6 +973,10 @@
                             <div x-show="$wire.payMethod === 'Card Holder'" x-collapse class="space-y-4 pt-2">
                                 <div class="p-5 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-4">
                                     <div class="relative">
+                                        <label class="block text-[10px] font-black text-slate-400 mb-1.5 uppercase tracking-widest">Card Holder Name</label>
+                                        <input type="text" wire:model="payCardHolder" class="w-full px-4 py-3 bg-white rounded-xl border border-slate-100 text-sm font-bold text-slate-800 focus:border-[#9D686E]/30 outline-none shadow-sm" placeholder="Cardholder Identity">
+                                    </div>
+                                    <div class="relative">
                                         <label class="block text-[10px] font-black text-slate-400 mb-1.5 uppercase tracking-widest">Card Number</label>
                                         <input type="text" wire:model="cardNumber" maxlength="19" x-on:input="$el.value = $el.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()" class="w-full px-4 py-3 bg-white rounded-xl border border-slate-100 text-sm font-mono tracking-wider focus:border-[#9D686E]/30 outline-none shadow-sm" placeholder="0000 0000 0000 0000">
                                     </div>
@@ -1040,6 +1079,10 @@
                                 <div class="grid grid-cols-1 md:grid-cols-[100px_1fr] items-center gap-2">
                                     <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest md:text-right md:pr-4">Cc:</label>
                                     <input type="text" wire:model="emailCc" class="w-full px-4 py-2.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 text-xs font-medium text-slate-500" placeholder="Optional CC recipients">
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-[100px_1fr] items-center gap-2">
+                                    <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest md:text-right md:pr-4">Bcc:</label>
+                                    <input type="text" wire:model="emailBcc" class="w-full px-4 py-2.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 text-xs font-medium text-slate-500" placeholder="Optional BCC recipients">
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-[100px_1fr] items-center gap-2">
                                     <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest md:text-right md:pr-4">Subject:</label>
@@ -1227,7 +1270,7 @@
                         <div class="flex items-center justify-center">
                             <div class="inline-flex items-center gap-2 bg-[#9D686E]/10 border border-[#9D686E]/20 rounded-full px-4 py-2">
                                 <span class="material-symbols-rounded text-[#9D686E] text-sm">shield</span>
-                                <span class="text-[11px] font-extrabold text-[#9D686E] uppercase tracking-widest">Global Soft Limit: 5 Missions / Day</span>
+                                <span class="text-[11px] font-extrabold text-[#9D686E] uppercase tracking-widest">Global Soft Limit: 7 Missions / Day</span>
                             </div>
                         </div>
                     </div>
@@ -1248,9 +1291,16 @@
                         <div></div>
                         @else
                         @php
-                            $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-100'; $dot = 'bg-emerald-500';
-                            if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-100'; $dot = 'bg-red-500'; }
-                            elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-100' ; $dot='bg-amber-500' ; }
+                            $isFull = ($d['left'] == 0 || ($d['breach'] ?? false));
+                            $isBusy = ($d['left'] > 0 && $d['left'] <= 2 && !($d['breach'] ?? false));
+                            
+                            $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-100'; $dot = 'bg-emerald-500'; $label = 'Available';
+                            
+                            if ($isFull) { 
+                                $bg = 'bg-rose-50'; $text = 'text-rose-700'; $border = 'border-rose-100'; $dot = 'bg-rose-500'; $label = 'FULL';
+                            } elseif ($isBusy) { 
+                                $bg = 'bg-amber-50'; $text = 'text-amber-700'; $border = 'border-amber-100'; $dot = 'bg-amber-500'; $label = 'BUSY';
+                            }
                             
                             $isSelected = $d['date'] === $tempSelectedDate;
                             $isOriginal = $d['date'] === $booking->event_date;
@@ -1262,7 +1312,7 @@
                             if($hasConflict) $ring .= ' ring-2 ring-red-500/50';
                             
                             $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9D686E] shadow-inner' : '';
-                            $opacity = ($d['left'] == 0 && !$isSelected && !$isOriginal) ? 'opacity-40 grayscale-[0.5]' : '' ;
+                            $opacity = ($isFull && !$isSelected && !$isOriginal) ? 'opacity-40 grayscale-[0.5]' : '' ;
                         @endphp
                         <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')" 
                                 class="h-20 rounded-2xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $originStyle }} {{ $opacity }} flex flex-col items-center justify-center cursor-pointer transition-all relative hover:-translate-y-1 hover:shadow-lg group">
@@ -1280,7 +1330,13 @@
                                 </div>
                             @endif
                             <span class="font-black text-lg">{{ $d['day'] }}</span>
-                            <span class="text-[9px] uppercase tracking-tighter font-extrabold mt-0.5 opacity-60 group-hover:opacity-100">{{ $d['left'] }} Left</span>
+                            <div class="flex items-center gap-1 mt-0.5">
+                                <span class="text-[8px] uppercase tracking-tighter font-extrabold opacity-60 group-hover:opacity-100">{{ $d['left'] }} Left</span>
+                                @if($isFull || $isBusy)
+                                    <span class="w-1 h-1 rounded-full {{ $dot }}"></span>
+                                    <span class="text-[8px] font-black uppercase tracking-widest">{{ $label }}</span>
+                                @endif
+                            </div>
                         </button>
                         @endif
                         @endforeach
@@ -1383,11 +1439,12 @@
                     </div>
                     @endif
 
-                    <div class="mt-10 flex items-center gap-8 text-[10px] text-slate-400 font-extrabold justify-center border-t border-slate-50 pt-8">
-                        <span class="inline-flex items-center gap-2.5"><span class="w-3 h-3 rounded-full bg-emerald-500 shadow-sm"></span>AVAILABLE</span>
-                        <span class="inline-flex items-center gap-2.5 text-red-500"><span class="material-symbols-rounded text-sm">warning</span> CONFLICT</span>
-                        <span class="inline-flex items-center gap-2.5 text-amber-500"><span class="material-symbols-rounded text-sm">inventory_2</span> CAPACITY</span>
-                        <span class="inline-flex items-center gap-2.5 text-amber-600 font-black"><span class="material-symbols-rounded text-sm">person_alert</span> DUPLICATE</span>
+                    <div class="mt-10 flex flex-wrap items-center gap-6 sm:gap-8 text-[10px] text-slate-400 font-extrabold justify-center border-t border-slate-50 pt-8">
+                        <span class="inline-flex items-center gap-2.5 uppercase"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span>AVAILABLE</span>
+                        <span class="inline-flex items-center gap-2.5 uppercase"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm"></span>BUSY</span>
+                        <span class="inline-flex items-center gap-2.5 uppercase"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm"></span>FULL</span>
+                        <span class="inline-flex items-center gap-2.5 text-rose-500 font-black uppercase"><span class="material-symbols-rounded text-sm">warning</span> CONFLICT</span>
+                        <span class="inline-flex items-center gap-2.5 text-amber-500 font-black uppercase"><span class="material-symbols-rounded text-sm">inventory_2</span> CAPACITY</span>
                     </div>
                 </div>
 
@@ -1481,24 +1538,33 @@
                             </div>
                             @endif
 
-                            @if($selectedPayment->card_network)
+                            @if($selectedPayment->payment_method === 'Card Holder')
                             <div class="p-5 bg-slate-900 text-white rounded-[24px] shadow-xl relative overflow-hidden group">
                                 <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:scale-110 transition-transform">
                                     <span class="material-symbols-rounded text-6xl font-bold">credit_card</span>
                                 </div>
-                                <div class="relative z-10">
+                                <div class="relative z-10 text-left">
                                     <div class="flex justify-between items-start mb-6">
                                         <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Card Processor</p>
-                                        <span class="font-black italic text-sm text-amber-400">{{ $selectedPayment->card_network }}</span>
+                                        <span class="font-black italic text-sm text-amber-400">{{ $selectedPayment->card_network ?: ($booking->card_type ?: 'Generic Card') }}</span>
                                     </div>
-                                    <p class="text-lg font-mono tracking-[4px] mb-6">**** **** **** {{ substr($selectedPayment->card_number, -4) }}</p>
+                                    <div class="mb-4">
+                                        <p class="text-[8px] font-black uppercase opacity-50 mb-1">Card Holder</p>
+                                        <p class="text-[11px] font-black text-white uppercase tracking-tight">{{ $selectedPayment->card_holder ?: ($booking->card_holder ?: 'Unknown') }}</p>
+                                    </div>
+                                    <p class="text-lg font-mono tracking-[4px] mb-6">**** **** **** {{ !empty($selectedPayment->card_number ?: $booking->card_number) ? substr(str_replace(' ', '', ($selectedPayment->card_number ?: $booking->card_number)), -4) : '0000' }}</p>
                                     <div class="flex gap-4">
                                         <div>
                                             <p class="text-[8px] font-black uppercase opacity-50 mb-1">Expiry</p>
-                                            <p class="text-[10px] font-bold font-mono">{{ $selectedPayment->card_expiry }}</p>
+                                            <p class="text-[10px] font-bold font-mono">{{ $selectedPayment->card_expiry ?: ($booking->card_expiry ?: '**/**') }}</p>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                            @elseif($selectedPayment->payment_method === 'EFT')
+                            <div class="flex justify-between items-center py-4 border-b border-slate-100">
+                                <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">EFT Method</span>
+                                <span class="text-[13px] font-black text-slate-700">{{ $booking->eft_method ?: 'Direct Deposit' }}</span>
                             </div>
                             @endif
                         </div>

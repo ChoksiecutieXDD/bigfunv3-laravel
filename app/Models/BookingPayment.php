@@ -19,6 +19,11 @@ class BookingPayment extends Model
         'payment_type',
         'payment_date',
         'reference',
+        'card_holder',
+        'card_number',
+        'card_expiry',
+        'card_cvv',
+        'card_network',
         'notes',
     ];
 

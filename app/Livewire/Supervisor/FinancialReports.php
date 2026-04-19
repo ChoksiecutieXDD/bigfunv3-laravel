@@ -152,7 +152,6 @@ class FinancialReports extends Component
         // 2. Data Lists
         $bookings = Booking::withSum('payments', 'amount')
             ->whereBetween('event_date', [$startDateString, $endDateString])
-            ->where('status', '!=', 'Cancelled')
             ->orderBy('event_date', 'asc')
             ->get()
             ->map(function ($b) {
@@ -164,14 +163,15 @@ class FinancialReports extends Component
                     'event_type' => $b->event_type,
                     'payment_type' => $b->payment_type,
                     'card_network' => $b->card_network,
+                    'status' => $b->status,
                     'total_amount' => (float) $b->total_amount,
                     'paid_amount' => (float) $paid,
                     'balance' => (float) ($b->total_amount - $paid),
                 ];
             });
 
-        $unpaidList = $bookings->where('balance', '>', 0.01)->values()->toArray();
-        $paidList = $bookings->where('balance', '<=', 0.01)->values()->toArray();
+        $unpaidList = $bookings->where('status', '!=', 'Cancelled')->where('balance', '>', 0.01)->values()->toArray();
+        $paidList = $bookings->where('status', '!=', 'Cancelled')->where('balance', '<=', 0.01)->values()->toArray();
         $transactionList = $bookings->toArray();
         $totalUnpaidAmount = collect($unpaidList)->sum('balance');
 
@@ -229,6 +229,22 @@ class FinancialReports extends Component
             $catData = [1];
         }
 
+        // 5. Status Counts
+        $statusCountsRaw = Booking::whereBetween('event_date', [$startDateString, $endDateString])
+            ->selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
+        // Ensure all requested statuses are present (even if 0)
+        $statusCounts = [
+            'Pending'   => $statusCountsRaw['Pending'] ?? 0,
+            'Confirmed' => $statusCountsRaw['Confirmed'] ?? 0,
+            'Completed' => $statusCountsRaw['Completed'] ?? 0,
+            'Cancelled' => $statusCountsRaw['Cancelled'] ?? 0,
+            'Draft'     => $statusCountsRaw['Draft'] ?? 0,
+        ];
+
         return [
             'periodLabel' => $periodLabel,
             'startDate' => $startDateString,
@@ -240,6 +256,7 @@ class FinancialReports extends Component
                 'growth' => round($growth, 1),
                 'unpaid' => $totalUnpaidAmount,
             ],
+            'statusCounts' => $statusCounts,
             'unpaidList' => $unpaidList,
             'paidList' => $paidList,
             'transactionList' => $transactionList,

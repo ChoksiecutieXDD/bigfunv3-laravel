@@ -49,6 +49,8 @@ class EditBooking extends Component
     public $modalConflicts = [];
     public $modalCapacityBreaches = [];
     public $modalNameConflicts = [];
+    public $activeConflicts = [];
+    public $activeCapacityBreaches = [];
     public $lastToastDate = null;
 
     public $config = [];
@@ -59,6 +61,10 @@ class EditBooking extends Component
     public $deliveryCost = 0;
     public $attractionsCost = 0;
     public $extrasCost = 0;
+    public $staffList = [];
+
+    // Computed-like property for JS bridge
+    public $selectedItemsClean = [];
 
     public function mount($id)
     {
@@ -88,19 +94,58 @@ class EditBooking extends Component
             ];
         }
 
-        // --- LOADING EXTRAS ---
-        $this->dynamicExtras = json_decode($this->booking->extras_json ?? '[]', true) ?? [];
+        $this->loadProductConfigurations();
 
-        if (empty($this->dynamicExtras)) {
+        // 4. Fetch Categories & Product Limits (Match NewBooking logic)
+        $cats = DB::table('product_categories')->orderBy('sort_order', 'asc')->get();
+        foreach ($cats as $c) {
+            $this->categories[$c->category_name] = ['limit' => (int)$c->daily_limit, 'products' => []];
+        }
+
+        // --- LOADING EXTRAS ---
+        $this->saved_extras = json_decode($this->booking->extras_json ?? '[]', true) ?? [];
+        
+        // --- DATA RECOVERY & PARITY CHECK ---
+        // Even if extras_json is not empty, it might be incomplete if items were added via ride list
+        // that are also defined as addons (e.g. 
+        $itemNames = array_map(fn($it) => strtolower(trim($it)), array_keys($this->selectedItems));
+        
+        // 1. Recover Addons
+        $addons = DB::table('category_addons')->get();
+        foreach ($addons as $a) {
+            $addonKey = 'add_' . $a->id;
+            if (in_array(strtolower(trim($a->addon_label)), $itemNames)) {
+                $this->saved_extras[$addonKey] = "1";
+            }
+        }
+
+        // 2. Recover Questions
+        $questions = DB::table('product_extras')->get();
+        foreach ($questions as $q) {
+            $qKey = 'q_' . $q->id;
+            if (in_array(strtolower(trim($q->question_text)), $itemNames)) {
+                $this->saved_extras[$qKey] = $q->yes_price . '|yes';
+            }
+        }
+
+        // 3. Recover Dropdowns
+        $dropdownOptions = DB::table('dropdown_options')->get();
+        foreach ($dropdownOptions as $opt) {
+            $ddKey = 'dd_' . $opt->dropdown_id;
+            if (in_array(strtolower(trim($opt->option_label)), $itemNames)) {
+                $this->saved_extras[$ddKey] = $opt->id;
+            }
+        }
+
+        if (empty($this->booking->extras_json) || $this->booking->extras_json === '[]') {
             // --- FALLBACK: REVERSE MAP EXTRAS ---
             $genExt = json_decode($this->booking->general_extra ?? '[]', true) ?? [];
             $specExt = json_decode($this->booking->specific_extra ?? '[]', true) ?? [];
             $allExt = array_merge($genExt, $specExt);
 
-            $addons = DB::table('category_addons')->get();
             foreach ($addons as $a) {
                 if (isset($allExt[$a->addon_label]) || isset($allExt[$a->category_target . ': ' . $a->addon_label])) {
-                    $this->dynamicExtras['add_' . $a->id] = true;
+                    $this->saved_extras['add_' . $a->id] = "1";
                 }
             }
 
@@ -111,7 +156,7 @@ class EditBooking extends Component
                     $search1 = $d->label . ' - ' . $o->option_label;
                     $search2 = $d->category_target . ': ' . $search1;
                     if (isset($allExt[$search1]) || isset($allExt[$search2])) {
-                        $this->dynamicExtras['dd_' . $d->id] = $o->id;
+                        $this->saved_extras['dd_' . $d->id] = (string)$o->id;
                     }
                 }
             }
@@ -122,14 +167,17 @@ class EditBooking extends Component
                     if (str_contains(strtolower($extKey), strtolower($q->question_text))) {
                         $isYes = str_contains(strtolower($extKey), '(yes)');
                         $valToSet = $isYes ? $q->yes_price . '|yes' : $q->no_price . '|no';
-                        $this->dynamicExtras['q_' . $q->id] = $valToSet;
+                        $this->saved_extras['q_' . $q->id] = $valToSet;
                     }
                 }
             }
         }
+        $this->dynamicExtras = $this->saved_extras;
 
         $this->calMonth = Carbon::parse($this->form['event_date'])->month;
         $this->calYear = Carbon::parse($this->form['event_date'])->year;
+
+        $this->tempSelectedDate = $this->form['event_date'];
 
         $durationLabels = DB::table('duration_prices')->pluck('label')->toArray();
         // Duration Custom Check
@@ -157,6 +205,15 @@ class EditBooking extends Component
             ->pluck('daily_limit', 'category_name')
             ->toArray();
 
+        foreach ($this->categoryLimits as $catName => $limit) {
+            if (isset($this->categories[$catName])) {
+                $this->categories[$catName]['limit'] = (int)$limit;
+            }
+        }
+
+        $this->refreshBookingImpact();
+        $this->loadCalendar();
+
         if ((float)($this->form['duration_cost'] ?? 0) === 0.0 && !empty($this->form['duration']) && $this->form['duration'] !== 'custom') {
             $dur = DB::table('duration_prices')->where('label', $this->form['duration'])->first();
             if ($dur) {
@@ -165,9 +222,26 @@ class EditBooking extends Component
         }
 
         $this->totalPaid = (float) ($this->booking->total_paid ?? 0);
+
+        // Fetch Staff/Operators (Match formatting in NewBooking.php)
+        $this->staffList = \App\Models\User::whereIn('role', ['Staff', 'Operator', 'Supervisor'])
+            ->where('is_active', 1)
+            ->orderBy('first_name')
+            ->get()
+            ->map(fn($u) => $u->first_name . ' ' . (!empty($u->last_name) ? substr($u->last_name, 0, 1) . '.' : ''))
+            ->toArray();
+        
+        if (empty($this->staffList)) $this->staffList = ["Team"];
+
         $this->loadCalendar(); // Initialize calendar grid
         $this->checkAvailability();
         $this->calculateTotals();
+        $this->syncSelectedItemsClean();
+    }
+
+    private function syncSelectedItemsClean()
+    {
+        $this->selectedItemsClean = array_keys($this->selectedItems);
     }
 
     public function updatedFormEventDate()
@@ -181,12 +255,17 @@ class EditBooking extends Component
     public function updatedDynamicExtras()
     {
         $this->calculateTotals();
+        $this->refreshBookingImpact();
+        $this->loadCalendar();
     }
 
     public function updatedSelectedItems()
     {
         $this->calculateTotals();
+        $this->syncSelectedItemsClean();
         $this->checkAvailability();
+        $this->refreshBookingImpact();
+        $this->loadCalendar();
     }
 
     public function updatedFormDeliveryArea()
@@ -218,6 +297,39 @@ class EditBooking extends Component
     public function updatedFormDurationCost()
     {
         $this->calculateTotals();
+    }
+
+    public function syncExtras($extras)
+    {
+        $this->saved_extras = $extras;
+        $this->dynamicExtras = $extras;
+        $this->booking->extras_json = json_encode($extras);
+        $this->calculateTotals();
+    }
+
+    private function loadProductConfigurations()
+    {
+        $this->config = ['questions' => [], 'addons' => [], 'dropdowns' => []];
+
+        $questions = DB::table('product_extras')->orderBy('category_target', 'asc')->get();
+        foreach ($questions as $q) {
+            $this->config['questions'][$q->category_target][] = (array)$q;
+        }
+
+        $addons = DB::table('category_addons')->orderBy('category_target', 'asc')->get();
+        foreach ($addons as $a) {
+            $this->config['addons'][$a->category_target][] = (array)$a;
+        }
+
+        $dropdowns = DB::table('product_dropdowns')->orderBy('sort_order', 'asc')->get();
+        foreach ($dropdowns as $d) {
+            $opts = DB::table('dropdown_options')->where('dropdown_id', $d->id)->get()->toArray();
+            $dArray = (array)$d;
+            $dArray['options'] = array_map(function ($o) {
+                return (array)$o;
+            }, $opts);
+            $this->config['dropdowns'][$d->category_target][] = $dArray;
+        }
     }
 
     public function toggleItem($itemName, $isChecked = null)
@@ -260,11 +372,7 @@ class EditBooking extends Component
         $this->updatedSelectedItems();
     }
 
-    public function syncExtras($extras)
-    {
-        $this->dynamicExtras = $extras;
-        $this->calculateTotals();
-    }
+
 
     public function calculateTotals()
     {
@@ -362,7 +470,7 @@ class EditBooking extends Component
         }
     }
 
-    public function openCalendarModal()
+    public function refreshBookingImpact()
     {
         // 1. Get Category Limits
         $this->categoryLimits = DB::table('product_categories')
@@ -370,7 +478,7 @@ class EditBooking extends Component
             ->pluck('daily_limit', 'category_name')
             ->toArray();
 
-        // 2. Calculate impact of CURRENT selected items (not just DB)
+        // 2. Calculate impact of CURRENT selected items
         $this->bookingImpact = [];
         $names = array_keys(array_filter($this->selectedItems));
         if (!empty($names)) {
@@ -380,14 +488,49 @@ class EditBooking extends Component
                 ->get();
 
             foreach ($impactRes as $row) {
-                $qty = $this->selectedItems[$row->name] ?? 0;
+                $qty = $this->selectedItems[$row->name]['qty'] ?? 1;
                 $this->bookingImpact[$row->cat] = ($this->bookingImpact[$row->cat] ?? 0) + $qty;
             }
         }
 
-        // 3. Keep track of what attractions are currently selected for conflict check
+        // 3. Add Impact from Extras
+        $addonMap = DB::table('category_addons')->get()->keyBy('id');
+        $dropdownMap = DB::table('product_dropdowns')->get()->keyBy('id');
+        $questionMap = DB::table('product_extras')->get()->keyBy('id');
+
+        foreach ($this->dynamicExtras as $key => $val) {
+            $targetCat = null;
+            if (str_starts_with($key, 'add_') && $val) {
+                $id = str_replace('add_', '', $key);
+                $addon = $addonMap->get($id);
+                if ($addon) $targetCat = $addon->counts_against ?: $addon->category_target;
+            } elseif (str_starts_with($key, 'dd_') && $val && $val !== '0') {
+                $id = str_replace('dd_', '', $key);
+                $dd = $dropdownMap->get($id);
+                if ($dd) $targetCat = $dd->counts_against ?: $dd->category_target;
+            } elseif (str_starts_with($key, 'q_') && $val && $val !== '0' && !str_ends_with($val, '|no')) {
+                $id = str_replace('q_', '', $key);
+                $q = $questionMap->get($id);
+                if ($q) $targetCat = $q->counts_against ?: $q->category_target;
+            }
+
+            if ($targetCat) {
+                $catKey = strtolower(trim($targetCat));
+                $this->bookingImpact[$catKey] = ($this->bookingImpact[$catKey] ?? 0) + 1;
+            }
+        }
+
         $this->bookedAttractions = $names;
 
+        // --- UPDATE ACTIVE ANALYSIS FOR GLOBAL SAVE ---
+        $res = $this->performAnalysis($this->form['event_date']);
+        $this->activeConflicts = $res['conflicts'];
+        $this->activeCapacityBreaches = $res['capacityBreaches'];
+    }
+
+    public function openCalendarModal()
+    {
+        $this->refreshBookingImpact();
         $this->loadCalendar();
         $this->dispatch('open-modal', 'calendarModal');
     }
@@ -398,7 +541,7 @@ class EditBooking extends Component
         $start = Carbon::create($this->calYear, $this->calMonth, 1);
         $end = $start->copy()->endOfMonth();
 
-        // 1. Get Daily Booking Counts (Correctly Counted as all status in the limit)
+        // 1. Get Daily Booking Counts (Exclude current to see baseline)
         $counts = Booking::whereBetween('event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
             ->whereNotIn('status', ['Cancelled'])
             ->selectRaw('event_date, COUNT(*) as cnt')
@@ -406,23 +549,25 @@ class EditBooking extends Component
             ->pluck('cnt', 'event_date')
             ->toArray();
 
-        // 2. Get Daily Attraction Names (Inclusive of all status)
+        // 2. Get Daily Attraction Names (Baseline excluding current)
         $this->dailyAttractions = DB::table('booking_items')
             ->join('bookings', 'booking_items.booking_id', '=', 'bookings.id')
             ->whereBetween('bookings.event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
             ->whereNotIn('bookings.status', ['Cancelled'])
+            ->where('bookings.id', '!=', $this->booking->id)
             ->selectRaw('bookings.event_date, LOWER(TRIM(booking_items.item_name)) as name')
             ->get()
             ->groupBy('event_date')
             ->map(fn($items) => $items->pluck('name')->unique()->toArray())
             ->toArray();
 
-        // 3. Get Daily Category Usage (All status included)
+        // 3. Get Daily Category Usage (Baseline excluding current)
         $sub = DB::table('booking_items')
             ->join('bookings', 'booking_items.booking_id', '=', 'bookings.id')
             ->join('products', DB::raw('LOWER(TRIM(booking_items.item_name))'), '=', DB::raw('LOWER(TRIM(products.name))'))
             ->whereBetween('bookings.event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
             ->whereNotIn('bookings.status', ['Cancelled'])
+            ->where('bookings.id', '!=', $this->booking->id)
             ->selectRaw('bookings.event_date, COALESCE(NULLIF(products.counts_against, ""), products.category) as cat, booking_items.qty');
         $this->dailyUsage = DB::table($sub, 't')
             ->selectRaw('event_date, cat, SUM(qty) as total')
@@ -432,10 +577,52 @@ class EditBooking extends Component
             ->map(fn($day) => $day->pluck('total', 'cat')->toArray())
             ->toArray();
 
+        // 3b. Add Extras Usage to Daily Usage (Factor in Extras from existing bookings)
+        $bookingsOnDates = Booking::whereBetween('event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+            ->whereNotIn('status', ['Cancelled'])
+            ->where('id', '!=', $this->booking->id)
+            ->select('event_date', 'extras_json')
+            ->get();
+
+        $addonCatMap = DB::table('category_addons')->get()->pluck('counts_against', 'id')->toArray();
+        $dropdownCatMap = DB::table('product_dropdowns')->get()->pluck('counts_against', 'id')->toArray();
+        $questionCatMap = DB::table('product_extras')->get()->pluck('counts_against', 'id')->toArray();
+
+        foreach ($bookingsOnDates as $b) {
+            $extras = json_decode($b->extras_json, true) ?: [];
+            foreach ($extras as $key => $val) {
+                $targetCat = null;
+                if (str_starts_with($key, 'add_') && $val) {
+                    $id = str_replace('add_', '', $key);
+                    $targetCat = $addonCatMap[$id] ?? null;
+                } elseif (str_starts_with($key, 'dd_') && $val && $val !== '0') {
+                    $id = str_replace('dd_', '', $key);
+                    $targetCat = $dropdownCatMap[$id] ?? null;
+                } elseif (str_starts_with($key, 'q_') && $val && $val !== '0' && !str_ends_with($val, '|no')) {
+                    $id = str_replace('q_', '', $key);
+                    $targetCat = $questionCatMap[$id] ?? null;
+                }
+
+                if ($targetCat) {
+                    $catKey = strtolower(trim($targetCat));
+                    $this->dailyUsage[$b->event_date][$catKey] = ($this->dailyUsage[$b->event_date][$catKey] ?? 0) + 1;
+                }
+            }
+        }
+
+        // 4. Get Daily Name Duplicates (Same Customer)
+        $duplicateDates = Booking::where('customer_first_name', $this->booking->customer_first_name)
+            ->where('customer_last_name', $this->booking->customer_last_name)
+            ->whereBetween('event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+            ->where('id', '!=', $this->booking->id)
+            ->whereNotIn('status', ['Cancelled'])
+            ->pluck('event_date')
+            ->toArray();
+
         $this->calDays = [];
         for ($i = 0; $i < $start->dayOfWeek; $i++) $this->calDays[] = null;
 
-        $globalDailyLimit = 5;
+        $globalDailyLimit = 7;
         for ($day = 1; $day <= $start->daysInMonth; $day++) {
             $dateStr = $start->copy()->day($day)->format('Y-m-d');
             $used = $counts[$dateStr] ?? 0;
@@ -457,12 +644,16 @@ class EditBooking extends Component
             $dayAttractions = $this->dailyAttractions[$dateStr] ?? [];
             $hasConflict = !empty(array_intersect($this->bookedAttractions, $dayAttractions));
 
+            // Check for name duplicates
+            $hasDuplicate = in_array($dateStr, $duplicateDates);
+
             $this->calDays[] = [
                 'date' => $dateStr,
                 'day' => $day,
                 'left' => max(0, $globalDailyLimit - $used),
                 'breach' => !empty($breachedCategories),
-                'conflict' => $hasConflict
+                'conflict' => $hasConflict,
+                'duplicate' => $hasDuplicate
             ];
         }
     }
@@ -471,40 +662,77 @@ class EditBooking extends Component
     {
         $this->form['event_date'] = $dateStr;
         $this->tempSelectedDate = $dateStr;
-        $this->checkAvailability();
+        
+        $this->refreshBookingImpact();
+        
+        $analysis = $this->performAnalysis($dateStr);
+        $this->modalConflicts = $analysis['conflicts'];
+        $this->modalCapacityBreaches = $analysis['capacityBreaches'];
+        $this->modalNameConflicts = $analysis['nameConflicts'];
+
         $this->dispatch('date-selected', date: $dateStr);
+        $this->dispatch('notify', title: 'Date Updated', message: "Booking has been moved to " . \Carbon\Carbon::parse($dateStr)->format('d M Y'), type: 'primary');
+
+        if (!empty($this->modalNameConflicts) && $this->lastToastDate !== $dateStr) {
+            $this->dispatch('notify', 
+                title: 'Duplicate Contact Detected', 
+                message: "This customer already has a booking on " . \Carbon\Carbon::parse($dateStr)->format('d M Y'),
+                type: 'warning'
+            );
+            $this->lastToastDate = $dateStr;
+        }
     }
 
-    public function applySelectedDate()
+    protected function performAnalysis($dateStr)
     {
-        if (!$this->tempSelectedDate) return;
+        $conflicts = [];
+        $capacityBreaches = [];
 
-        // Validation 1: Attraction Conflict
-        $dayAttractions = $this->dailyAttractions[$this->tempSelectedDate] ?? [];
+        // 1. Attraction Conflicts
+        $dayAttractions = $this->dailyAttractions[$dateStr] ?? [];
         foreach ($this->bookedAttractions as $att) {
-            if (in_array($att, $dayAttractions)) {
-                $this->dispatch('notify', title: 'Conflict!', message: "The attraction '$att' is already booked on this day.", type: 'error');
-                return;
+            $attClean = strtolower(trim($att));
+            if (in_array($attClean, $dayAttractions)) {
+                $conflicts[] = $att;
             }
         }
 
-        // Validation 2: Category Capacity Breach
-        $usageOnDay = $this->dailyUsage[$this->tempSelectedDate] ?? [];
+        // 2. Category Capacity Breaches
+        $usageOnDay = $this->dailyUsage[$dateStr] ?? [];
         foreach ($this->bookingImpact as $cat => $demand) {
             $limit = $this->categoryLimits[$cat] ?? 0;
             if ($limit > 0) {
                 $current = $usageOnDay[$cat] ?? 0;
                 if (($current + $demand) > $limit) {
-                    $this->dispatch('notify', title: 'Capacity Breach!', message: "Category '$cat' exceeds limit on this day ($current + $demand > $limit).", type: 'error');
-                    return;
+                    $capacityBreaches[$cat] = [
+                        'current' => $current,
+                        'added' => $demand,
+                        'limit' => $limit
+                    ];
                 }
             }
         }
 
-        $this->form['event_date'] = $this->tempSelectedDate;
-        $this->checkAvailability();
-        $this->dispatch('close-modal', 'calendarModal');
-        $this->dispatch('notify', title: 'Date Moved!', message: "Booking date set to " . Carbon::parse($this->tempSelectedDate)->format('d M Y'), type: 'success');
+        // 3. Name Duplicates
+        $nameConflicts = Booking::where('customer_first_name', $this->booking->customer_first_name)
+            ->where('customer_last_name', $this->booking->customer_last_name)
+            ->where('event_date', $dateStr)
+            ->where('id', '!=', $this->booking->id)
+            ->whereNotIn('status', ['Cancelled'])
+            ->get()
+            ->map(function($b) {
+                $arr = $b->toArray();
+                $items = DB::table('booking_items')->where('booking_id', $b->id)->pluck('item_name')->toArray();
+                $arr['item_names_summary'] = count($items) > 0 ? implode(', ', array_slice($items, 0, 2)) . (count($items) > 2 ? '...' : '') : 'No Items';
+                return $arr;
+            })
+            ->toArray();
+
+        return [
+            'conflicts' => $conflicts,
+            'capacityBreaches' => $capacityBreaches,
+            'nameConflicts' => $nameConflicts
+        ];
     }
 
     public function markAttachmentDeleted($field)
@@ -514,12 +742,28 @@ class EditBooking extends Component
 
     public function saveBooking()
     {
+        // --- FINAL CONFLICT VALIDATION ---
+        $this->refreshBookingImpact();
+        if (!empty($this->activeConflicts) || !empty($this->activeCapacityBreaches)) {
+            $msg = !empty($this->activeConflicts) ? "Attraction Conflict: " . implode(', ', $this->activeConflicts) : "Category Capacity Breach";
+            $this->dispatch('notify', title: 'Save Blocked!', message: $msg . ". Please fix before saving.", type: 'error');
+            return;
+        }
+
         $saveData = $this->form;
         unset($saveData['is_custom_duration']);
         unset($saveData['custom_duration_text']);
 
         if (!empty($this->form['is_custom_duration'])) {
             $saveData['duration'] = $this->form['custom_duration_text'];
+        }
+
+        // --- MANAGE ORIGINAL DATE TIMELINE ---
+        // If this is the first time the date is being moved, preserve the original date
+        if (isset($saveData['event_date']) && $saveData['event_date'] !== $this->booking->event_date) {
+            if (empty($this->booking->original_event_date)) {
+                $saveData['original_event_date'] = $this->booking->event_date;
+            }
         }
 
         // --- PREVENT DATA CORRUPTION ---
@@ -572,6 +816,34 @@ class EditBooking extends Component
                         $specificExtras[$q->category_target . ': ' . $label] = $price;
                     }
                 }
+            }
+        }
+
+        // --- BRIDGE ITEMS TO EXTRAS (Just-in-Time Sync) ---
+        // --- Just-in-Time Sync between Ride Items and Extras ---
+        $allAddons = DB::table('category_addons')->get()->keyBy('id');
+        $allQuestions = DB::table('product_extras')->get();
+        $allDropdownOpts = DB::table('dropdown_options')->get();
+        $itemNames = array_map(fn($it) => strtolower(trim($it)), array_keys($this->selectedItems));
+        
+        // Match Addons
+        foreach ($allAddons as $id => $addon) {
+            if (in_array(strtolower(trim($addon->addon_label)), $itemNames)) {
+                $this->dynamicExtras['add_' . $id] = "1";
+            }
+        }
+
+        // Match Questions
+        foreach ($allQuestions as $q) {
+            if (in_array(strtolower(trim($q->question_text)), $itemNames)) {
+                $this->dynamicExtras['q_' . $q->id] = $q->yes_price . '|yes';
+            }
+        }
+
+        // Match Dropdowns
+        foreach ($allDropdownOpts as $opt) {
+            if (in_array(strtolower(trim($opt->option_label)), $itemNames)) {
+                $this->dynamicExtras['dd_' . $opt->dropdown_id] = $opt->id;
             }
         }
 
@@ -648,13 +920,19 @@ class EditBooking extends Component
         $this->booking->syncFinancials(); // Update owing, paid, status
 
         try {
-            // Re-fetch to ensure we have the most accurate snapshot for GS
+            // Re-fetch to ensure we have the most accurate snapshot for GS (including new items)
             $this->booking = $this->booking->fresh();
-            app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
+            
+            // Log sync attempt
+            \Illuminate\Support\Facades\Log::info("Triggering Google Sheet Sync from EditBooking for Invoice: " . $this->booking->invoice_number);
+            
+            // Explicitly call the static sync method
+            \App\Services\GoogleSheetService::sync($this->booking->id);
+            
             $this->dispatch('booking-saved');
         } catch (\Exception $e) {
-            // Log but don't block user
-            Log::error("GS Sync Error: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error("Google Sheet Sync Error in EditBooking: " . $e->getMessage());
+            $this->dispatch('booking-saved'); // Still allow UI to close
         }
         if ($this->isSupervisor) {
             return redirect()->route('supervisor.bookings.overview', $this->booking->id);
@@ -728,60 +1006,11 @@ class EditBooking extends Component
         $this->saved_extras = (object)($this->dynamicExtras ?? []);
         $selectedItemsClean = $this->selectedItems;
 
-        // Calculate conflicts for current tempSelectedDate if any (Capacity Check Modal)
-        $this->modalConflicts = [];
-        $this->modalCapacityBreaches = [];
-        $this->modalNameConflicts = [];
-
         if ($this->tempSelectedDate) {
-            // 1. Attraction Conflicts
-            $dayAtts = $this->dailyAttractions[$this->tempSelectedDate] ?? [];
-            foreach ($this->bookedAttractions as $myAtt) {
-                if (in_array($myAtt, $dayAtts)) {
-                    $this->modalConflicts[] = $myAtt;
-                }
-            }
-
-            // 2. Capacity Breaches
-            $usageOnDay = $this->dailyUsage[$this->tempSelectedDate] ?? [];
-            foreach ($this->bookingImpact as $cat => $demand) {
-                $limit = $this->categoryLimits[$cat] ?? 0;
-                if ($limit > 0) {
-                    $curr = $usageOnDay[$cat] ?? 0;
-                    if (($curr + $demand) > $limit) {
-                        $this->modalCapacityBreaches[$cat] = [
-                            'current' => $curr,
-                            'added' => $demand,
-                            'limit' => $limit
-                        ];
-                    }
-                }
-            }
-
-            // 3. Name Duplicates
-            $this->modalNameConflicts = Booking::where('customer_first_name', $this->booking->customer_first_name)
-                ->where('customer_last_name', $this->booking->customer_last_name)
-                ->where('event_date', $this->tempSelectedDate)
-                ->where('id', '!=', $this->booking->id)
-                ->whereNotIn('status', ['Cancelled'])
-                ->get()
-                ->map(function($b) {
-                    $arr = $b->toArray();
-                    $items = DB::table('booking_items')->where('booking_id', $b->id)->pluck('item_name')->toArray();
-                    $arr['item_names_summary'] = count($items) > 0 ? implode(', ', array_slice($items, 0, 2)) . (count($items) > 2 ? '...' : '') : 'No Items';
-                    return $arr;
-                })
-                ->toArray();
-
-            // Notify if newly discovered
-            if (!empty($this->modalNameConflicts) && $this->lastToastDate !== $this->tempSelectedDate) {
-                $this->dispatch('notify', 
-                    title: 'Duplicate Contact Detected', 
-                    message: "This customer already has a booking on " . \Carbon\Carbon::parse($this->tempSelectedDate)->format('d M Y'),
-                    type: 'warning'
-                );
-                $this->lastToastDate = $this->tempSelectedDate;
-            }
+            $analysis = $this->performAnalysis($this->tempSelectedDate);
+            $this->modalConflicts = $analysis['conflicts'];
+            $this->modalCapacityBreaches = $analysis['capacityBreaches'];
+            $this->modalNameConflicts = $analysis['nameConflicts'];
         }
 
         // Note: passing just other standard variables.

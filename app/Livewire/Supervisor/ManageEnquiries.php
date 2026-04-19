@@ -106,7 +106,18 @@ class ManageEnquiries extends Component
                         $email = trim($matches[2], " <>");
                     }
 
-                    $snippet = substr(trim(preg_replace('/\s+/', ' ', $msg->getSnippet())), 0, 100) . '...';
+                    // --- THE FIX IS HERE ---
+                    // 1. Force strict UTF-8 encoding on the strings to remove any garbage binary
+                    $subject = mb_convert_encoding($subject, 'UTF-8', 'UTF-8');
+                    $name = mb_convert_encoding($name, 'UTF-8', 'UTF-8');
+
+                    // 2. Safely grab the snippet
+                    $rawSnippet = trim(preg_replace('/\s+/', ' ', $msg->getSnippet()));
+                    $cleanSnippet = mb_convert_encoding($rawSnippet, 'UTF-8', 'UTF-8');
+
+                    // 3. Use mb_substr so it never slices multi-byte characters (emojis) in half
+                    $snippet = mb_substr($cleanSnippet, 0, 100, 'UTF-8') . '...';
+                    // -----------------------
 
                     $fetchedEmails[] = [
                         'id' => $message->getId(),

@@ -71,7 +71,7 @@ class BookingApiController extends Controller
                     return $q->where('b.id', '!=', $request->query('booking_id'));
                 })
                 ->where(function ($q) {
-                    $q->whereIn('b.status', ['Pending', 'Confirmed', 'Paid'])
+                    $q->whereNotIn('b.status', ['Cancelled', 'Draft'])
                         ->orWhere(function ($q2) {
                             $q2->where('b.status', 'Draft')
                                 ->where('b.created_at', '>=', Carbon::now()->subMinutes(20));
@@ -122,7 +122,7 @@ class BookingApiController extends Controller
                     return $q->where('id', '!=', $request->query('booking_id'));
                 })
                 ->where(function ($q) {
-                    $q->whereIn('status', ['Pending', 'Confirmed', 'Paid'])
+                    $q->whereNotIn('status', ['Cancelled', 'Draft'])
                         ->orWhere(function ($q2) {
                             $q2->where('status', 'Draft')
                                 ->where('created_at', '>=', Carbon::now()->subMinutes(20));
@@ -214,7 +214,7 @@ class BookingApiController extends Controller
         $action = $request->input('action');
         try {
             // Fetch Dynamic Daily Limit (Baseline of 5, or max of category limits)
-            $DAILY_TOTAL_LIMIT = max(5, DB::table('product_categories')->max('daily_limit') ?: 0);
+            $DAILY_TOTAL_LIMIT = max(7, DB::table('product_categories')->max('daily_limit') ?: 0);
             
             switch ($action) {
                 case 'delete_draft':
@@ -229,14 +229,17 @@ class BookingApiController extends Controller
                     $end = $request->input('end');
                     if (!$start || !$end) return response()->json(['success' => false, 'status' => 'error', 'message' => 'Missing dates']);
 
+                    $booking_id = $request->input('booking_id');
+
                     $res = DB::table('bookings')
                         ->select('event_date', DB::raw('COUNT(*) as cnt'))
                         ->whereBetween('event_date', [$start, $end])
-                        ->where(function ($q) {
+                        ->where(function ($q) use ($booking_id) {
                             $q->whereNotIn('status', ['Cancelled'])
-                                ->where(function ($q2) {
+                                ->where(function ($q2) use ($booking_id) {
                                     $q2->where('status', '!=', 'Draft')
-                                        ->orWhere('created_at', '>=', now()->subMinutes(20));
+                                        ->orWhere('created_at', '>=', now()->subMinutes(20))
+                                        ->orWhere('id', '=', $booking_id);
                                 });
                         })
                         ->groupBy('event_date')
@@ -262,7 +265,7 @@ class BookingApiController extends Controller
                             ->where('customer_last_name', $lastName)
                             ->where('invoice_number', '!=', $currentInvoice)
                             ->where(function ($q) {
-                                $q->whereIn('status', ['Pending', 'Confirmed', 'Paid'])
+                                $q->whereNotIn('status', ['Cancelled', 'Draft'])
                                     ->orWhere(function ($q2) {
                                         $q2->where('status', 'Draft')->where('created_at', '>=', now()->subMinutes(20));
                                     });

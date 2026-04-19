@@ -76,15 +76,105 @@
         </div>
     </div>
 
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <!-- Pending -->
+        <button @click="$dispatch('status-filter', 'Pending')" 
+            class="bg-amber-50/50 backdrop-blur-sm p-4 rounded-[2rem] shadow-sm border border-amber-100/50 flex flex-col sm:flex-row items-center gap-3 group hover:bg-amber-50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-amber-200"
+            :class="{ 'ring-2 ring-amber-500 bg-amber-50': $store.activeStatus === 'Pending' }">
+            <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-sm">
+                <span class="material-symbols-rounded text-xl">timer</span>
+            </div>
+            <div class="text-center sm:text-left">
+                <p class="text-[10px] font-bold text-amber-500 uppercase tracking-wider">Pending</p>
+                <p class="text-xl font-extrabold text-amber-900">{{ $statusCounts['Pending'] }}</p>
+            </div>
+        </button>
+
+        <!-- Confirmed -->
+        <button @click="$dispatch('status-filter', 'Confirmed')" 
+            class="bg-blue-50/50 backdrop-blur-sm p-4 rounded-[2rem] shadow-sm border border-blue-100/50 flex flex-col sm:flex-row items-center gap-3 group hover:bg-blue-50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-blue-200"
+            :class="{ 'ring-2 ring-blue-500 bg-blue-50': $store.activeStatus === 'Confirmed' }">
+            <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-sm">
+                <span class="material-symbols-rounded text-xl">verified</span>
+            </div>
+            <div class="text-center sm:text-left">
+                <p class="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Confirmed</p>
+                <p class="text-xl font-extrabold text-blue-900">{{ $statusCounts['Confirmed'] }}</p>
+            </div>
+        </button>
+
+        <!-- Completed -->
+        <button @click="$dispatch('status-filter', 'Completed')" 
+            class="bg-green-50/50 backdrop-blur-sm p-4 rounded-[2rem] shadow-sm border border-green-100/50 flex flex-col sm:flex-row items-center gap-3 group hover:bg-green-50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-green-200"
+            :class="{ 'ring-2 ring-green-500 bg-green-50': $store.activeStatus === 'Completed' }">
+            <div class="w-10 h-10 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-sm">
+                <span class="material-symbols-rounded text-xl">task_alt</span>
+            </div>
+            <div class="text-center sm:text-left">
+                <p class="text-[10px] font-bold text-green-500 uppercase tracking-wider">Completed</p>
+                <p class="text-xl font-extrabold text-green-900">{{ $statusCounts['Completed'] }}</p>
+            </div>
+        </button>
+
+        <!-- Cancelled -->
+        <button @click="$dispatch('status-filter', 'Cancelled')" 
+            class="bg-red-50/50 backdrop-blur-sm p-4 rounded-[2rem] shadow-sm border border-red-100/50 flex flex-col sm:flex-row items-center gap-3 group hover:bg-red-50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-red-200"
+            :class="{ 'ring-2 ring-red-500 bg-red-50': $store.activeStatus === 'Cancelled' }">
+            <div class="w-10 h-10 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-sm">
+                <span class="material-symbols-rounded text-xl">block</span>
+            </div>
+            <div class="text-center sm:text-left">
+                <p class="text-[10px] font-bold text-red-500 uppercase tracking-wider">Cancelled</p>
+                <p class="text-xl font-extrabold text-red-900">{{ $statusCounts['Cancelled'] }}</p>
+            </div>
+        </button>
+
+        <!-- Draft -->
+        <button @click="$dispatch('status-filter', 'Draft')" 
+            class="bg-slate-50/50 backdrop-blur-sm p-4 rounded-[2rem] shadow-sm border border-slate-100/50 flex flex-col sm:flex-row items-center gap-3 group hover:bg-slate-50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-slate-200"
+            :class="{ 'ring-2 ring-slate-500 bg-slate-50': $store.activeStatus === 'Draft' }">
+            <div class="w-10 h-10 bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-sm">
+                <span class="material-symbols-rounded text-xl">edit_note</span>
+            </div>
+            <div class="text-center sm:text-left">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Draft</p>
+                <p class="text-xl font-extrabold text-slate-900">{{ $statusCounts['Draft'] }}</p>
+            </div>
+        </button>
+    </div>
+
+    <script data-navigate-once src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('activeStatus', null);
+        });
+    </script>
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6"
         x-data="{
+             revChart: null,
+             catChart: null,
              init() {
+                 this.$nextTick(() => {
+                     this.drawCharts();
+                 });
+             },
+             drawCharts(l1 = @js($chartLabels), d1 = @js($chartData), l2 = @js($catLabels), d2 = @js($catData)) {
                  const revCanvas = document.getElementById('revenueChart');
                  const catCanvas = document.getElementById('categoryChart');
 
-                 // BUG FIX: Destroy existing charts so Livewire can redraw them cleanly
-                 if (Chart.getChart(revCanvas)) Chart.getChart(revCanvas).destroy();
-                 if (Chart.getChart(catCanvas)) Chart.getChart(catCanvas).destroy();
+                 if (!revCanvas || !catCanvas) return;
+
+                 // Destroy existing instances using Alpine state to avoid leaks
+                 if (this.revChart) this.revChart.destroy();
+                 if (this.catChart) this.catChart.destroy();
+
+                 // Double check using Chart.js global just in case
+                 if (window.Chart && Chart.getChart(revCanvas)) Chart.getChart(revCanvas).destroy();
+                 if (window.Chart && Chart.getChart(catCanvas)) Chart.getChart(catCanvas).destroy();
+
+                 if (!window.Chart) return;
 
                  // 1. Draw Revenue Chart
                  const ctxRev = revCanvas.getContext('2d');
@@ -92,12 +182,12 @@
                  gradientRev.addColorStop(0, 'rgba(158, 107, 115, 0.5)');
                  gradientRev.addColorStop(1, 'rgba(158, 107, 115, 0.0)');
 
-                 new Chart(ctxRev, {
+                 this.revChart = new Chart(ctxRev, {
                      type: 'line',
                      data: {
-                         labels: @js($chartLabels),
+                         labels: l1,
                          datasets: [{
-                             data: @js($chartData),
+                             data: d1,
                              borderColor: '#9E6B73', backgroundColor: gradientRev,
                              borderWidth: 3, fill: true, tension: 0.4,
                              pointBackgroundColor: '#fff', pointBorderColor: '#9E6B73', pointRadius: 4
@@ -108,12 +198,12 @@
 
                  // 2. Draw Category Chart
                  const ctxCat = catCanvas.getContext('2d');
-                 new Chart(ctxCat, {
+                 this.catChart = new Chart(ctxCat, {
                      type: 'doughnut',
                      data: {
-                         labels: @js($catLabels),
+                         labels: l2,
                          datasets: [{
-                             data: @js($catData),
+                             data: d2,
                              backgroundColor: ['#9E6B73', '#F6AD55', '#68D391', '#63B3ED', '#FC8181'],
                              borderWidth: 0
                          }]
@@ -121,7 +211,8 @@
                      options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } }
                  });
              }
-         }">
+         }"
+         @update-charts.window="drawCharts($event.detail.chartLabels, $event.detail.chartData, $event.detail.catLabels, $event.detail.catData)">
 
         <div class="bg-white p-6 rounded-[2rem] shadow-lg border border-gray-100 lg:col-span-2 flex flex-col">
             <h3 class="font-bold text-[#2D3748] text-lg flex items-center gap-2 mb-6">
@@ -260,13 +351,30 @@
     </div>
 
     <div class="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden"
-        x-data="{ page: 1, perPage: 5, items: @js($transactionList) }"
-        x-effect="items = @js($transactionList); page = 1">
+        x-data="{ 
+            page: 1, 
+            perPage: 5, 
+            statusFilter: '', 
+            rawItems: @js($transactionList),
+            get filteredItems() {
+                return this.statusFilter 
+                    ? this.rawItems.filter(i => i.status === this.statusFilter)
+                    : this.rawItems;
+            }
+        }"
+        @status-filter.window="statusFilter = (statusFilter === $event.detail ? '' : $event.detail); $store.activeStatus = statusFilter; page = 1">
         <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-            <h3 class="font-bold text-[#2D3748] flex items-center gap-2"><span class="material-symbols-rounded text-gray-400">receipt_long</span> All Transactions</h3>
+            <h3 class="font-bold text-[#2D3748] flex items-center gap-2">
+                <span class="material-symbols-rounded text-gray-400">receipt_long</span> 
+                All Transactions
+                <template x-if="statusFilter">
+                    <span class="px-2 py-0.5 bg-gray-200 text-gray-600 rounded-full text-[10px] font-bold uppercase tracking-tight" x-text="'Filter: ' + statusFilter"></span>
+                </template>
+            </h3>
             <div class="flex gap-2">
                 <button @click="page > 1 ? page-- : null" :disabled="page === 1" class="px-3 py-1 text-xs rounded-md bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-50">Previous</button>
-                <button @click="page < Math.ceil(items.length / perPage) ? page++ : null" :disabled="page >= Math.ceil(items.length / perPage) || items.length === 0" class="px-3 py-1 text-xs rounded-md bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-50">Next</button>
+                <span class="text-xs font-bold text-gray-400 flex items-center" x-text="page + ' / ' + Math.ceil(filteredItems.length / perPage)"></span>
+                <button @click="page < Math.ceil(filteredItems.length / perPage) ? page++ : null" :disabled="page >= Math.ceil(filteredItems.length / perPage) || filteredItems.length === 0" class="px-3 py-1 text-xs rounded-md bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-50">Next</button>
             </div>
         </div>
         <div class="overflow-x-auto max-h-96">
@@ -275,16 +383,29 @@
                     <tr>
                         <th class="px-6 py-4">Date</th>
                         <th class="px-6 py-4">Customer</th>
+                        <th class="px-6 py-4">Status</th>
                         <th class="px-6 py-4">Method/Ref</th>
                         <th class="px-6 py-4">Type</th>
                         <th class="px-6 py-4 text-right">Amount</th>
                     </tr>
                 </thead>
                 <tbody class="text-sm divide-y divide-gray-50">
-                    <template x-for="t in items.slice((page - 1) * perPage, page * perPage)" :key="t.id">
+                    <template x-for="t in filteredItems.slice((page - 1) * perPage, page * perPage)" :key="t.id">
                         <tr class="hover:bg-gray-50/50 transition">
                             <td class="px-6 py-4 text-gray-500" x-text="t.event_date"></td>
                             <td class="px-6 py-4 font-bold text-gray-700" x-text="t.name"></td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 rounded text-[10px] font-bold uppercase"
+                                    :class="{
+                                        'bg-amber-100 text-amber-600': t.status === 'Pending',
+                                        'bg-blue-100 text-blue-600': t.status === 'Confirmed',
+                                        'bg-green-100 text-green-600': t.status === 'Completed',
+                                        'bg-red-100 text-red-600': t.status === 'Cancelled',
+                                        'bg-slate-100 text-slate-600': t.status === 'Draft'
+                                    }"
+                                    x-text="t.status">
+                                </span>
+                            </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
                                     <template x-if="t.payment_type === 'Card Holder'">
@@ -306,8 +427,8 @@
                             <td class="px-6 py-4 text-right font-bold text-green-600" x-text="'+$' + t.total_amount.toFixed(2)"></td>
                         </tr>
                     </template>
-                    <tr x-show="items.length === 0">
-                        <td colspan="5" class="px-6 py-8 text-center text-gray-400 italic">No transactions found.</td>
+                    <tr x-show="filteredItems.length === 0">
+                        <td colspan="6" class="px-6 py-8 text-center text-gray-400 italic" x-text="statusFilter ? 'No ' + statusFilter + ' bookings found.' : 'No transactions found.'"></td>
                     </tr>
                 </tbody>
             </table>
@@ -315,5 +436,4 @@
     </div>
 
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+

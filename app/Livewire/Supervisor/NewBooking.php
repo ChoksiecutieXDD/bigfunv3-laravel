@@ -167,7 +167,13 @@ class NewBooking extends Component
             ->join('bookings', 'booking_items.booking_id', '=', 'bookings.id')
             ->where('bookings.event_date', $date)
             ->where('bookings.id', '!=', $this->booking_id)
-            ->whereNotIn('bookings.status', ['Cancelled'])
+            ->where(function ($q) {
+                $q->whereNotIn('bookings.status', ['Cancelled', 'Draft'])
+                    ->orWhere(function ($q2) {
+                        $q2->where('bookings.status', 'Draft')
+                            ->where('bookings.created_at', '>=', now()->subMinutes(20));
+                    });
+            })
             ->selectRaw('LOWER(TRIM(booking_items.item_name)) as name, SUM(booking_items.qty) as total')
             ->groupBy('name')
             ->pluck('total', 'name')

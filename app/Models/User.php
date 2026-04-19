@@ -58,6 +58,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'reset_expires' => 'datetime',
+            'created_at' => 'datetime',
+            'change_passtime' => 'datetime',
             'password_hash' => 'hashed', // Hash the correct column
         ];
     }

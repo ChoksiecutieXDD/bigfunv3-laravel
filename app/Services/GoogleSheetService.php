@@ -5,13 +5,14 @@ namespace App\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class GoogleSheetService
 {
     /**
      * Syncs booking data to the Google Spreadsheet via Web App Webhook.
      */
-    public function sync($bookingId, $isNew = false)
+    public static function sync($bookingId, $isNew = false)
     {
         try {
             $webhookUrl = config('services.google.sheet_webhook');
@@ -43,6 +44,48 @@ class GoogleSheetService
             // Parse Extras JSON into a readable string
             $extras = json_decode($booking->extras_json, true) ?: [];
             $extraString = "";
+            
+            // --- RECOVERY LOGIC FOR SPREADSHEET ---
+            // If extras_json is missing known logistics items from booking_items (like Generator or Dropbox), add them
+            $lowercaseItems = array_map(fn($it) => strtolower(trim($it)), $items);
+
+            // 1. Sync Addons
+            $addonsLookup = DB::table('category_addons')->get();
+            foreach ($addonsLookup as $a) {
+                $addonKey = 'add_' . $a->id;
+                if (!isset($extras[$addonKey]) && in_array(strtolower(trim($a->addon_label)), $lowercaseItems)) {
+                    $extras[$addonKey] = "1";
+                }
+            }
+
+            // 2. Sync Questions
+            $questionsLookup = DB::table('product_extras')->get();
+            foreach ($questionsLookup as $q) {
+                $qKey = 'q_' . $q->id;
+                if (!isset($extras[$qKey]) && in_array(strtolower(trim($q->question_text)), $lowercaseItems)) {
+                    $extras[$qKey] = $q->yes_price . '|yes';
+                }
+            }
+
+            // 3. Sync Dropdowns
+            $dropdownOptions = DB::table('dropdown_options')->get();
+            foreach ($dropdownOptions as $opt) {
+                $ddKey = 'dd_' . $opt->dropdown_id;
+                if (!isset($extras[$ddKey]) && in_array(strtolower(trim($opt->option_label)), $lowercaseItems)) {
+                    $extras[$ddKey] = $opt->id;
+                }
+            }
+
+            // Fallback to legacy fields if extraString still feels light
+            if (empty($extras)) {
+                $genExt = json_decode($booking->general_extra ?? '[]', true) ?: [];
+                $specExt = json_decode($booking->specific_extra ?? '[]', true) ?: [];
+                $allLegacy = array_merge($genExt, $specExt);
+                foreach ($allLegacy as $lab => $price) {
+                    $extraString .= "$lab: $" . number_format($price, 2) . " | ";
+                }
+            }
+
             foreach ($extras as $key => $val) {
                 if ($val === '' || $val === null) continue;
 
@@ -76,7 +119,7 @@ class GoogleSheetService
             }
             $extraString = rtrim($extraString, " | ");
 
-            $user = auth()->user();
+            $user = Auth::user();
             $updatedBy = $user ? ($user->first_name . ' (' . $user->role . ')') : 'System';
 
             $payload = [

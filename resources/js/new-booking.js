@@ -385,7 +385,8 @@ window.calLoad = async function() {
     try {
         const res = await apiPost('get_calendar_slots', {
             start: fmtDate(s),
-            end: fmtDate(e)
+            end: fmtDate(e),
+            booking_id: window.bookingAppData ? window.bookingAppData.bookingId : ''
         });
         const grid = document.getElementById('calGrid');
         if (!grid) return;
@@ -396,7 +397,7 @@ window.calLoad = async function() {
         const todayKey = fmtDate(new Date());
         const dateInput = document.getElementById('event_date');
         const currentVal = dateInput ? dateInput.value : '';
-        const dailyLimit = res.daily_limit || 5;
+        const dailyLimit = res.daily_limit || 7;
         
         const summaryEl = document.getElementById('calSummary');
         if (summaryEl) summaryEl.innerText = `Daily limit: ${dailyLimit} bookings`;

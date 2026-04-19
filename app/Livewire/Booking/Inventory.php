@@ -26,7 +26,7 @@ class Inventory extends Component
     public $cat_id, $category_name, $cat_daily_limit = 0;
 
     // --- Product State ---
-    public $prod_id, $prod_name, $prod_category, $counts_against, $prod_specification, $prod_price, $prod_quantity = 99, $prod_limit = 0, $is_active = true;
+    public $prod_id, $prod_name, $prod_category, $counts_against, $prod_specification, $prod_price, $prod_quantity = 999, $prod_limit = 0, $is_active = true;
 
     // --- Add-on State ---
     public $addon_id;
@@ -173,8 +173,8 @@ class Inventory extends Component
                 'counts_against' => $this->counts_against ?: $this->prod_category,
                 'specification' => $this->prod_specification,
                 'price' => $this->prod_price ?: 0,
-                'total_quantity' => $this->prod_quantity ?: 1,
-                'daily_limit' => $this->prod_limit ?: 0,
+                'total_quantity' => (int)($this->prod_quantity ?? 0),
+                'daily_limit' => 0, // Product-level daily limit is now redundant; using stock as primary constraint.
                 'sort_order' => $sortOrder,
                 'is_active' => $this->is_active
             ]
@@ -246,6 +246,7 @@ class Inventory extends Component
     public function resetProductForm()
     {
         $this->reset(['prod_id', 'prod_name', 'prod_category', 'counts_against', 'prod_specification', 'prod_price', 'prod_quantity', 'prod_limit']);
+        $this->prod_quantity = 999;
         $this->is_active = true;
     }
 

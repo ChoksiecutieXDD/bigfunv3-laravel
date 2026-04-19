@@ -42,7 +42,7 @@
                             <div class="bg-gray-50/50 rounded-3xl p-5 border border-gray-100 text-center">
                                 <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Updated</p>
                                 <p class="text-base font-black text-gray-900 mt-1">
-                                    {{ auth()->user()->change_passtime ? \Carbon\Carbon::parse(auth()->user()->change_passtime)->format('M d') : 'Never' }}
+                                    {{ auth()->user()->change_passtime ? auth()->user()->change_passtime->format('M d') : 'Never' }}
                                 </p>
                             </div>
                         </div>

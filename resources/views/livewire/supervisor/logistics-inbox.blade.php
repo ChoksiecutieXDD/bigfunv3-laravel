@@ -125,22 +125,22 @@
     <section class="bg-white rounded-2xl sm:rounded-[2.5rem] shadow-xl shadow-black-200/50 border border-gray-100 overflow-hidden">
         <div class="p-4 sm:p-6 border-b border-gray-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
             <div class="flex items-center gap-3 w-full lg:w-auto">
-                <div class="p-2 bg-[#9E6B73]/10 text-[#9E6B73] rounded-xl"><span class="material-symbols-rounded">credit_card</span></div>
+                <div class="p-2 bg-amber-50 text-amber-600 rounded-xl"><span class="material-symbols-rounded">pending_actions</span></div>
                 <div>
-                    <h3 class="font-bold text-gray-800 text-base sm:text-lg">Manage Payment Methods</h3>
-                    <p class="text-[10px] sm:text-xs text-gray-400">Total Pending: {{ $pendingPayments->total() }}</p>
+                    <h3 class="font-bold text-gray-800 text-base sm:text-lg">Pending Payments</h3>
+                    <p class="text-[10px] sm:text-xs text-gray-400">Total Outstanding: {{ $pendingPayments->total() }}</p>
                 </div>
             </div>
             <div class="flex flex-col sm:flex-row items-center w-full lg:w-auto gap-3 sm:gap-2">
                 <div class="relative w-full sm:w-56">
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 material-symbols-rounded text-sm">search</span>
-                    <input type="text" wire:model.live.debounce.300ms="search_pay" placeholder="Search Payments..." class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#9E6B73]/20 outline-none">
+                    <input type="text" wire:model.live.debounce.300ms="search_pay" placeholder="Search Pending..." class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#9E6B73]/20 outline-none">
                 </div>
             </div>
         </div>
 
         <div class="overflow-x-auto custom-scrollbar">
-            <div class="min-w-[1100px] overflow-y-auto" style="max-height: 500px;">
+            <div class="min-w-[1100px] overflow-y-auto" style="max-height: 400px;">
                 <table class="w-full text-left text-sm border-collapse relative">
                 <thead class="sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10 shadow-sm">
                     <tr class="text-xs text-gray-400 uppercase tracking-wider border-b border-gray-200">
@@ -180,10 +180,8 @@
                                     @endphp
                                     @if($showDebt)
                                         <span class="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[9px] font-black border border-red-100 uppercase tracking-tighter">Debt</span>
-                                    @elseif($outstanding > 0)
-                                        <span class="bg-amber-50 text-amber-600 px-2 py-0.5 rounded text-[9px] font-black border border-amber-100 uppercase tracking-tighter">Owe</span>
                                     @else
-                                        <span class="bg-green-50 text-green-600 px-2 py-0.5 rounded text-[9px] font-black border border-green-100 uppercase tracking-tighter">Paid</span>
+                                        <span class="bg-amber-50 text-amber-600 px-2 py-0.5 rounded text-[9px] font-black border border-amber-100 uppercase tracking-tighter">Owe</span>
                                     @endif
                                 </div>
                             </div>
@@ -195,7 +193,7 @@
                                     <div class="flex justify-between"><span class="text-gray-400">Paid:</span> <span class="font-bold text-green-600">${{ number_format($paid, 2) }}</span></div>
                                     <div class="flex justify-between"><span class="text-gray-400">Deposit Req:</span> <span class="font-bold text-orange-400">${{ number_format($row->deposit_required, 2) }}</span></div>
                                     <div class="border-t border-gray-100 my-0.5"></div>
-                                    <div class="flex justify-between items-center"><span class="text-gray-500 font-bold">Owing:</span> <span class="font-bold {{ $outstanding > 0 ? 'text-red-500' : 'text-green-600' }}">${{ number_format($outstanding, 2) }}</span></div>
+                                    <div class="flex justify-between items-center"><span class="text-gray-500 font-bold">Owing:</span> <span class="font-bold text-red-500">${{ number_format($outstanding, 2) }}</span></div>
 
                                 </div>
                             </div>
@@ -273,21 +271,15 @@
                                         <span class="material-symbols-rounded text-[16px]">save</span>
                                     </button>
                                 </div>
-                                @if ($outstanding > 0)
                                 <button wire:click="openPaymentModal({{ $row->id }})" class="w-full bg-[#9D686E] hover:bg-[#86545C] text-white py-1.5 rounded-lg shadow-sm transition transform active:scale-95 text-xs font-bold flex items-center justify-center gap-1">
                                     <span class="material-symbols-rounded text-[16px] text-white">payments</span> Process
                                 </button>
-                                @else
-                                <a href="{{ route('supervisor.bookings.overview', ['id' => $row->id, 'back' => route('supervisor.logistics')]) }}" class="w-full bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 py-1.5 rounded-lg shadow-sm text-xs font-bold flex items-center justify-center gap-1 transition-colors no-underline">
-                                    <span class="material-symbols-rounded text-[16px]">visibility</span> View Overview
-                                </a>
-                                @endif
                             </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="p-10 text-center text-gray-400 italic">No payments found.</td>
+                        <td colspan="5" class="p-10 text-center text-gray-400 italic">No pending payments found.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -295,6 +287,106 @@
         </div>
         @if ($pendingPayments->hasPages())
         <div class="p-4 border-t border-gray-100 bg-gray-50">{{ $pendingPayments->links() }}</div>
+        @endif
+    </section>
+
+    <!-- FULLY PAID BOOKINGS SECTION -->
+    <section class="bg-white rounded-2xl sm:rounded-[2.5rem] shadow-xl shadow-black-200/50 border border-gray-100 overflow-hidden">
+        <div class="p-4 sm:p-6 border-b border-gray-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-gradient-to-r from-emerald-50 to-white">
+            <div class="flex items-center gap-3 w-full lg:w-auto">
+                <div class="p-2 bg-emerald-100 text-emerald-600 rounded-xl"><span class="material-symbols-rounded">verified</span></div>
+                <div>
+                    <h3 class="font-bold text-gray-800 text-base sm:text-lg">Fully Paid Bookings</h3>
+                    <p class="text-[10px] sm:text-xs text-gray-400">Total Settled: {{ $fullyPaidBookings->total() }}</p>
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row items-center w-full lg:w-auto gap-3 sm:gap-2">
+                <div class="relative w-full sm:w-56">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 material-symbols-rounded text-sm">search</span>
+                    <input type="text" wire:model.live.debounce.300ms="search_full" placeholder="Search Settled..." class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500/20 outline-none">
+                </div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+            <div class="min-w-[1100px]">
+                <table class="w-full text-left text-sm border-collapse">
+                <thead class="bg-gray-50/95 backdrop-blur-sm z-10 shadow-sm">
+                    <tr class="text-xs text-gray-400 uppercase tracking-wider border-b border-gray-200">
+                        <th class="p-4 font-bold text-left">Customer / Date</th>
+                        <th class="p-4 font-bold text-left">Financials</th>
+                        <th class="p-4 font-bold text-left w-64">Payment History</th>
+                        <th class="p-4 font-bold text-right">Overview</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 bg-white">
+                    @forelse ($fullyPaidBookings as $row)
+                    @php
+                    $total = (float)$row->total_amount;
+                    $paid = (float)$row->total_paid;
+                    $lastPay = $row->payments->sortByDesc('id')->first();
+                    @endphp
+                    <tr class="group hover:bg-emerald-50/30 transition-colors">
+                        <td class="p-4 text-left align-middle">
+                            <div class="flex flex-col items-start gap-1">
+                                <div class="font-bold text-gray-800 text-sm">{{ $row->customer_first_name }} {{ $row->customer_last_name }}</div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-bold text-gray-400 tracking-tight">ID: #{{ $row->id }}</span>
+                                    <span class="text-[10px] text-gray-400 italic">{{ \Carbon\Carbon::parse($row->event_date)->format('d M Y') }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-4 text-left align-middle">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Total Settled</span>
+                                <span class="font-black text-emerald-600 text-sm">${{ number_format($total, 2) }}</span>
+                            </div>
+                        </td>
+                        <td class="p-4 align-top text-xs w-64">
+                            @forelse ($row->payments as $index => $hist)
+                            <div class="border-b border-gray-100 last:border-0 pb-1.5 last:pb-0 mb-1.5">
+                                <div class="flex justify-between items-center mb-0.5">
+                                    <span class="font-bold text-[#9E6B73]">Payment {{ $index + 1 }}</span>
+                                    <span class="font-bold text-green-600">${{ number_format($hist->amount, 2) }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-400 text-[10px]">{{ \Carbon\Carbon::parse($hist->payment_date)->format('d M Y') }}</span>
+                                    <button wire:click="viewPaymentDetails({{ $hist->id }})" class="text-[10px] text-blue-500 hover:text-blue-700 hover:underline">Details</button>
+                                </div>
+                            </div>
+                            @empty
+                            <span class="text-gray-400 italic">No record</span>
+                            @endforelse
+                        </td>
+                        <td class="p-4 align-middle text-right">
+                            <a href="{{ route('supervisor.bookings.overview', ['id' => $row->id, 'back' => route('supervisor.logistics')]) }}" class="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-lg text-xs font-black hover:bg-emerald-100 transition shadow-sm border border-emerald-100 no-underline">
+                                <span class="material-symbols-rounded text-sm">visibility</span> VIEW
+                            </a>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="4" class="p-8 text-center text-gray-400 italic">No fully paid bookings in this view.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        
+        @if ($fullyPaidBookings->hasPages())
+        <div class="p-4 border-t border-gray-100 bg-emerald-50/50 flex justify-between items-center">
+            <span class="text-[10px] font-black text-emerald-700 uppercase tracking-widest px-3 py-1 bg-white rounded-full border border-emerald-100 shadow-sm">
+                Showing {{ $fullyPaidBookings->firstItem() }}-{{ $fullyPaidBookings->lastItem() }} of {{ $fullyPaidBookings->total() }}
+            </span>
+            <div class="flex gap-2">
+                <button wire:click="previousPage('page_full')" @disabled($fullyPaidBookings->onFirstPage()) class="p-2 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-emerald-600 hover:border-emerald-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-sm group">
+                    <span class="material-symbols-rounded block group-hover:-translate-x-0.5 transition-transform">chevron_left</span>
+                </button>
+                <button wire:click="nextPage('page_full')" @disabled(!$fullyPaidBookings->hasMorePages()) class="p-2 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-emerald-600 hover:border-emerald-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-sm group">
+                    <span class="material-symbols-rounded block group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+                </button>
+            </div>
+        </div>
         @endif
     </section>
 
@@ -722,6 +814,10 @@
                                     </div>
                                 </div>
                                 <div class="input-group">
+                                    <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Card Holder Name</label>
+                                    <input type="text" wire:model="pay_card_holder" class="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-sm font-black text-slate-800" placeholder="Cardholder Identity">
+                                </div>
+                                <div class="input-group">
                                     <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Instrument Number</label>
                                     <input type="text" wire:model="pay_card_number" x-on:input="$el.value = $el.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim()" maxlength="19" class="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#9D686E]/20 outline-none text-sm font-mono font-black text-slate-800" placeholder="0000 0000 0000 0000">
                                 </div>
@@ -808,6 +904,10 @@
                 <div class="p-8 overflow-y-auto custom-scrollbar flex-grow bg-white">
                     <form wire:submit.prevent="saveCardDetails" class="space-y-8">
                         <div class="grid grid-cols-1 gap-8">
+                            <div class="input-group">
+                                <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Legal Instrument Holder</label>
+                                <input type="text" wire:model="edit_card_holder" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[15px] font-black text-slate-800 transition-all" placeholder="Enter Cardholder Name">
+                            </div>
                             <div class="input-group">
                                 <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Issuing Protocol</label>
                                 <div class="relative">
@@ -1065,12 +1165,16 @@
                         @if ($view_payment_details->payment_method === 'Card Holder')
                         <div class="mt-6 p-6 bg-slate-50 rounded-[24px] border border-slate-100 space-y-4 shadow-inner">
                             <div class="flex justify-between items-center">
-                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Issuing Matrix</span>
-                                <span class="text-[12px] font-black text-slate-700 uppercase">{{ $view_payment_details->booking->card_type ?? 'Generic Card' }}</span>
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Card Holder Retrieval</span>
+                                <span class="text-[12px] font-black text-slate-700 uppercase tracking-tight">{{ $view_payment_details->card_holder ?? ($view_payment_details->booking->card_holder ?? 'Unknown') }}</span>
                             </div>
-                            <div class="flex justify-between items-center">
+                            <div class="flex justify-between items-center border-t border-slate-200/50 pt-4">
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Issuing Matrix</span>
+                                <span class="text-[12px] font-black text-slate-700 uppercase">{{ $view_payment_details->card_network ?? ($view_payment_details->booking->card_type ?? 'Generic Card') }}</span>
+                            </div>
+                            <div class="flex justify-between items-center border-t border-slate-200/50 pt-4">
                                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Masked Access</span>
-                                <span class="text-[13px] font-mono font-black text-slate-800">**** **** {{ !empty($view_payment_details->booking->card_number) ? substr(str_replace(' ', '', $view_payment_details->booking->card_number), -4) : 'NULL' }}</span>
+                                <span class="text-[13px] font-mono font-black text-slate-800 font-mono tracking-tighter">**** **** {{ !empty($view_payment_details->card_number ?? $view_payment_details->booking->card_number) ? substr(str_replace(' ', '', ($view_payment_details->card_number ?? $view_payment_details->booking->card_number)), -4) : 'NULL' }}</span>
                             </div>
                         </div>
                         @elseif ($view_payment_details->payment_method === 'EFT')
