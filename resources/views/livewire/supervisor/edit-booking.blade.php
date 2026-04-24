@@ -59,42 +59,6 @@
         });
     "
     class="w-full relative pb-8">
-    <!-- Premium Toast Notifications (system-settings style) -->
-    <div class="fixed top-6 right-6 z-[999999] flex flex-col gap-3 pointer-events-none" style="width:380px;">
-        <template x-for="toast in toasts" :key="toast.id">
-            <div x-show="toast.visible"
-                x-transition:enter="transition ease-out duration-400"
-                x-transition:enter-start="opacity-0 translate-x-8 scale-95"
-                x-transition:enter-end="opacity-100 translate-x-0 scale-100"
-                x-transition:leave="transition ease-in duration-300"
-                x-transition:leave-start="opacity-100 translate-x-0 scale-100"
-                x-transition:leave-end="opacity-0 translate-x-8 scale-95"
-                class="pointer-events-auto w-full bg-slate-900/95 backdrop-blur-xl border rounded-2xl shadow-2xl p-4 flex items-start gap-3"
-                :class="{
-                    'border-emerald-500/40': toast.type === 'success',
-                    'border-red-500/40': toast.type === 'error',
-                    'border-amber-500/40': toast.type === 'warning',
-                    'border-[#9E6B73]/40': toast.type === 'primary'
-                }">
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
-                    :class="{
-                        'bg-emerald-500/15 text-emerald-400': toast.type === 'success',
-                        'bg-red-500/15 text-red-400': toast.type === 'error',
-                        'bg-amber-500/15 text-amber-400': toast.type === 'warning',
-                        'bg-[#9E6B73]/15 text-[#9E6B73]': toast.type === 'primary'
-                    }">
-                    <span class="material-symbols-rounded text-xl" x-text="toast.icon"></span>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h4 class="font-bold text-sm text-white" x-text="toast.title"></h4>
-                    <p class="text-xs text-slate-400 mt-0.5 leading-relaxed" x-text="toast.message"></p>
-                </div>
-                <button @click="toast.visible = false" class="text-slate-600 hover:text-slate-300 transition shrink-0 p-1 rounded-lg hover:bg-white/10">
-                    <span class="material-symbols-rounded text-base">close</span>
-                </button>
-            </div>
-        </template>
-    </div>
 
     <div class="flex w-full relative overflow-hidden">
         <main class="flex-1 pt-4 pb-16 px-0 max-w-[1440px] mx-auto w-full">
@@ -139,7 +103,7 @@
                     <header class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                         <div class="flex items-center gap-4">
                             @php
-                            $backRoute = $isSupervisor ? 'supervisor.bookings.overview' : 'booking.overview';
+                            $backRoute = $isSupervisor ? 'supervisor.bookings.overview' : 'admin.bookings.overview';
                             @endphp
                             <a href="{{ route($backRoute, $booking->id) }}" wire:navigate class="bg-white hover:bg-gray-50 text-slate-600 p-2.5 rounded-xl border border-gray-200 transition shadow-sm flex items-center justify-center">
                                 <span class="material-symbols-rounded text-2xl">arrow_back</span>
@@ -247,7 +211,7 @@
                                     <div class="relative">
                                         <select wire:model.live="form.payment_type" class="input-dark appearance-none cursor-pointer">
                                             <option value="EFT">EFT / Bank Transfer</option>
-                                            <option value="Card Holder">Credit/Debit Card</option>
+                                            <option value="Card Holder">Card Holder</option>
                                             <option value="Cash">Cash</option>
                                         </select>
                                         <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
@@ -701,35 +665,165 @@
                         </div>
                     </div>
 
-                    <div class="pt-6 border-t border-gray-100 mt-6">
-                        <label class="input-label mb-2 flex items-center justify-between">
-                            <span class="flex items-center gap-2">Delivery Attachments <span class="font-black text-slate-500">(Up to 5)</span></span>
-                            <span class="flex items-center gap-1.5 text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider"><span class="material-symbols-rounded text-xs">folder_limited</span>Max 5MB Total</span>
-                        </label>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            @foreach([
-                            1 => 'delivery_attachment',
-                            2 => 'delivery_attachment_2',
-                            3 => 'delivery_attachment_3',
-                            4 => 'delivery_attachment_4',
-                            5 => 'delivery_attachment_5'
-                            ] as $i => $field)
-                            @php
-                            $hasFile = !empty($form[$field]) && !in_array($field, $deletedAttachments);
-                            @endphp
-                            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col justify-center border-dashed">
-                                @if($hasFile)
-                                <div class="flex items-center justify-between">
-                                    <a href="/uploads/{{ $form[$field] }}" target="_blank" class="text-xs font-bold text-[#9E6B73] hover:underline flex items-center gap-1 truncate"><span class="material-symbols-rounded text-sm">open_in_new</span> View Slot {{ $i }}</a>
-                                    <button type="button" wire:click="markAttachmentDeleted('{{ $field }}')" class="text-red-400 hover:text-red-600 transition"><span class="material-symbols-rounded text-sm">delete</span></button>
-                                </div>
-                                @else
-                                <input type="file" accept="image/png,image/jpeg,application/pdf"
-                                    wire:model="newAttachments.{{ $field }}"
-                                    @change="checkTotalAttachmentSize($el)"
-                                    class="text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-[#9E6B73]/10 file:text-[#9E6B73] hover:file:bg-[#9E6B73]/20 cursor-pointer">
-                                @endif
+                    <div class="pt-6 border-t border-gray-100 mt-6" 
+                         x-data="{
+                            totalSizeMB: '0.00',
+                            calculateTotalSize() {
+                                let total = 0;
+                                const slots = this.$el.querySelectorAll('.attachment-slot');
+                                slots.forEach(slot => {
+                                    const input = slot.querySelector('input[type=\'file\']');
+                                    const isDeleted = slot.dataset.isDeleted === 'true';
+                                    let existingSize = parseInt(slot.dataset.existingSize || '0', 10);
+                                    
+                                    if (input && input.files && input.files[0]) {
+                                        total += input.files[0].size;
+                                    } else if (!isDeleted && existingSize > 0) {
+                                        total += existingSize;
+                                    }
+                                });
+                                this.totalSizeMB = (total / (1024 * 1024)).toFixed(2);
+                            }
+                         }"
+                         x-init="calculateTotalSize()"
+                         @recalc-size="calculateTotalSize()">
+                        <div class="flex items-center justify-between mb-4">
+                            <label class="input-label mb-0 flex items-center gap-2">
+                                <span class="material-symbols-rounded text-sm text-[#9E6B73]">attachment</span>
+                                <span>Delivery Attachments <span class="font-black text-slate-400">({{ $this->booking->id ? "Manage" : "Up to 5" }})</span></span>
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <span class="flex items-center gap-1.5 text-[9px] bg-slate-100 text-slate-500 border border-slate-200 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider transition-colors duration-300"
+                                      :class="{'bg-rose-50 text-rose-600 border-rose-200': parseFloat(totalSizeMB) >= 5}">
+                                    <span class="material-symbols-rounded text-xs">storage</span>
+                                    <span x-text="totalSizeMB + ' MB Used'"></span>
+                                </span>
+                                <span class="flex items-center gap-1.5 text-[9px] bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                                    <span class="material-symbols-rounded text-xs">folder_limited</span>Max 5MB Total
+                                </span>
                             </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                            @foreach([
+                                1 => 'delivery_attachment',
+                                2 => 'delivery_attachment_2',
+                                3 => 'delivery_attachment_3',
+                                4 => 'delivery_attachment_4',
+                                5 => 'delivery_attachment_5'
+                            ] as $i => $dbCol)
+                                @php 
+                                    $existingFile = $form[$dbCol] ?? null;
+                                    $existingExt = $existingFile ? strtolower(pathinfo($existingFile, PATHINFO_EXTENSION)) : '';
+                                    $existingSize = 0;
+                                    if ($existingFile) {
+                                        $p1 = public_path('uploads/' . $existingFile);
+                                        $p2 = storage_path('app/public/uploads/' . $existingFile);
+                                        if (file_exists($p1)) $existingSize = filesize($p1);
+                                        elseif (file_exists($p2)) $existingSize = filesize($p2);
+                                    }
+                                @endphp
+
+                                 <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col relative group transition-all hover:bg-white hover:shadow-md attachment-slot" 
+                                     data-slot-name="{{ $dbCol }}"
+                                     data-existing-size="{{ $existingSize }}"
+                                     data-is-deleted="false"
+                                     x-data="{ 
+                                        fileName: '{{ $existingFile }}', 
+                                        fileExt: '{{ $existingExt }}',
+                                        isImage: {{ in_array($existingExt, ['jpg', 'jpeg', 'png']) ? 'true' : 'false' }},
+                                        previewUrl: '{{ $existingFile ? asset("storage/uploads/$existingFile") : "" }}',
+                                        handleFile(el) {
+                                            const file = el.files[0];
+                                            if (!file) return;
+
+                                            const ext = file.name.split('.').pop().toLowerCase();
+                                            if (!['jpg', 'jpeg', 'png'].includes(ext)) {
+                                                el.value = '';
+                                                window.dispatchEvent(new CustomEvent('notify', { detail: { title: 'Invalid File Type', type: 'error', icon: 'error', message: 'Only JPG and PNG formats are allowed.' } }));
+                                                return;
+                                            }
+
+                                            if (!checkTotalAttachmentSize(el)) {
+                                                el.value = '';
+                                                return;
+                                            }
+
+                                            this.fileName = file.name;
+                                            this.fileExt = ext;
+                                            this.isImage = true;
+                                            
+                                            if (this.previewUrl.startsWith('blob:')) {
+                                                URL.revokeObjectURL(this.previewUrl);
+                                            }
+                                            
+                                            this.previewUrl = URL.createObjectURL(file);
+                                            this.$dispatch('recalc-size');
+                                        },
+                                        openFile() {
+                                            if (!this.previewUrl) return;
+                                            const a = document.createElement('a');
+                                            a.href = this.previewUrl;
+                                            a.target = '_blank';
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                        }
+                                     }">
+                                    
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 rounded-lg bg-[#9E6B73]/10 flex items-center justify-center text-[#9E6B73]">
+                                                <span class="material-symbols-rounded text-lg" x-text="isImage ? 'image' : (fileName ? 'description' : 'upload_file')"></span>
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Slot {{ $i }}</span>
+                                                <template x-if="fileExt">
+                                                    <span class="text-[9px] font-bold bg-[#9E6B73] text-white px-1.5 py-0.5 rounded-md uppercase w-fit" x-text="fileExt"></span>
+                                                </template>
+                                            </div>
+                                        </div>
+
+                                        <template x-if="fileName">
+                                            <button type="button" 
+                                                    @click="$wire.removeAttachment('{{ $dbCol }}'); fileName = ''; fileExt = ''; previewUrl = ''; isImage = false; $el.closest('.group').querySelector('input[type=file]').value = ''; $el.closest('.attachment-slot').dataset.isDeleted = 'true'; $dispatch('recalc-size');"
+                                                    class="w-7 h-7 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm z-20">
+                                                <span class="material-symbols-rounded text-sm">close</span>
+                                            </button>
+                                        </template>
+                                    </div>
+
+                                    <div class="relative flex-1">
+                                        <input type="file" name="delivery_attachment{{ $i > 1 ? "_$i" : "" }}" 
+                                               wire:model="temp_attachment_{{ $i }}"
+                                               accept="image/png, image/jpeg" 
+                                               @change="handleFile($el)" 
+                                               class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                                        
+                                        <div class="border-2 border-dashed border-slate-200 rounded-xl p-2 h-24 flex items-center justify-center bg-white overflow-hidden group-hover:border-[#9E6B73]/30 transition-colors">
+                                            <template x-if="!fileName">
+                                                <div class="flex flex-col items-center gap-1">
+                                                    <span class="text-[10px] font-bold text-slate-400">Click to Upload</span>
+                                                    <span class="text-[9px] text-slate-300">JPG, PNG Only</span>
+                                                </div>
+                                            </template>
+                                            
+                                            <template x-if="fileName">
+                                                <div class="w-full h-full flex items-center justify-center relative">
+                                                    <template x-if="isImage">
+                                                        <img :src="previewUrl" class="h-full w-full object-cover rounded-lg cursor-zoom-in z-20" @click.stop="openFile()">
+                                                    </template>
+                                                    <template x-if="!isImage">
+                                                        <div class="flex flex-col items-center justify-center gap-1 p-2 text-center cursor-pointer z-20 w-full h-full" @click.stop="openFile()">
+                                                            <span class="material-symbols-rounded text-[#9E6B73] text-2xl">description</span>
+                                                            <span class="text-[9px] font-bold text-slate-600 truncate max-w-[120px]" x-text="fileName"></span>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
                             @endforeach
                         </div>
                     </div>
@@ -867,7 +961,7 @@
                     <!-- Buttons stacked -->
                     <div class="flex flex-col gap-3">
                         <button
-                            @click="saveCurrentExtrasState(); $wire.set('dynamicExtras', window.bookingAppData.savedExtras); $wire.saveBooking();"
+                            @click="saveCurrentExtrasState(true); $wire.saveBooking(window.bookingAppData.savedExtras);"
                             wire:loading.attr="disabled"
                             class="w-full py-4 bg-[#9D686E] text-white hover:bg-[#7C4E54] font-black text-[13px] rounded-2xl transition-all active:scale-95 uppercase tracking-widest flex items-center justify-center gap-2.5 disabled:opacity-75 disabled:cursor-wait shadow-none">
                             <span wire:loading.remove wire:target="saveBooking" class="flex items-center gap-2.5">
@@ -954,7 +1048,6 @@
             </div>
         </div>
     </template>
->
 
     <template x-teleport="body">
         <!-- Category Limit Modal -->
@@ -1005,17 +1098,23 @@
                 x-transition:leave-end="opacity-0 scale-90 translate-y-4"
                 class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10 text-center z-10">
 
+
                 <div class="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500 ring-8 ring-rose-50/50">
                     <span class="material-symbols-rounded text-4xl font-bold">file_upload_off</span>
                 </div>
                 <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">File Too Large</h3>
                 <p class="text-[14px] font-medium text-slate-500 mb-4 leading-relaxed px-2">
-                    This file exceeds the <span class="font-black text-rose-600">5MB</span> size limit per attachment.
+                    This file would exceed the <span class="font-black text-rose-600">5MB</span> combined size limit for all attachments.
                 </p>
                 <div class="bg-rose-50 border border-rose-100 rounded-2xl p-4 mb-8 text-left">
-                    <p class="text-xs font-bold text-rose-700 flex items-start gap-2">
-                        <span class="material-symbols-rounded text-sm shrink-0 mt-0.5">tips_and_updates</span>
-                        Please compress or resize your image before uploading. Tools like <span class="underline font-extrabold">TinyPNG</span> or <span class="underline font-extrabold">Squoosh</span> can reduce file sizes quickly.
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="material-symbols-rounded text-sm text-rose-500 shrink-0">tips_and_updates</span>
+                        <span class="text-xs font-black text-rose-700 uppercase tracking-wide">Quick Tip</span>
+                    </div>
+                    <p class="text-xs font-medium text-rose-700 leading-relaxed">
+                        Please compress or resize your image before uploading. Tools like
+                        <span class="underline font-extrabold">TinyPNG</span> or <span class="underline font-extrabold">Squoosh</span>
+                        can reduce file sizes quickly.
                     </p>
                 </div>
                 <button type="button" @click="modals.fileSizeAlert = false"
@@ -1024,6 +1123,7 @@
                     Got It, Try Again
                 </button>
             </div>
+
         </div>
     </template>
 

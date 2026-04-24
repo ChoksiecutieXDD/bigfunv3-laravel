@@ -120,7 +120,8 @@
                 <div class="h-6 w-px bg-gray-200 mx-2 hidden lg:block shrink-0"></div>
                 <div class="flex flex-wrap gap-2 flex-grow">
                     <a href="{{ route('pdf.invoice', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E] no-underline"><i class="fa-solid fa-print"></i> Invoice</a>
-                    <a href="{{ route('pdf.envelope', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E] no-underline"><i class="fa-solid fa-envelope-open-text"></i> Envelope</a>
+                    <a href="{{ route('pdf.receipt', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E] no-underline"><i class="fa-solid fa-receipt"></i> Receipt</a>
+                    <a href="{{ route('pdf.delivery_receipt', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E] no-underline"><i class="fa-solid fa-truck-ramp-box"></i> Delivery Receipt</a>
                     <a href="{{ route('pdf.po', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E] no-underline"><i class="fa-solid fa-file-invoice"></i> PO/Quote</a>
                     @if($isDebt)
                     <a href="{{ route('pdf.debt', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition whitespace-nowrap bg-red-600 border border-red-600 text-white shadow-sm hover:bg-white hover:text-red-600 no-underline"><i class="fa-solid fa-file-invoice-dollar"></i> Debt</a>
@@ -516,6 +517,7 @@
                 <div class="space-y-4">
                     <div class="flex flex-col sm:flex-row justify-between items-baseline gap-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Name</span><span class="text-[0.75rem] font-bold text-slate-800">{{ $booking->customer_first_name }} {{ $booking->customer_last_name }}</span></div>
                     <div class="flex flex-col sm:flex-row justify-between items-baseline gap-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Org / Company</span><span class="text-[0.75rem] font-medium text-slate-800">{{ $booking->customer_organization ?: '-' }}</span></div>
+                    <div class="flex flex-col sm:flex-row justify-between items-baseline gap-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">Employer Name</span><span class="text-[0.75rem] font-medium text-slate-800">{{ $booking->employer_name ?: '-' }}</span></div>
                     <div class="flex flex-col sm:flex-row justify-between items-baseline gap-1 pb-1 border-b border-dotted border-gray-200"><span class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide">ABN No.</span><span class="text-[0.75rem] font-medium text-slate-800">{{ $booking->customer_abn ?: '-' }}</span></div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-dotted border-gray-200 pb-1">
@@ -687,19 +689,34 @@
                     <span class="text-xs text-gray-400 font-bold">No files attached</span>
                 </div>
                 @else
-                <div class="flex flex-col space-y-2">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     @foreach($galleryFiles as $file)
                     @php
                     $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
                     $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
-                    $icon = $isImage ? 'image' : 'description';
+                    $filePath = asset('storage/uploads/' . $file);
                     @endphp
-                    <a href="/uploads/{{ $file }}" target="_blank" class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-100 transition group">
-                        <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm text-[#9D686E] group-hover:text-[#855359] transition">
-                            <span class="material-symbols-rounded text-lg">{{ $icon }}</span>
+                    <div class="group relative bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300">
+                        @if($isImage)
+                        <div class="aspect-square w-full">
+                            <img src="{{ $filePath }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                         </div>
-                        <span class="text-xs font-bold text-blue-600 underline truncate">{{ $file }}</span>
-                    </a>
+                        @else
+                        <div class="aspect-square w-full flex flex-col items-center justify-center bg-slate-100">
+                            <span class="material-symbols-rounded text-3xl text-slate-400">description</span>
+                            <span class="text-[10px] font-black uppercase text-slate-400 mt-1">{{ $ext }}</span>
+                        </div>
+                        @endif
+
+                        <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <a href="{{ $filePath }}" target="_blank" class="w-10 h-10 rounded-full bg-white text-[#9D686E] flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
+                                <span class="material-symbols-rounded">visibility</span>
+                            </a>
+                            <a href="{{ $filePath }}" download class="w-10 h-10 rounded-full bg-white text-[#9D686E] flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
+                                <span class="material-symbols-rounded">download</span>
+                            </a>
+                        </div>
+                    </div>
                     @endforeach
                 </div>
                 @endif
@@ -904,7 +921,7 @@
                     <div class="p-8 overflow-y-auto custom-scrollbar flex-1 bg-white">
                         <div class="space-y-6">
                             <div>
-                                <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">ALLOCATION MATRIX</label>
+                                <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Payment Type</label>
                                 <div class="relative group">
                                     <select wire:model.live="payType" class="w-full px-5 py-4 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold text-slate-700 outline-none focus:border-[#9D686E]/30 focus:bg-white focus:ring-4 focus:ring-[#9D686E]/5 cursor-pointer shadow-sm appearance-none transition-all">
                                         <option value="Deposit Capture">Deposit Capture</option>
@@ -920,7 +937,7 @@
 
                             <!-- Amount Section -->
                             <div class="p-8 bg-slate-50/50 rounded-[32px] border border-slate-100/80 shadow-inner group transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/20">
-                                <label class="block text-[11px] font-black text-slate-400 mb-6 uppercase tracking-[0.2em]">ENTRY AMOUNT RETRIEVAL ($)</label>
+                                <label class="block text-[11px] font-black text-slate-400 mb-6 uppercase tracking-[0.2em]">Amount ($)</label>
                                 <div class="relative flex items-center">
                                     <span class="absolute left-0 text-4xl font-black text-slate-300 pointer-events-none">$</span>
                                     <input type="number" step="0.01" wire:model.live="payAmount" class="w-full pl-10 bg-transparent border-none text-[56px] font-black text-slate-800 outline-none p-0 focus:ring-0 placeholder:text-slate-200" placeholder="0.00">
@@ -954,13 +971,13 @@
                             <!-- EFT Details (Sub-Methods) -->
                             <div x-show="$wire.payMethod === 'EFT'" x-collapse class="space-y-4 pt-2">
                                 <div class="p-5 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                                    <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Specific Routing Protocol</label>
+                                    <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">EFT Method</label>
                                     <div class="relative group">
                                         <select wire:model="eftMethod" class="w-full px-4 py-3.5 bg-white rounded-xl border border-slate-100 text-sm font-bold text-slate-700 outline-none focus:border-[#9D686E]/30 cursor-pointer shadow-sm appearance-none">
                                             <option value="Direct Deposit">Direct Deposit</option>
                                             <option value="Bank Transfer">Bank Transfer</option>
                                             <option value="Osko Realtime">Osko Realtime</option>
-                                            <option value="PayID Matrix">PayID Matrix</option>
+                                            <option value="PayID Matrix">PayID</option>
                                         </select>
                                         <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400 group-hover:text-[#9D686E] transition-colors">
                                             <span class="material-symbols-rounded">expand_more</span>
@@ -974,7 +991,7 @@
                                 <div class="p-5 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-4">
                                     <div class="relative">
                                         <label class="block text-[10px] font-black text-slate-400 mb-1.5 uppercase tracking-widest">Card Holder Name</label>
-                                        <input type="text" wire:model="payCardHolder" class="w-full px-4 py-3 bg-white rounded-xl border border-slate-100 text-sm font-bold text-slate-800 focus:border-[#9D686E]/30 outline-none shadow-sm" placeholder="Cardholder Identity">
+                                        <input type="text" wire:model="payCardHolder" class="w-full px-4 py-3 bg-white rounded-xl border border-slate-100 text-sm font-bold text-slate-800 focus:border-[#9D686E]/30 outline-none shadow-sm" placeholder="Cardholder Name">
                                     </div>
                                     <div class="relative">
                                         <label class="block text-[10px] font-black text-slate-400 mb-1.5 uppercase tracking-widest">Card Number</label>
@@ -1024,10 +1041,10 @@
 
                     <div class="p-8 border-t border-slate-50 shrink-0 bg-white">
                         <button type="submit" wire:loading.attr="disabled" class="w-full py-4 rounded-xl bg-[#9D686E] hover:bg-[#855359] text-white font-black shadow-xl shadow-[#9D686E]/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 uppercase tracking-widest text-xs disabled:opacity-75">
-                            <span wire:loading.remove wire:target="savePayment" class="flex items-center gap-3"><span class="material-symbols-rounded">check_circle</span> Save Transaction</span>
+                            <span wire:loading.remove wire:target="savePayment" class="flex items-center gap-3">Save Transaction</span>
                             <span wire:loading wire:target="savePayment" class="flex items-center gap-2">
                                 <span class="material-symbols-rounded animate-spin text-lg">sync</span> 
-                                Syncing to Cloud...
+                                Processing...
                             </span>
                         </button>
                     </div>
@@ -1116,7 +1133,7 @@
                     <div class="p-8 border-t border-slate-100 shrink-0 bg-white flex justify-end gap-4">
                         <button type="button" @click="emailModal = false" class="px-8 py-4 rounded-xl border border-slate-200 text-slate-500 text-[11px] font-black hover:bg-slate-50 hover:text-slate-700 transition-all uppercase tracking-widest">Cancel</button>
                         <button type="submit" class="px-8 py-4 rounded-xl bg-[#9D686E] text-white text-[11px] font-black shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359] hover:-translate-y-0.5 transition-all flex items-center gap-3 uppercase tracking-widest">
-                            <span wire:loading.remove wire:target="sendEmail" class="flex items-center gap-3"><span class="material-symbols-rounded text-lg font-bold">send</span> Dispatch Email</span>
+                            <span wire:loading.remove wire:target="sendEmail" class="flex items-center gap-3">Send Email</span>
                             <span wire:loading wire:target="sendEmail" class="flex items-center gap-2"><span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Sending...</span>
                         </button>
                     </div>
@@ -1494,13 +1511,63 @@
                         <span class="material-symbols-rounded text-[#9D686E] text-2xl font-bold">receipt</span>
                         <h3 class="font-black text-lg uppercase tracking-tight">Receipt Details</h3>
                     </div>
-                    <button @click="paymentDetailsModal = false" class="text-slate-400 hover:text-slate-600 transition p-1.5 hover:bg-slate-50 rounded-lg">
-                        <span class="material-symbols-rounded">close</span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        @if (!$is_editing_payment)
+                        <button type="button" wire:click="editPaymentDetails" class="text-blue-500 hover:text-blue-600 transition p-1.5 hover:bg-blue-50 rounded-lg">
+                            <span class="material-symbols-rounded">edit_square</span>
+                        </button>
+                        @endif
+                        <button @click="paymentDetailsModal = false" class="text-slate-400 hover:text-slate-600 transition p-1.5 hover:bg-slate-50 rounded-lg">
+                            <span class="material-symbols-rounded">close</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-white">
                     @if($selectedPayment)
+                    @if ($is_editing_payment)
+                    <!-- Edit Mode -->
+                    <div class="space-y-5">
+                        <div>
+                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Payment Amount ($)</label>
+                            <input type="number" step="0.01" wire:model="edit_payment_amount" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Date</label>
+                                <input type="date" wire:model="edit_payment_date" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all">
+                            </div>
+                            <div>
+                                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Method</label>
+                                <select wire:model="edit_payment_method" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all appearance-none">
+                                    <option value="EFT">EFT</option>
+                                    <option value="Card Holder">Card Holder</option>
+                                    <option value="Cash">Cash</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Reference Number</label>
+                            <input type="text" wire:model="edit_payment_ref" placeholder="e.g. bf-1234" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all">
+                        </div>
+
+                        <div>
+                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Internal Notes</label>
+                            <textarea wire:model="edit_payment_notes" rows="3" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all resize-none"></textarea>
+                        </div>
+                        
+                        <div class="flex gap-3 pt-2">
+                             <button type="button" wire:click="updatePaymentDetails" class="flex-1 py-4 bg-[#9D686E] text-white rounded-2xl font-black text-[10px] shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359] transition-all active:scale-95 uppercase tracking-widest flex items-center justify-center gap-2">
+                                 <span wire:loading wire:target="updatePaymentDetails" class="material-symbols-rounded animate-spin text-sm">sync</span>
+                                 Update Record
+                             </button>
+                             <button type="button" wire:click="cancelPaymentEdit" class="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-[10px] hover:bg-slate-200 transition-all uppercase tracking-widest">Cancel</button>
+                        </div>
+                    </div>
+                    @else
+                    <!-- View Mode -->
                     <div class="space-y-6">
                         <div class="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner">
                             <div>
@@ -1525,7 +1592,7 @@
                             </div>
                             <div class="p-4 bg-white border border-slate-100 rounded-2xl">
                                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Reference ID</p>
-                                <p class="text-[11px] font-bold text-slate-700 break-all">{{ $selectedPayment->reference_no ?: 'GEN-' . strtoupper(substr(md5($selectedPayment->id), 0, 8)) }}</p>
+                                <p class="text-[11px] font-bold text-slate-700 break-all">{{ $selectedPayment->reference ?: 'GEN-' . strtoupper(substr(md5($selectedPayment->id), 0, 8)) }}</p>
                             </div>
 
                             @if($selectedPayment->notes)
@@ -1569,6 +1636,7 @@
                             @endif
                         </div>
                     </div>
+                    @endif
                     @endif
                 </div>
 
@@ -1624,8 +1692,8 @@
                 <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-5 text-blue-600">
                     <span class="material-symbols-rounded text-3xl font-bold">mail</span>
                 </div>
-                <h3 class="text-xl font-black text-slate-800 mb-2">Primary Dispatch?</h3>
-                <p class="text-[14px] font-medium text-slate-500 mb-8 leading-relaxed">Are you sure you want to send the initial invoice to <strong class="text-slate-700">{{ $booking->customer_email }}</strong>?</p>
+                <h3 class="text-xl font-black text-slate-800 mb-2">{{ $confirmEmailTitle }}</h3>
+                <div class="text-[14px] font-medium text-slate-500 mb-8 leading-relaxed">{!! $confirmEmailMessage !!}</div>
                 <div class="flex justify-center gap-3">
                     <button @click="confirmEmailModal = false" class="flex-1 py-3.5 text-slate-600 font-black text-[11px] hover:bg-slate-50 rounded-xl transition-colors uppercase tracking-widest">Cancel</button>
                     <button wire:click="sendInvoiceEmail" class="flex-1 py-3.5 bg-blue-500 text-white hover:bg-blue-600 font-black text-[11px] rounded-xl shadow-md shadow-blue-500/20 transition-all active:scale-95 uppercase tracking-widest text-xs">Execute Send</button>

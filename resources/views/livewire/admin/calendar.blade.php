@@ -234,14 +234,30 @@
                 <!-- Month Navigation -->
                 <div class="flex items-center gap-2 lg:gap-4 w-full md:w-auto justify-between md:justify-start order-1 xl:order-1">
                     <button wire:click="previousMonth" class="bg-white/20 hover:bg-white/30 text-white w-10 h-10 rounded-xl font-medium transition flex items-center justify-center backdrop-blur-sm shadow-sm"><span class="material-symbols-rounded">chevron_left</span></button>
-                    <h3 class="text-xl lg:text-2xl font-bold tracking-tight text-center min-w-[140px]">{{ $months[$currentMonth] }} {{ $currentYear }}</h3>
+                    <h3 class="text-xl lg:text-2xl font-bold tracking-tight text-center min-w-[140px]">
+                        @if($showWholeYear)
+                            Year {{ $currentYear }} Overview
+                        @else
+                            {{ $months[$currentMonth] }} {{ $currentYear }}
+                        @endif
+                    </h3>
                     <button wire:click="nextMonth" class="bg-white/20 hover:bg-white/30 text-white w-10 h-10 rounded-xl font-medium transition flex items-center justify-center backdrop-blur-sm shadow-sm"><span class="material-symbols-rounded">chevron_right</span></button>
                 </div>
-
                 <!-- Filters -->
                 <div class="flex flex-wrap md:flex-nowrap items-center gap-2 lg:gap-4 w-full xl:w-auto justify-center order-2 xl:order-2">
                     <button wire:click="goToToday" class="bg-white/20 hover:bg-white/30 text-white px-3 h-10 rounded-xl font-bold text-xs uppercase tracking-wider transition flex items-center justify-center backdrop-blur-sm shadow-sm grow md:grow-0">
                         Today
+                    </button>
+
+                    <!-- TOGGLE BUTTONS -->
+                    <button wire:click="$toggle('showOnlyBooked')" class="bg-white text-[#9E6B73] font-bold text-xs rounded-xl h-10 px-4 focus:outline-none hover:bg-gray-50 transition border border-white/20 shadow-sm flex items-center gap-2">
+                        <span class="material-symbols-rounded text-lg">{{ $showOnlyBooked ? 'visibility' : 'visibility_off' }}</span>
+                        {{ $showOnlyBooked ? 'Booked Only' : 'All Days' }}
+                    </button>
+
+                    <button wire:click="$toggle('showWholeYear')" class="{{ $showWholeYear ? 'bg-[#9E6B73] text-white border-white/40' : 'bg-white text-[#9E6B73]' }} font-bold text-xs rounded-xl h-10 px-4 focus:outline-none transition border shadow-sm flex items-center gap-2">
+                        <span class="material-symbols-rounded text-lg">calendar_month</span>
+                        {{ $showWholeYear ? 'Month' : 'Year' }}
                     </button>
 
                     <select wire:model.live="currentMonth" class="filter-select bg-white text-gray-600 font-bold text-xs rounded-xl h-10 focus:outline-none cursor-pointer hover:bg-gray-50 transition border border-white/20 shadow-sm w-1/2 md:w-36 grow md:grow-0">
@@ -260,8 +276,9 @@
 
                     <select wire:model.live="statusFilter" class="filter-select bg-white text-[#9E6B73] font-bold text-xs rounded-xl h-10 focus:outline-none cursor-pointer hover:bg-gray-50 transition border border-white/20 shadow-sm w-full md:w-36 grow md:grow-0">
                         <option value="All">All Status</option>
+                        <option value="Booked">Booked (Confirmed)</option>
                         <option value="Pending">Pending</option>
-                        <option value="Confirmed">Confirmed</option>
+                        <option value="Hold">Hold</option>
                         <option value="Completed">Completed</option>
                         <option value="Cancelled">Cancelled</option>
                         <option value="Draft">Drafts</option>
@@ -291,8 +308,8 @@
                 $termsBadge = $b->terms_agreed == 1 ? '<span class="ml-2 text-[10px] font-bold text-green-600 flex items-center gap-1 border border-green-200 px-1.5 py-0.5 rounded bg-white"><span class="material-symbols-rounded text-sm">check_circle</span> Terms Signed</span>' : '<span class="ml-2 text-[10px] font-bold text-gray-400 flex items-center gap-1 border border-gray-200 px-1.5 py-0.5 rounded bg-white"><span class="material-symbols-rounded text-sm">pending</span> Terms Pending</span>';
                 @endphp
 
-                <!-- ✅ Wrapped card in an Anchor Tag -->
-                <a href="{{ route('booking.overview', ['id' => $b->id, 'back' => route('admin.calendar')]) }}" wire:navigate class="booking-card rounded-xl card-{{ $v['color'] }} mb-3">
+                <!-- ✅ Updated to role-specific route -->
+                <a href="{{ route('admin.bookings.overview', $b->id) }}" wire:navigate class="booking-card rounded-xl card-{{ $v['color'] }} mb-3">
                     <div class="w-full min-w-0">
                         <span class="booking-label">Time & Location</span>
                         <div class="booking-value">{{ \Carbon\Carbon::parse($b->start_time)->format('g:i A') }} - {{ $b->end_time ? \Carbon\Carbon::parse($b->end_time)->format('g:i A') : 'TBD' }}</div>

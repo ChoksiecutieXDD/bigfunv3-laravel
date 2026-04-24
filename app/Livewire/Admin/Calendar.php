@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use App\Models\Booking;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -12,261 +13,196 @@ use Carbon\Carbon;
 #[Title('Calendar View | BigFun Admin')]
 class Calendar extends Component
 {
-    // Calendar State
+    // 1. FIXED: Remove strict types (int, string, bool) to prevent Livewire crashes
     public $currentMonth;
     public $currentYear;
-
-    // Filter State
     public $statusFilter = 'All';
+    public $showOnlyBooked = false;
+    public $showWholeYear = false;
 
-    // Global Financials
     public $global_outstanding_balance = 0;
 
     public function mount()
     {
-        // Initialize to current month/year
-        $this->currentMonth = Carbon::now()->month;
-        $this->currentYear = Carbon::now()->year;
-
-        $this->calculateGlobalFinancials();
-    }
-
-    public function calculateGlobalFinancials()
-    {
-        // Total All-Time Revenue (Excluding Cancelled/Drafts)
-        $total_revenue = DB::table('bookings')
-            ->whereNotIn('status', ['Cancelled', 'Draft'])
-            ->sum('total_amount') ?? 0;
-
-        // Total All-Time Payments Collected
-        $total_collected = DB::table('booking_payments')
-            ->whereIn('booking_id', function ($query) {
-                $query->select('id')->from('bookings')->whereNotIn('status', ['Cancelled', 'Draft']);
-            })
-            ->sum('amount') ?? 0;
-
-        $this->global_outstanding_balance = $total_revenue - $total_collected;
-    }
-
-    // --- NAVIGATION METHODS ---
-    public function previousMonth()
-    {
-        $date = Carbon::createFromDate($this->currentYear, $this->currentMonth, 1)->subMonth();
-        $this->currentMonth = $date->month;
-        $this->currentYear = $date->year;
+        $this->currentMonth = now()->month;
+        $this->currentYear = now()->year;
     }
 
     public function nextMonth()
     {
-        $date = Carbon::createFromDate($this->currentYear, $this->currentMonth, 1)->addMonth();
-        $this->currentMonth = $date->month;
-        $this->currentYear = $date->year;
+        if ($this->currentMonth == 12) {
+            $this->currentMonth = 1;
+            $this->currentYear++;
+        } else {
+            $this->currentMonth++;
+        }
+    }
+
+    public function previousMonth()
+    {
+        if ($this->currentMonth == 1) {
+            $this->currentMonth = 12;
+            $this->currentYear--;
+        } else {
+            $this->currentMonth--;
+        }
     }
 
     public function goToToday()
     {
-        $this->currentMonth = Carbon::now()->month;
-        $this->currentYear = Carbon::now()->year;
-    }
-
-    // --- DATA FETCHING ---
-    public function getCalendarDataProperty()
-    {
-        // Calculate days in the selected month
-        $daysInMonth = Carbon::createFromDate($this->currentYear, $this->currentMonth, 1)->daysInMonth;
-
-        // Fetch all bookings for the selected month/year
-        $query = DB::table('bookings as b')
-            ->leftJoin('booking_items as bi', 'b.id', '=', 'bi.booking_id')
-            ->leftJoin(DB::raw('(SELECT booking_id, SUM(amount) as total_paid FROM booking_payments GROUP BY booking_id) pay'), 'b.id', '=', 'pay.booking_id')
-            ->select(
-                'b.id',
-                'b.event_date',
-                'b.start_time',
-                'b.end_time',
-                'b.customer_first_name',
-                'b.customer_last_name',
-                'b.customer_email',
-                'b.address_line_1',
-                'b.suburb',
-                'b.event_type',
-                'b.total_amount',
-                'b.deposit_required',
-                'b.status',
-                'b.lead_operator',
-                'b.lead_deliverer',
-                'b.installation_plan',
-                'b.payment_type',
-                'b.terms_agreed',
-                'b.created_at',
-                'b.booked_by',
-                DB::raw("GROUP_CONCAT(DISTINCT bi.item_name SEPARATOR ', ') as services_booked"),
-                DB::raw("COALESCE(pay.total_paid, 0) as real_paid")
-            )
-            ->whereMonth('b.event_date', $this->currentMonth)
-            ->whereYear('b.event_date', $this->currentYear)
-            // THE FIX: We explicitly group by ALL non-aggregated columns to satisfy MySQL Strict Mode
-            ->groupBy(
-                'b.id',
-                'b.event_date',
-                'b.start_time',
-                'b.end_time',
-                'b.customer_first_name',
-                'b.customer_last_name',
-                'b.customer_email',
-                'b.address_line_1',
-                'b.suburb',
-                'b.event_type',
-                'b.total_amount',
-                'b.deposit_required',
-                'b.status',
-                'b.lead_operator',
-                'b.lead_deliverer',
-                'b.installation_plan',
-                'b.payment_type',
-                'b.terms_agreed',
-                'b.created_at',
-                'b.booked_by',
-                'pay.total_paid'
-            )
-            ->orderBy('b.event_date', 'ASC');
-
-        // Apply Status Filter if not "All"
-        if ($this->statusFilter !== 'All') {
-            $query->where('b.status', $this->statusFilter);
-        }
-
-        $bookings = $query->get();
-
-        // Organize bookings by Day and calculate monthly financials
-        $calendarData = [
-            'days' => [],
-            'stats' => [
-                'mCount' => 0,
-                'mRev' => 0,
-                'mPaid' => 0,
-                'mBal' => 0,
-                'satCount' => 0,
-                'satBookings' => 0,
-                'satRev' => 0,
-                'ytdCount' => 0,
-                'ytdRev' => 0
-            ]
-        ];
-
-        // Pre-fill all days of the month to ensure empty days render too
-        for ($i = 1; $i <= $daysInMonth; $i++) {
-            $dateObj = Carbon::createFromDate($this->currentYear, $this->currentMonth, $i);
-            $calendarData['days'][$i] = [
-                'date' => $dateObj->format('D, M j'),
-                'isSaturday' => $dateObj->isSaturday(),
-                'bookings' => []
-            ];
-
-            if ($dateObj->isSaturday()) {
-                $calendarData['stats']['satCount']++;
-            }
-        }
-
-        // Map bookings to their specific day
-        foreach ($bookings as $b) {
-            $day = (int) Carbon::parse($b->event_date)->format('j');
-
-            // Format data for the view
-            $total_amount = (float)$b->total_amount;
-            $real_paid = (float)$b->real_paid;
-            $balance_due = $total_amount - $real_paid;
-            $percent = $total_amount > 0 ? ($real_paid / $total_amount) * 100 : 0;
-
-            // Determine Color and Status Label
-            $color = 'red';
-            $label = 'No Deposit';
-            if ($b->status === 'Cancelled') {
-                $color = 'gray';
-                $label = 'Cancelled';
-            } elseif ($b->status === 'Draft') {
-                $color = 'orange';
-                $label = 'Draft Mode';
-            } elseif ($percent >= 100) {
-                $color = 'green';
-                $label = 'Paid';
-            } elseif ($percent >= 80) {
-                $color = 'purple';
-                $label = 'Finalizing (>80%)';
-            } elseif ($percent >= 40) {
-                $color = 'blue';
-                $label = 'Partial (>40%)';
-            } elseif ($percent > 0) {
-                $color = 'orange';
-                $label = 'Deposit Paid';
-            }
-
-            // Icons
-            $isCard = stripos($b->payment_type ?? '', 'Card') !== false || stripos($b->payment_type ?? '', 'credit') !== false;
-            $pay_icon = $isCard ? 'credit_card' : 'account_balance';
-            $pay_label = $isCard ? 'Credit Card' : 'EFT';
-
-            $b->viewData = [
-                'color' => $color,
-                'label' => $label,
-                'balance_due' => $balance_due,
-                'pay_icon' => $pay_icon,
-                'pay_label' => $pay_label,
-                'op_name' => $b->lead_operator ? explode(' ', $b->lead_operator)[0] : 'Team',
-                'del_name' => $b->lead_deliverer ? explode(' ', $b->lead_deliverer)[0] : 'Team',
-            ];
-
-            // Add to specific day
-            $calendarData['days'][$day]['bookings'][] = $b;
-
-            // Increment Monthly Stats (Excluding Cancelled/Draft)
-            if ($b->status !== 'Cancelled' && $b->status !== 'Draft') {
-                $calendarData['stats']['mCount']++;
-                $calendarData['stats']['mRev'] += $total_amount;
-                $calendarData['stats']['mPaid'] += $real_paid;
-                $calendarData['stats']['mBal'] += $balance_due;
-
-                if (Carbon::parse($b->event_date)->isSaturday()) {
-                    $calendarData['stats']['satBookings']++;
-                    $calendarData['stats']['satRev'] += $total_amount;
-                }
-            }
-        }
-
-        // Calculate YTD stats (All months for the current year)
-        $ytdData = DB::table('bookings')
-            ->selectRaw('COUNT(*) as count, SUM(total_amount) as rev')
-            ->whereYear('event_date', $this->currentYear)
-            ->whereNotIn('status', ['Cancelled', 'Draft'])
-            ->first();
-
-        $calendarData['stats']['ytdCount'] = $ytdData->count ?? 0;
-        $calendarData['stats']['ytdRev'] = $ytdData->rev ?? 0;
-
-        return $calendarData;
+        $this->currentMonth = now()->month;
+        $this->currentYear = now()->year;
+        $this->statusFilter = 'All';
+        $this->showOnlyBooked = false;
+        $this->showWholeYear = false;
     }
 
     public function render()
     {
-        $yearRange = range(Carbon::now()->year - 2, Carbon::now()->year + 5);
-        $months = [
-            1 => 'January',
-            2 => 'February',
-            3 => 'March',
-            4 => 'April',
-            5 => 'May',
-            6 => 'June',
-            7 => 'July',
-            8 => 'August',
-            9 => 'September',
-            10 => 'October',
-            11 => 'November',
-            12 => 'December'
+        $searchMonth = (int) $this->currentMonth;
+        $searchYear = (int) $this->currentYear;
+
+        // Fetch bookings with items and payments
+        $query = Booking::with(['items', 'payments'])
+            ->whereYear('event_date', $searchYear)
+            ->orderBy('event_date', 'asc')
+            ->orderBy('start_time', 'asc');
+
+        if (!$this->showWholeYear) {
+            $query->whereMonth('event_date', $searchMonth);
+        }
+
+        if ($this->statusFilter !== 'All') {
+            if ($this->statusFilter === 'Booked') {
+                $query->whereIn('status', ['Booked', 'Confirmed']);
+            } else {
+                $query->where('status', $this->statusFilter);
+            }
+        }
+
+        $rawBookings = $query->get();
+
+        $stats = [
+            'mCount' => 0,
+            'mRev' => 0,
+            'mPaid' => 0,
+            'mBal' => 0,
+            'satCount' => 0,
+            'satBookings' => 0,
+            'satRev' => 0,
+            'ytdCount' => 0,
+            'ytdRev' => 0
         ];
+
+        $processedBookings = $rawBookings->map(function ($booking) use (&$stats) {
+            $realPaid = $booking->payments->sum('amount');
+            $totalAmount = (float) $booking->total_amount;
+            $balanceDue = $totalAmount - $realPaid;
+
+            $services = $booking->items->pluck('item_name')->unique()->implode(', ');
+
+            // Determine display color/label (Standardized Logic)
+            $paymentColor = 'red';
+            $paymentStatusLabel = 'No Deposit';
+
+            if ($totalAmount > 0) {
+                $percent = ($realPaid / $totalAmount) * 100;
+                if ($percent >= 100) $paymentColor = 'green';
+                elseif ($percent >= 80) $paymentColor = 'purple';
+                elseif ($percent >= 40) $paymentColor = 'blue';
+                elseif ($percent > 0) $paymentColor = 'orange';
+
+                if ($percent >= 100) $paymentStatusLabel = 'Paid';
+                elseif ($percent >= 80) $paymentStatusLabel = 'Finalizing (>80%)';
+                elseif ($percent >= 40) $paymentStatusLabel = 'Partial (>40%)';
+                elseif ($percent > 0) $paymentStatusLabel = 'Deposit Paid';
+            } else {
+                $paymentColor = 'gray';
+                $paymentStatusLabel = 'N/A';
+            }
+
+            if ($booking->status === 'Cancelled') {
+                $paymentColor = 'gray';
+                $paymentStatusLabel = 'Cancelled';
+            } elseif ($booking->status === 'Draft') {
+                $paymentColor = 'orange';
+                $paymentStatusLabel = 'Draft Mode';
+            }
+
+            // Stats Incrementing (Excluding Cancelled/Draft)
+            if (!in_array($booking->status, ['Cancelled', 'Draft'])) {
+                $stats['mCount']++;
+                $stats['mRev'] += $totalAmount;
+                $stats['mPaid'] += $realPaid;
+                
+                if (Carbon::parse($booking->event_date)->isSaturday()) {
+                    $stats['satBookings']++;
+                    $stats['satRev'] += $totalAmount;
+                }
+            }
+
+            // View Data Wrapper to match template expectations
+            $booking->viewData = [
+                'color' => $paymentColor,
+                'label' => $paymentStatusLabel,
+                'pay_icon' => (stripos($booking->payment_type ?? '', 'Card') !== false) ? 'credit_card' : 'account_balance',
+                'pay_label' => (stripos($booking->payment_type ?? '', 'Card') !== false) ? 'Credit Card' : 'EFT',
+                'op_name' => $booking->lead_operator ? explode(' ', $booking->lead_operator)[0] : 'Team',
+                'del_name' => $booking->lead_deliverer ? explode(' ', $booking->lead_deliverer)[0] : 'Team',
+                'balance_due' => $balanceDue
+            ];
+            
+            $booking->real_paid = $realPaid;
+            $booking->services_booked = $services;
+
+            return $booking;
+        });
+
+        $stats['mBal'] = $stats['mRev'] - $stats['mPaid'];
+
+        // Saturday Baseline
+        $stats['satCount'] = collect(range(1, Carbon::create($searchYear, $searchMonth)->daysInMonth))->filter(fn($d) => Carbon::create($searchYear, $searchMonth, $d)->isSaturday())->count();
+
+        // YTD Calculation
+        $ytd = Booking::whereYear('event_date', $searchYear)->whereNotIn('status', ['Cancelled', 'Draft'])->selectRaw('COUNT(*) as c, SUM(total_amount) as r')->first();
+        $stats['ytdCount'] = $ytd->c ?? 0;
+        $stats['ytdRev'] = $ytd->r ?? 0;
+
+        // Global Financials
+        $globalRev = Booking::whereNotIn('status', ['Cancelled', 'Draft'])->sum('total_amount');
+        $globalPaid = DB::table('booking_payments')->whereIn('booking_id', fn($q) => $q->select('id')->from('bookings')->whereNotIn('status', ['Cancelled', 'Draft']))->sum('amount');
+        $this->global_outstanding_balance = $globalRev - $globalPaid;
+
+        // Grouping Logic
+        $grouped = $processedBookings->groupBy('event_date');
+        $calendarDataDays = [];
+
+        if (!$this->showWholeYear && !$this->showOnlyBooked && $this->statusFilter === 'All') {
+            $daysInMonth = Carbon::create($searchYear, $searchMonth)->daysInMonth;
+            for ($day = 1; $day <= $daysInMonth; $day++) {
+                $dateStr = Carbon::create($searchYear, $searchMonth, $day)->toDateString();
+                $calendarDataDays[$dateStr] = [
+                    'date' => Carbon::parse($dateStr)->format('l, F jS'),
+                    'bookings' => $grouped->get($dateStr, collect())
+                ];
+            }
+        } else {
+            foreach ($grouped as $date => $group) {
+                $calendarDataDays[$date] = [
+                    'date' => Carbon::parse($date)->format('l, F jS'),
+                    'bookings' => $group
+                ];
+            }
+            ksort($calendarDataDays);
+        }
+
         return view('livewire.admin.calendar', [
-            'calendarData' => $this->calendarData, // Uses the computed property
-            'months' => $months,
-            'yearRange' => $yearRange
+            'calendarData' => [
+                'days' => $calendarDataDays,
+                'stats' => $stats
+            ],
+            'months' => [1=>'January', 2=>'February', 3=>'March', 4=>'April', 5=>'May', 6=>'June', 7=>'July', 8=>'August', 9=>'September', 10=>'October', 11=>'November', 12=>'December'],
+            'yearRange' => range(now()->year - 2, now()->year + 5)
         ]);
     }
 }

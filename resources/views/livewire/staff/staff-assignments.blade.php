@@ -96,7 +96,7 @@
                             </div>
                         </div>
 
-                        <a href="{{ route('booking.overview', $job->id) }}" class="relative z-10 w-full py-4 rounded-xl bg-gray-900 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#9E6B73] hover:shadow-lg hover:shadow-gray-200 transition-all">
+                        <a href="{{ route('staff.bookings.overview', $job->id) }}" class="relative z-10 w-full py-4 rounded-xl bg-gray-900 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#9E6B73] hover:shadow-lg hover:shadow-gray-200 transition-all">
                             View Details <span class="material-symbols-rounded text-base">arrow_forward_ios</span>
                         </a>
                     </div>
@@ -161,7 +161,7 @@
                                         </span>
                                     </td>
                                     <td class="p-5 text-right">
-                                        <a href="{{ route('booking.overview', $job->id) }}" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:bg-[#9E6B73] hover:text-white transition-all shadow-sm hover:shadow-md">
+                                        <a href="{{ route('staff.bookings.overview', $job->id) }}" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:bg-[#9E6B73] hover:text-white transition-all shadow-sm hover:shadow-md">
                                             <span class="material-symbols-rounded">visibility</span>
                                         </a>
                                     </td>

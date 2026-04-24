@@ -3,15 +3,15 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-// We use a blank/app layout here instead of the admin layout because 
-// this booking page is a full-screen "Focus Mode" page with its own nav bar.
 #[Layout('components.layouts.admin-plain')]
 class NewBooking extends Component
 {
+    use WithFileUploads;
     public $invoice_number;
     public $booking_id = '';
     public $is_edit_mode = false;
@@ -25,6 +25,12 @@ class NewBooking extends Component
     public $categoryLimits = [];
     public $calDays = [];
     public $calMonth, $calYear;
+
+    public $temp_attachment_1;
+    public $temp_attachment_2;
+    public $temp_attachment_3;
+    public $temp_attachment_4;
+    public $temp_attachment_5;
 
     // UI Data Arrays
     public $operators_list = [];
@@ -179,6 +185,11 @@ class NewBooking extends Component
         // For now, it ensures the frontend call doesn't 500
     }
 
+    public function syncExtras($extras)
+    {
+        $this->saved_extras = $extras;
+    }
+
     public function checkAvailability()
     {
         $date = $this->default_event_date ?: date('Y-m-d');
@@ -217,9 +228,31 @@ class NewBooking extends Component
         }
     }
 
-    public function syncExtras($extras)
+    public function removeAttachment($column)
     {
-        $this->saved_extras = $extras;
+        if (!$this->booking_id) return;
+
+        $booking = DB::table('bookings')->where('id', $this->booking_id)->first();
+        if ($booking && !empty($booking->$column)) {
+            $fileName = $booking->$column;
+            
+            // Delete physical files
+            @unlink(public_path('uploads/' . $fileName));
+            @unlink(storage_path('app/public/uploads/' . $fileName));
+
+            // Clear from DB
+            DB::table('bookings')->where('id', $this->booking_id)->update([$column => null]);
+            
+            // Update local state
+            $this->existing_data[$column] = null;
+            
+            $this->dispatch('attachment-removed');
+        }
+    }
+
+    public function attachmentUploaded($column, $fileName)
+    {
+        $this->existing_data[$column] = $fileName;
     }
 
     public function render()

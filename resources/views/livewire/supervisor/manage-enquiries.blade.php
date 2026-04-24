@@ -164,7 +164,7 @@
                         </div>
                         <div>
                             <h3 class="text-xl font-black text-slate-800 tracking-tight uppercase">System Response</h3>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5" x-text="'TARGET: ' + ($wire.replyName || 'Recipient Retrieval...')"></p>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5" x-text="'TARGET: ' + ($wire.replyName || 'Recipient Details...')"></p>
                         </div>
                     </div>
                     <button type="button" @click="$wire.replyModalOpen = false" class="text-slate-400 hover:text-slate-600 transition p-2 hover:bg-slate-50 rounded-xl">
@@ -179,7 +179,7 @@
                             <div class="absolute top-0 right-0 p-4 opacity-5">
                                 <span class="material-symbols-rounded text-4xl font-bold">format_quote</span>
                             </div>
-                            <label class="block text-[10px] font-black text-slate-300 mb-4 uppercase tracking-widest">Original Reference Matrix</label>
+                            <label class="block text-[10px] font-black text-slate-300 mb-4 uppercase tracking-widest">Original Reference No.</label>
                             <div class="text-[14px] font-bold text-slate-600 italic leading-relaxed line-clamp-4 relative z-10">
                                 "{{ $replySnippet }}"
                             </div>
@@ -194,7 +194,7 @@
 
                             <div class="input-group">
                                 <label class="block text-[11px] font-black text-slate-400 mb-3 uppercase tracking-widest">Message Payload</label>
-                                <textarea wire:model="replyBody" rows="10" class="w-full px-6 py-5 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[14px] font-medium leading-relaxed resize-none transition-all custom-scrollbar placeholder:text-slate-300" placeholder="Enter formal system response protocol..." required></textarea>
+                                <textarea wire:model="replyBody" rows="10" class="w-full px-6 py-5 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-[#9D686E]/30 outline-none text-[14px] font-medium leading-relaxed resize-none transition-all custom-scrollbar placeholder:text-slate-300" placeholder="Enter your response here..." required></textarea>
                             </div>
 
                             <div class="input-group">
@@ -208,7 +208,7 @@
                                         <div class="w-10 h-10 rounded-xl bg-slate-50 group-hover:bg-[#9D686E]/10 flex items-center justify-center text-slate-400 group-hover:text-[#9D686E] transition-all shadow-sm">
                                             <span class="material-symbols-rounded text-xl font-bold">attach_file_add</span>
                                         </div>
-                                        <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Select Assets For Retrieval</span>
+                                        <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Select Assets To Include</span>
                                     </label>
 
                                     <div wire:loading wire:target="attachments" class="flex items-center gap-4 p-5 bg-blue-50/50 rounded-2xl border border-blue-100 animate-pulse">

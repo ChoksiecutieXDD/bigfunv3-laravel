@@ -264,7 +264,7 @@
             <span style="font-size: 10px; color: #777; text-transform: uppercase; font-weight: bold;">Received From:</span><br>
             <strong>{{ $booking->customer_organization ?? '' }}</strong><br>
             {{ trim(($booking->customer_first_name ?? 'Valued') . ' ' . ($booking->customer_last_name ?? 'Customer')) }}<br>
-            {{ !empty($booking->customer_phone) ? 'Ph: ' . $booking->customer_phone : '' }}
+            {{ $booking->customer_phone ?? '' }}
         </div>
 
         <div class="col-right">

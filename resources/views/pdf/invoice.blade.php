@@ -315,8 +315,6 @@
                 @if(!empty($booking->customer_abn))
                     ABN: {{ $booking->customer_abn }}<br>
                 @endif
-                {{ trim(($booking->customer_first_name ?? '') . ' ' . ($booking->customer_last_name ?? '')) }}<br>
-                {{ $booking->customer_phone ?? '' }}
             </td>
 
             <td width="40%" class="text-center">
@@ -329,7 +327,6 @@
 
             <td width="30%" class="text-right">
                 <br>
-                <strong>Tax Invoice {{ $displayInvoiceNo }}</strong><br><br>
                 <h2 class="{{ $warning_color }} uppercase" style="margin:0;">{{ $header_warning }}</h2>
             </td>
         </tr>

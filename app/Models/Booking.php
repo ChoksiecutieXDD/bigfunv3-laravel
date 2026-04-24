@@ -71,4 +71,30 @@ class Booking extends Model
 
         $this->refresh();
     }
+
+    /**
+     * Updates the payment method and recalculates surcharges/totals.
+     * Processing Fee (2.9%) applies for 'Card Holder'.
+     */
+    public function updatePaymentMethod($newMethod)
+    {
+        $baseTotal = (float)$this->total_amount - (float)$this->surcharge_amount;
+        $newSurcharge = 0;
+
+        if ($newMethod === 'Card Holder' || $newMethod === 'Card' || $newMethod === 'credit_card') {
+            $newSurcharge = $baseTotal * 0.029;
+        }
+
+        $newTotal = $baseTotal + $newSurcharge;
+        $newDeposit = $newTotal / 2;
+
+        $this->update([
+            'payment_type' => $newMethod,
+            'surcharge_amount' => $newSurcharge,
+            'total_amount' => $newTotal,
+            'deposit_required' => $newDeposit
+        ]);
+
+        $this->syncFinancials();
+    }
 }

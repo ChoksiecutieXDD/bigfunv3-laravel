@@ -16,6 +16,7 @@ class Calendar extends Component
     public $currentYear;
     public $statusFilter = 'All';
     public $showOnlyBooked = false;
+    public $showWholeYear = false;
 
     public function mount()
     {
@@ -51,6 +52,7 @@ class Calendar extends Component
         $this->currentYear = now()->year;
         $this->statusFilter = 'All';
         $this->showOnlyBooked = false;
+        $this->showWholeYear = false;
     }
 
     public function render()
@@ -61,12 +63,19 @@ class Calendar extends Component
 
         $query = Booking::with(['items', 'payments'])
             ->whereYear('event_date', $searchYear)
-            ->whereMonth('event_date', $searchMonth)
             ->orderBy('event_date', 'asc')
             ->orderBy('start_time', 'asc');
 
+        if (!$this->showWholeYear) {
+            $query->whereMonth('event_date', $searchMonth);
+        }
+
         if ($this->statusFilter !== 'All') {
-            $query->where('status', $this->statusFilter);
+            if ($this->statusFilter === 'Booked') {
+                $query->whereIn('status', ['Booked', 'Confirmed']);
+            } else {
+                $query->where('status', $this->statusFilter);
+            }
         }
 
         $rawBookings = $query->get();
@@ -177,61 +186,67 @@ class Calendar extends Component
 
         $globalOutstandingBalance = $globalRevenue - $globalCollected;
 
-        $upcomingEvents = Booking::where('event_date', '>=', now()->toDateString())
-            ->where('event_date', '<=', now()->addDays(7)->toDateString())
-            ->whereNotIn('status', ['Cancelled', 'Draft'])
-            ->orderBy('event_date', 'asc')
-            ->get();
-
-        $upcomingEvents3Days = Booking::where('event_date', '>=', now()->toDateString())
+        $upcomingEvents3Days = Booking::with('payments')->where('event_date', '>=', now()->toDateString())
             ->where('event_date', '<=', now()->addDays(3)->toDateString())
             ->whereNotIn('status', ['Cancelled', 'Draft'])
             ->orderBy('event_date', 'asc')
             ->get();
 
-        $pendingCompletionAlerts = Booking::whereIn('status', ['Booked', 'Confirmed'])
-            ->where('event_date', '<=', now()->addDays(1)->toDateString())
+        $upcomingEvents7Days = Booking::with('payments')->where('event_date', '>=', now()->addDays(4)->toDateString())
+            ->where('event_date', '<=', now()->addDays(7)->toDateString())
+            ->whereNotIn('status', ['Cancelled', 'Draft'])
+            ->orderBy('event_date', 'asc')
+            ->get();
+
+        $pendingCompletionAlerts = Booking::with('payments')->whereIn('status', ['Booked', 'Confirmed'])
+            ->where('event_date', '<=', now()->subDays(7)->toDateString())
             ->orderBy('event_date', 'desc')
             ->get();
 
         $groupedBookings = $processedBookings->groupBy('event_date');
         $calendarDays = [];
-        $daysInMonth = Carbon::create($searchYear, $searchMonth)->daysInMonth;
 
-        for ($day = 1; $day <= $daysInMonth; $day++) {
-            $dateString = Carbon::create($searchYear, $searchMonth, $day)->toDateString();
-            $dayBookings = $groupedBookings->get($dateString, collect());
+        $groupedBookings = $processedBookings->groupBy('event_date');
+        $calendarDays = [];
 
-            if ($this->showOnlyBooked && $dayBookings->isEmpty()) {
-                continue;
+        // ONLY show the full month grid (with empty days) if:
+        // 1. We are in Month View
+        // 2. 'Booked Only' is OFF
+        // 3. 'All Status' is selected
+        if (!$this->showWholeYear && !$this->showOnlyBooked && $this->statusFilter === 'All') {
+            $daysInMonth = Carbon::create($searchYear, $searchMonth)->daysInMonth;
+            for ($day = 1; $day <= $daysInMonth; $day++) {
+                $dateString = Carbon::create($searchYear, $searchMonth, $day)->toDateString();
+                $calendarDays[$dateString] = $groupedBookings->get($dateString, collect());
             }
-
-            $calendarDays[$dateString] = $dayBookings;
+        } else {
+            // Filter is active OR Booked Only OR Whole Year: Only show days with results
+            $calendarDays = $groupedBookings->toArray();
+            ksort($calendarDays);
         }
 
-        $rawUrgentAlerts = Booking::with('payments')
-            ->where('status', 'Completed')
-            ->where('event_date', '>=', now()->subDays(60)->toDateString())
-            ->where('event_date', '<=', now()->addDays(7)->toDateString())
+        $rawDebtAlerts = Booking::with('payments')
+            ->whereNotIn('status', ['Cancelled', 'Draft'])
+            ->where('event_date', '<', now()->toDateString())
             ->get();
             
-        $urgentAlerts = $rawUrgentAlerts->map(function ($b) {
+        $debtAlerts = $rawDebtAlerts->map(function ($b) {
             $b->balance = $b->total_amount - $b->payments->sum('amount');
             return $b;
         })->filter(function ($b) {
             return $b->balance > 0;
-        })->sortBy('event_date')->take(10);
+        })->sortByDesc('event_date');
         
-        $stats['urgentAlertsCount'] = $urgentAlerts->count() + $pendingCompletionAlerts->count();
+        $stats['urgentAlertsCount'] = $debtAlerts->count() + $pendingCompletionAlerts->count() + $upcomingEvents3Days->count();
 
         return view('livewire.supervisor.calendar', [
             'calendarDays' => $calendarDays,
             'stats' => $stats,
             'globalOutstandingBalance' => $globalOutstandingBalance,
-            'upcomingEvents' => $upcomingEvents,
             'upcomingEvents3Days' => $upcomingEvents3Days,
+            'upcomingEvents7Days' => $upcomingEvents7Days,
             'pendingCompletionAlerts' => $pendingCompletionAlerts,
-            'urgentAlerts' => $urgentAlerts,
+            'debtAlerts' => $debtAlerts,
             'yearRange' => range(now()->year - 2, now()->year + 5),
         ]);
     }

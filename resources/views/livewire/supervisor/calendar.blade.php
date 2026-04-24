@@ -84,8 +84,11 @@
                     </button>
 
                     <h3 class="text-2xl font-bold tracking-tight text-center min-w-[200px] text-white">
-                        {{-- FIXED: Added null, $currentMonth, 1 --}}
-                        {{ \Carbon\Carbon::create(null, $currentMonth, 1)->format('F') }} {{ $currentYear }}
+                        @if($showWholeYear)
+                            Year {{ $currentYear }} Overview
+                        @else
+                            {{ \Carbon\Carbon::create(null, $currentMonth, 1)->format('F') }} {{ $currentYear }}
+                        @endif
                     </h3>
 
                     <button wire:click="nextMonth" class="bg-white/20 hover:bg-white/30 text-white w-10 h-10 rounded-xl font-medium transition flex items-center justify-center backdrop-blur-sm shadow-sm">
@@ -95,10 +98,15 @@
 
                 <div class="flex items-center gap-3 w-full md:w-auto justify-center flex-wrap">
 
-                    <!-- NEW TOGGLE BUTTON -->
+                    <!-- TOGGLE BUTTONS -->
                     <button wire:click="$toggle('showOnlyBooked')" class="bg-white text-plum font-bold text-xs rounded-xl h-10 px-4 focus:outline-none hover:bg-gray-50 transition border border-white/20 shadow-sm flex items-center gap-2">
                         <span class="material-symbols-rounded text-lg">{{ $showOnlyBooked ? 'visibility' : 'visibility_off' }}</span>
                         {{ $showOnlyBooked ? 'Booked Only' : 'All Days' }}
+                    </button>
+
+                    <button wire:click="$toggle('showWholeYear')" class="{{ $showWholeYear ? 'bg-plum text-white border-white/40' : 'bg-white text-plum' }} font-bold text-xs rounded-xl h-10 px-4 focus:outline-none transition border shadow-sm flex items-center gap-2">
+                        <span class="material-symbols-rounded text-lg">calendar_month</span>
+                        {{ $showWholeYear ? 'Switch to Month' : 'Whole Year' }}
                     </button>
 
                     <select wire:model.live="currentMonth" class="filter-select bg-white text-gray-600 font-bold text-xs rounded-xl h-10 focus:outline-none cursor-pointer hover:bg-gray-50 transition border border-white/20 shadow-sm w-36">
@@ -123,8 +131,9 @@
 
                     <select wire:model.live="statusFilter" class="filter-select bg-white text-plum font-bold text-xs rounded-xl h-10 focus:outline-none cursor-pointer hover:bg-gray-50 transition border border-white/20 shadow-sm w-36">
                         <option value="All">All Status</option>
+                        <option value="Booked">Booked (Confirmed)</option>
                         <option value="Pending">Pending</option>
-                        <option value="Booked">Booked</option>
+                        <option value="Hold">Hold</option>
                         <option value="Completed">Completed</option>
                         <option value="Cancelled">Cancelled</option>
                         <option value="Draft">Drafts</option>
@@ -272,65 +281,124 @@
         <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
             <div>
                 <h4 class="text-xs font-bold text-red-500 uppercase mb-3 tracking-wider flex items-center gap-1">
-                    <span class="material-symbols-rounded text-sm">priority_high</span> Urgent Alerts
+                    <span class="material-symbols-rounded text-sm">payments</span> Outstanding Debt (Past Events)
                 </h4>
                 <div class="space-y-2">
-                    @forelse($urgentAlerts ?? [] as $alert)
+                    @forelse($debtAlerts ?? [] as $alert)
                     <a href="{{ route('supervisor.bookings.overview', $alert->id) }}" class="block p-3 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg text-sm transition shadow-sm group">
-                        <div class="flex justify-between items-start">
+                        <div class="flex justify-between items-start mb-1">
                             <p class="font-bold text-red-700 group-hover:text-red-800 transition">{{ $alert->customer_first_name }} {{ $alert->customer_last_name }}</p>
-                            <span class="text-[10px] font-bold text-red-500 bg-red-100 px-1.5 py-0.5 rounded">{{ \Carbon\Carbon::parse($alert->event_date)->format('M d') }}</span>
+                            <span class="text-[10px] font-bold text-red-500 bg-red-100 px-1.5 py-0.5 rounded">{{ \Carbon\Carbon::parse($alert->event_date)->format('M d, Y') }}</span>
                         </div>
-                        <p class="text-xs text-red-600/80 font-medium mt-0.5">INV-{{ $alert->invoice_number ?? $alert->id }}</p>
-                        <p class="text-red-600 font-bold mt-1.5 flex items-center justify-between">
-                            <span>Balance due:</span>
+                        <div class="flex items-center gap-2 mb-2">
+                             <span class="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-tight border bg-blue-50 text-blue-600 border-blue-100">
+                                {{ $alert->status }}
+                            </span>
+                            <p class="text-[10px] text-red-600/80 font-medium italic">INV-{{ $alert->invoice_number ?? $alert->id }}</p>
+                        </div>
+                        <p class="text-red-600 font-bold mt-1.5 flex items-center justify-between border-t border-red-200/30 pt-1.5">
+                            <span class="text-[10px] uppercase tracking-widest font-black">Debt Amount:</span>
                             <span class="text-base">${{ number_format($alert->balance, 2) }}</span>
                         </p>
                     </a>
                     @empty
-                    <div class="text-xs text-gray-400 italic">No urgent alerts.</div>
+                    <div class="text-xs text-gray-400 italic">No past outstanding debt.</div>
+                    @endforelse
+                </div>
+            </div>
+
+            <div>
+                <h4 class="text-xs font-bold text-orange-600 uppercase mb-3 tracking-wider flex items-center gap-1">
+                    <span class="material-symbols-rounded text-sm">priority_high</span> Upcoming (3 Days)
+                </h4>
+                <div class="space-y-2">
+                    @forelse($upcomingEvents3Days ?? [] as $event)
+                    @php
+                        $statusClasses = match($event->status) {
+                            'Confirmed', 'Booked' => 'bg-emerald-50 text-emerald-600 border-emerald-100',
+                            'Pending', 'Draft' => 'bg-amber-50 text-amber-600 border-amber-100',
+                            'Completed' => 'bg-blue-50 text-blue-600 border-blue-100',
+                            'Cancelled' => 'bg-rose-50 text-rose-600 border-rose-100',
+                            default => 'bg-gray-50 text-gray-500 border-gray-100'
+                        };
+                    @endphp
+                    <a href="{{ route('supervisor.bookings.overview', $event->id) }}" class="block p-3 bg-orange-50 hover:bg-orange-100 border-orange-200 border rounded-lg text-sm transition shadow-sm group">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="font-bold text-orange-700 group-hover:text-orange-800 transition">{{ \Carbon\Carbon::parse($event->event_date)->format('l, M d') }}</p>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-orange-600 bg-orange-200/50">{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 mb-1">
+                             <span class="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-tight border {{ $statusClasses }}">
+                                {{ $event->status }}
+                            </span>
+                            <p class="font-bold text-orange-900">{{ $event->customer_first_name }} {{ $event->customer_last_name }}</p>
+                        </div>
+                        <div class="flex justify-between items-center mt-1 pt-1 border-t border-orange-200/50">
+                            <p class="text-[10px] text-orange-600/80 truncate">{{ $event->suburb ?? 'No Address' }}</p>
+                        </div>
+                    </a>
+                    @empty
+                    <div class="text-xs text-gray-400 italic">No events in the next 3 days.</div>
                     @endforelse
                 </div>
             </div>
 
             <div>
                 <h4 class="text-xs font-bold text-gray-400 uppercase mb-3 tracking-wider flex items-center gap-1">
-                    <span class="material-symbols-rounded text-sm">event_upcoming</span> Upcoming (Next 7 Days)
+                    <span class="material-symbols-rounded text-sm">event_upcoming</span> Upcoming (4-7 Days)
                 </h4>
                 <div class="space-y-2">
-                    @forelse($upcomingEvents ?? [] as $event)
+                    @forelse($upcomingEvents7Days ?? [] as $event)
                     @php
-                        $isUrgent = \Carbon\Carbon::parse($event->event_date)->startOfDay()->diffInDays(now()->startOfDay(), true) <= 3;
+                        $statusClasses = match($event->status) {
+                            'Confirmed', 'Booked' => 'bg-emerald-50 text-emerald-600 border-emerald-100',
+                            'Pending', 'Draft' => 'bg-amber-50 text-amber-600 border-amber-100',
+                            'Completed' => 'bg-blue-50 text-blue-600 border-blue-100',
+                            'Cancelled' => 'bg-rose-50 text-rose-600 border-rose-100',
+                            default => 'bg-gray-50 text-gray-500 border-gray-100'
+                        };
                     @endphp
-                    <a href="{{ route('supervisor.bookings.overview', $event->id) }}" class="block p-3 border rounded-lg text-sm transition shadow-sm group {{ $isUrgent ? 'bg-orange-50 hover:bg-orange-100 border-orange-200' : 'bg-gray-50 hover:bg-white border-gray-100 hover:border-[#9D686E]/40' }}">
+                    <a href="{{ route('supervisor.bookings.overview', $event->id) }}" class="block p-3 border rounded-lg text-sm transition shadow-sm group bg-gray-50 hover:bg-white border-gray-100 hover:border-[#9D686E]/40">
                         <div class="flex justify-between items-start mb-1">
-                            <p class="font-bold transition {{ $isUrgent ? 'text-orange-700 group-hover:text-orange-800' : 'text-gray-700 group-hover:text-[#9D686E]' }}">{{ \Carbon\Carbon::parse($event->event_date)->format('l, M d') }}</p>
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded {{ $isUrgent ? 'text-orange-600 bg-orange-200/50' : 'text-gray-500 bg-gray-200/50' }}">{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }}</span>
+                            <p class="font-bold transition text-gray-700 group-hover:text-[#9D686E]">{{ \Carbon\Carbon::parse($event->event_date)->format('l, M d') }}</p>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-gray-500 bg-gray-200/50">{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }}</span>
                         </div>
-                        <p class="font-bold {{ $isUrgent ? 'text-orange-900' : 'text-gray-800' }}">{{ $event->customer_first_name }} {{ $event->customer_last_name }}</p>
-                        <p class="text-xs {{ $isUrgent ? 'text-orange-600/80' : 'text-gray-500' }} mt-1 truncate">{{ $event->suburb ?? 'No Address' }}</p>
+                        <div class="flex items-center gap-2 mb-1">
+                             <span class="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-tight border {{ $statusClasses }}">
+                                {{ $event->status }}
+                            </span>
+                            <p class="font-bold text-gray-800">{{ $event->customer_first_name }} {{ $event->customer_last_name }}</p>
+                        </div>
+                        <div class="flex justify-between items-center mt-1 pt-1 border-t border-gray-200/50">
+                            <p class="text-[10px] text-gray-500 truncate">{{ $event->suburb ?? 'No Address' }}</p>
+                        </div>
                     </a>
                     @empty
-                    <div class="text-xs text-gray-400 italic">No upcoming events.</div>
+                    <div class="text-xs text-gray-400 italic">No events in the 4-7 day window.</div>
                     @endforelse
                 </div>
             </div>
 
             <div>
                 <h4 class="text-xs font-bold text-orange-500 uppercase mb-3 tracking-wider flex items-center gap-1">
-                    <span class="material-symbols-rounded text-sm">pending_actions</span> Pending Completion
+                    <span class="material-symbols-rounded text-sm">history</span> Pending Status Updates
                 </h4>
                 <div class="space-y-2">
                     @forelse($pendingCompletionAlerts ?? [] as $alert)
                     <a href="{{ route('supervisor.bookings.overview', $alert->id) }}" class="block p-3 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg text-sm transition shadow-sm group">
-                        <div class="flex justify-between items-start">
+                        <div class="flex justify-between items-start mb-1">
                             <p class="font-bold text-red-700 group-hover:text-red-800 transition">{{ $alert->customer_first_name }} {{ $alert->customer_last_name }}</p>
-                            <span class="text-[10px] font-bold text-red-500 bg-red-100 px-1.5 py-0.5 rounded">{{ \Carbon\Carbon::parse($alert->event_date)->format('M d') }}</span>
+                            <span class="text-[10px] font-bold text-red-500 bg-red-100 px-1.5 py-0.5 rounded">{{ \Carbon\Carbon::parse($alert->event_date)->format('M d, Y') }}</span>
                         </div>
-                        <p class="text-[11px] text-red-600/80 font-bold mt-0.5">Still listed as '{{ $alert->status }}'</p>
+                        <div class="flex justify-center items-center py-1">
+                            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-tight border bg-amber-50 text-amber-600 border-amber-100">
+                                Still marked as: {{ $alert->status }}
+                            </span>
+                        </div>
+                        <p class="text-[10px] text-red-500/70 font-bold mt-1.5 italic text-center">Event date passed - update status to Complete/Cancel</p>
                     </a>
                     @empty
-                    <div class="text-xs text-gray-400 italic">No pending completions.</div>
+                    <div class="text-xs text-gray-400 italic">All statuses up to date.</div>
                     @endforelse
                 </div>
             </div>

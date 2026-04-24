@@ -73,7 +73,7 @@
 
     <!-- Action Buttons -->
     <div class="flex flex-row md:flex-col gap-2 shrink-0 pt-4 md:pt-0 border-t md:border-t-0 border-gray-50 justify-center">
-        <a href="{{ route('booking.overview', $item->id) }}"
+        <a href="{{ route('staff.bookings.overview', $item->id) }}"
             class="flex-1 md:flex-none px-5 py-2.5 bg-gray-900 text-white text-[11px] font-black rounded-xl hover:bg-[#9E6B73] transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg">
             <span class="material-symbols-rounded text-sm">visibility</span> VIEW
         </a>

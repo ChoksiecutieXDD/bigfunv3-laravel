@@ -23,8 +23,9 @@ use App\Livewire\Auth\ResetPassword;
 use App\Livewire\PersonalInformation;
 
 // Livewire Components - Bookings
-use App\Livewire\BookingOverview as UnifiedBookingOverview;
 use App\Livewire\Booking\Inventory;
+use App\Livewire\Admin\BookingOverview as AdminOverview;
+use App\Livewire\Staff\BookingOverview as StaffOverview;
 
 // Livewire Components - Admin
 use App\Livewire\Admin\AdminDashboard;
@@ -118,6 +119,7 @@ Route::middleware('auth')->group(function () {
         
         // Admin Bookings
         Route::get('/bookings/create', AdminNewBooking::class)->name('bookings.create');
+        Route::get('/bookings/overview/{id}', AdminOverview::class)->name('bookings.overview');
     });
 
     // ==========================================
@@ -149,15 +151,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/assignments', \App\Livewire\Staff\StaffAssignments::class)->name('assignments');
         Route::get('/deliveries', \App\Livewire\Staff\StaffDeliveries::class)->name('deliveries');
         Route::get('/history', \App\Livewire\Staff\StaffHistory::class)->name('history');
+        Route::get('/bookings/overview/{id}', StaffOverview::class)->name('bookings.overview');
     });
 
     // ==========================================
-    // SHARED BOOKING MANAGEMENT
+    // INVENTORY & SYSTEM
     // ==========================================
-    Route::prefix('bookings')->name('booking.')->group(function () {
-        Route::get('/{id}', UnifiedBookingOverview::class)->name('overview');
-        Route::get('/{id}/edit', EditBooking::class)->name('edit');
-    });
+    Route::get('/inventory', Inventory::class)->name('inventory');
 
     // ==========================================
     // PDF GENERATORS
@@ -166,8 +166,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/invoice_pdf/{id}', [PdfController::class, 'generateInvoice'])->name('invoice');
         Route::get('/purchase_order_pdf/{id}', [PdfController::class, 'generatePurchaseOrder'])->name('po');
         Route::get('/receipt_pdf/{id}', [PdfController::class, 'generateReceipt'])->name('receipt');
-        Route::get('/envelope_pdf/{id}', [PdfController::class, 'generateEnvelope'])->name('envelope');
+
         Route::get('/debt_pdf/{id}', [PdfController::class, 'generateDebt'])->name('debt');
+        Route::get('/delivery_receipt_pdf/{id}', [PdfController::class, 'generateDeliveryReceipt'])->name('delivery_receipt');
     });
 
     // ==========================================

@@ -71,6 +71,12 @@ class BookingOverview extends Component
 
     // --- Detail Selection ---
     public $selectedPayment;
+    public $is_editing_payment = false;
+    public $edit_payment_amount;
+    public $edit_payment_method;
+    public $edit_payment_date;
+    public $edit_payment_ref;
+    public $edit_payment_notes;
     public $selectedLogToDelete;
 
     public $backUrl;
@@ -259,10 +265,10 @@ class BookingOverview extends Component
     // --- Payment Logic ---
     public function openPaymentModal()
     {
-        $amountPaid = BookingPayment::where('booking_id', $this->booking->id)->sum('amount');
-        $totalAmount = (float) $this->booking->total_amount;
-        $balanceDue = max(0, $totalAmount - $amountPaid);
-        $depositReq = $this->booking->deposit_required > 0 ? $this->booking->deposit_required : ($totalAmount / 2);
+        $amountPaid = round(BookingPayment::where('booking_id', $this->booking->id)->sum('amount'), 2);
+        $totalAmount = round((float) $this->booking->total_amount, 2);
+        $balanceDue = round(max(0, $totalAmount - $amountPaid), 2);
+        $depositReq = round($this->booking->deposit_required > 0 ? $this->booking->deposit_required : ($totalAmount / 2), 2);
 
         if ($balanceDue <= 0) {
             $this->payType = 'Final Settlement';
@@ -289,17 +295,17 @@ class BookingOverview extends Component
 
     public function updatedPayType($value)
     {
-        $amountPaid = BookingPayment::where('booking_id', $this->booking->id)->sum('amount');
-        $totalAmount = (float) $this->booking->total_amount;
-        $balanceDue = max(0, $totalAmount - $amountPaid);
-        $depositReq = $this->booking->deposit_required > 0 ? $this->booking->deposit_required : ($totalAmount / 2);
+        $amountPaid = round(BookingPayment::where('booking_id', $this->booking->id)->sum('amount'), 2);
+        $totalAmount = round((float) $this->booking->total_amount, 2);
+        $balanceDue = round(max(0, $totalAmount - $amountPaid), 2);
+        $depositReq = round($this->booking->deposit_required > 0 ? $this->booking->deposit_required : ($totalAmount / 2), 2);
 
         if ($value === 'Deposit Capture') {
-            $this->payAmount = min($depositReq, $balanceDue);
+            $this->payAmount = round(min($depositReq, $balanceDue), 2);
         } elseif ($value === 'Final Settlement') {
-            $this->payAmount = $balanceDue;
+            $this->payAmount = round($balanceDue, 2);
         } elseif ($value === 'Total Liquidation') {
-            $this->payAmount = $balanceDue;
+            $this->payAmount = round($balanceDue, 2);
         }
         // Partial Allocation keeps current amount
     }
@@ -365,7 +371,53 @@ class BookingOverview extends Component
     public function selectPayment($id)
     {
         $this->selectedPayment = BookingPayment::find($id);
+        $this->is_editing_payment = false;
         $this->dispatch('open-modal', 'paymentDetailsModal');
+    }
+
+    public function editPaymentDetails()
+    {
+        if (!$this->selectedPayment) return;
+        
+        $this->edit_payment_amount = $this->selectedPayment->amount;
+        $this->edit_payment_method = $this->selectedPayment->payment_method;
+        $this->edit_payment_date = $this->selectedPayment->payment_date ? Carbon::parse($this->selectedPayment->payment_date)->format('Y-m-d') : date('Y-m-d');
+        $this->edit_payment_ref = $this->selectedPayment->reference;
+        $this->edit_payment_notes = $this->selectedPayment->notes;
+        
+        $this->is_editing_payment = true;
+    }
+
+    public function cancelPaymentEdit()
+    {
+        $this->is_editing_payment = false;
+    }
+
+    public function updatePaymentDetails()
+    {
+        if (!$this->selectedPayment) return;
+
+        $this->validate([
+            'edit_payment_amount' => 'required|numeric|min:0.01',
+            'edit_payment_method' => 'required|string',
+            'edit_payment_date' => 'required|date',
+        ]);
+
+        $this->selectedPayment->update([
+            'amount' => $this->edit_payment_amount,
+            'payment_method' => $this->edit_payment_method,
+            'payment_date' => $this->edit_payment_date,
+            'reference' => $this->edit_payment_ref,
+            'notes' => $this->edit_payment_notes,
+        ]);
+
+        // Sync financials for the associated booking
+        $this->booking->syncFinancials();
+        app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
+
+        $this->is_editing_payment = false;
+        $this->selectedPayment->refresh();
+        $this->dispatch('notify', title: 'Updated', message: 'Financial record has been corrected.');
     }
 
     // --- Email Logic ---
@@ -399,7 +451,7 @@ class BookingOverview extends Component
         $hasDebt = $balanceDue > 0 && ($isOverdue || $isCompleted);
 
         if ($hasDebt && in_array($type, ['receipt', 'invoice', 'po'])) {
-            $warnings[] = "This booking has an outstanding debt of $" . number_format($balanceDue, 2) . ".";
+            $warnings[] = "Outstanding debt detected: <strong>$" . number_format($balanceDue, 2) . "</strong>.<br>Are you sure this has debt and you wish to proceed?";
         }
 
         // 2. Resend Warning (Only if no new payments since last send)
@@ -534,7 +586,7 @@ class BookingOverview extends Component
             // Debt Reminder
             $eventMidnight = Carbon::parse($this->booking->event_date)->startOfDay();
             $todayMidnight = now()->startOfDay();
-            $daysPast = $eventMidnight->isPast() ? $todayMidnight->diffInDays($eventMidnight) : 0;
+            $daysPast = $eventMidnight->isPast() ? max(0, (int)$todayMidnight->diffInDays($eventMidnight)) : 0;
             $this->emailSubject = "Outstanding Balance Reminder - Booking #{$this->booking->id}";
             $this->emailBody = "Hello $fName,\n\nThis is a friendly reminder that your event on $eventDate is currently $daysPast days past due with an outstanding balance of $" . number_format($balanceDue, 2) . ".\n\nPlease find attached the debt reminder invoice which provides an overview of your booking and the outstanding amount.\n\nAll payments should be made to Big Fun quoting your invoice number as the payment reference.\n\nPlease contact us on 1800 244 386 if you wish to discuss this account.\n\nKind regards,\nBIG FUN\n1800 244 386";
             $this->emailAttachment = "BigFunDebt-{$this->booking->id}.pdf";

@@ -39,6 +39,12 @@ class EditBooking extends Component
 
     public $newAttachments = [];
     public $deletedAttachments = [];
+    
+    public $temp_attachment_1;
+    public $temp_attachment_2;
+    public $temp_attachment_3;
+    public $temp_attachment_4;
+    public $temp_attachment_5;
 
     // --- MOVE LOGISTICS PROPERTIES ---
     public $bookedAttractions = [];
@@ -52,6 +58,14 @@ class EditBooking extends Component
     public $activeConflicts = [];
     public $activeCapacityBreaches = [];
     public $lastToastDate = null;
+    
+    protected $rules = [
+        'temp_attachment_1' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
+        'temp_attachment_2' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
+        'temp_attachment_3' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
+        'temp_attachment_4' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
+        'temp_attachment_5' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
+    ];
 
     public $config = [];
     public $categories = [];
@@ -244,14 +258,44 @@ class EditBooking extends Component
         $this->selectedItemsClean = array_keys($this->selectedItems);
     }
 
-    public function updatedFormEventDate()
+    public function updatedForm($value, $key)
     {
-        $this->checkAvailability();
+        if ($key === 'event_date') {
+            $this->checkAvailability();
+        }
+        
+        if ($key === 'payment_type') {
+            $this->calculateTotals();
+        }
+
+        if ($key === 'delivery_area') {
+            if ($this->form['delivery_area'] !== 'custom') {
+                $zone = DB::table('delivery_zones')->where('zone_name', $this->form['delivery_area'])->first();
+                $this->form['delivery_cost'] = $zone ? (float)$zone->price : 0;
+            }
+            $this->calculateTotals();
+        }
+
+        if ($key === 'delivery_cost') {
+            $this->calculateTotals();
+        }
+
+        if ($key === 'duration') {
+            if ($this->form['duration'] !== 'custom') {
+                $this->form['is_custom_duration'] = false;
+                $dur = DB::table('duration_prices')->where('label', $this->form['duration'])->first();
+                $this->form['duration_cost'] = $dur ? (float)$dur->price : 0;
+            } else {
+                $this->form['is_custom_duration'] = true;
+            }
+            $this->calculateTotals();
+        }
+
+        if ($key === 'duration_cost') {
+            $this->calculateTotals();
+        }
     }
-    public function updatedFormPaymentType()
-    {
-        $this->calculateTotals();
-    }
+
     public function updatedDynamicExtras()
     {
         $this->calculateTotals();
@@ -268,36 +312,6 @@ class EditBooking extends Component
         $this->loadCalendar();
     }
 
-    public function updatedFormDeliveryArea()
-    {
-        if ($this->form['delivery_area'] !== 'custom') {
-            $zone = DB::table('delivery_zones')->where('zone_name', $this->form['delivery_area'])->first();
-            $this->form['delivery_cost'] = $zone ? (float)$zone->price : 0;
-        }
-        $this->calculateTotals();
-    }
-
-    public function updatedFormDeliveryCost()
-    {
-        $this->calculateTotals();
-    }
-
-    public function updatedFormDuration()
-    {
-        if ($this->form['duration'] !== 'custom') {
-            $this->form['is_custom_duration'] = false;
-            $dur = DB::table('duration_prices')->where('label', $this->form['duration'])->first();
-            $this->form['duration_cost'] = $dur ? (float)$dur->price : 0;
-        } else {
-            $this->form['is_custom_duration'] = true;
-        }
-        $this->calculateTotals();
-    }
-
-    public function updatedFormDurationCost()
-    {
-        $this->calculateTotals();
-    }
 
     public function syncExtras($extras)
     {
@@ -406,23 +420,23 @@ class EditBooking extends Component
         $this->attractionsCost = $ridesTotal;
         $this->extrasCost = $extrasTotal;
 
-        $this->subtotal = $this->attractionsCost + $this->extrasCost + $this->durationCost + $this->deliveryCost;
+        $this->subtotal = round($this->attractionsCost + $this->extrasCost + $this->durationCost + $this->deliveryCost, 2);
 
         if (in_array($this->form['payment_type'], ['Card Holder', 'credit_card'])) {
-            $this->surchargeAmount = $this->subtotal * 0.029;
+            $this->surchargeAmount = round($this->subtotal * 0.029, 2);
         } else {
             $this->surchargeAmount = 0;
         }
 
         $oldTotal = (float) $this->totalAmount;
-        $this->totalAmount = $this->subtotal + $this->surchargeAmount;
-        $this->depositRequired = $this->totalAmount * 0.5;
+        $this->totalAmount = round($this->subtotal + $this->surchargeAmount, 2);
+        $this->depositRequired = round($this->totalAmount * 0.5, 2);
 
         $this->form['extra_logistics_cost'] = $this->extrasCost;
         $this->form['total_amount'] = $this->totalAmount;
         $this->form['deposit_required'] = $this->depositRequired;
 
-        $this->balanceDue = $this->totalAmount - $this->totalPaid;
+        $this->balanceDue = round($this->totalAmount - $this->totalPaid, 2);
 
         // --- DISPATCH COST CHANGE EVENTS ---
         if ($oldTotal > 0 && abs($this->totalAmount - $oldTotal) > 0.01) {
@@ -740,8 +754,12 @@ class EditBooking extends Component
         $this->deletedAttachments[] = $field;
     }
 
-    public function saveBooking()
+    public function saveBooking($extras = null)
     {
+        if ($extras) {
+            $this->dynamicExtras = $extras;
+        }
+        
         // --- FINAL CONFLICT VALIDATION ---
         $this->refreshBookingImpact();
         if (!empty($this->activeConflicts) || !empty($this->activeCapacityBreaches)) {
@@ -857,12 +875,16 @@ class EditBooking extends Component
 
         // --- HANDLE ATTACHMENTS ---
         $totalSize = 0;
+        $filesToSave = [];
+        
         for ($i = 1; $i <= 5; $i++) {
             $field = ($i === 1) ? 'delivery_attachment' : 'delivery_attachment_' . $i;
+            $tempProp = 'temp_attachment_' . $i;
             
             // Check if there is a new attachment for this slot
-            if (isset($this->newAttachments[$field]) && $this->newAttachments[$field]) {
-                $totalSize += $this->newAttachments[$field]->getSize();
+            if ($this->$tempProp) {
+                $totalSize += $this->$tempProp->getSize();
+                $filesToSave[$field] = $this->$tempProp;
             } 
             // Otherwise check if there is an existing attachment that wasn't deleted
             elseif (!empty($this->booking->$field) && !in_array($field, $this->deletedAttachments)) {
@@ -879,16 +901,26 @@ class EditBooking extends Component
         }
 
         if ($totalSize > 5 * 1024 * 1024) {
-            $this->dispatch('notify', title: 'Limit Exceeded!', message: 'Total size of all attachments must not exceed 5MB.', type: 'error');
+            $existingMB = 0;
+            $newMB = 0;
+            foreach ($filesToSave as $field => $file) {
+                $newMB += $file->getSize();
+            }
+            $existingMB = $totalSize - $newMB;
+
+            $totalMB = number_format($totalSize / (1024 * 1024), 2);
+            $newMBStr = number_format($newMB / (1024 * 1024), 2);
+            $existingMBStr = number_format($existingMB / (1024 * 1024), 2);
+
+            $detailedMsg = "Total size ({$totalMB}MB) exceeds 5MB limit. New: {$newMBStr}MB. Existing: {$existingMBStr}MB.";
+            $this->dispatch('notify', title: 'Limit Exceeded!', message: $detailedMsg, type: 'error');
             return;
         }
 
-        foreach ($this->newAttachments as $field => $file) {
-            if ($file) {
-                $filename = time() . '_' . $file->getClientOriginalName();
-                $file->storeAs('public/uploads', $filename);
-                $saveData[$field] = $filename;
-            }
+        foreach ($filesToSave as $field => $file) {
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->storeAs('uploads', $filename, 'public');
+            $saveData[$field] = $filename;
         }
 
         foreach ($this->deletedAttachments as $field) {
@@ -897,48 +929,85 @@ class EditBooking extends Component
 
         // Sync delivery cost to fee for compatibility
         $saveData['delivery_fee'] = $saveData['delivery_cost'] ?? 0;
+        
+        \Illuminate\Support\Facades\Log::info("Booking Update Payload:", $saveData);
 
         // --- SAVE TO DB ---
-        $this->booking->update($saveData);
-
-        BookingItem::where('booking_id', $this->booking->id)->delete();
-        foreach ($this->selectedItems as $name => $data) {
-            $product = DB::table('products')->whereRaw('LOWER(TRIM(name)) = ?', [$name])->first();
-            BookingItem::create([
-                'booking_id' => $this->booking->id,
-                'item_name' => $product ? $product->name : ucwords($name),
-                'qty' => $data['qty'],
-                'item_price' => $data['price'],
-                'is_custom' => $product ? 0 : 1
-            ]);
-        }
-
-        // RE-CALCULATE AND UPDATE CACHED COLUMNS (Ensure financials are correct before sync)
-        // Force recalculation and update database before syncing
-        $this->calculateTotals();
-        $this->booking->save(); // Save basic form data
-        $this->booking->syncFinancials(); // Update owing, paid, status
-
         try {
-            // Re-fetch to ensure we have the most accurate snapshot for GS (including new items)
+            Log::info("Attempting update for booking: " . $this->booking->id);
+            $this->booking->update($saveData);
+
+            BookingItem::where('booking_id', $this->booking->id)->delete();
+            foreach ($this->selectedItems as $name => $data) {
+                $product = DB::table('products')->whereRaw('LOWER(TRIM(name)) = ?', [$name])->first();
+                BookingItem::create([
+                    'booking_id' => $this->booking->id,
+                    'item_name' => $product ? $product->name : ucwords($name),
+                    'qty' => $data['qty'],
+                    'item_price' => $data['price'] ?? ($product ? $product->price : 0),
+                    'is_custom' => $product ? 0 : 1
+                ]);
+            }
+
+            // RE-CALCULATE AND UPDATE CACHED COLUMNS
+            $this->calculateTotals();
+            $this->booking->save();
+            $this->booking->syncFinancials();
+
+            // Re-fetch for GS sync
             $this->booking = $this->booking->fresh();
-            
-            // Log sync attempt
-            \Illuminate\Support\Facades\Log::info("Triggering Google Sheet Sync from EditBooking for Invoice: " . $this->booking->invoice_number);
-            
-            // Explicitly call the static sync method
+            Log::info("Triggering Google Sheet Sync for: " . $this->booking->invoice_number);
             \App\Services\GoogleSheetService::sync($this->booking->id);
             
             $this->dispatch('booking-saved');
+            $this->dispatch('notify', title: 'Success', message: 'Booking saved successfully.', type: 'success');
+
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Google Sheet Sync Error in EditBooking: " . $e->getMessage());
-            $this->dispatch('booking-saved'); // Still allow UI to close
+            Log::error("Save Booking Error: " . $e->getMessage());
+            $this->dispatch('notify', title: 'Save Failed', message: $e->getMessage(), type: 'error');
+            return;
         }
         if ($this->isSupervisor) {
             return redirect()->route('supervisor.bookings.overview', $this->booking->id);
         } else {
-            return redirect()->route('booking.overview', $this->booking->id);
+            return redirect()->route('admin.bookings.overview', $this->booking->id);
         }
+    }
+
+    public function removeAttachment($column)
+    {
+        // Clear any temporary un-saved uploads instantly
+        switch($column) {
+            case 'delivery_attachment': $this->temp_attachment_1 = null; break;
+            case 'delivery_attachment_2': $this->temp_attachment_2 = null; break;
+            case 'delivery_attachment_3': $this->temp_attachment_3 = null; break;
+            case 'delivery_attachment_4': $this->temp_attachment_4 = null; break;
+            case 'delivery_attachment_5': $this->temp_attachment_5 = null; break;
+        }
+
+        if (!$this->booking->id) return;
+
+        if (!empty($this->booking->$column)) {
+            $fileName = $this->booking->$column;
+            
+            // Delete physical files
+            @unlink(public_path('uploads/' . $fileName));
+            @unlink(storage_path('app/public/uploads/' . $fileName));
+
+            // Clear from DB
+            DB::table('bookings')->where('id', $this->booking->id)->update([$column => null]);
+            
+            // Update local state
+            $this->booking->$column = null;
+            $this->form[$column] = null;
+        }
+        
+        $this->dispatch('notify', title: 'Success', message: 'Attachment removed.');
+    }
+
+    public function attachmentUploaded($column, $fileName)
+    {
+        $this->form[$column] = $fileName;
     }
 
     public function render()

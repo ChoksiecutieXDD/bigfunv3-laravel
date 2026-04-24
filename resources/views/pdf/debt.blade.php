@@ -40,7 +40,7 @@
     $eventDate = !empty($booking->event_date) ? date('d/m/Y', strtotime($booking->event_date)) : '-';
     $eventMidnight = \Carbon\Carbon::parse($booking->event_date)->startOfDay();
     $todayMidnight = now()->startOfDay();
-    $daysPast = $eventMidnight->isPast() ? (int) $todayMidnight->diffInDays($eventMidnight) : 0;
+    $daysPast = $eventMidnight->isPast() ? max(0, (int) $todayMidnight->diffInDays($eventMidnight)) : 0;
 
     // Receipt Number Logic (Invoice No + -REC suffix)
     $invNo = !empty($booking->invoice_number) ? $booking->invoice_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT);
@@ -269,7 +269,6 @@
 
         <div class="invoice-title">
             <h1>Debt Reminder</h1>
-            <span style="font-size: 12px; color: #555;">Invoice #: {{ $invNo }}</span><br>
             <span style="font-size: 12px; color: #555;">Date: {{ date('F d, Y') }}</span>
         </div>
         <div class="clear"></div>
@@ -452,7 +451,6 @@
                     <div style="font-size: 11px; line-height: 1.5;">
                         <span class="bold">Payment Instructions:</span><br>
                         All payments via Electronic Funds Transfer (EFT).<br>
-                        Please quote Invoice No <strong>{{ $invNo }}</strong>.<br>
                         Questions? Phone 1800 244 386.
                     </div>
                 </td>

@@ -37,7 +37,7 @@ class PdfController extends Controller
             'logoData' => $this->getLogoData()
         ]);
 
-        return $pdf->stream('Invoice-' . ($booking->invoice_number ?? $booking->id) . '.pdf');
+        return $pdf->stream('Invoice-' . ($booking->invoice_number ?? $booking->id) . '.pdf', ['Attachment' => false]);
     }
 
     public function generatePurchaseOrder($id)
@@ -50,7 +50,7 @@ class PdfController extends Controller
             'logoData' => $this->getLogoData()
         ]);
 
-        return $pdf->stream('PurchaseOrder-' . $booking->id . '.pdf');
+        return $pdf->stream('PurchaseOrder-' . $booking->id . '.pdf', ['Attachment' => false]);
     }
 
     public function generateReceipt($id)
@@ -70,21 +70,10 @@ class PdfController extends Controller
             'logoData' => $this->getLogoData()
         ]);
 
-        return $pdf->stream('Receipt-' . ($booking->invoice_number ?? $booking->id) . '.pdf');
+        return $pdf->stream('Receipt-' . ($booking->invoice_number ?? $booking->id) . '.pdf', ['Attachment' => false]);
     }
 
-    public function generateEnvelope($id)
-    {
-        $booking = Booking::findOrFail($id);
 
-        // Envelopes require a custom page size (DL envelope size is standard)
-        $pdf = Pdf::loadView('pdf.envelope', [
-            'booking' => $booking,
-            'logoData' => $this->getLogoData()
-        ])->setPaper([0, 0, 623.62, 311.81], 'landscape'); // DL Size in points
-
-        return $pdf->stream('Envelope-' . $booking->id . '.pdf');
-    }
 
     public function generateDebt($id)
     {
@@ -103,6 +92,19 @@ class PdfController extends Controller
             'logoData' => $this->getLogoData()
         ]);
 
-        return $pdf->stream('Debt-' . ($booking->invoice_number ?? $booking->id) . '.pdf');
+        return $pdf->stream('Debt-' . ($booking->invoice_number ?? $booking->id) . '.pdf', ['Attachment' => false]);
+    }
+
+    public function generateDeliveryReceipt($id)
+    {
+        $booking = Booking::with(['items'])->findOrFail($id);
+
+        $pdf = Pdf::loadView('pdf.delivery_receipt', [
+            'booking' => $booking,
+            'items' => $booking->items,
+            'logoData' => $this->getLogoData()
+        ]);
+
+        return $pdf->stream('DeliveryReceipt-' . ($booking->invoice_number ?? $booking->id) . '.pdf', ['Attachment' => false]);
     }
 }

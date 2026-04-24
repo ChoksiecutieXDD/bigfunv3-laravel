@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="/assets/icon/bfun.png">
     <title>BigFun</title>
 
@@ -102,20 +103,20 @@
     </main>
 
     <!-- Logout Confirmation Modal -->
-    <div x-show="logoutModal" 
-        x-cloak 
+    <div x-show="logoutModal"
+        x-cloak
         class="fixed inset-0 z-[99999] flex items-center justify-center p-4"
         role="dialog"
         aria-modal="true">
-        
-        <div x-show="logoutModal" 
+
+        <div x-show="logoutModal"
             x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100"
             x-transition:leave="transition ease-in duration-200"
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
-            @click="logoutModal = false" 
+            @click="logoutModal = false"
             class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
 
         <div x-show="logoutModal"
@@ -126,9 +127,9 @@
             x-transition:leave-start="opacity-100 translate-y-0 scale-100"
             x-transition:leave-end="opacity-0 translate-y-8 scale-95"
             class="relative bg-white rounded-[2.5rem] shadow-2xl p-8 max-w-sm w-full text-center overflow-hidden">
-            
+
             <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-400 to-[#9E6B73]"></div>
-            
+
             <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500 ring-8 ring-red-50/50">
                 <span class="material-symbols-rounded text-4xl">logout</span>
             </div>

@@ -64,7 +64,6 @@ class SystemSettings extends Component
         // The update is triggered by the 'execute-change-mailer' event after confirmation.
     }
 
-    #[On('execute-change-mailer')]
     public function executeChangeMailer(string $value): void
     {
         if (! in_array($value, ['smtp', 'google'], true)) {
@@ -171,7 +170,6 @@ class SystemSettings extends Component
     // ==========================================
     // 2. SYSTEM CACHE
     // ==========================================
-    #[On('execute-clear-cache')]
     public function clearCache()
     {
         try {
@@ -211,7 +209,6 @@ class SystemSettings extends Component
     // ==========================================
     // 4. ENVIRONMENT TOGGLE
     // ==========================================
-    #[On('execute-change-environment')]
     public function changeEnvironment($id = null)
     {
         // Extract the target environment string safely
@@ -274,7 +271,6 @@ class SystemSettings extends Component
     // ==========================================
     // FORCE LOGOUT ALL
     // ==========================================
-    #[On('execute-force-logout')]
     public function forceLogout()
     {
         Auth::logout();
@@ -287,7 +283,6 @@ class SystemSettings extends Component
     // ==========================================
     // 5. TEST SMTP
     // ==========================================
-    #[On('execute-test-smtp')]
     public function testSmtp()
     {
         try {
@@ -315,7 +310,6 @@ class SystemSettings extends Component
         }
     }
 
-    #[On('execute-test-google-smtp')]
     public function testGoogleSmtp()
     {
         try {
@@ -346,7 +340,6 @@ class SystemSettings extends Component
     // ==========================================
     // 6. QUOTA MANAGEMENT
     // ==========================================
-    #[On('execute-reset-quota')]
     public function executeResetQuota(string $mailer)
     {
         if (! in_array($mailer, ['brevo', 'google'], true)) {
@@ -357,19 +350,28 @@ class SystemSettings extends Component
             $key = ($mailer === 'brevo') ? 'smtp' : 'google';
             $cacheKey = "email_quota_used_{$key}_" . now()->format('Y-m-d');
             
-            \Illuminate\Support\Facades\Cache::forget($cacheKey);
+            // Explicitly set Cache to 0, so it stops falling back to .env
+            \Illuminate\Support\Facades\Cache::put($cacheKey, 0);
             
-            // Also reset the .env value to 0 if we want to be thorough, 
-            // but for avoiding restarts, we just use Cache now.
-            // If the user wants to reset the .env value too, they can do it manually,
-            // but keeping it in Cache is sufficient for daily operations.
+            // Also reset the .env value to 0 to be completely thorough
+            $path = base_path('.env');
+            if (file_exists($path)) {
+                $envContent = file_get_contents($path);
+                $envKey = $mailer === 'brevo' ? 'MAIL_BREVO_DAILY_EMAIL_USED' : 'MAIL_GOOGLE_DAILY_EMAIL_USED';
+                
+                if (preg_match("/^{$envKey}=.*/m", $envContent)) {
+                    $envContent = preg_replace("/^{$envKey}=.*/m", "{$envKey}=0", $envContent);
+                } else {
+                    $envContent .= "\n{$envKey}=0\n";
+                }
+                
+                file_put_contents($path, $envContent, LOCK_EX);
+                Artisan::call('config:clear');
+            }
             
-            $this->showBrevoQuotaInfo = false;
-            $this->showGoogleQuotaInfo = false;
+            $this->dispatch('show-alert', message: ucfirst($mailer) . ' daily counter has been reset to 0.', type: 'success');
             
-            $this->dispatch('show-alert', message: ucfirst($mailer) . ' daily counter has been reset to 0 in cache.', type: 'success');
-            
-            // Refresh state via Livewire redirect (using navigate: true for SPA feel)
+            // Refresh state via Livewire redirect
             $this->redirect(route('system.settings'), navigate: true);
 
         } catch (\Exception $e) {

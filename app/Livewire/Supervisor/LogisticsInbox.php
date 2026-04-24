@@ -28,6 +28,7 @@ class LogisticsInbox extends Component
 
     // --- Modal Forms ---
     // Payment Processing
+    public $saving_type_id = null;
     public $pay_booking_id;
     public $pay_amount;
     public $pay_type = 'Final Settlement';
@@ -71,6 +72,12 @@ class LogisticsInbox extends Component
 
     // View Details (from model directly)
     public $view_payment_details = null;
+    public $is_editing_payment = false;
+    public $edit_payment_amount;
+    public $edit_payment_method;
+    public $edit_payment_date;
+    public $edit_payment_ref;
+    public $edit_payment_notes;
 
     // Define unique query string keys for multiple paginators
     protected $queryString = [
@@ -142,21 +149,27 @@ class LogisticsInbox extends Component
 
     public function savePaymentType($bookingId, $method)
     {
-        Booking::where('id', $bookingId)->update(['payment_type' => $method]);
+        $this->saving_type_id = $bookingId;
+        
+        $booking = Booking::find($bookingId);
+        if ($booking) {
+            $booking->updatePaymentMethod($method);
+        }
         
         // Sync to Google Sheet
         app(GoogleSheetService::class)->sync($bookingId);
 
+        $this->saving_type_id = null;
         $this->dispatch('notify', title: 'Success', message: 'Payment method saved!');
     }
 
     public function openPaymentModal($bookingId)
     {
         $booking = Booking::with('payments')->findOrFail($bookingId);
-        $total = (float)$booking->total_amount;
-        $paid = (float)$booking->total_paid;
-        $owing = max(0, $total - $paid);
-        $deposit = (float)$booking->deposit_required;
+        $total = round((float)$booking->total_amount, 2);
+        $paid = round((float)$booking->total_paid, 2);
+        $owing = round(max(0, $total - $paid), 2);
+        $deposit = round((float)$booking->deposit_required, 2);
 
         if ($owing <= 0) {
             $this->dispatch('notify-error', title: 'Payment Complete', message: 'This booking is already fully paid.');
@@ -204,9 +217,9 @@ class LogisticsInbox extends Component
         $total = $this->pay_context['total'];
         $deposit = $this->pay_context['deposit'];
 
-        if ($value === 'Final Settlement') $this->pay_amount = $owing;
-        elseif ($value === 'Total Liquidation') $this->pay_amount = $owing;
-        elseif ($value === 'Deposit Capture') $this->pay_amount = min($deposit, $owing);
+        if ($value === 'Final Settlement') $this->pay_amount = round($owing, 2);
+        elseif ($value === 'Total Liquidation') $this->pay_amount = round($owing, 2);
+        elseif ($value === 'Deposit Capture') $this->pay_amount = round(min($deposit, $owing), 2);
         // Partial Allocation keeps current amount
     }
 
@@ -225,15 +238,13 @@ class LogisticsInbox extends Component
         ]);
 
         $combinedNotes = $this->pay_notes;
-        if (!empty($this->pay_ref)) {
-            $combinedNotes = 'Ref: ' . $this->pay_ref . (!empty($this->pay_notes) ? ' | ' . $this->pay_notes : '');
-        }
 
         BookingPayment::create([
             'booking_id' => $this->pay_booking_id,
             'amount' => $this->pay_amount,
             'payment_method' => $this->pay_method,
             'payment_date' => $this->pay_date,
+            'reference' => $this->pay_ref,
             'notes' => $combinedNotes,
             'card_holder' => $this->pay_method === 'Card Holder' ? $this->pay_card_holder : null,
             'card_number' => $this->pay_method === 'Card Holder' ? $this->pay_card_number : null,
@@ -324,7 +335,56 @@ class LogisticsInbox extends Component
     public function viewPaymentDetails($paymentId)
     {
         $this->view_payment_details = BookingPayment::with('booking')->findOrFail($paymentId);
+        $this->is_editing_payment = false;
         $this->dispatch('open-modal', 'paymentDetailsModal');
+    }
+
+    public function editPaymentDetails()
+    {
+        if (!$this->view_payment_details) return;
+        
+        $this->edit_payment_amount = $this->view_payment_details->amount;
+        $this->edit_payment_method = $this->view_payment_details->payment_method;
+        $this->edit_payment_date = $this->view_payment_details->payment_date ? Carbon::parse($this->view_payment_details->payment_date)->format('Y-m-d') : date('Y-m-d');
+        $this->edit_payment_ref = $this->view_payment_details->reference;
+        $this->edit_payment_notes = $this->view_payment_details->notes;
+        
+        $this->is_editing_payment = true;
+    }
+
+    public function cancelPaymentEdit()
+    {
+        $this->is_editing_payment = false;
+    }
+
+    public function updatePaymentDetails()
+    {
+        if (!$this->view_payment_details) return;
+
+        $this->validate([
+            'edit_payment_amount' => 'required|numeric|min:0.01',
+            'edit_payment_method' => 'required|string',
+            'edit_payment_date' => 'required|date',
+        ]);
+
+        $this->view_payment_details->update([
+            'amount' => $this->edit_payment_amount,
+            'payment_method' => $this->edit_payment_method,
+            'payment_date' => $this->edit_payment_date,
+            'reference' => $this->edit_payment_ref,
+            'notes' => $this->edit_payment_notes,
+        ]);
+
+        // Sync financials for the associated booking
+        $booking = Booking::find($this->view_payment_details->booking_id);
+        if ($booking) {
+            $booking->syncFinancials();
+            app(GoogleSheetService::class)->sync($booking->id);
+        }
+
+        $this->is_editing_payment = false;
+        $this->view_payment_details->refresh();
+        $this->dispatch('notify', title: 'Updated', message: 'Financial record has been corrected.');
     }
 
     // Email Confirmation
@@ -500,7 +560,7 @@ class LogisticsInbox extends Component
         } elseif ($type === 'debt') {
             $eventMidnight = Carbon::parse($booking->event_date)->startOfDay();
             $todayMidnight = now()->startOfDay();
-            $daysPast = $eventMidnight->isPast() ? $todayMidnight->diffInDays($eventMidnight) : 0;
+            $daysPast = $eventMidnight->isPast() ? max(0, (int)$todayMidnight->diffInDays($eventMidnight)) : 0;
             $this->email_subject = "Outstanding Balance Reminder - Booking #{$booking->id}";
             $this->email_body = "Hello $fName,\n\nThis is a friendly reminder that your event on $eventDate is currently $daysPast days past due with an outstanding balance of $" . number_format($balanceDue, 2) . ".\n\nPlease find attached the debt reminder invoice which provides an overview of your booking and the outstanding amount.\n\nAll payments should be made to Big Fun quoting your invoice number as the payment reference.\n\nPlease contact us on 1800 244 386 if you wish to discuss this account.\n\nKind regards,\nBIG FUN\n1800 244 386";
             $this->email_attachment = "BigFunDebt-{$booking->id}.pdf";
@@ -567,7 +627,7 @@ class LogisticsInbox extends Component
                     ->orWhere('customer_organization', 'like', "%{$this->search_pay}%");
             });
         }
-        $pendingPayments = $paymentsQuery->orderBy('event_date', 'asc')->paginate(10, ['*'], 'page_pay');
+        $pendingPayments = $paymentsQuery->orderBy('event_date', 'asc')->paginate(5, ['*'], 'page_pay');
 
         // 2. Fully Paid Bookings (All settled bookings, including completed)
         $fullyPaidQuery = Booking::with('payments')
@@ -593,7 +653,7 @@ class LogisticsInbox extends Component
                     ->orWhere('customer_last_name', 'like', "%{$this->search_inv}%");
             });
         }
-        $invoices = $invoicesQuery->orderBy('event_date', 'asc')->paginate(10, ['*'], 'page_inv');
+        $invoices = $invoicesQuery->orderBy('event_date', 'asc')->paginate(5, ['*'], 'page_inv');
 
         $ordersQuery = Booking::where('event_date', '>=', now()->toDateString())->where('status', 'Confirmed');
         if ($this->search_ord) {
@@ -602,7 +662,7 @@ class LogisticsInbox extends Component
                     ->orWhere('customer_last_name', 'like', "%{$this->search_ord}%");
             });
         }
-        $orders = $ordersQuery->orderBy('event_date', 'asc')->paginate(10, ['*'], 'page_ord');
+        $orders = $ordersQuery->orderBy('event_date', 'asc')->paginate(5, ['*'], 'page_ord');
 
         $debtorsQuery = Booking::with('payments')
             ->where('status', 'Completed')
@@ -614,7 +674,7 @@ class LogisticsInbox extends Component
                     ->orWhere('customer_last_name', 'like', "%{$this->search_deb}%");
             });
         }
-        $debtors = $debtorsQuery->orderBy('event_date', 'desc')->paginate(10, ['*'], 'page_deb');
+        $debtors = $debtorsQuery->orderBy('event_date', 'desc')->paginate(5, ['*'], 'page_deb');
 
         $operatorsQuery = User::whereIn('role', ['Operator', 'Staff']);
         if ($this->search_op) {
@@ -624,7 +684,7 @@ class LogisticsInbox extends Component
                     ->orWhere('email', 'like', "%{$this->search_op}%");
             });
         }
-        $operators = $operatorsQuery->paginate(10, ['*'], 'page_op');
+        $operators = $operatorsQuery->paginate(5, ['*'], 'page_op');
 
         return view('livewire.supervisor.logistics-inbox', [
             'enquiriesCount' => $enquiriesCount,

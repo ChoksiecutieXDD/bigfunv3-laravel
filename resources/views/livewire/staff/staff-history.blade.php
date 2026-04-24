@@ -109,7 +109,7 @@
                                 </span>
                             </td>
                             <td class="p-5 text-right">
-                                <a href="{{ route('booking.overview', $job->id) }}" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:bg-[#9E6B73] hover:text-white transition-all shadow-sm hover:shadow-md">
+                                <a href="{{ route('staff.bookings.overview', $job->id) }}" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:bg-[#9E6B73] hover:text-white transition-all shadow-sm hover:shadow-md">
                                     <span class="material-symbols-rounded">visibility</span>
                                 </a>
                             </td>

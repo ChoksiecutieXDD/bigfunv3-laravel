@@ -8,9 +8,9 @@
     @open-google-info.window="showGoogleQuotaInfo = true"
     @open-logs.window="showLogViewer = true"
     @execute-clear-cache.window="$wire.clearCache()"
-    @execute-change-mailer.window="$wire.executeChangeMailer($event.detail.params)"
+    @execute-change-mailer.window="$wire.executeChangeMailer($event.detail.id)"
     @execute-change-environment.window="$wire.changeEnvironment($event.detail.id)"
-    @execute-reset-quota.window="$wire.executeResetQuota($event.detail.params)"
+    @execute-reset-quota.window="$wire.executeResetQuota($event.detail.id)"
     @execute-test-smtp.window="$wire.testSmtp()"
     @execute-test-google-smtp.window="$wire.testGoogleSmtp()"
     @execute-force-logout.window="$wire.forceLogout()">

@@ -10,6 +10,16 @@ use Illuminate\Support\Facades\Auth;
 class GoogleSheetService
 {
     /**
+     * Strips newlines and collapses whitespace in a string so spreadsheet cells stay clean.
+     */
+    private static function clean(?string $value): string
+    {
+        if ($value === null || $value === '') return '';
+        // Replace all newline/carriage return variants with a space, then collapse multiple spaces
+        return trim(preg_replace('/\s+/', ' ', str_replace(["\r\n", "\r", "\n", "\t"], ' ', $value)));
+    }
+
+    /**
      * Syncs booking data to the Google Spreadsheet via Web App Webhook.
      */
     public static function sync($bookingId, $isNew = false)
@@ -34,11 +44,32 @@ class GoogleSheetService
             $totalAmount = (float) $booking->total_amount;
             $balanceDue = max(0, $totalAmount - $amountPaid);
 
-            // Calculate Attraction Costing (Sum of items * their actual recorded price)
+            // Calculate Attraction Costing (Sum from booking_items directly)
             $attractionCost = DB::table('booking_items')
                 ->where('booking_id', $bookingId)
-                ->selectRaw('SUM(qty * item_price) as total')
-                ->value('total') ?? 0;
+                ->sum(DB::raw('qty * item_price')) ?? 0;
+
+            // Fetch All Payments for Reference String
+            $payments = DB::table('booking_payments')
+                ->where('booking_id', $bookingId)
+                ->orderBy('id', 'asc')
+                ->get();
+            
+            $paymentRefString = "";
+            $payment1Amount = 0;
+            foreach ($payments as $index => $payment) {
+                if ($index === 0) {
+                    $payment1Amount = $payment->amount;
+                }
+                $ref = $payment->reference ?: "Gen-" . str_pad($payment->id, 4, '0', STR_PAD_LEFT);
+                $amt = number_format((float)$payment->amount, 2);
+                $num = $index + 1;
+                $paymentRefString .= "Payment {$num}: {$ref} (\${$amt}) | ";
+            }
+            $paymentRefString = rtrim($paymentRefString, " | ");
+            if (empty($paymentRefString)) {
+                $paymentRefString = $booking->payment_reference ?? '';
+            }
 
 
             // Parse Extras JSON into a readable string
@@ -123,43 +154,44 @@ class GoogleSheetService
             $updatedBy = $user ? ($user->first_name . ' (' . $user->role . ')') : 'System';
 
             $payload = [
-                'invoice_number'        => $booking->invoice_number,
-                'status'                => $booking->status,
-                'payment_status'        => $booking->payment_status,
-                'booked_by'             => $booking->booked_by ?? 'System',
-                'updated_by'            => $updatedBy,
+                'invoice_number'        => self::clean($booking->invoice_number),
+                'status'                => self::clean($booking->status),
+                'payment_status'        => self::clean($booking->payment_status),
+                'booked_by'             => self::clean($booking->booked_by ?? 'System'),
+                'updated_by'            => self::clean($updatedBy),
                 'event_date'            => \Carbon\Carbon::parse($booking->event_date)->format('Y-m-d'),
                 'original_event_date'   => \Carbon\Carbon::parse($booking->original_event_date ?? $booking->event_date)->format('Y-m-d'),
-                'start_time'            => $booking->start_time,
-                'end_time'              => $booking->end_time,
-                'duration'              => $booking->duration,
-                'operational_hours'     => $booking->operational_hours,
-                'items'                 => implode(', ', $items),
-                'customer_name'         => trim($booking->customer_first_name . ' ' . $booking->customer_last_name),
-                'customer_email'        => $booking->customer_email,
-                'customer_phone'        => $booking->customer_phone,
-                'customer_organization' => $booking->customer_organization,
-                'customer_abn'          => $booking->customer_abn,
-                'employer_name'         => $booking->employer_name,
-                'business_phone'        => $booking->customer_business_phone,
-                'business_address'      => $booking->business_address,
-                'event_type'            => $booking->event_type,
-                'address'               => $booking->address_line_1,
-                'suburb'                => $booking->suburb,
-                'state_postcode'        => $booking->state . ' ' . $booking->postcode,
-                'delivery_area'         => $booking->delivery_area,
-                'lead_deliverer'        => $booking->lead_deliverer,
-                'lead_operator'         => $booking->lead_operator,
-                'expected_people'       => $booking->expected_people,
+                'start_time'            => self::clean($booking->start_time),
+                'end_time'              => self::clean($booking->end_time),
+                'duration'              => self::clean($booking->duration),
+                'operational_hours'     => self::clean($booking->operational_hours),
+                'items'                 => self::clean(implode(', ', $items)),
+                'customer_name'         => self::clean(trim($booking->customer_first_name . ' ' . $booking->customer_last_name)),
+                'customer_email'        => self::clean($booking->customer_email),
+                'customer_phone'        => self::clean($booking->customer_phone),
+                'customer_organization' => self::clean($booking->customer_organization),
+                'customer_abn'          => self::clean($booking->customer_abn),
+                'employer_name'         => self::clean($booking->employer_name),
+                'business_phone'        => self::clean($booking->customer_business_phone),
+                'business_address'      => self::clean($booking->business_address),
+                'event_type'            => self::clean($booking->event_type),
+                'address'               => self::clean($booking->address_line_1),
+                'suburb'                => self::clean($booking->suburb),
+                'state_postcode'        => self::clean($booking->state . ' ' . $booking->postcode),
+                'delivery_area'         => self::clean($booking->delivery_area),
+                'lead_deliverer'        => self::clean($booking->lead_deliverer),
+                'lead_operator'         => self::clean($booking->lead_operator),
+                'expected_people'       => self::clean($booking->expected_people),
                 'total_amount'          => number_format($totalAmount, 2, '.', ''),
                 'amount_paid'           => number_format($amountPaid, 2, '.', ''),
                 'balance_due'           => number_format($balanceDue, 2, '.', ''),
                 'is_debtor'             => ($balanceDue > 0 && \Carbon\Carbon::parse($booking->event_date)->startOfDay()->isBefore(\Carbon\Carbon::today())) ? 'YES' : 'NO',
                 'surcharge_amount'      => number_format($booking->surcharge_amount, 2, '.', ''),
                 'deposit_required'      => number_format($booking->deposit_required, 2, '.', ''),
-                'payment_type'          => $booking->payment_type,
-                'payment_reference'     => $booking->payment_reference,
-                'card_network'          => ($booking->payment_type === 'Card Holder' || $booking->payment_type === 'Card' || $booking->payment_type === 'credit_card') ? $booking->card_network : 'N/A',
+                'payment_type'          => self::clean($booking->payment_type),
+                'payment_1'             => number_format($payment1Amount, 2, '.', ''),
+                'payment_reference'     => self::clean($paymentRefString),
+                'card_network'          => ($booking->payment_type === 'Card Holder' || $booking->payment_type === 'Card' || $booking->payment_type === 'credit_card') ? self::clean($booking->card_network) : 'N/A',
                 'card_masked'           => ($booking->payment_type === 'Card Holder' || $booking->payment_type === 'Card' || $booking->payment_type === 'credit_card') 
                                             ? '**** **** ' . substr(str_replace(' ', '', $booking->card_number ?? ''), -8, 4) . ' ' . substr(str_replace(' ', '', $booking->card_number ?? ''), -4)
                                             : 'N/A',
@@ -168,9 +200,9 @@ class GoogleSheetService
                                             : 'N/A',
                 'manual_delivery_cost'  => number_format($booking->delivery_cost, 2, '.', ''),
                 'manual_duration_cost'  => number_format($booking->duration_cost, 2, '.', ''),
-                'notes_delivery'        => $booking->notes_delivery,
-                'notes_customer'        => $booking->notes_customer,
-                'extra_configs'         => $extraString,
+                'notes_delivery'        => self::clean($booking->notes_delivery),
+                'notes_customer'        => self::clean($booking->notes_customer),
+                'extra_configs'         => self::clean($extraString),
                 'attraction_cost'       => number_format($attractionCost, 2, '.', ''),
                 'is_deleted'            => ($booking->status === 'Cancelled' || $booking->status === 'Deleted') ? 'YES' : 'NO',
                 'is_new_booking'        => $isNew ? 'YES' : 'NO',

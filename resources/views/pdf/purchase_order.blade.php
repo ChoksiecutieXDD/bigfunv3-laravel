@@ -203,16 +203,19 @@
         <tr>
             <td width="35%">
                 {{ date('F d, Y') }}<br><br>
-                <strong>Employer / Prepared For:</strong><br>
+                <strong>Employer:</strong><br>
+                @if(!empty($booking->employer_name))
+                    {{ $booking->employer_name }}<br>
+                @endif
                 @if(!empty($booking->customer_organization))
                     {{ $booking->customer_organization }}<br>
+                @endif
+                @if(!empty($booking->customer_business_phone))
+                    {{ $booking->customer_business_phone }}<br>
                 @endif
                 @if(!empty($booking->customer_abn))
                     ABN: {{ $booking->customer_abn }}<br>
                 @endif
-                {{ trim(($booking->customer_first_name ?? '') . ' ' . ($booking->customer_last_name ?? '')) }}<br>
-                {{ $booking->customer_phone ?? '' }}<br>
-                {{ $booking->customer_email ?? '' }}
             </td>
 
             <td width="30%" class="text-center">
@@ -226,8 +229,6 @@
             <td width="35%" class="text-right">
                 <br>
                 <h2 style="margin:0; font-size: 18px;">PURCHASE ORDER</h2>
-                <br>
-                <strong>Quote No: {{ $quote_no }}</strong>
             </td>
         </tr>
     </table>
@@ -429,7 +430,7 @@
             <span class="bold">Payment Details (For Reference):</span><br>
             Bank: Big Fun<br>
             BSB: 067872 | Acc: 19935785<br>
-            Ref: Quote #{{ $quote_no }}
+            Ref: {!! $booking->customer_organization ?? 'Payment' !!}
         </div>
         <div style="clear: both;"></div>
     </div>

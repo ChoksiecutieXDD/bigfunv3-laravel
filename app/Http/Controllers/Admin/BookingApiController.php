@@ -278,6 +278,7 @@ class BookingApiController extends Controller
 
                 case 'save_full_booking':
                     DB::beginTransaction();
+                    Log::info("Finalizing Booking save", ['invoice' => $request->input('invoice_number'), 'all_inputs' => $request->except(['card_number', 'card_cvv'])]);
 
                     $invoice_number = $request->input('invoice_number');
                     $is_update = false;
@@ -327,17 +328,18 @@ class BookingApiController extends Controller
                     // Handle File Uploads
                     for ($i = 1; $i <= 5; $i++) {
                         $suffix = ($i === 1) ? '' : "_$i";
-                        $inputName = "delivery_attachment$suffix";
+                        $inputName = "delivery_attachment$suffix"; 
                         
                         if ($request->hasFile($inputName)) {
                             $file = $request->file($inputName);
-                            $destinationPath = public_path('uploads');
+                            $destinationPath = storage_path('app/public/uploads');
                             if (!File::exists($destinationPath)) {
                                 File::makeDirectory($destinationPath, 0755, true);
                             }
                             $fileName = $file->hashName();
                             $file->move($destinationPath, $fileName);
                             $existing_files[$i-1] = $fileName;
+                            Log::info("File $i Uploaded", ['slot' => $i, 'name' => $fileName]);
                         }
                     }
 
@@ -511,7 +513,7 @@ class BookingApiController extends Controller
                                 'payment_type' => 'Deposit Capture',
                                 'payment_date' => now()->format('Y-m-d'),
                                 'reference' => $request->input('payment_reference'),
-                                'notes' => 'Auto-recorded during booking creation/update as Deposit Paid.',
+                                'notes' => $request->input('payment_notes') ?: 'Auto-recorded during booking creation/update as Deposit Paid.',
                                 'card_number' => $request->input('payment_type') === 'Card Holder' ? $request->input('card_number') : null,
                                 'card_expiry' => $request->input('payment_type') === 'Card Holder' ? $request->input('card_expiry') : null,
                                 'card_cvv' => $request->input('payment_type') === 'Card Holder' ? $request->input('card_cvv') : null,

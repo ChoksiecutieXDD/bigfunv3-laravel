@@ -660,26 +660,41 @@ window.finalizeBooking = async function() {
 };
 
 window.checkTotalAttachmentSize = function(currentInput) {
-    const inputs = document.querySelectorAll('input[type="file"]');
+    const MAX_TOTAL = 5 * 1024 * 1024;   // 5MB total limit for all files
+
+    // --- Total size check ---
+    const slots = document.querySelectorAll('.attachment-slot');
     let total = 0;
-    inputs.forEach(input => {
-        // Look for any input that looks like a delivery attachment
-        if (input.name.includes('delivery_attachment') || input.getAttribute('wire:model')?.includes('newAttachments')) {
-            if (input.files && input.files[0]) {
-                total += input.files[0].size;
-            }
+
+    slots.forEach(slot => {
+        const input = slot.querySelector('input[type="file"]');
+        const isDeleted = slot.dataset.isDeleted === 'true';
+        let existingSize = parseInt(slot.dataset.existingSize || "0", 10);
+
+        if (input && input.files && input.files[0]) {
+            // Priority 1: New file selected for this slot overrides existing
+            total += input.files[0].size;
+        } else if (!isDeleted && existingSize > 0) {
+            // Priority 2: Existing file in this slot that wasn't deleted
+            total += existingSize;
         }
     });
 
-    if (total > 5 * 1024 * 1024) {
-        showToast("Storage Limit", "Total size of all new attachments must not exceed 5MB. Current: " + (total / (1024 * 1024)).toFixed(2) + "MB", "error");
-        if (currentInput) currentInput.value = ""; // Clear the input that caused the overflow
+    if (total > MAX_TOTAL) {
+        const currentMB = (total / (1024 * 1024)).toFixed(2);
         
-        // If we have access to Alpine modals (Edit mode)
-        if (window.bookingApp && typeof window.bookingApp.modals !== 'undefined') {
-            // We could trigger the internal modal if we wanted, but toast is enough
+        // Guarantee toast appears
+        if (typeof showToast !== 'undefined') {
+            showToast("Storage Limit", "Total size of all attachments must not exceed 5MB. Current: " + currentMB + "MB", "error");
         }
-        
+        window.dispatchEvent(new CustomEvent('notify', { detail: { title: 'Storage Limit Exceeded', type: 'error', icon: 'error', message: `Total size of all attachments must not exceed 5MB. Current total is ${currentMB}MB.` } }));
+
+        // Trigger the File Size Alert modal if available
+        const appEl = document.querySelector('[x-data="bookingApp"]');
+        const alpine = appEl && appEl._x_dataStack ? appEl._x_dataStack[0] : null;
+        if (alpine && alpine.modals) alpine.modals.fileSizeAlert = true;
+
+        if (currentInput) currentInput.value = "";
         return false;
     }
     return true;

@@ -112,7 +112,7 @@
                                 @endif
                             </div>
                         </div>
-                        <a href="{{ route('booking.overview', $row->id) }}" wire:navigate class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-white border border-gray-200 text-gray-500 hover:text-[#9E6B73] hover:border-[#9E6B73] transition" title="View Details">
+                        <a href="{{ route('admin.bookings.overview', $row->id) }}" wire:navigate class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-white border border-gray-200 text-gray-500 hover:text-[#9E6B73] hover:border-[#9E6B73] transition" title="View Details">
                             <span class="material-symbols-rounded">visibility</span>
                         </a>
                     </div>
@@ -182,7 +182,7 @@
                             <span class="status-badge st-{{ $row->status }}">{{ $row->status }}</span>
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <a href="{{ route('booking.overview', $row->id) }}" wire:navigate class="inline-flex items-center justify-center text-gray-400 hover:text-[#9E6B73] p-2 hover:bg-gray-100 rounded-2xl transition" title="View Details">
+                            <a href="{{ route('admin.bookings.overview', $row->id) }}" wire:navigate class="inline-flex items-center justify-center text-gray-400 hover:text-[#9E6B73] p-2 hover:bg-gray-100 rounded-2xl transition" title="View Details">
                                 <span class="material-symbols-rounded">visibility</span>
                             </a>
                         </td>
@@ -257,7 +257,7 @@
                     @endif
 
                     <div class="mt-auto">
-                        <a href="{{ route('booking.overview', $b->id) }}" wire:navigate class="w-full py-2.5 bg-white border border-gray-200 text-gray-700 hover:text-[#9E6B73] hover:border-[#9E6B73] hover:bg-gray-50 rounded-2xl flex items-center justify-center gap-2 transition text-xs font-extrabold shadow-sm">
+                        <a href="{{ route('admin.bookings.overview', $b->id) }}" wire:navigate class="w-full py-2.5 bg-white border border-gray-200 text-gray-700 hover:text-[#9E6B73] hover:border-[#9E6B73] hover:bg-gray-50 rounded-2xl flex items-center justify-center gap-2 transition text-xs font-extrabold shadow-sm">
                             <span class="material-symbols-rounded text-base">visibility</span> View Details
                         </a>
                     </div>

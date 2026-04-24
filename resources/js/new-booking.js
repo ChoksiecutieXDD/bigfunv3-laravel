@@ -1,4 +1,4 @@
-window.initBookingAppData = function() {
+window.initBookingAppData = function () {
     const bridge = document.getElementById('booking-data-bridge');
     if (bridge) {
         window.bookingAppData = {
@@ -49,6 +49,8 @@ document.addEventListener('alpine:init', () => {
             costDelta: 0,
             saveDuplicateConfirm: false,
             removeConfirm: false,
+            imagePreview: '',
+            imagePreviewVisible: false,
         },
         itemToRemove: '',
         limitExceededCategory: '',
@@ -57,6 +59,7 @@ document.addEventListener('alpine:init', () => {
         filteredCustomers: [],
         searchHistory: '',
         cardNetwork: 'Visa',
+        isDurationCustom: false,
         productDetails: {
             visible: false,
             name: '',
@@ -70,7 +73,7 @@ document.addEventListener('alpine:init', () => {
             this.productDetails.price = parseFloat(card.dataset.price || 0);
             this.productDetails.visible = true;
         },
-        
+
         // Gmail State
         gmailModalVisible: false,
         previewSidebarVisible: false,
@@ -89,15 +92,15 @@ document.addEventListener('alpine:init', () => {
                 this.paymentMethods = ['Cash Payment'];
                 this.paymentMethod = 'Cash Payment';
             } else {
-                // If Card Holder (Credit/Debit Card), we don't need sub-methods
-                this.paymentMethods = ['Credit/Debit Card'];
-                this.paymentMethod = 'Credit/Debit Card';
+                // If Card Holder, we don't need sub-methods
+                this.paymentMethods = ['Card Holder'];
+                this.paymentMethod = 'Card Holder';
             }
             this.triggerRecalculate();
         },
 
         triggerRecalculate() {
-             this.$nextTick(() => {
+            this.$nextTick(() => {
                 if (typeof triggerRecalculate === 'function') triggerRecalculate();
             });
         },
@@ -141,10 +144,10 @@ document.addEventListener('alpine:init', () => {
             document.getElementById('addr_suburb').value = c.suburb || '';
             document.getElementById('addr_state').value = c.state || 'QLD';
             document.getElementById('addr_postcode').value = c.postcode || '';
-            
+
             this.modals.history = false;
             showToast("Details Filled", "Customer information has been populated.", "success");
-            
+
             // Trigger duplicate check asynchronously and toast if found
             setTimeout(async () => {
                 const found = await checkDuplicates();
@@ -157,7 +160,7 @@ document.addEventListener('alpine:init', () => {
         togglePaymentStatus() {
             this.paymentStatus = (this.paymentStatus === 'Pending') ? 'Deposit Paid' : 'Pending';
             this.$nextTick(() => {
-                if(typeof triggerRecalculate === 'function') triggerRecalculate();
+                if (typeof triggerRecalculate === 'function') triggerRecalculate();
             });
         },
 
@@ -167,12 +170,12 @@ document.addEventListener('alpine:init', () => {
             this.emailList = [];
             this.selectedEmailData = null;
             this.selectedEmailBody = '';
-            
+
             try {
                 const url = '/google/fetch-emails' + (this.gmailSearchQuery ? '?q=' + encodeURIComponent(this.gmailSearchQuery) : '');
                 const res = await fetch(url);
                 const data = await res.json();
-                
+
                 if (data.error) {
                     if (typeof showToast !== 'undefined') showToast('Gmail Error', data.error, 'error');
                 } else {
@@ -194,9 +197,9 @@ document.addEventListener('alpine:init', () => {
 
         extractEmailData() {
             if (!this.selectedEmailData) return;
-            
+
             const email = this.selectedEmailData;
-            
+
             if (email.name) {
                 const parts = email.name.split(' ');
                 const elFirst = document.getElementById('cust_first_name');
@@ -204,16 +207,16 @@ document.addEventListener('alpine:init', () => {
                 if (elFirst) elFirst.value = parts[0] || '';
                 if (elLast) elLast.value = parts.slice(1).join(' ') || '';
             }
-            
+
             const elEmail = document.getElementById('customer_email_address');
             if (elEmail) elEmail.value = email.email || '';
-            
+
             const phoneMatch = email.body.match(/(?:\+?61|0)[2-478](?:[ \-]?[0-9]){8}/);
             if (phoneMatch) {
                 const elPhone = document.getElementById('customer_phone_mobile');
                 if (elPhone) elPhone.value = phoneMatch[0];
             }
-            
+
             if (typeof showToast !== 'undefined') showToast("Data Extracted", "Customer details populated from quote.", "success");
             this.previewSidebarVisible = false;
         },
@@ -221,19 +224,19 @@ document.addEventListener('alpine:init', () => {
         performReset() {
             const form = document.getElementById('combinedBookingForm');
             if (form) form.reset();
-            
+
             document.querySelectorAll('.ride-checkbox').forEach(cb => {
                 cb.checked = false;
                 const card = cb.closest('.product-card');
                 if (card) card.classList.remove('selected');
             });
-            
+
             const banner = document.getElementById('duplicateBanner');
             if (banner) banner.classList.add('hidden');
-            
+
             if (typeof updateDynamicExtras === 'function') updateDynamicExtras();
             if (typeof calLoad === 'function') calLoad();
-            
+
             this.paymentStatus = 'Pending';
             this.paymentType = 'EFT';
             this.updatePaymentMethods();
@@ -241,51 +244,20 @@ document.addEventListener('alpine:init', () => {
             showToast("Reset Complete", "Form reset successfully.", "success");
         },
 
-        toasts: [],
-        addToast(title, message, type = 'primary') {
-            const id = Date.now();
-            
-            // Map types to premium icons
-            const iconMap = {
-                'success': 'check_circle',
-                'error': 'error',
-                'warning': 'warning',
-                'primary': 'info'
-            };
-            
-            if (this.toasts.length >= 3) this.toasts.shift();
-            this.toasts.push({
-                id,
-                title,
-                message,
-                type,
-                icon: iconMap[type] || 'notifications',
-                visible: true
-            });
-            setTimeout(() => {
-                const t = this.toasts.find(toast => toast.id === id);
-                if (t) t.visible = false;
-            }, 3700);
-            setTimeout(() => {
-                this.toasts = this.toasts.filter(t => t.id !== id);
-            }, 4000);
-        }
     }));
 });
 
 // Bridge Global Vanilla JS to Alpine Toast
-window.showToast = function(title, message, type = 'primary') {
-    const el = document.querySelector('[x-data="bookingApp"]');
-    if (el && el._x_dataStack) {
-        // Alpine v3/v4 style
-        el._x_dataStack[0].addToast(title, message, type);
-    }
+window.showToast = function (title, message, type = 'success') {
+    window.dispatchEvent(new CustomEvent('notify', {
+        detail: { title, message, type }
+    }));
 };
 
 // --- API & HANDLERS ---
 
 
-window.apiPost = async function(action, payload = null) {
+window.apiPost = async function (action, payload = null) {
     let fd = new FormData();
     if (payload) {
         for (let key in payload) fd.append(key, payload[key]);
@@ -310,7 +282,7 @@ window.apiPost = async function(action, payload = null) {
     }
 };
 
-window.checkDuplicates = async function() {
+window.checkDuplicates = async function () {
     // We optionally use a timer for blur events, but for fillCustomerDetails we call it directly.
     const dateEl = document.getElementById('event_date');
     const fNameEl = document.getElementById('cust_first_name');
@@ -330,13 +302,13 @@ window.checkDuplicates = async function() {
                 last_name: lastName,
                 current_invoice: invoice
             });
-            
+
             const hasDupes = data.warnings && data.warnings.length > 0;
             window.hasBookingDuplicates = hasDupes;
 
             if (hasDupes) {
                 const warningHtml = data.warnings.map(w => `<p>• ${w}</p>`).join('');
-                
+
                 // Main Form Banner
                 const bannerBody = document.getElementById('duplicateBannerBody');
                 if (bannerBody) bannerBody.innerHTML = warningHtml;
@@ -373,7 +345,7 @@ function fmtDate(d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-window.calLoad = async function() {
+window.calLoad = async function () {
     const s = new Date(calCursor.getFullYear(), calCursor.getMonth(), 1);
     const e = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 0);
     const labelEl = document.getElementById('calLabel');
@@ -390,7 +362,7 @@ window.calLoad = async function() {
         });
         const grid = document.getElementById('calGrid');
         if (!grid) return;
-        
+
         grid.innerHTML = '';
         for (let i = 0; i < s.getDay(); i++) grid.innerHTML += '<div></div>';
 
@@ -398,12 +370,12 @@ window.calLoad = async function() {
         const dateInput = document.getElementById('event_date');
         const currentVal = dateInput ? dateInput.value : '';
         const dailyLimit = res.daily_limit || 7;
-        
+
         const summaryEl = document.getElementById('calSummary');
         if (summaryEl) summaryEl.innerText = `Daily limit: ${dailyLimit} bookings`;
 
         for (let d = 1; d <= e.getDate(); d++) {
-            let dStr = `${calCursor.getFullYear()}-${String(calCursor.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            let dStr = `${calCursor.getFullYear()}-${String(calCursor.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             let used = (res.counts && res.counts[dStr]) ? parseInt(res.counts[dStr]) : 0;
             let left = Math.max(0, dailyLimit - used);
 
@@ -415,7 +387,7 @@ window.calLoad = async function() {
                 onclick="selectDate('${dStr}', ${left})">
                 ${todayBadge}
                 <span class="font-extrabold text-xl sm:text-3xl leading-none mb-2">${d}</span>
-                <span class="text-[10px] sm:text-xs font-bold bg-white/80 px-2 py-1 rounded-full leading-none shadow-sm">${left===0?'Full':left + ' Left'}</span>
+                <span class="text-[10px] sm:text-xs font-bold bg-white/80 px-2 py-1 rounded-full leading-none shadow-sm">${left === 0 ? 'Full' : left + ' Left'}</span>
             </div>`;
         }
     } catch (e) {
@@ -428,16 +400,16 @@ window.calLoad = async function() {
     window.updateCalSelection();
 };
 
-window.updateCalSelection = function() {
+window.updateCalSelection = function () {
     const dateInput = document.getElementById('event_date');
     const currentVal = dateInput ? dateInput.value : '';
-    
+
     document.querySelectorAll('.cal-day').forEach(day => {
         // Clear ALL possible ring/border/scale classes
         day.classList.remove(
-            'ring-2', 'ring-4', 'ring-[#9E6B73]', 'ring-[#9D686E]', 
-            'ring-offset-2', 'ring-offset-4', 
-            'border-[#9E6B73]', 'border-[#9D686E]', 
+            'ring-2', 'ring-4', 'ring-[#9E6B73]', 'ring-[#9D686E]',
+            'ring-offset-2', 'ring-offset-4',
+            'border-[#9E6B73]', 'border-[#9D686E]',
             'scale-110', 'shadow-xl', 'z-10'
         );
 
@@ -447,17 +419,17 @@ window.updateCalSelection = function() {
     });
 };
 
-window.calPrev = function() {
+window.calPrev = function () {
     calCursor.setMonth(calCursor.getMonth() - 1);
     calLoad();
 };
 
-window.calNext = function() {
+window.calNext = function () {
     calCursor.setMonth(calCursor.getMonth() + 1);
     calLoad();
 };
 
-window.selectDate = function(dateStr, left) {
+window.selectDate = function (dateStr, left) {
     if (left <= 0) {
         showToast("Sold Out", "This date is fully booked.", "error");
         return;
@@ -469,7 +441,7 @@ window.selectDate = function(dateStr, left) {
     showToast("Date Selected", "Date updated to " + dateStr, "success");
 };
 
-window.dateChanged = function() {
+window.dateChanged = function () {
     checkRealTimeAvailability();
     checkDuplicates(); // Re-verify duplicates whenever the date changes
 };
@@ -478,10 +450,10 @@ window.dateChanged = function() {
 
 
 
-window.handleSelection = function(checkbox) {
+window.handleSelection = function (checkbox) {
     const card = checkbox.closest('.product-card');
     const dateVal = document.getElementById('event_date')?.value;
-    
+
     if (!dateVal) {
         checkbox.checked = false;
         showToast("Select Date First", "Please select a booking date before choosing an attraction.", "warning");
@@ -490,7 +462,7 @@ window.handleSelection = function(checkbox) {
 
     const isSoldOut = card.dataset.productSoldOut === 'true';
     const appEl = document.querySelector('[x-data="bookingApp"]');
-    
+
     // Check if Alpine instance is ready
     let alpine = null;
     if (appEl && appEl.__x) {
@@ -586,7 +558,7 @@ function processSelection(checkbox, card) {
 };
 
 
-window.updateItemQty = function(itemName, change) {
+window.updateItemQty = function (itemName, change) {
     const lwEl = document.querySelector('[wire\\:id]');
     if (lwEl && window.Livewire) {
         const lwComp = window.Livewire.find(lwEl.getAttribute('wire:id'));
@@ -598,7 +570,7 @@ window.updateItemQty = function(itemName, change) {
     setTimeout(() => triggerRecalculate(), 150);
 };
 
-window.handleExtraSelection = function(element) {
+window.handleExtraSelection = function (element) {
     const dateVal = document.getElementById('event_date')?.value;
     const isSelected = (element.type === 'checkbox' ? element.checked : (element.value !== '' && element.value !== '0' && !element.value.includes('|no')));
 
@@ -623,7 +595,7 @@ window.handleExtraSelection = function(element) {
 
         if (limitCategory && catLimit > 0) {
             let currentUsage = (globalCategoryBooked[limitCategory] || 0);
-            
+
             document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
                 const cbCat = (cb.closest('.product-card').dataset.countsAgainst || '').trim().toLowerCase();
                 if (cbCat === limitCategory) {
@@ -649,7 +621,7 @@ window.handleExtraSelection = function(element) {
                 } else {
                     showToast("Limit Reached", `Max ${catLimit} items for ${limitCategory}.`, "warning");
                 }
-                
+
                 if (element.type === 'checkbox') {
                     element.checked = false;
                 } else {
@@ -665,7 +637,7 @@ window.handleExtraSelection = function(element) {
     updateCategoryLimitsUI();
 };
 
-window.finalizeBooking = async function() {
+window.finalizeBooking = async function () {
     if (isProceeding) return;
     isProceeding = true;
     const btn = document.getElementById('btnSaveFinal');
@@ -727,7 +699,7 @@ window.finalizeBooking = async function() {
     }
 };
 
-window.checkTotalAttachmentSize = function(currentInput) {
+window.checkTotalAttachmentSize = function (currentInput) {
     const inputs = document.querySelectorAll('input[type="file"]');
     let total = 0;
     inputs.forEach(input => {
@@ -742,18 +714,18 @@ window.checkTotalAttachmentSize = function(currentInput) {
     if (total > 5 * 1024 * 1024) {
         showToast("Storage Limit", "Total size of all new attachments must not exceed 5MB. Current: " + (total / (1024 * 1024)).toFixed(2) + "MB", "error");
         if (currentInput) currentInput.value = ""; // Clear the input that caused the overflow
-        
+
         // If we have access to Alpine modals (Edit mode)
         if (window.bookingApp && typeof window.bookingApp.modals !== 'undefined') {
             // We could trigger the internal modal if we wanted, but toast is enough
         }
-        
+
         return false;
     }
     return true;
 };
 
-window.filterRides = function() {
+window.filterRides = function () {
     const searchEl = document.getElementById('rideSearch');
     if (!searchEl) return;
     const term = searchEl.value.toLowerCase();
@@ -768,11 +740,11 @@ window.filterRides = function() {
 };
 
 
-window.calcDuration = function() {
+window.calcDuration = function () {
     const sEl = document.getElementById('start_time');
     const eEl = document.getElementById('end_time');
     if (!sEl || !eEl) return;
-    
+
     const s = sEl.value;
     const e = eEl.value;
     if (!s || !e) return;
@@ -799,6 +771,10 @@ window.calcDuration = function() {
             }
         });
 
+        const customCard = document.getElementById('dur_card_custom');
+        // If "Custom/Manual" is already active, don't let auto-calculation override it
+        if (customCard && customCard.classList.contains('duration-active')) return;
+
         if (best && minDiff < 1.5) {
             best.checked = true;
             selectDurationCard(best.closest('.duration-card'));
@@ -806,7 +782,7 @@ window.calcDuration = function() {
     }
 };
 
-window.selectDurationCard = function(labelEl) {
+window.selectDurationCard = function (labelEl) {
     if (!labelEl) return;
     document.querySelectorAll('.duration-card').forEach(r => r.classList.remove('duration-active'));
     labelEl.classList.add('duration-active');
@@ -817,20 +793,26 @@ window.selectDurationCard = function(labelEl) {
 
     const wrapper = document.getElementById('customDurationWrapper');
     const durCostInput = document.getElementById('duration_cost');
-    
+    const manualCost = document.getElementById('manual_duration_cost');
+
+    const el = document.querySelector('[x-data="bookingApp"]');
+    const app = el && el._x_dataStack ? el._x_dataStack[0] : null;
+
     if (input.value === 'custom') {
         if (wrapper) wrapper.classList.remove('hidden');
-        const manualCost = document.getElementById('manual_duration_cost');
-        if (durCostInput) durCostInput.value = manualCost ? (manualCost.value || 0) : 0;
+        if (app) app.isDurationCustom = true;
+        if (durCostInput && manualCost && manualCost.value !== "") {
+            durCostInput.value = manualCost.value;
+        }
     } else {
         if (wrapper) wrapper.classList.add('hidden');
-        if (durCostInput) durCostInput.value = input.dataset.price;
+        if (app) app.isDurationCustom = false;
+        if (durCostInput) durCostInput.value = input.dataset.price || 0;
     }
-
     triggerRecalculate();
 };
 
-window.updateDurationCost = function(radio) {
+window.updateDurationCost = function (radio) {
     if (radio.checked) {
         const durCostInput = document.getElementById('duration_cost');
         if (durCostInput) durCostInput.value = radio.dataset.price;
@@ -838,26 +820,33 @@ window.updateDurationCost = function(radio) {
     }
 };
 
-window.updateDeliveryCost = function(sel) {
+window.updateDeliveryCost = function (sel) {
     const manual = document.getElementById('delivery_area_manual');
     const delCostInput = document.getElementById('delivery_cost');
     if (!delCostInput) return;
 
     if (sel.value === 'custom') {
-        delCostInput.value = manual ? (manual.value || 0) : 0;
+        // If manual input has a value, use it, otherwise keep current OR fallback to 0
+        if (manual && manual.value !== "") {
+            delCostInput.value = manual.value;
+        } else {
+            // Only set to 0 if it was truly empty
+            if (delCostInput.value === "") delCostInput.value = 0;
+        }
     } else {
         if (sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) {
-            delCostInput.value = sel.options[sel.selectedIndex].getAttribute('data-price') || 0;
+            const price = sel.options[sel.selectedIndex].getAttribute('data-price');
+            if (price !== null) delCostInput.value = price;
         } else {
-            delCostInput.value = 0;
+            // Don't reset to 0 if we already have a value and the selection is just "loading"
+            if (sel.value === "" && delCostInput.value == 0) delCostInput.value = 0;
         }
     }
     triggerRecalculate();
 };
 
-window.triggerRecalculate = function() {
-    // If in Edit Mode, let Livewire handle all calculations and DOM updates
-    if (window.bookingAppData && window.bookingAppData.bookingId) return;
+window.triggerRecalculate = function () {
+    // Force calculation even in edit mode to satisfy wire:ignore breakdown panels
 
     const durCostInput = document.getElementById('duration_cost');
     let durCost = durCostInput ? (parseFloat(durCostInput.value) || 0) : 0;
@@ -906,9 +895,8 @@ window.triggerRecalculate = function() {
     updateCategoryLimitsUI();
 };
 
-window.calculateFinalTotals = function() {
-    // If in Edit Mode, let Livewire handle all calculations and DOM updates
-    if (window.bookingAppData && window.bookingAppData.bookingId) return;
+window.calculateFinalTotals = function () {
+    // Force calculation even in edit mode to satisfy wire:ignore breakdown panels
 
     const calcSubInput = document.getElementById('calc_subtotal');
     let sub = calcSubInput ? (parseFloat(calcSubInput.value) || 0) : 0;
@@ -929,25 +917,25 @@ window.calculateFinalTotals = function() {
     if (ov !== "") tot = parseFloat(ov);
 
     const surLabel = document.getElementById('surcharge_label');
-    if (surLabel) surLabel.innerText = `Processing Fee (${(rate*100).toFixed(1)}%)`;
-    
+    if (surLabel) surLabel.innerText = `Processing Fee (${(rate * 100).toFixed(1)}%)`;
+
     const dispSur = document.getElementById('disp_surcharge');
     if (dispSur) dispSur.innerText = '$' + sur.toFixed(2);
-    
+
     const dispTot = document.getElementById('disp_total');
     if (dispTot) dispTot.innerText = '$' + tot.toFixed(2);
-    
+
     const dispDep = document.getElementById('disp_deposit');
     if (dispDep) dispDep.innerText = '$' + (tot / 2).toFixed(2);
 
     const surAmount = document.getElementById('surcharge_amount');
     if (surAmount) surAmount.value = sur.toFixed(2);
-    
+
     const depAmount = document.getElementById('deposit_amount');
     if (depAmount) depAmount.value = (tot / 2).toFixed(2);
 };
 
-window.openReviewModal = async function() {
+window.openReviewModal = async function () {
     // Re-verify duplicates before opening modal to ensure state is fresh
     await checkDuplicates();
 
@@ -958,7 +946,7 @@ window.openReviewModal = async function() {
     const emailEl = document.getElementById('customer_email_address');
     const phoneEl = document.getElementById('customer_phone_mobile');
     const addrEl = document.getElementById('addr_line_1');
-    
+
     const date = dateEl ? dateEl.value : '';
     const startTime = startEl ? startEl.value : '';
     const endTime = endEl ? endEl.value : '';
@@ -966,15 +954,21 @@ window.openReviewModal = async function() {
     const email = emailEl ? emailEl.value : '';
     const phone = phoneEl ? phoneEl.value : '';
     const addr = addrEl ? addrEl.value : '';
-    
+
     const el = document.querySelector('[x-data="bookingApp"]');
     const alpine = el && el._x_dataStack ? el._x_dataStack[0] : { deliveryZone: '', modals: { review: false } };
     const delZone = alpine.deliveryZone;
 
     let missing = [];
+    const appEl = document.querySelector('[x-data="bookingApp"]');
+    const app = appEl && appEl._x_dataStack ? appEl._x_dataStack[0] : null;
+    const isCustom = app ? app.isDurationCustom : false;
+
     if (!date) missing.push("Event Date");
-    if (!startTime) missing.push("Start Time");
-    if (!endTime) missing.push("End Time");
+    if (!isCustom) {
+        if (!startTime) missing.push("Start Time");
+        if (!endTime) missing.push("End Time");
+    }
     if (!fName) missing.push("First Name");
     if (!email) missing.push("Email");
     if (!phone) missing.push("Mobile");
@@ -1001,7 +995,7 @@ window.openReviewModal = async function() {
 
     const lNameEl = document.getElementById('cust_last_name');
     const lName = lNameEl ? lNameEl.value : '';
-    
+
     document.getElementById('rev_name').innerText = (fName + " " + lName).trim() || "Not Provided";
     document.getElementById('rev_email').innerText = email || "Not Provided";
     document.getElementById('rev_phone').innerText = phone || "Not Provided";
@@ -1026,7 +1020,7 @@ window.openReviewModal = async function() {
     const stEl = document.getElementById('addr_state');
     const pcEl = document.getElementById('addr_postcode');
     document.getElementById('rev_address').innerText = addr ? (addr + "\n" + (subEl ? subEl.value : '') + " " + (stEl ? stEl.value : '') + " " + (pcEl ? pcEl.value : '')) : "Not Provided";
-    
+
     document.getElementById('rev_biz_address').innerText = (document.getElementById('business_address') || {}).value || "N/A";
     document.getElementById('rev_del_notes').innerText = (document.getElementById('note_delivery') || {}).value || "None provided";
     document.getElementById('rev_cust_notes').innerText = (document.getElementById('notes_customer') || {}).value || "None provided";
@@ -1049,7 +1043,7 @@ window.openReviewModal = async function() {
     document.getElementById('rev_ext_cost').innerText = document.getElementById('breakdown_ext').innerText;
     document.getElementById('rev_attractions_cost').innerText = document.getElementById('breakdown_attractions').innerText;
     document.getElementById('rev_sur_cost').innerText = document.getElementById('disp_surcharge').innerText;
-    
+
     const totalRaw = document.getElementById('disp_total').innerText;
     document.getElementById('rev_total').innerText = totalRaw;
 
@@ -1070,11 +1064,11 @@ window.openReviewModal = async function() {
     const payStatus = alpine.paymentStatus;
     const totalNum = parseFloat(totalRaw.replace(/[^0-9.-]+/g, "")) || 0;
     let depositNum = 0;
-    
+
     if (payStatus === 'Deposit Paid') {
         depositNum = totalNum * 0.5; // Assuming 50% deposit as per UI label
     }
-    
+
     const balanceDue = totalNum - depositNum;
     document.getElementById('rev_deposit_paid').innerText = "$" + depositNum.toFixed(2);
     document.getElementById('rev_balance_due').innerText = "$" + balanceDue.toFixed(2);
@@ -1095,7 +1089,7 @@ window.openReviewModal = async function() {
 
     const attractionList = document.getElementById('rev_attractions');
     attractionList.innerHTML = '';
-    
+
     // 1. Add Rides
     checkedRides.forEach(cb => {
         attractionList.innerHTML += `<li><span class="material-symbols-rounded text-[#9E6B73] text-sm align-middle mr-1">check_circle</span>${cb.value}</li>`;
@@ -1123,19 +1117,24 @@ window.openReviewModal = async function() {
     for (let i = 1; i <= 5; i++) {
         const suffix = i > 1 ? `_${i}` : '';
         const input = document.querySelector(`input[name="delivery_attachment${suffix}"]`);
-        if (input && input.files.length > 0) {
+
+        if (input && input.files && input.files.length > 0) {
             revAttachments.innerHTML += `<li><span class="text-[#9E6B73] font-bold">New:</span> ${escapeHTML(input.files[0].name)}</li>`;
             hasFiles = true;
         } else if (input) {
-            const link = input.nextElementSibling;
-            if (link && !link.classList.contains('hidden') && link.classList.contains('view-attachment-link')) {
-                const fname = link.textContent.trim().replace(/^View\s+/i, '');
+            // Robust search for existing files in the new Bento UI
+            const slot = input.closest('.group');
+            const fname = slot ? slot.getAttribute('data-filename') : null;
+
+            if (fname) {
                 revAttachments.innerHTML += `<li><span class="text-slate-500 font-bold">Saved:</span> ${escapeHTML(fname)}</li>`;
                 hasFiles = true;
             }
         }
     }
-    if (!hasFiles) revAttachments.innerHTML = '<li class="text-slate-400 italic">No attachments added.</li>';
+    if (!hasFiles) {
+        revAttachments.innerHTML = '<li class="text-slate-400 italic">No attachments added.</li>';
+    }
 
     const warningBox = document.getElementById('rev_missing_warning');
     const warningList = document.getElementById('rev_missing_list');
@@ -1166,7 +1165,7 @@ function escapeHTML(str) {
     return p.innerHTML;
 }
 
-window.finalizeBooking = async function() {
+window.finalizeBooking = async function () {
     const btn = document.getElementById('btnSaveFinal');
     if (!btn) return;
     btn.innerHTML = '<span class="material-symbols-rounded animate-spin">refresh</span> Processing...';
@@ -1174,7 +1173,7 @@ window.finalizeBooking = async function() {
 
     try {
         const form = document.getElementById('combinedBookingForm');
-        
+
         // --- 5MB Combined File Size Check ---
         let totalSize = 0;
         const fileInputs = form.querySelectorAll('input[type="file"]');
@@ -1194,7 +1193,7 @@ window.finalizeBooking = async function() {
         const fd = new FormData(form);
         const overrideTotal = document.getElementById('override_total');
         const dispTotal = document.getElementById('disp_total');
-        
+
         let finalVal = "0";
         if (overrideTotal && overrideTotal.value.trim() !== "") {
             finalVal = overrideTotal.value.trim();
@@ -1202,11 +1201,11 @@ window.finalizeBooking = async function() {
             finalVal = dispTotal.innerText.replace(/[^0-9.-]+/g, "");
         }
         fd.set('final_total', finalVal);
-        
+
         // Similarly handle surcharge_amount
         const surch = document.getElementById('disp_surcharge');
         fd.set('surcharge_amount', surch ? surch.innerText.replace(/[^0-9.-]+/g, "") : "0");
-        
+
         fd.append('action', 'save_full_booking');
 
         isProceeding = true;
@@ -1220,7 +1219,7 @@ window.finalizeBooking = async function() {
         const json = await res.json();
 
         if (!json.success) throw new Error(json.message || "Failed to save booking");
- 
+
         showToast("Success", "Booking Confirmed & Saved!", "success");
         setTimeout(() => {
             // Check if we're in supervisor mode or admin
@@ -1240,11 +1239,11 @@ window.finalizeBooking = async function() {
         isProceeding = false;
     }
 };
- 
-window.deleteAndExit = function() {
+
+window.deleteAndExit = function () {
     isProceeding = true;
     const isEdit = !!window.bookingAppData.bookingId;
-    
+
     if (!isEdit && window.bookingAppData.bookingId) { // Only delete if it was a fresh draft (simplified check)
         const bookingIdEl = document.getElementById('booking_id');
         if (bookingIdEl && bookingIdEl.value) {
@@ -1255,7 +1254,7 @@ window.deleteAndExit = function() {
             navigator.sendBeacon('/api/bookings/handler', fd);
         }
     }
-    
+
     if (isEdit) {
         window.location.href = window.location.pathname.includes('/supervisor/') ? `/supervisor/bookings/${window.bookingAppData.bookingId}` : `/admin/bookings/${window.bookingAppData.bookingId}`;
     } else {
@@ -1288,11 +1287,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const dateInput = document.getElementById('event_date');
     calCursor = new Date(dateInput && dateInput.value ? dateInput.value : Date.now());
-    
+
     // Initial triggers
     setTimeout(async () => {
         if (typeof calLoad === 'function') calLoad();
-        
+
         // Populate initial selection state
         if (window.bookingAppData.selectedItems) {
             document.querySelectorAll('.product-card').forEach(card => {
@@ -1310,8 +1309,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (typeof checkRealTimeAvailability === 'function') await checkRealTimeAvailability(false); // First load is NOT silent
+        const delSelect = document.getElementById('delivery_area_select');
+        if (delSelect && typeof updateDeliveryCost === 'function') updateDeliveryCost(delSelect);
+
+        // Sync initial duration custom state
+        const checkedDur = document.querySelector('input[name="duration"]:checked');
+        if (checkedDur && checkedDur.value === 'custom') {
+            const appEl = document.querySelector('[x-data="bookingApp"]');
+            const app = appEl && appEl._x_dataStack ? appEl._x_dataStack[0] : null;
+            if (app) app.isDurationCustom = true;
+        }
+
         if (typeof triggerRecalculate === 'function') triggerRecalculate();
-        
+
         window.isInitialLoading = false;
     }, 100);
 });

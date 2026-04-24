@@ -540,6 +540,20 @@
         font-weight: 800;
     }
 
+    /* Specific adjustments for textareas to prevent overlap */
+    textarea.input-dark {
+        padding-top: 1.75rem;
+    }
+
+    textarea.input-dark+.input-floating-label {
+        top: 1rem;
+    }
+
+    textarea.input-dark:focus+.input-floating-label,
+    textarea.input-dark:not(:placeholder-shown)+.input-floating-label {
+        transform: translateY(-0.8rem);
+    }
+
     .duration-active {
         box-shadow: 0 0 0 2px var(--color-plum) !important;
         background-color: #FFF5F7 !important;

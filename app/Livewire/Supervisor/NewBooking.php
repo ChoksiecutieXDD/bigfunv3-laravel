@@ -140,6 +140,7 @@ class NewBooking extends Component
             $this->is_edit_mode = true;
             $this->default_event_date = $booking->event_date;
             $this->operational_hours = $booking->operational_hours ?? '';
+            $this->existing_data = (array)$booking;
 
             $this->selected_products = DB::table('booking_items')
                 ->where('booking_id', $this->booking_id)
@@ -219,6 +220,33 @@ class NewBooking extends Component
     {
         $this->saved_extras = $extras;
         // Logic for re-calculating totals can be added here if needed for live preview
+    }
+
+    public function removeAttachment($column)
+    {
+        if (!$this->booking_id) return;
+
+        $booking = DB::table('bookings')->where('id', $this->booking_id)->first();
+        if ($booking && !empty($booking->$column)) {
+            $fileName = $booking->$column;
+            
+            // Delete physical files
+            @unlink(public_path('uploads/' . $fileName));
+            @unlink(storage_path('app/public/uploads/' . $fileName));
+
+            // Clear from DB
+            DB::table('bookings')->where('id', $this->booking_id)->update([$column => null]);
+            
+            // Update local state
+            $this->existing_data[$column] = null;
+            
+            $this->dispatch('attachment-removed');
+        }
+    }
+
+    public function attachmentUploaded($column, $fileName)
+    {
+        $this->existing_data[$column] = $fileName;
     }
 
     public function render()

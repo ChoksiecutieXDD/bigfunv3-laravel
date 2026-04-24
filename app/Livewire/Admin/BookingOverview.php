@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Admin;
 
 use Livewire\Component;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Title;
 use App\Models\Booking;
 use App\Models\BookingItem;
 use App\Models\BookingPayment;
@@ -12,10 +11,13 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 #[Layout('components.layouts.overview')]
-#[Title('Booking Overview')]
 class BookingOverview extends Component
 {
     public Booking $booking;
+
+    // --- General Properties (Restored for View Compatibility) ---
+    public $newStatus;
+    public $newDate;
 
     // --- Email Properties ---
     public $emailType = 'invoice';
@@ -25,16 +27,48 @@ class BookingOverview extends Component
     public $emailSubject;
     public $emailBody;
     public $emailAttachment;
+    public $emailFrom = 'bigfun.qld.au@gmail.com';
+    public $isSentSuccessfully = false;
 
+    // --- Calendar Modals Properties (Restored for View Compatibility) ---
+    public $calMonth;
+    public $calYear;
+    public $tempSelectedDate;
+
+    // --- Detail Selection ---
+    public $selectedPayment;
     public $from_url;
 
     public function mount($id)
     {
         $this->from_url = request()->query('back');
         $this->booking = Booking::findOrFail($id);
+        $this->newStatus = $this->booking->status;
+        $this->newDate = Carbon::parse($this->booking->event_date)->format('Y-m-d');
+        
+        $this->calMonth = Carbon::parse($this->newDate)->month;
+        $this->calYear = Carbon::parse($this->newDate)->year;
     }
 
-    // --- Email Logic (Read-Only allows emailing) ---
+    // --- Read-Only Method Stubs (Prevent 500s) ---
+    public function updateStatus() { /* Read Only */ }
+    public function executeStatusUpdate() { /* Read Only */ }
+    public function toggleTerms() { /* Read Only */ }
+    public function toggleAttractionCost() { /* Read Only */ }
+    public function moveDate() { /* Read Only */ }
+    public function deleteBooking() { /* Read Only */ }
+    public function manualSync() { /* Read Only */ }
+    public function calPrev() { /* Read Only */ }
+    public function calNext() { /* Read Only */ }
+    public function applySelectedDate() { /* Read Only */ }
+
+    public function selectPayment($id)
+    {
+        $this->selectedPayment = BookingPayment::find($id);
+        $this->dispatch('open-modal', 'paymentDetailsModal');
+    }
+
+    // --- Email Logic ---
     public function openEmailModal($type)
     {
         $this->emailType = $type;
@@ -43,32 +77,28 @@ class BookingOverview extends Component
         $totalAmount = (float) $this->booking->total_amount;
         $balanceDue = max(0, $totalAmount - $amountPaid);
 
-        $fName = $this->booking->customer_first_name;
-        $fullName = $fName . ' ' . $this->booking->customer_last_name;
+        $fullName = $this->booking->customer_first_name . ' ' . $this->booking->customer_last_name;
         $eventDate = Carbon::parse($this->booking->event_date)->format('d/m/Y');
 
         if ($type === 'receipt') {
             $this->emailSubject = "Payment Receipt - Booking #{$this->booking->id}";
-            $this->emailBody = "$fullName\n\nThank you for your payment for your booking on $eventDate.\n\nInvoice Amount: $" . number_format($totalAmount, 2) . "\nAmount Paid: $" . number_format($amountPaid, 2) . "\nAmount Owing: $" . number_format($balanceDue, 2) . "\n\nRegards\nBIG FUN";
+            $this->emailBody = "$fullName\n\nThank you for your payment regarding your booking on $eventDate.\n\nTotal Paid: $" . number_format($amountPaid, 2) . "\nBalance Due: $" . number_format($balanceDue, 2) . "\n\nRegards\nBIG FUN";
             $this->emailAttachment = "BigFunReceipt-{$this->booking->id}.pdf";
         } elseif ($type === 'po') {
             $this->emailSubject = "Purchase Order Reference - Booking #{$this->booking->id}";
-            $this->emailBody = "Hello $fName,\n\nPlease find attached the Purchase Order Reference / Quotation for your internal approval process.\n\nTotal Proposed Cost: $" . number_format($totalAmount, 2) . "\n\nKind regards,\nBIG FUN";
+            $this->emailBody = "Hello,\n\nPlease find attached the Purchase Order Reference for your booking on $eventDate.\n\nTotal Cost: $" . number_format($totalAmount, 2) . "\n\nKind regards,\nBIG FUN";
             $this->emailAttachment = "BigFunPurchaseOrder-{$this->booking->id}.pdf";
+        } elseif ($type === 'debt') {
+            $this->emailSubject = "Outstanding Balance Reminder - Booking #{$this->booking->id}";
+            $this->emailBody = "Hello,\n\nThis is a reminder regarding your outstanding balance of $" . number_format($balanceDue, 2) . " for your booking on $eventDate.\n\nRegards\nBIG FUN";
+            $this->emailAttachment = "BigFunDebt-{$this->booking->id}.pdf";
         } else {
             $this->emailSubject = "Big Fun Invoice - Booking #{$this->booking->id}";
-            $this->emailBody = "Hello,\n\nPlease find attached the paperwork for your booking on $eventDate. Kindly review the document to ensure all contact and delivery details are correct.\n\nTotal Amount: $" . number_format($totalAmount, 2) . "\nBalance Due: $" . number_format($balanceDue, 2) . "\n\nKind regards,\nBIG FUN";
+            $this->emailBody = "Hello,\n\nPlease find attached the invoice for your booking on $eventDate.\n\nTotal Amount: $" . number_format($totalAmount, 2) . "\nBalance Due: $" . number_format($balanceDue, 2) . "\n\nKind regards,\nBIG FUN";
             $this->emailAttachment = "BigFunInvoice-{$this->booking->id}.pdf";
         }
 
         $this->dispatch('open-modal', 'emailModal');
-    }
-
-    public function toggleAttractionCost()
-    {
-        $this->booking->include_attraction_cost = !$this->booking->include_attraction_cost;
-        $this->booking->save();
-        $this->dispatch('notify', title: 'Success', message: 'Attraction costing display updated.');
     }
 
     public function sendEmail()
@@ -101,11 +131,11 @@ class BookingOverview extends Component
         $amountPaid = $payments->sum('amount');
         $totalAmount = (float) $this->booking->total_amount;
         $balanceDue = max(0, $totalAmount - $amountPaid);
+        $depositReq = $this->booking->deposit_required > 0 ? $this->booking->deposit_required : ($totalAmount / 2);
 
-        $extrasList = array_merge(
-            json_decode($this->booking->general_extra ?? '[]', true) ?? [],
-            json_decode($this->booking->specific_extra ?? '[]', true) ?? []
-        );
+        $isDebt = ($balanceDue > 0 && Carbon::parse($this->booking->event_date)->startOfDay()->lte(now()->startOfDay()));
+
+        $extrasList = array_merge(json_decode($this->booking->general_extra ?? '[]', true) ?? [], json_decode($this->booking->specific_extra ?? '[]', true) ?? []);
         $calculatedExtrasTotal = empty($extrasList) ? ($this->booking->extra_logistics_cost ?? 0) : array_sum($extrasList);
 
         $isCard = in_array($this->booking->payment_type, ['credit_card', 'Card Holder']);
@@ -128,17 +158,12 @@ class BookingOverview extends Component
         };
 
         $activeCategories = ['General Logistics'];
-        foreach ($items as $item) {
-            if ($item->category) {
-                $activeCategories[] = $item->category;
-            }
-        }
+        foreach ($items as $item) { if ($item->category) { $activeCategories[] = $item->category; } }
         $activeCategories = array_unique($activeCategories);
 
-        // Fetch configs for Extra Configurations display matching new-booking/edit-booking logic
         $config = [
-            'addons' => DB::table('category_addons')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { return $g->toArray(); })->toArray(),
-            'questions' => DB::table('product_extras')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { return $g->toArray(); })->toArray(),
+            'addons' => DB::table('category_addons')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { return $g->map(fn($v) => (array)$v)->toArray(); })->toArray(),
+            'questions' => DB::table('product_extras')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { return $g->map(fn($v) => (array)$v)->toArray(); })->toArray(),
             'dropdowns' => []
         ];
 
@@ -155,36 +180,12 @@ class BookingOverview extends Component
 
         $startTime = Carbon::parse($this->booking->start_time);
         $timeString = $startTime->format('g:i A');
-        if (!empty($this->booking->end_time) && $this->booking->end_time != '00:00:00') {
-            $timeString .= ' - ' . Carbon::parse($this->booking->end_time)->format('g:i A');
-        }
+        if (!empty($this->booking->end_time) && $this->booking->end_time != '00:00:00') { $timeString .= ' - ' . Carbon::parse($this->booking->end_time)->format('g:i A'); }
 
-        $galleryFiles = collect([
-            $this->booking->delivery_attachment,
-            $this->booking->delivery_attachment_2,
-            $this->booking->delivery_attachment_3,
-            $this->booking->delivery_attachment_4,
-            $this->booking->delivery_attachment_5
-        ])->filter()->toArray();
+        $galleryFiles = collect([$this->booking->delivery_attachment, $this->booking->delivery_attachment_2, $this->booking->delivery_attachment_3, $this->booking->delivery_attachment_4, $this->booking->delivery_attachment_5])->filter()->toArray();
 
-        return view('livewire.booking-overview', compact(
-            'items',
-            'payments',
-            'emailLogs',
-            'amountPaid',
-            'totalAmount',
-            'balanceDue',
-            'calculatedExtrasTotal',
-            'deliveryCost',
-            'ridesCost',
-            'statusColor',
-            'timeString',
-            'galleryFiles',
-            'isCard',
-            'surcharge',
-            'activeCategories',
-            'config',
-            'selectedExtras'
+        return view('livewire.admin.booking-overview', compact(
+            'items', 'payments', 'emailLogs', 'amountPaid', 'totalAmount', 'balanceDue', 'depositReq', 'calculatedExtrasTotal', 'isDebt', 'deliveryCost', 'ridesCost', 'statusColor', 'timeString', 'galleryFiles', 'isCard', 'surcharge', 'baseAmount', 'activeCategories', 'config', 'selectedExtras'
         ));
     }
 }

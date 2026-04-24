@@ -101,7 +101,7 @@
             if ($status === 'Cancelled') $statusColor = 'text-red-500 bg-red-50 border-red-100';
             @endphp
             <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden active:scale-[0.99] transition-transform">
-                <a href="{{ route('booking.overview', $row->id) }}" class="absolute inset-0 z-10"></a>
+                <a href="{{ route('supervisor.bookings.overview', $row->id) }}" class="absolute inset-0 z-10"></a>
                 <div class="flex items-center justify-between gap-3">
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 mb-1">

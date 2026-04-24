@@ -201,7 +201,7 @@
                             @endif
                         </div>
                     </div>
-                    <a href="/bookings/{{ $job->id }}" class="block w-full py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-bold text-sm text-center transition shadow-md">View Job</a>
+                    <a href="{{ route('staff.bookings.overview', $job->id) }}" class="block w-full py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-bold text-sm text-center transition shadow-md">View Job</a>
                 </div>
             </div>
             @endforeach
@@ -251,7 +251,7 @@
                             </td>
                             <td class="p-5 text-gray-500 truncate max-w-xs">{{ $job->address_line_1 }}</td>
                             <td class="p-5"><span class="status-pill status-confirmed">Confirmed</span></td>
-                            <td class="p-5 text-right"><a href="/bookings/{{ $job->id }}" class="text-gray-400 hover:text-[#9E6B73] transition"><span class="material-symbols-rounded">visibility</span></a></td>
+                            <td class="p-5 text-right"><a href="{{ route('staff.bookings.overview', $job->id) }}" class="text-gray-400 hover:text-[#9E6B73] transition"><span class="material-symbols-rounded">visibility</span></a></td>
                         </tr>
                         @empty
                         <tr>
@@ -317,7 +317,7 @@
                             </td>
                             <td class="p-5 text-gray-500 truncate max-w-xs">{{ $job->address_line_1 }}</td>
                             <td class="p-5"><span class="status-pill status-pending">Pending</span></td>
-                            <td class="p-5 text-right"><a href="/bookings/{{ $job->id }}" class="text-gray-400 hover:text-[#9E6B73] transition"><span class="material-symbols-rounded">visibility</span></a></td>
+                            <td class="p-5 text-right"><a href="{{ route('staff.bookings.overview', $job->id) }}" class="text-gray-400 hover:text-[#9E6B73] transition"><span class="material-symbols-rounded">visibility</span></a></td>
                         </tr>
                         @empty
                         <tr>

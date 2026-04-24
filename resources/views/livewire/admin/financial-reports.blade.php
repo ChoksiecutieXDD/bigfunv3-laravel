@@ -179,7 +179,7 @@
                             </td>
                             <td class="px-6 py-4"><span class="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs" x-text="p.event_type"></span></td>
                             <td class="px-6 py-4 text-right font-bold text-green-600" x-text="'$' + p.total_amount.toFixed(2)"></td>
-                            <td class="px-6 py-4 text-center"><a :href="'/bookings/' + p.id" class="text-xs font-bold text-blue-500 hover:underline">View</a></td>
+                            <td class="px-6 py-4 text-center"><a :href="'/admin/bookings/overview/' + p.id" class="text-xs font-bold text-blue-500 hover:underline">View</a></td>
                         </tr>
                     </template>
                     <tr x-show="items.length === 0">
@@ -236,7 +236,7 @@
                             </td>
                             <td class="px-6 py-4"><span class="px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs font-bold" x-text="t.event_type"></span></td>
                             <td class="px-6 py-4 text-right font-bold text-green-600" x-text="'+$' + t.total_amount.toFixed(2)"></td>
-                            <td class="px-6 py-4 text-center"><a :href="'/bookings/' + t.id" class="text-xs font-bold text-blue-500 hover:underline">View</a></td>
+                            <td class="px-6 py-4 text-center"><a :href="'/admin/bookings/overview/' + t.id" class="text-xs font-bold text-blue-500 hover:underline">View</a></td>
                         </tr>
                     </template>
                     <tr x-show="items.length === 0">

@@ -1,40 +1,4 @@
 <div x-data="bookingApp" class="min-h-screen flex flex-col relative pb-8 bg-[#F8FAFC]">
-    <!-- Premium Toast Notifications (system-settings style) -->
-    <div class="fixed top-6 right-6 z-[999999] flex flex-col gap-3 pointer-events-none" style="width:380px;">
-        <template x-for="toast in toasts" :key="toast.id">
-            <div x-show="toast.visible"
-                x-transition:enter="transition ease-out duration-400"
-                x-transition:enter-start="opacity-0 translate-x-8 scale-95"
-                x-transition:enter-end="opacity-100 translate-x-0 scale-100"
-                x-transition:leave="transition ease-in duration-300"
-                x-transition:leave-start="opacity-100 translate-x-0 scale-100"
-                x-transition:leave-end="opacity-0 translate-x-8 scale-95"
-                class="pointer-events-auto w-full bg-slate-900/95 backdrop-blur-xl border rounded-2xl shadow-2xl p-4 flex items-start gap-3"
-                :class="{
-                    'border-emerald-500/40': toast.type === 'success',
-                    'border-red-500/40': toast.type === 'error',
-                    'border-amber-500/40': toast.type === 'warning',
-                    'border-[#9E6B73]/40': toast.type === 'primary'
-                }">
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
-                    :class="{
-                        'bg-emerald-500/15 text-emerald-400': toast.type === 'success',
-                        'bg-red-500/15 text-red-400': toast.type === 'error',
-                        'bg-amber-500/15 text-amber-400': toast.type === 'warning',
-                        'bg-[#9E6B73]/15 text-[#9E6B73]': toast.type === 'primary'
-                    }">
-                    <span class="material-symbols-rounded text-xl" x-text="toast.icon"></span>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h4 class="font-bold text-sm text-white" x-text="toast.title"></h4>
-                    <p class="text-xs text-slate-400 mt-0.5 leading-relaxed" x-text="toast.message"></p>
-                </div>
-                <button @click="toast.visible = false" class="text-slate-600 hover:text-slate-300 transition shrink-0 p-1 rounded-lg hover:bg-white/10">
-                    <span class="material-symbols-rounded text-base">close</span>
-                </button>
-            </div>
-        </template>
-    </div>
 
     <div class="flex w-full relative overflow-hidden">
         <main class="flex-1 pt-4 pb-16 px-0 max-w-[1440px] mx-auto w-full">
@@ -145,8 +109,8 @@
                                     <label class="input-label text-slate-400 !ml-1">Payment Type</label>
                                     <div class="relative">
                                         <select name="payment_type" x-model="paymentType" @change="updatePaymentMethods()" class="input-dark appearance-none cursor-pointer">
-                                            <option value="EFT">EFT / Bank Transfer</option>
-                                            <option value="Card Holder">Credit/Debit Card</option>
+                                            <option value="EFT">EFT</option>
+                                            <option value="Card Holder">Card Holder</option>
                                             <option value="Cash">Cash</option>
                                         </select>
                                         <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
@@ -216,10 +180,14 @@
                                 </div>
                             </div>
 
-                            <div x-show="paymentStatus === 'Deposit Paid'" x-collapse class="mt-4">
+                            <div x-show="paymentStatus === 'Deposit Paid'" x-collapse class="mt-4 space-y-4">
                                 <div class="relative">
                                     <input type="text" name="payment_reference" placeholder=" " class="input-dark">
-                                    <label class="input-floating-label">Receipt / Transaction Ref ID</label>
+                                    <label class="input-floating-label">Reference Number</label>
+                                </div>
+                                <div class="relative">
+                                    <textarea name="payment_notes" placeholder=" " class="input-dark !h-24 resize-none" style="min-height: 96px;"></textarea>
+                                    <label class="input-floating-label">Additional Payment Notes</label>
                                 </div>
                             </div>
 
@@ -282,11 +250,17 @@
                         </div>
                         <div class="input-group">
                             <label class="input-label">Start Time</label>
-                            <input type="time" name="start_time" id="start_time" class="input-field" value="{{ substr($this->getVal('start_time'), 0, 5) }}" @change="calcDuration()">
+                            <input type="time" name="start_time" id="start_time" 
+                                class="input-field" :class="{'opacity-50 pointer-events-none bg-slate-100': isDurationCustom}"
+                                :readonly="isDurationCustom"
+                                value="{{ substr($this->getVal('start_time'), 0, 5) }}" @change="calcDuration()">
                         </div>
                         <div class="input-group">
                             <label class="input-label">End Time</label>
-                            <input type="time" name="end_time" id="end_time" class="input-field" value="{{ substr($this->getVal('end_time'), 0, 5) }}" @change="calcDuration()">
+                            <input type="time" name="end_time" id="end_time" 
+                                class="input-field" :class="{'opacity-50 pointer-events-none bg-slate-100': isDurationCustom}"
+                                :readonly="isDurationCustom"
+                                value="{{ substr($this->getVal('end_time'), 0, 5) }}" @change="calcDuration()">
                         </div>
                     </div>
 
@@ -508,17 +482,110 @@
                                 @php
                                 $dbCol=($i===1) ? 'delivery_attachment' : 'delivery_attachment_' . $i;
                                 $existingFile=$this->getVal($dbCol);
+                                $existingExt = $existingFile ? strtolower(pathinfo($existingFile, PATHINFO_EXTENSION)) : '';
                                 @endphp
-                                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col justify-center">
-                                    <input type="file" name="delivery_attachment{{ $i > 1 ? "_$i" : "" }}" accept="image/png, image/jpeg, application/pdf" @change="checkTotalAttachmentSize($el)" class="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#9E6B73]/10 file:text-[#9E6B73] hover:file:bg-[#9E6B73]/20 cursor-pointer">
-                                    @if ($existingFile)
-                                    <a href="/storage/uploads/{{ $existingFile }}" target="_blank" class="text-xs font-bold text-[#9E6B73] hover:underline mt-2 flex items-center gap-1 view-attachment-link"><span class="material-symbols-rounded text-sm">open_in_new</span> View {{ $existingFile }}</a>
-                                    @endif
+                                 <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col relative group transition-all hover:bg-white hover:shadow-md" 
+                                     :data-filename="fileName"
+                                     x-data="{ 
+                                        fileName: '{{ $existingFile }}', 
+                                        fileExt: '{{ $existingExt }}',
+                                        isImage: {{ in_array($existingExt, ['jpg', 'jpeg', 'png']) ? 'true' : 'false' }},
+                                        previewUrl: '{{ $existingFile ? "/storage/uploads/$existingFile" : "" }}',
+                                        handleFile(el) {
+                                            const file = el.files[0];
+                                            if (!file) return;
+
+                                            const ext = file.name.split('.').pop().toLowerCase();
+                                            if (!['jpg', 'jpeg', 'png'].includes(ext)) {
+                                                el.value = '';
+                                                window.dispatchEvent(new CustomEvent('notify', { detail: { title: 'Invalid File Type', type: 'error', icon: 'error', message: 'Only JPG and PNG formats are allowed.' } }));
+                                                return;
+                                            }
+
+                                            // Check size BEFORE updating state
+                                            if (!checkTotalAttachmentSize(el)) {
+                                                el.value = ''; // Reset input
+                                                return;
+                                            }
+
+                                            this.fileName = file.name;
+                                            this.fileExt = ext;
+                                            this.isImage = true;
+                                            
+                                            // Clean up old object URLs to prevent memory leaks
+                                            if (this.previewUrl.startsWith('blob:')) {
+                                                URL.revokeObjectURL(this.previewUrl);
+                                            }
+                                            
+                                            this.previewUrl = URL.createObjectURL(file);
+                                        },
+                                        openFile() {
+                                            if (!this.previewUrl) return;
+                                            const a = document.createElement('a');
+                                            a.href = this.previewUrl;
+                                            a.target = '_blank';
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                        }
+                                     }">
+                                    
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 rounded-lg bg-[#9E6B73]/10 flex items-center justify-center text-[#9E6B73]">
+                                                <span class="material-symbols-rounded text-lg" x-text="isImage ? 'image' : (fileName ? 'description' : 'upload_file')"></span>
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Slot {{ $i }}</span>
+                                                <template x-if="fileExt">
+                                                    <span class="text-[9px] font-bold bg-[#9E6B73] text-white px-1.5 py-0.5 rounded-md uppercase w-fit" x-text="fileExt"></span>
+                                                </template>
+                                            </div>
+                                        </div>
+
+                                        <template x-if="fileName">
+                                            <button type="button" 
+                                                    @click="$wire.removeAttachment('{{ $dbCol }}'); fileName = ''; fileExt = ''; previewUrl = ''; isImage = false; $el.closest('.group').querySelector('input[type=file]').value = '';"
+                                                    class="w-7 h-7 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm z-20">
+                                                <span class="material-symbols-rounded text-sm">close</span>
+                                            </button>
+                                        </template>
+                                    </div>
+
+                                    <div class="relative flex-1">
+                                        <input type="file" name="delivery_attachment{{ $i > 1 ? "_$i" : "" }}" 
+                                               wire:model="temp_attachment_{{ $i }}"
+                                               accept="image/png, image/jpeg" 
+                                               @change="handleFile($el)" 
+                                               class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                                        
+                                        <div class="border-2 border-dashed border-slate-200 rounded-xl p-2 h-24 flex items-center justify-center bg-white overflow-hidden group-hover:border-[#9E6B73]/30 transition-colors">
+                                            <template x-if="!fileName">
+                                                <div class="flex flex-col items-center gap-1">
+                                                    <span class="text-[10px] font-bold text-slate-400">Click to Upload</span>
+                                                    <span class="text-[9px] text-slate-300">JPG, PNG Only</span>
+                                                </div>
+                                            </template>
+                                            
+                                            <template x-if="fileName">
+                                                <div class="w-full h-full flex items-center justify-center relative">
+                                                    <template x-if="isImage">
+                                                        <img :src="previewUrl" class="h-full w-full object-cover rounded-lg cursor-zoom-in z-20" @click.stop="openFile()">
+                                                    </template>
+                                                    <template x-if="!isImage">
+                                                        <div class="flex flex-col items-center justify-center gap-1 p-2 text-center cursor-pointer z-20 w-full h-full" @click.stop="openFile()">
+                                                            <span class="material-symbols-rounded text-[#9E6B73] text-2xl" x-text="isImage ? 'image' : 'description'"></span>
+                                                            <span class="text-[9px] font-bold text-slate-600 truncate max-w-[120px]" x-text="fileName"></span>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
                                 </div>
-                                @endfor
+                            @endfor
                         </div>
                     </div>
-                </div>
 
                 <div class="section-card" wire:ignore>
                     <div class="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
@@ -961,6 +1028,29 @@
              }, 300);
              window.lwBookingComponent = $wire;
         });
+
+        window.checkTotalAttachmentSize = function(inputEl) {
+            let total = 0;
+            // Select all file inputs in the attachment section
+            document.querySelectorAll('input[type="file"]').forEach(input => {
+                if (input.files && input.files[0]) {
+                    total += input.files[0].size;
+                }
+            });
+            
+            if (total > 5 * 1024 * 1024) {
+                window.dispatchEvent(new CustomEvent('notify', {
+                    detail: {
+                        title: 'Size Limit Exceeded',
+                        type: 'error',
+                        icon: 'error',
+                        message: 'The total size of all attachments (' + (total / (1024 * 1024)).toFixed(2) + 'MB) exceeds the 5MB limit.'
+                    }
+                }));
+                return false;
+            }
+            return true;
+        };
     </script>
     @endscript
 </div>
