@@ -248,14 +248,14 @@
                             <label class="input-label">Operational Hours</label>
                             <input type="text" name="operational_hours" id="operational_hours" class="input-field" placeholder="e.g. 9am to 5pm" value="{{ $operational_hours }}">
                         </div>
-                        <div class="input-group">
+                        <div class="input-group" x-show="!isDurationCustom">
                             <label class="input-label">Start Time</label>
                             <input type="time" name="start_time" id="start_time" 
                                 class="input-field" :class="{'opacity-50 pointer-events-none bg-slate-100': isDurationCustom}"
                                 :readonly="isDurationCustom"
                                 value="{{ substr($this->getVal('start_time'), 0, 5) }}" @change="calcDuration()">
                         </div>
-                        <div class="input-group">
+                        <div class="input-group" x-show="!isDurationCustom">
                             <label class="input-label">End Time</label>
                             <input type="time" name="end_time" id="end_time" 
                                 class="input-field" :class="{'opacity-50 pointer-events-none bg-slate-100': isDurationCustom}"
@@ -801,8 +801,8 @@
                     <input type="text" x-model="searchHistory" @input="filterCustomers()" placeholder="Search name or email..." class="w-full pl-12 pr-4 py-3 rounded-xl bg-white/20 text-white placeholder-white/70 focus:bg-white focus:text-slate-800 outline-none transition border border-transparent focus:border-white">
                 </div>
             </div>
-            <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-slate-50">
-                <template x-for="c in filteredCustomers">
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-slate-50 min-h-[400px]">
+                <template x-for="c in paginatedCustomers">
                     <div class="p-3 bg-white border border-gray-100 rounded-xl hover:border-green-300 hover:bg-green-50 cursor-pointer flex justify-between items-center transition group" @click="fillCustomerDetails(c)">
                         <div>
                             <p class="font-bold text-slate-800" x-text="(c.customer_first_name + ' ' + (c.customer_last_name || '')).trim()"></p>
@@ -813,6 +813,15 @@
                     </div>
                 </template>
                 <div x-show="filteredCustomers.length === 0" class="text-center p-4 text-gray-400">No customers found.</div>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="p-4 border-t border-gray-100 bg-white flex items-center justify-between rounded-b-2xl" x-show="filteredCustomers.length > 0">
+                <span class="text-xs text-gray-500 font-bold">Page <span x-text="customerPage"></span> of <span x-text="totalCustomerPages"></span></span>
+                <div class="flex gap-2">
+                    <button type="button" @click="if(customerPage > 1) customerPage--" :disabled="customerPage === 1" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition">Previous</button>
+                    <button type="button" @click="if(customerPage < totalCustomerPages) customerPage++" :disabled="customerPage === totalCustomerPages" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition">Next</button>
+                </div>
             </div>
         </div>
     </div>

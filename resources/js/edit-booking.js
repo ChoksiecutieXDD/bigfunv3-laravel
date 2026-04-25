@@ -57,6 +57,16 @@ document.addEventListener('alpine:init', () => {
         previousCustomers: [],
         filteredCustomers: [],
         searchHistory: '',
+        customerPage: 1,
+        customerPageSize: 5,
+        get paginatedCustomers() {
+            let start = (this.customerPage - 1) * this.customerPageSize;
+            let end = start + this.customerPageSize;
+            return this.filteredCustomers.slice(start, end);
+        },
+        get totalCustomerPages() {
+            return Math.ceil(this.filteredCustomers.length / this.customerPageSize) || 1;
+        },
         cardNetwork: 'Visa',
         productDetails: {
             visible: false,
@@ -116,6 +126,7 @@ document.addEventListener('alpine:init', () => {
 
         filterCustomers() {
             const term = this.searchHistory.toLowerCase().trim();
+            this.customerPage = 1; // Reset to first page on search
             if (!term) {
                 this.filteredCustomers = this.previousCustomers;
                 return;
@@ -123,7 +134,8 @@ document.addEventListener('alpine:init', () => {
             this.filteredCustomers = this.previousCustomers.filter(c => {
                 const name = (c.customer_first_name + ' ' + (c.customer_last_name || '')).toLowerCase();
                 const email = (c.customer_email || '').toLowerCase();
-                return name.includes(term) || email.includes(term);
+                const phone = (c.customer_phone || '').toLowerCase();
+                return name.includes(term) || email.includes(term) || phone.includes(term);
             });
         },
 

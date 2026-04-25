@@ -122,6 +122,9 @@
                                     ? 'bg-red-100 text-red-400 cursor-not-allowed border-red-200 opacity-60' 
                                     : 'bg-[#9E6B73] text-white hover:bg-[#86545C] shadow-md shadow-[#9E6B73]/20';
                             @endphp
+                            <button type="button" @click="modals.history = true; filteredCustomers = previousCustomers; searchHistory = ''" class="btn-action bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 flex-1 sm:flex-none justify-center">
+                                <span class="material-symbols-rounded mr-2 text-lg">history</span> Past Customer
+                            </button>
                             <button 
                                 @if(!$hasConflicts) @click="modals.saveConfirm = true" @endif
                                 type="button" 
@@ -453,11 +456,11 @@
                         <label class="input-label">Operational Hours</label>
                         <input type="text" wire:model="form.operational_hours" placeholder="e.g. 9am to 5pm or TBC" class="input-field">
                     </div>
-                    <div class="input-group">
+                    <div class="input-group" x-show="!showCustomDuration">
                         <label class="input-label">Start Time</label>
                         <input type="time" wire:model="form.start_time" class="input-field">
                     </div>
-                    <div class="input-group">
+                    <div class="input-group" x-show="!showCustomDuration">
                         <label class="input-label">End Time</label>
                         <input type="time" wire:model="form.end_time" class="input-field">
                     </div>
@@ -1478,6 +1481,46 @@
                             Apply Selection
                         @endif
                     </button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template x-teleport="body">
+        <div x-show="modals.history" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10000]">
+            <div x-show="modals.history" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.history = false"></div>
+            <div x-show="modals.history" x-transition class="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
+                <div class="p-6 border-b border-gray-100 flex flex-col gap-4 bg-green-600 text-white rounded-t-2xl">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-bold">Existing Customers</h3>
+                        <button type="button" @click="modals.history = false" class="text-white/70 hover:text-white p-2 rounded-full hover:bg-white/20 transition"><span class="material-symbols-rounded">close</span></button>
+                    </div>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-200"><span class="material-symbols-rounded text-lg">search</span></span>
+                        <input type="text" x-model="searchHistory" @input="filterCustomers()" placeholder="Search name or email..." class="w-full pl-12 pr-4 py-3 rounded-xl bg-white/20 text-white placeholder-white/70 focus:bg-white focus:text-slate-800 outline-none transition border border-transparent focus:border-white">
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-slate-50 min-h-[400px]">
+                    <template x-for="c in paginatedCustomers">
+                        <div class="p-3 bg-white border border-gray-100 rounded-xl hover:border-green-300 hover:bg-green-50 cursor-pointer flex justify-between items-center transition group" @click="fillCustomerDetails(c)">
+                            <div>
+                                <p class="font-bold text-slate-800" x-text="(c.customer_first_name + ' ' + (c.customer_last_name || '')).trim()"></p>
+                                <p class="text-[10px] font-black text-[#9E6B73] uppercase tracking-tighter" x-show="c.suburb" x-text="c.suburb + (c.state ? ', ' + c.state : '')"></p>
+                                <p class="text-xs text-gray-400 mt-0.5" x-text="(c.customer_organization || 'Private') + ' • ' + (c.customer_email || c.customer_phone || '')"></p>
+                            </div>
+                            <span class="text-xs font-bold text-green-600 opacity-0 group-hover:opacity-100 transition">Select</span>
+                        </div>
+                    </template>
+                    <div x-show="filteredCustomers.length === 0" class="text-center p-4 text-gray-400">No customers found.</div>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div class="p-4 border-t border-gray-100 bg-white flex items-center justify-between rounded-b-2xl" x-show="filteredCustomers.length > 0">
+                    <span class="text-xs text-gray-500 font-bold">Page <span x-text="customerPage"></span> of <span x-text="totalCustomerPages"></span></span>
+                    <div class="flex gap-2">
+                        <button type="button" @click="if(customerPage > 1) customerPage--" :disabled="customerPage === 1" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition">Previous</button>
+                        <button type="button" @click="if(customerPage < totalCustomerPages) customerPage++" :disabled="customerPage === totalCustomerPages" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition">Next</button>
+                    </div>
                 </div>
             </div>
         </div>

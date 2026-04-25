@@ -2,7 +2,7 @@
     <!-- Header -->
     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-8 mt-4">
         <div>
-            <h1 class="text-3xl md:text-4xl font-extrabold text-white drop-shadow-sm">Logistics Overview</h1>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-white drop-shadow-sm">My Assignments</h1>
             <p class="text-white/90 font-medium mt-1">Active routes and upcoming assignments.</p>
         </div>
     </div>
@@ -40,7 +40,7 @@
         <div class="mb-12">
             <h2 class="text-xl font-black text-white mb-6 flex items-center gap-3">
                 <span class="w-2.5 h-8 bg-orange-400 rounded-full shadow-sm"></span>
-                Pending Actions
+                Me as Delivery / Lead Operator
                 <span class="bg-orange-100 text-orange-700 text-xs px-3 py-1 font-bold rounded-full border border-orange-200/50">{{ $pendingDeliveries->total() }}</span>
             </h2>
 

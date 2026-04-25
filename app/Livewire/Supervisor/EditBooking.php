@@ -269,7 +269,7 @@ class EditBooking extends Component
             ->where('is_active', 1)
             ->orderBy('first_name')
             ->get()
-            ->map(fn($u) => $u->first_name . ' ' . (!empty($u->last_name) ? substr($u->last_name, 0, 1) . '.' : ''))
+            ->map(fn($u) => trim($u->first_name . ' ' . $u->last_name))
             ->toArray();
         
         if (empty($this->staffList)) $this->staffList = ["Team"];
@@ -803,6 +803,11 @@ class EditBooking extends Component
             $saveData['duration'] = $this->form['custom_duration_text'];
         }
 
+        // --- SANITIZE TIME FIELDS ---
+        // Ensure empty strings are treated as DEFAULTS to avoid SQL syntax errors on TIME columns
+        $saveData['start_time'] = !empty($this->form['start_time']) ? $this->form['start_time'] : '00:00:00';
+        $saveData['end_time'] = !empty($this->form['end_time']) ? $this->form['end_time'] : '23:59:59';
+
         // --- MANAGE ORIGINAL DATE TIMELINE ---
         // If this is the first time the date is being moved, preserve the original date
         if (isset($saveData['event_date']) && $saveData['event_date'] !== $this->booking->event_date) {
@@ -812,10 +817,14 @@ class EditBooking extends Component
         }
 
         // --- PREVENT DATA CORRUPTION ---
-        // Do not overwrite amount_paid or owing_amount with stale form state.
-        // These should only be updated via the Payment processing logic.
-        unset($saveData['amount_paid']);
-        unset($saveData['owing_amount']);
+        // Do not update internal identifiers, timestamps, or financials that are handled separately.
+        $protectedFields = [
+            'id', 'created_at', 'updated_at', 'invoice_number',
+            'amount_paid', 'owing_amount', 'is_custom_duration', 'custom_duration_text'
+        ];
+        foreach ($protectedFields as $f) {
+            unset($saveData[$f]);
+        }
 
         // --- ENCODE ALL EXTRAS ---
         $generalExtras = [];

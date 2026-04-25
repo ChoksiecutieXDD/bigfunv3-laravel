@@ -16,6 +16,10 @@
         const title = payload.title || (type.charAt(0).toUpperCase() + type.slice(1));
         const message = payload.message || '';
 
+        if (this.toasts.length >= 3) {
+            this.toasts.shift();
+        }
+
         this.toasts.push({
             id: id,
             visible: true,

@@ -69,7 +69,7 @@ class NewBooking extends Component
             ->get();
 
         foreach ($staff as $row) {
-            $this->operators_list[] = $row->first_name . ' ' . (!empty($row->last_name) ? substr($row->last_name, 0, 1) . '.' : '');
+            $this->operators_list[] = trim($row->first_name . ' ' . $row->last_name);
         }
         if (empty($this->operators_list)) $this->operators_list = ["No staff found"];
 

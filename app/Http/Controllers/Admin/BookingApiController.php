@@ -348,8 +348,8 @@ class BookingApiController extends Controller
 
                     $data = [
                         'event_date' => $request->input('event_date'),
-                        'start_time' => $request->input('start_time') ?? '00:00:00',
-                        'end_time'   => $request->input('end_time')   ?? '23:59:59',
+                        'start_time' => !empty($request->input('start_time')) ? $request->input('start_time') : '00:00:00',
+                        'end_time'   => !empty($request->input('end_time'))   ? $request->input('end_time')   : '23:59:59',
                         'event_type' => $request->input('event_type', 'Private'),
                         'hire_type'  => $request->input('hire_type')   ?? 'Standard',
                         'is_null_booking' => $request->has('is_null_booking') ? 1 : 0,

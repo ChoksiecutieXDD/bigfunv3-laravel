@@ -32,7 +32,12 @@ class StaffDeliveries extends Component
     {
         $user = Auth::user();
         $fullName = $user->first_name . ' ' . $user->last_name;
+        $firstName = $user->first_name;
         $today = Carbon::today()->toDateString();
+
+        // Build a LIKE pattern that matches the first name at minimum.
+        // This handles abbreviated last names like "Trishtan Alexis R." vs "Trishtan Alexis Reyes"
+        $nameLike = '%' . $firstName . '%';
 
         // Base query for deliveries
         $baseQuery = DB::table('bookings')
@@ -50,16 +55,29 @@ class StaffDeliveries extends Component
             });
         }
 
-        // Pending Actions
+        // My Assignments (Pending) - Filtered for current user as Driver or Operator
+        // Uses LIKE matching to handle abbreviated/stored name variants
         $pendingDeliveries = (clone $baseQuery)
             ->where('status', 'Pending')
+            ->where(function($q) use ($fullName, $nameLike) {
+                $q->where('lead_deliverer', $fullName)
+                  ->orWhere('lead_deliverer', 'like', $nameLike)
+                  ->orWhere('lead_operator', $fullName)
+                  ->orWhere('lead_operator', 'like', $nameLike);
+            })
             ->orderBy('event_date', 'asc')
             ->orderBy('start_time', 'asc')
             ->paginate(5, ['*'], 'pend_page');
 
-        // Scheduled & Confirmed
+        // My Scheduled & Confirmed - Filtered for current user as Driver or Operator
         $confirmedDeliveries = (clone $baseQuery)
             ->whereIn('status', ['Confirmed', 'Completed'])
+            ->where(function($q) use ($fullName, $nameLike) {
+                $q->where('lead_deliverer', $fullName)
+                  ->orWhere('lead_deliverer', 'like', $nameLike)
+                  ->orWhere('lead_operator', $fullName)
+                  ->orWhere('lead_operator', 'like', $nameLike);
+            })
             ->orderBy('event_date', 'asc')
             ->orderBy('start_time', 'asc')
             ->paginate(5, ['*'], 'conf_page');
