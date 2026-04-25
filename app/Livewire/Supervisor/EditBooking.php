@@ -58,6 +58,7 @@ class EditBooking extends Component
     public $activeConflicts = [];
     public $activeCapacityBreaches = [];
     public $lastToastDate = null;
+    public $backUrl;
     
     protected $rules = [
         'temp_attachment_1' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
@@ -82,6 +83,7 @@ class EditBooking extends Component
 
     public function mount($id)
     {
+        $this->backUrl = request()->query('back');
         $this->isSupervisor = str_contains(request()->url(), '/supervisor/');
         $this->booking = Booking::findOrFail($id);
         $this->form = $this->booking->toArray();
@@ -128,8 +130,15 @@ class EditBooking extends Component
         $addons = DB::table('category_addons')->get();
         foreach ($addons as $a) {
             $addonKey = 'add_' . $a->id;
-            if (in_array(strtolower(trim($a->addon_label)), $itemNames)) {
-                $this->saved_extras[$addonKey] = "1";
+            $aLabel = strtolower(trim($a->addon_label));
+            $aTarget = strtolower(trim($a->category_target));
+            
+            // Aggressive backend matching
+            foreach ($itemNames as $itName) {
+                if ($itName === $aLabel || str_contains($itName, $aLabel) || str_contains($itName, $aTarget)) {
+                    $this->saved_extras[$addonKey] = "1";
+                    break;
+                }
             }
         }
 
@@ -137,18 +146,36 @@ class EditBooking extends Component
         $questions = DB::table('product_extras')->get();
         foreach ($questions as $q) {
             $qKey = 'q_' . $q->id;
-            if (in_array(strtolower(trim($q->question_text)), $itemNames)) {
-                $this->saved_extras[$qKey] = $q->yes_price . '|yes';
+            $qText = strtolower(trim($q->question_text));
+            
+            // Check if any item name contains the question text
+            foreach ($itemNames as $itName) {
+                if (str_contains($itName, $qText)) {
+                    $this->saved_extras[$qKey] = $q->yes_price . '|yes';
+                    break;
+                }
             }
         }
 
         // 3. Recover Dropdowns
+        $dropdowns = DB::table('product_dropdowns')->get();
         $dropdownOptions = DB::table('dropdown_options')->get();
         foreach ($dropdownOptions as $opt) {
+            $dd = $dropdowns->where('id', $opt->dropdown_id)->first();
+            if (!$dd) continue;
+            
             $ddKey = 'dd_' . $opt->dropdown_id;
-            if (in_array(strtolower(trim($opt->option_label)), $itemNames)) {
-                $this->saved_extras[$ddKey] = $opt->id;
+            $optLabel = strtolower(trim($opt->option_label));
+            
+            $optFound = false;
+            foreach ($itemNames as $itName) {
+                if (str_contains($itName, $optLabel)) {
+                    $this->saved_extras[$ddKey] = $opt->id;
+                    $optFound = true;
+                    break;
+                }
             }
+            if ($optFound) continue;
         }
 
         if (empty($this->booking->extras_json) || $this->booking->extras_json === '[]') {

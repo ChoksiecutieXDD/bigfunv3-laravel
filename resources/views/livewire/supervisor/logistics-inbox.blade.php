@@ -126,9 +126,14 @@
         <div class="p-4 sm:p-6 border-b border-gray-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
             <div class="flex items-center gap-3 w-full lg:w-auto">
                 <div class="p-2 bg-amber-50 text-amber-600 rounded-xl"><span class="material-symbols-rounded">pending_actions</span></div>
-                <div>
-                    <h3 class="font-bold text-gray-800 text-base sm:text-lg">Pending Payments</h3>
-                    <p class="text-[10px] sm:text-xs text-gray-400">Total Outstanding: {{ $pendingPayments->total() }}</p>
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-gray-800 text-base sm:text-lg">Pending Payments</h3>
+                        <button wire:click="toggleSort('pay')" class="p-1 hover:bg-amber-100 rounded-lg transition-colors group" title="Toggle Sort">
+                            <span class="material-symbols-rounded text-sm text-amber-600 transition-transform {{ $sort_pay === 'desc' ? 'rotate-180' : '' }}">sort</span>
+                        </button>
+                    </div>
+                    <p class="text-[10px] sm:text-xs text-gray-400">Total Outstanding: {{ $pendingPayments->total() }} ({{ $sort_pay === 'asc' ? 'Oldest First' : 'Newest First' }})</p>
                 </div>
             </div>
             <div class="flex flex-col sm:flex-row items-center w-full lg:w-auto gap-3 sm:gap-2">
@@ -171,17 +176,22 @@
                                     <div class="text-xs text-gray-500 font-medium">{{ $row->customer_organization }}</div>
                                     <div class="mt-2 flex items-center gap-2 flex-wrap">
                                         <a href="{{ route('supervisor.bookings.overview', ['id' => $row->id, 'back' => route('supervisor.logistics')]) }}"
-                                            class="bg-gray-100 text-gray-600 hover:bg-[#9E6B73] hover:text-white transition text-[10px] font-bold px-2 py-0.5 rounded border border-gray-200 no-underline">ID: #{{ $row->id }}</a>
-                                        <span class="text-[10px] font-black uppercase bg-[#9E6B73]/10 text-[#9E6B73] px-2 py-0.5 rounded border border-[#9E6B73]/20 shadow-sm">{{ \Carbon\Carbon::parse($row->event_date)->format('d/m/y') }}</span>
+                                            class="bg-gray-100 text-gray-600 hover:bg-[#9E6B73] hover:text-white transition text-[10px] font-bold px-2 py-0.5 rounded border border-gray-200 no-underline whitespace-nowrap">ID: #{{ $row->id }}</a>
+                                        <span class="text-[10px] font-black uppercase bg-[#9E6B73]/10 text-[#9E6B73] px-2 py-0.5 rounded border border-[#9E6B73]/20 shadow-sm whitespace-nowrap">{{ \Carbon\Carbon::parse($row->event_date)->format('F j, Y') }}</span>
                                         @php
-                                        $isOverdue = \Carbon\Carbon::parse($row->event_date)->startOfDay()->isBefore(now()->startOfDay());
-                                        $isCompleted = $row->status === 'Completed';
-                                        $showDebt = $outstanding > 0 && ($isOverdue || $isCompleted);
+                                        $isPassed = \Carbon\Carbon::parse($row->event_date)->startOfDay()->isBefore(now()->startOfDay());
+                                        $hasBalance = $outstanding > 0;
+                                        $statusClass = $row->status === 'Confirmed' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-orange-50 text-orange-600 border-orange-100';
                                         @endphp
-                                        @if($showDebt)
-                                        <span class="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[9px] font-black border border-red-100 uppercase tracking-tighter">Debt</span>
-                                        @else
-                                        <span class="bg-amber-50 text-amber-600 px-2 py-0.5 rounded text-[9px] font-black border border-amber-100 uppercase tracking-tighter">Owe</span>
+                                        
+                                        <span class="px-2 py-0.5 rounded text-[9px] font-black border uppercase {{ $statusClass }} whitespace-nowrap">{{ $row->status ?: 'Pending' }}</span>
+
+                                        @if($hasBalance)
+                                            @if($isPassed)
+                                                <span class="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[9px] font-black border border-red-100 uppercase tracking-tighter shadow-sm whitespace-nowrap">Debt</span>
+                                            @else
+                                                <span class="bg-amber-50 text-amber-600 px-2 py-0.5 rounded text-[9px] font-black border border-amber-100 uppercase tracking-tighter shadow-sm whitespace-nowrap">Owe</span>
+                                            @endif
                                         @endif
                                     </div>
                                 </div>
@@ -315,8 +325,13 @@
             <div class="flex items-center gap-3 w-full lg:w-auto">
                 <div class="p-2 bg-emerald-100 text-emerald-600 rounded-xl"><span class="material-symbols-rounded">verified</span></div>
                 <div>
-                    <h3 class="font-bold text-gray-800 text-base sm:text-lg">Fully Paid Bookings</h3>
-                    <p class="text-[10px] sm:text-xs text-gray-400">Total Settled: {{ $fullyPaidBookings->total() }}</p>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-gray-800 text-base sm:text-lg">Fully Paid Bookings</h3>
+                        <button wire:click="toggleSort('full')" class="p-1 hover:bg-emerald-100 rounded-lg transition-colors group" title="Toggle Sort">
+                            <span class="material-symbols-rounded text-sm text-emerald-600 transition-transform {{ $sort_full === 'desc' ? 'rotate-180' : '' }}">sort</span>
+                        </button>
+                    </div>
+                    <p class="text-[10px] sm:text-xs text-gray-400">Total Settled: {{ $fullyPaidBookings->total() }} ({{ $sort_full === 'asc' ? 'Oldest First' : 'Newest First' }})</p>
                 </div>
             </div>
             <div class="flex flex-col sm:flex-row items-center w-full lg:w-auto gap-3 sm:gap-2">
@@ -413,9 +428,14 @@
         <div class="p-4 sm:p-6 border-b border-gray-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
             <div class="flex items-center gap-3 w-full lg:w-auto">
                 <div class="p-2 bg-[#9E6B73]/10 text-[#9E6B73] rounded-xl"><span class="material-symbols-rounded">description</span></div>
-                <div>
-                    <h3 class="font-bold text-gray-800 text-base sm:text-lg">Invoices to Send</h3>
-                    <p class="text-[10px] sm:text-xs text-gray-400">Total Pending: {{ $invoices->total() }}</p>
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-gray-800 text-base sm:text-lg">Invoices to Send</h3>
+                        <button wire:click="toggleSort('inv')" class="p-1 hover:bg-[#9E6B73]/10 rounded-lg transition-colors group" title="Toggle Sort">
+                            <span class="material-symbols-rounded text-sm text-[#9E6B73] transition-transform {{ $sort_inv === 'desc' ? 'rotate-180' : '' }}">sort</span>
+                        </button>
+                    </div>
+                    <p class="text-[10px] sm:text-xs text-gray-400">Total Pending: {{ $invoices->total() }} ({{ $sort_inv === 'asc' ? 'Oldest First' : 'Newest First' }})</p>
                 </div>
             </div>
             <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full lg:w-auto">
@@ -446,9 +466,22 @@
                     <tbody class="divide-y divide-gray-50 bg-white">
                         @forelse ($invoices as $inv)
                         <tr class="group hover:bg-gray-50 transition-colors">
-                            <td class="p-4 align-top text-left"><span class="font-mono font-bold text-[#9E6B73] bg-[#9E6B73]/5 px-2 py-1 rounded text-xs border border-[#9E6B73]">#{{ $inv->invoice_number ?? $inv->id }}</span></td>
                             <td class="p-4 align-top text-left">
-                                <div class="font-bold text-gray-800 text-sm">{{ $inv->customer_first_name }} {{ $inv->customer_last_name }}</div>
+                                <a href="{{ route('supervisor.bookings.overview', ['id' => $inv->id, 'back' => route('supervisor.logistics')]) }}" class="font-mono font-bold text-[#9E6B73] bg-[#9E6B73]/5 px-2 py-1 rounded text-xs border border-[#9E6B73] hover:bg-[#9E6B73] hover:text-white transition no-underline">
+                                    #{{ $inv->invoice_number ?? $inv->id }}
+                                </a>
+                            </td>
+                            <td class="p-4 align-top text-left">
+                                <div class="flex items-center gap-2">
+                                    <div class="font-bold text-gray-800 text-sm">{{ $inv->customer_first_name }} {{ $inv->customer_last_name }}</div>
+                                    @php
+                                        $invStatus = $inv->status ?: 'Pending';
+                                        $invBadgeClass = 'bg-orange-50 text-orange-600 border-orange-100';
+                                        if ($invStatus === 'Confirmed') $invBadgeClass = 'bg-green-50 text-green-600 border-green-100';
+                                        if ($invStatus === 'Completed') $invBadgeClass = 'bg-blue-50 text-blue-600 border-blue-100';
+                                    @endphp
+                                    <span class="px-2 py-0.5 rounded text-[9px] font-black border uppercase {{ $invBadgeClass }}">{{ $invStatus }}</span>
+                                </div>
                                 <div class="text-xs text-gray-500 font-medium">{{ $inv->customer_organization }}</div>
                             </td>
                             <td class="p-4 align-top text-left w-72">
@@ -456,7 +489,7 @@
                                     <span class="material-symbols-rounded text-gray-300 text-sm mt-0.5">location_on</span>
                                     <p class="text-xs text-gray-600 leading-relaxed">{{ $inv->address_line_1 }}, {{ $inv->suburb }}</p>
                                 </div>
-                                <div class="text-[10px] font-black uppercase bg-[#9E6B73]/5 text-[#9E6B73] px-2 py-0.5 rounded border border-[#9E6B73]/10 w-fit mt-1">Due: {{ \Carbon\Carbon::parse($inv->event_date)->format('M d, Y') }}</div>
+                                <div class="text-[10px] font-black uppercase bg-[#9E6B73]/5 text-[#9E6B73] px-2 py-0.5 rounded border border-[#9E6B73]/10 w-fit mt-1">Due: {{ \Carbon\Carbon::parse($inv->event_date)->format('F j, Y') }}</div>
                             </td>
                             <td class="p-4 align-middle text-right">
                                 <div class="flex gap-2 justify-end flex-wrap">
@@ -629,7 +662,7 @@
                             </td>
                             <td class="p-4 text-gray-600 text-xs align-top text-left">
                                 <div>{{ $deb->customer_phone }}</div>
-                                <div class="mt-1 text-[10px] font-black uppercase bg-red-50 text-red-600 px-2 py-0.5 rounded border border-red-100 w-fit">{{ \Carbon\Carbon::parse($deb->event_date)->format('d/m/y') }}</div>
+                                <div class="mt-1 text-[10px] font-black uppercase bg-red-50 text-red-600 px-2 py-0.5 rounded border border-red-100 w-fit">{{ \Carbon\Carbon::parse($deb->event_date)->format('F j, Y') }}</div>
                             </td>
                             <td class="p-4 align-top text-xs w-48">
                                 @forelse ($deb->payments as $index => $hist)
@@ -1023,7 +1056,7 @@
 
     <template x-teleport="body">
         <!-- EFT CONFIGURATION MODAL -->
-        <div x-show="showEftModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
+        <div x-show="showEftModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-6 sm:p-12 lg:p-20" x-cloak>
             <div x-show="showEftModal"
                 x-transition.opacity.duration.300ms
                 class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
@@ -1036,7 +1069,7 @@
                 x-transition:leave="transition ease-in duration-200 transform"
                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                 x-transition:leave-end="opacity-0 scale-95 translate-y-4"
-                class="relative bg-white rounded-[24px] shadow-2xl w-full max-w-sm flex flex-col max-h-[90vh] overflow-hidden z-10 transition-all">
+                class="relative bg-white rounded-[40px] shadow-2xl w-full max-w-sm flex flex-col max-h-[85vh] overflow-hidden z-10 transition-all border border-white/20">
 
                 <div class="px-8 py-8 border-b border-slate-50 flex justify-between items-center bg-white shrink-0">
                     <div class="flex items-center gap-4 text-[#9D686E]">
@@ -1081,7 +1114,7 @@
 
     <template x-teleport="body">
         <!-- EMAIL COMMUNICATION MODAL -->
-        <div x-show="showEmailModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
+        <div x-show="showEmailModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-6 sm:p-12 lg:p-20" x-cloak>
             <div x-show="showEmailModal"
                 x-transition.opacity.duration.300ms
                 class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
@@ -1094,7 +1127,7 @@
                 x-transition:leave="transition ease-in duration-200 transform"
                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                 x-transition:leave-end="opacity-0 scale-95 translate-y-4"
-                class="relative bg-white rounded-[24px] shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden z-10 transition-all">
+                class="relative bg-white rounded-[40px] shadow-2xl w-full max-w-2xl flex flex-col max-h-[85vh] overflow-hidden z-10 transition-all border border-white/20">
 
                 <div class="px-8 py-8 border-b border-slate-50 flex justify-between items-center bg-white shrink-0">
                     <div class="flex items-center gap-4 text-[#9D686E]">
@@ -1148,15 +1181,29 @@
                         </div>
 
                         @if ($email_attachment)
-                        <div class="flex items-center gap-4 bg-blue-50/50 p-6 rounded-[24px] border border-blue-100 shadow-sm group hover:border-blue-200 transition-all">
-                            <div class="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-blue-500 shadow-sm group-hover:scale-105 transition-transform">
+                        @php
+                            $pricingToggle = ($email_type === 'debt') ? $debtor_pdf_prices : $invoice_pdf_prices;
+                            $previewRoute = match($email_type) {
+                                'invoice' => route('pdf.invoice', ['id' => $email_booking_id, 'prices' => $pricingToggle ? 1 : 0]),
+                                'receipt' => route('pdf.receipt', ['id' => $email_booking_id, 'prices' => $pricingToggle ? 1 : 0]),
+                                'debt' => route('pdf.debt', ['id' => $email_booking_id, 'prices' => $pricingToggle ? 1 : 0]),
+                                'po','purchase_order' => route('pdf.po', ['id' => $email_booking_id, 'prices' => $pricingToggle ? 1 : 0]),
+                                'envelope' => \Illuminate\Support\Facades\Route::has('pdf.delivery_receipt') ? route('pdf.delivery_receipt', ['id' => $email_booking_id, 'prices' => $pricingToggle ? 1 : 0]) : '#',
+                                default => '#'
+                            };
+                        @endphp
+                        <a href="{{ $previewRoute }}" target="_blank" class="flex items-center gap-4 bg-blue-50/50 p-6 rounded-[24px] border border-blue-100 shadow-sm group hover:border-blue-300 hover:bg-blue-100/50 transition-all no-underline cursor-pointer">
+                            <div class="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-blue-500 shadow-sm group-hover:scale-110 transition-transform">
                                 <span class="material-symbols-rounded text-2xl font-bold">attach_file</span>
                             </div>
                             <div class="min-w-0 flex-1">
-                                <p class="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1">Attached Document</p>
+                                <p class="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1">Attached Document (Click to Preview)</p>
                                 <p class="text-[13px] font-black text-blue-700 truncate" x-text="$wire.email_attachment"></p>
                             </div>
-                        </div>
+                            <div class="text-blue-300 group-hover:text-blue-500 transition-colors">
+                                <span class="material-symbols-rounded">open_in_new</span>
+                            </div>
+                        </a>
                         @endif
 
                         <div class="pt-8 border-t border-slate-50 flex gap-4">
@@ -1179,7 +1226,7 @@
 
     <template x-teleport="body">
         <!-- RECEIPT DETAIL MODAL -->
-        <div x-show="showPaymentDetailsModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
+        <div x-show="showPaymentDetailsModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-6 sm:p-12 lg:p-20" x-cloak>
             <div x-show="showPaymentDetailsModal"
                 x-transition.opacity.duration.300ms
                 class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
@@ -1192,9 +1239,10 @@
                 x-transition:leave="transition ease-in duration-200 transform"
                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                 x-transition:leave-end="opacity-0 scale-95 translate-y-4"
-                class="relative bg-white rounded-[24px] shadow-2xl p-8 max-w-sm w-full z-10 overflow-hidden transition-all">
+                class="relative bg-white rounded-[40px] shadow-2xl max-w-sm w-full z-10 flex flex-col max-h-[85vh] overflow-hidden transition-all border border-white/20">
 
-                <div class="flex justify-between items-center mb-8 px-2">
+                <!-- Header -->
+                <div class="flex justify-between items-center p-8 border-b border-slate-50 shrink-0">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 shadow-sm">
                             <span class="material-symbols-rounded text-2xl font-bold">receipt</span>
@@ -1213,109 +1261,113 @@
                     </div>
                 </div>
 
-                <div class="space-y-8">
-                    @if ($view_payment_details)
-                    @if ($is_editing_payment)
-                    <!-- Edit Mode -->
-                    <div class="space-y-5 px-2">
-                        <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Payment Amount ($)</label>
-                            <input type="number" step="0.01" wire:model="edit_payment_amount" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all">
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
+                <!-- Scrollable Content -->
+                <div class="p-8 overflow-y-auto custom-scrollbar flex-grow bg-white">
+                    <div class="space-y-8">
+                        @if ($view_payment_details)
+                        @if ($is_editing_payment)
+                        <!-- Edit Mode -->
+                        <div class="space-y-5 px-2">
                             <div>
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Date</label>
-                                <input type="date" wire:model="edit_payment_date" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Payment Amount ($)</label>
+                                <input type="number" step="0.01" wire:model="edit_payment_amount" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all">
                             </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Date</label>
+                                    <input type="date" wire:model="edit_payment_date" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Method</label>
+                                    <select wire:model="edit_payment_method" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all appearance-none">
+                                        <option value="EFT">EFT</option>
+                                        <option value="Card Holder">Card Holder</option>
+                                        <option value="Cash">Cash</option>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div>
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Method</label>
-                                <select wire:model="edit_payment_method" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all appearance-none">
-                                    <option value="EFT">EFT</option>
-                                    <option value="Card Holder">Card Holder</option>
-                                    <option value="Cash">Cash</option>
-                                </select>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Reference Number</label>
+                                <input type="text" wire:model="edit_payment_ref" placeholder="e.g. bf-1234" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all">
+                            </div>
+
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Internal Notes</label>
+                                <textarea wire:model="edit_payment_notes" rows="3" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all resize-none"></textarea>
+                            </div>
+
+                            <div class="flex gap-3 pt-2">
+                                <button type="button" wire:click="updatePaymentDetails" class="flex-1 py-4 bg-[#9D686E] text-white rounded-2xl font-black text-[11px] shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359] transition-all active:scale-95 uppercase tracking-widest flex items-center justify-center gap-2">
+                                    <span wire:loading wire:target="updatePaymentDetails" class="material-symbols-rounded animate-spin text-sm">sync</span>
+                                    Update Record
+                                </button>
+                                <button type="button" wire:click="cancelPaymentEdit" class="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-[11px] hover:bg-slate-200 transition-all uppercase tracking-widest">Cancel</button>
                             </div>
                         </div>
-
-                        <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Reference Number</label>
-                            <input type="text" wire:model="edit_payment_ref" placeholder="e.g. bf-1234" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all">
+                        @else
+                        <!-- View Mode -->
+                        <div class="bg-slate-900 rounded-[24px] p-8 text-white text-center shadow-xl shadow-slate-900/20 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-24 h-24 bg-green-500/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-2xl"></div>
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Total Transaction</p>
+                            <p class="text-4xl font-black tracking-tighter text-green-400">${{ number_format($view_payment_details->amount, 2) }}</p>
                         </div>
 
-                        <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">Internal Notes</label>
-                            <textarea wire:model="edit_payment_notes" rows="3" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-[#9D686E]/20 outline-none transition-all resize-none"></textarea>
-                        </div>
-
-                        <div class="flex gap-3 pt-2">
-                            <button type="button" wire:click="updatePaymentDetails" class="flex-1 py-4 bg-[#9D686E] text-white rounded-2xl font-black text-[11px] shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359] transition-all active:scale-95 uppercase tracking-widest flex items-center justify-center gap-2">
-                                <span wire:loading wire:target="updatePaymentDetails" class="material-symbols-rounded animate-spin text-sm">sync</span>
-                                Update Record
-                            </button>
-                            <button type="button" wire:click="cancelPaymentEdit" class="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-[11px] hover:bg-slate-200 transition-all uppercase tracking-widest">Cancel</button>
-                        </div>
-                    </div>
-                    @else
-                    <!-- View Mode -->
-                    <div class="bg-slate-900 rounded-[24px] p-8 text-white text-center shadow-xl shadow-slate-900/20 relative overflow-hidden">
-                        <div class="absolute top-0 left-0 w-24 h-24 bg-green-500/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-2xl"></div>
-                        <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Total Transaction</p>
-                        <p class="text-4xl font-black tracking-tighter text-green-400">${{ number_format($view_payment_details->amount, 2) }}</p>
-                    </div>
-
-                    <div class="space-y-4 px-2">
-                        <div class="flex justify-between items-center py-4 border-b border-slate-50">
-                            <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Captured Date</span>
-                            <span class="text-[14px] font-black text-slate-700">{{ \Carbon\Carbon::parse($view_payment_details->payment_date)->format('d M Y') }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-slate-50">
-                            <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Payment ID</span>
-                            <span class="text-[14px] font-black text-slate-800 bg-slate-50 px-3 py-1 rounded-lg">#{{ $view_payment_details->id }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-slate-50">
-                            <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Method</span>
-                            <span class="text-[13px] font-black text-[#9D686E] uppercase tracking-wider">{{ $view_payment_details->payment_method === 'Card Holder' ? 'Card Holder' : $view_payment_details->payment_method }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-slate-50">
-                            <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Reference ID</span>
-                            <span class="text-[13px] font-black text-slate-700 break-all">{{ $view_payment_details->reference ?: 'GEN-' . strtoupper(substr(md5($view_payment_details->id), 0, 8)) }}</span>
-                        </div>
-
-                        @if ($view_payment_details->payment_method === 'Card Holder')
-                        <div class="mt-6 p-6 bg-slate-50 rounded-[24px] border border-slate-100 space-y-4 shadow-inner">
-                            <div class="flex justify-between items-center">
-                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Card Holder</span>
-                                <span class="text-[12px] font-black text-slate-700 uppercase tracking-tight">{{ $view_payment_details->card_holder ?? ($view_payment_details->booking->card_holder ?? 'Unknown') }}</span>
+                        <div class="space-y-4 px-2">
+                            <div class="flex justify-between items-center py-4 border-b border-slate-50">
+                                <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Captured Date</span>
+                                <span class="text-[14px] font-black text-slate-700">{{ \Carbon\Carbon::parse($view_payment_details->payment_date)->format('d M Y') }}</span>
                             </div>
-                            <div class="flex justify-between items-center border-t border-slate-200/50 pt-4">
-                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Card Network</span>
-                                <span class="text-[12px] font-black text-slate-700 uppercase">{{ $view_payment_details->card_network ?? ($view_payment_details->booking->card_type ?? 'Generic Card') }}</span>
+                            <div class="flex justify-between items-center py-4 border-b border-slate-50">
+                                <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Payment ID</span>
+                                <span class="text-[14px] font-black text-slate-800 bg-slate-50 px-3 py-1 rounded-lg">#{{ $view_payment_details->id }}</span>
                             </div>
-                            <div class="flex justify-between items-center border-t border-slate-200/50 pt-4">
-                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Card Number</span>
-                                <span class="text-[13px] font-mono font-black text-slate-800 font-mono tracking-tighter">**** **** {{ !empty($view_payment_details->card_number ?? $view_payment_details->booking->card_number) ? substr(str_replace(' ', '', ($view_payment_details->card_number ?? $view_payment_details->booking->card_number)), -4) : 'NULL' }}</span>
+                            <div class="flex justify-between items-center py-4 border-b border-slate-50">
+                                <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Method</span>
+                                <span class="text-[13px] font-black text-[#9D686E] uppercase tracking-wider">{{ $view_payment_details->payment_method === 'Card Holder' ? 'Card Holder' : $view_payment_details->payment_method }}</span>
                             </div>
-                        </div>
-                        @elseif ($view_payment_details->payment_method === 'EFT')
-                        <div class="flex justify-between items-center py-4 border-b border-slate-50">
-                            <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">EFT Method</span>
-                            <span class="text-[14px] font-black text-slate-700">{{ $view_payment_details->booking->eft_method ?? 'Direct Deposit' }}</span>
+                            <div class="flex justify-between items-center py-4 border-b border-slate-50">
+                                <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Reference ID</span>
+                                <span class="text-[13px] font-black text-slate-700 break-all">{{ $view_payment_details->reference ?: 'GEN-' . strtoupper(substr(md5($view_payment_details->id), 0, 8)) }}</span>
+                            </div>
+
+                            @if ($view_payment_details->payment_method === 'Card Holder')
+                            <div class="mt-6 p-6 bg-slate-50 rounded-[24px] border border-slate-100 space-y-4 shadow-inner">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Card Holder</span>
+                                    <span class="text-[12px] font-black text-slate-700 uppercase tracking-tight">{{ $view_payment_details->card_holder ?? ($view_payment_details->booking->card_holder ?? 'Unknown') }}</span>
+                                </div>
+                                <div class="flex justify-between items-center border-t border-slate-200/50 pt-4">
+                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Card Network</span>
+                                    <span class="text-[12px] font-black text-slate-700 uppercase">{{ $view_payment_details->card_network ?? ($view_payment_details->booking->card_type ?? 'Generic Card') }}</span>
+                                </div>
+                                <div class="flex justify-between items-center border-t border-slate-200/50 pt-4">
+                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Card Number</span>
+                                    <span class="text-[13px] font-mono font-black text-slate-800 font-mono tracking-tighter">**** **** {{ !empty($view_payment_details->card_number ?? $view_payment_details->booking->card_number) ? substr(str_replace(' ', '', ($view_payment_details->card_number ?? $view_payment_details->booking->card_number)), -4) : 'NULL' }}</span>
+                                </div>
+                            </div>
+                            @elseif ($view_payment_details->payment_method === 'EFT')
+                            <div class="flex justify-between items-center py-4 border-b border-slate-50">
+                                <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">EFT Method</span>
+                                <span class="text-[14px] font-black text-slate-700">{{ $view_payment_details->booking->eft_method ?? 'Direct Deposit' }}</span>
+                            </div>
+                            @endif
+
+                            @if ($view_payment_details->notes)
+                            <div class="mt-6">
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block px-1">Internal Notes</span>
+                                <div class="bg-indigo-50/50 p-5 rounded-[18px] text-[13px] font-bold text-slate-600 italic leading-relaxed border border-indigo-100/50 shadow-sm">{{ $view_payment_details->notes }}</div>
+                            </div>
+                            @endif
                         </div>
                         @endif
-
-                        @if ($view_payment_details->notes)
-                        <div class="mt-6">
-                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block px-1">Internal Notes</span>
-                            <div class="bg-indigo-50/50 p-5 rounded-[18px] text-[13px] font-bold text-slate-600 italic leading-relaxed border border-indigo-100/50 shadow-sm">{{ $view_payment_details->notes }}</div>
-                        </div>
                         @endif
                     </div>
-                    @endif
-                    @endif
                 </div>
 
-                <div class="mt-10 px-2">
+                <!-- Footer -->
+                <div class="p-8 pt-0 shrink-0">
                     <button type="button" @click="showPaymentDetailsModal = false" class="w-full py-5 bg-slate-900 text-white rounded-[24px] font-black hover:bg-slate-800 transition shadow-xl shadow-slate-900/20 uppercase tracking-[0.2em] text-[11px] active:scale-[0.98]">Close Details</button>
                 </div>
             </div>
@@ -1353,7 +1405,7 @@
 
     <template x-teleport="body">
         <!-- PAYMENT SUCCESS MODAL -->
-        <div x-show="showPaymentSuccessModal" class="fixed inset-0 z-[10001] flex items-center justify-center p-4" x-cloak>
+        <div x-show="showPaymentSuccessModal" class="fixed inset-0 z-[10001] flex items-center justify-center p-6 sm:p-12 lg:p-20" x-cloak>
             <div x-show="showPaymentSuccessModal"
                 x-transition.opacity.duration.300ms
                 class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
@@ -1366,7 +1418,7 @@
                 x-transition:leave="transition ease-in duration-200 transform"
                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                 x-transition:leave-end="opacity-0 scale-95 translate-y-4"
-                class="relative bg-white rounded-[32px] shadow-2xl p-10 max-w-sm w-full text-center z-10 overflow-hidden border border-slate-50 transition-all">
+                class="relative bg-white rounded-[40px] shadow-2xl p-12 max-w-sm w-full text-center z-10 overflow-hidden border border-slate-50 transition-all">
 
                 <div class="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-8 text-emerald-500 ring-8 ring-emerald-50/50 shadow-inner">
                     <span class="material-symbols-rounded text-5xl font-bold">verified</span>
@@ -1382,7 +1434,7 @@
 
     <template x-teleport="body">
         <!-- COMMUNICATION SENT MODAL -->
-        <div x-show="sentSuccessModal" class="fixed inset-0 z-[10001] flex items-center justify-center p-4" x-cloak>
+        <div x-show="sentSuccessModal" class="fixed inset-0 z-[10001] flex items-center justify-center p-6 sm:p-12 lg:p-20" x-cloak>
             <div x-show="sentSuccessModal"
                 x-transition.opacity.duration.300ms
                 class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
@@ -1395,7 +1447,7 @@
                 x-transition:leave="transition ease-in duration-200 transform"
                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                 x-transition:leave-end="opacity-0 scale-95 translate-y-4"
-                class="relative bg-white rounded-[32px] shadow-2xl p-10 max-w-sm w-full text-center z-10 overflow-hidden border border-slate-50 transition-all">
+                class="relative bg-white rounded-[40px] shadow-2xl p-12 max-w-sm w-full text-center z-10 overflow-hidden border border-slate-50 transition-all">
 
                 <div class="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 text-green-600 ring-8 ring-green-50/50 shadow-inner">
                     <span class="material-symbols-rounded text-5xl font-bold">mail_lock</span>

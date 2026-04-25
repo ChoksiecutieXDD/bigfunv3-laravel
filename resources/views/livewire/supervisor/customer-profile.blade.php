@@ -3,7 +3,7 @@
     <!-- Navigation Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
         <div class="flex items-center gap-4">
-            <a href="{{ route('supervisor.bookings.overview', $booking->id) }}" wire:navigate class="bg-white hover:bg-gray-50 text-slate-600 p-2.5 rounded-xl border border-gray-200 transition shadow-sm flex items-center justify-center">
+            <a href="{{ route('supervisor.bookings.overview', ['id' => $booking->id, 'back' => $backUrl]) }}" wire:navigate class="bg-white hover:bg-gray-50 text-slate-600 p-2.5 rounded-xl border border-gray-200 transition shadow-sm flex items-center justify-center">
                 <span class="material-symbols-rounded text-2xl">arrow_back</span>
             </a>
             <div>

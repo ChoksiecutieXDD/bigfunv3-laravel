@@ -42,7 +42,9 @@ class NewBooking extends Component
 
     public function mount()
     {
-        $this->invoice_number = "INV-" . date('Ymd') . "-" . rand(1000, 9999);
+        $dateStr = date('Ymd');
+        $todayCount = DB::table('bookings')->where('invoice_number', 'like', "INV-$dateStr-%")->count();
+        $this->invoice_number = "INV-" . $dateStr . "-" . str_pad($todayCount + 1, 4, '0', STR_PAD_LEFT);
 
         $this->loadInitialData();
 

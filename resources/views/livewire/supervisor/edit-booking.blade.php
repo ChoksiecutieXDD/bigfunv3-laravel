@@ -3,9 +3,10 @@
         window.lwBookingComponent = @this;
         window.bookingAppData = {
             savedExtras: @entangle('dynamicExtras'),
-            selectedItems: {},
+            selectedItems: @js($selectedItemsClean),
             bookingId: @js($booking->id),
             categories: @js($categories),
+            config: @js($config),
             csrfToken: '{{ csrf_token() }}'
         };
 
@@ -104,8 +105,9 @@
                         <div class="flex items-center gap-4">
                             @php
                             $backRoute = $isSupervisor ? 'supervisor.bookings.overview' : 'admin.bookings.overview';
+                            $overviewUrl = route($backRoute, ['id' => $booking->id, 'back' => $backUrl]);
                             @endphp
-                            <a href="{{ route($backRoute, $booking->id) }}" wire:navigate class="bg-white hover:bg-gray-50 text-slate-600 p-2.5 rounded-xl border border-gray-200 transition shadow-sm flex items-center justify-center">
+                            <a href="{{ $overviewUrl }}" wire:navigate class="bg-white hover:bg-gray-50 text-slate-600 p-2.5 rounded-xl border border-gray-200 transition shadow-sm flex items-center justify-center">
                                 <span class="material-symbols-rounded text-2xl">arrow_back</span>
                             </a>
                             <div>

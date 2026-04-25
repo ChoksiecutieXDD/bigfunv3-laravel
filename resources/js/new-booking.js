@@ -538,6 +538,7 @@ function processSelection(checkbox, card) {
         if (typeof updateCategoryLimitsUI === 'function') updateCategoryLimitsUI();
         if (typeof updateDynamicExtras === 'function') updateDynamicExtras();
         if (typeof saveCurrentExtrasState === 'function') saveCurrentExtrasState(true);
+        if (typeof triggerRecalculate === 'function') triggerRecalculate();
 
         // Communicate to Livewire
         if (window.lwBookingComponent) {
@@ -1007,11 +1008,6 @@ window.openReviewModal = async function () {
     document.getElementById('rev_date').innerText = date || "TBD / Not Provided";
     document.getElementById('rev_op_hours').innerText = (document.getElementById('operational_hours') || {}).value || "N/A";
 
-    let timeStr = "TBD - TBD";
-    if (startTime || endTime) {
-        timeStr = (startTime || "TBD") + " - " + (endTime || "TBD");
-    }
-    document.getElementById('rev_time').innerText = timeStr;
 
     document.getElementById('rev_event_type').innerText = (document.getElementById('event_type') || {}).value || "N/A";
     document.getElementById('rev_people').innerText = (document.getElementById('expected_people') || {}).value || "N/A";
@@ -1027,8 +1023,34 @@ window.openReviewModal = async function () {
 
     document.getElementById('rev_operator').innerText = (document.getElementById('lead_operator') || {}).value || "Team (Default)";
     document.getElementById('rev_deliverer').innerText = (document.getElementById('lead_deliverer') || {}).value || "Team (Default)";
+    
+    // Duration Label & Cost
+    let durPrice = document.getElementById('breakdown_dur').innerText;
+    let durLabel = "";
+    const activeDurCard = document.querySelector('.duration-card.duration-active');
+    if (activeDurCard) {
+        const rad = activeDurCard.querySelector('input[name="duration"]');
+        if (rad) {
+            if (rad.value === 'custom') {
+                durLabel = (document.getElementById('custom_duration_text') || {}).value || "Custom Duration";
+            } else {
+                durLabel = rad.value;
+            }
+        }
+    }
+    document.getElementById('rev_dur_cost').innerText = durLabel ? (durLabel + " (" + durPrice + ")") : durPrice;
 
-    document.getElementById('rev_dur_cost').innerText = document.getElementById('breakdown_dur').innerText;
+    // Time string adjustment for custom
+    let timeStr = "TBD - TBD";
+    if (isCustom && durLabel) {
+        timeStr = durLabel;
+        if (startTime || endTime) {
+            timeStr += " [" + (startTime || "TBD") + " - " + (endTime || "TBD") + "]";
+        }
+    } else if (startTime || endTime) {
+        timeStr = (startTime || "TBD") + " - " + (endTime || "TBD");
+    }
+    document.getElementById('rev_time').innerText = timeStr;
 
     let displayDelZone = document.getElementById('breakdown_del').innerText;
     if (delZone === "custom") {

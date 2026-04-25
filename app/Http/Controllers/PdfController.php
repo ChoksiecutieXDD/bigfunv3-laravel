@@ -20,9 +20,13 @@ class PdfController extends Controller
         return '';
     }
 
-    public function generateInvoice($id)
+    public function generateInvoice(Request $request, $id)
     {
         $booking = Booking::with(['items', 'payments'])->findOrFail($id);
+
+        if ($request->has('prices')) {
+            $booking->include_attraction_cost = $request->input('prices') == 1;
+        }
 
         $amountPaid = $booking->payments->sum('amount');
         $totalAmount = $booking->total_amount;
@@ -40,9 +44,13 @@ class PdfController extends Controller
         return $pdf->stream('Invoice-' . ($booking->invoice_number ?? $booking->id) . '.pdf', ['Attachment' => false]);
     }
 
-    public function generatePurchaseOrder($id)
+    public function generatePurchaseOrder(Request $request, $id)
     {
         $booking = Booking::with(['items'])->findOrFail($id);
+
+        if ($request->has('prices')) {
+            $booking->include_attraction_cost = $request->input('prices') == 1;
+        }
 
         $pdf = Pdf::loadView('pdf.purchase_order', [
             'booking' => $booking,
@@ -53,9 +61,13 @@ class PdfController extends Controller
         return $pdf->stream('PurchaseOrder-' . $booking->id . '.pdf', ['Attachment' => false]);
     }
 
-    public function generateReceipt($id)
+    public function generateReceipt(Request $request, $id)
     {
         $booking = Booking::with(['items', 'payments'])->findOrFail($id);
+
+        if ($request->has('prices')) {
+            $booking->include_attraction_cost = $request->input('prices') == 1;
+        }
 
         $amountPaid = $booking->payments->sum('amount');
         $totalAmount = $booking->total_amount;
@@ -75,9 +87,13 @@ class PdfController extends Controller
 
 
 
-    public function generateDebt($id)
+    public function generateDebt(Request $request, $id)
     {
         $booking = Booking::with(['items', 'payments'])->findOrFail($id);
+
+        if ($request->has('prices')) {
+            $booking->include_attraction_cost = $request->input('prices') == 1;
+        }
 
         $amountPaid = $booking->payments->sum('amount');
         $totalAmount = $booking->total_amount;

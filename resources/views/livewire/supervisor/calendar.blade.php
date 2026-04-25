@@ -168,8 +168,14 @@
                     @foreach($bookings as $booking)
                     <a href="{{ route('supervisor.bookings.overview', ['id' => $booking->id, 'back' => route('supervisor.calendar')]) }}" class="booking-card card-{{ $booking->color_code }}">
                         <div>
-                            <span class="booking-label">Time</span>
-                            <span class="booking-value block">{{ \Carbon\Carbon::parse($booking->start_time)->format('g:i A') }}</span>
+                            <span class="booking-label">Time & Duration</span>
+                            <span class="booking-value block">
+                                @if($booking->duration === 'custom' && $booking->custom_duration_text)
+                                    {{ $booking->custom_duration_text }}
+                                @else
+                                    {{ \Carbon\Carbon::parse($booking->start_time)->format('g:i A') }} - {{ $booking->end_time ? \Carbon\Carbon::parse($booking->end_time)->format('g:i A') : 'TBD' }}
+                                @endif
+                            </span>
                             <span class="text-xs font-bold mt-1 text-{{ $booking->color_code }}-600 flex items-center gap-1">
                                 <span class="legend-dot dot-{{ $booking->color_code }}"></span> {{ $booking->status_label }}
                             </span>

@@ -160,6 +160,9 @@ class Calendar extends Component
                 'terms_agreed' => $booking->terms_agreed,
                 'payment_type' => $booking->payment_type,
                 'booked_by' => $booking->booked_by,
+                'end_time' => $booking->end_time,
+                'duration' => $booking->duration,
+                'custom_duration_text' => $booking->custom_duration_text,
             ];
         });
 

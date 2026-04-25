@@ -311,8 +311,14 @@
                 <!-- ✅ Updated to role-specific route -->
                 <a href="{{ route('admin.bookings.overview', $b->id) }}" wire:navigate class="booking-card rounded-xl card-{{ $v['color'] }} mb-3">
                     <div class="w-full min-w-0">
-                        <span class="booking-label">Time & Location</span>
-                        <div class="booking-value">{{ \Carbon\Carbon::parse($b->start_time)->format('g:i A') }} - {{ $b->end_time ? \Carbon\Carbon::parse($b->end_time)->format('g:i A') : 'TBD' }}</div>
+                        <span class="booking-label">Time & Duration</span>
+                        <div class="booking-value">
+                            @if($b->duration === 'custom' && $b->custom_duration_text)
+                                {{ $b->custom_duration_text }}
+                            @else
+                                {{ \Carbon\Carbon::parse($b->start_time)->format('g:i A') }} - {{ $b->end_time ? \Carbon\Carbon::parse($b->end_time)->format('g:i A') : 'TBD' }}
+                            @endif
+                        </div>
                         <div class="text-xs text-gray-500 truncate mt-0.5 w-full" title="{{ $b->address_line_1 }}">{{ $b->address_line_1 }}</div>
                     </div>
                     <div class="w-full min-w-0">

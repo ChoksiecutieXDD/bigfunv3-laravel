@@ -14,9 +14,11 @@ class CustomerProfile extends Component
     public $history = [];
     public $totalSpent = 0;
     public $totalBookings = 0;
+    public $backUrl;
 
     public function mount($id)
     {
+        $this->backUrl = request()->query('back') ?? url()->previous();
         $this->booking = Booking::findOrFail($id);
         
         if ($this->booking->customer_email) {

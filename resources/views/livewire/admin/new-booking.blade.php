@@ -304,7 +304,7 @@
                     </div>
                 </div>
 
-                <div class="section-card">
+                <div class="section-card" wire:ignore>
                     <div class="flex items-center gap-3 border-b border-gray-100 pb-6">
                         <span class="material-symbols-rounded text-[#9E6B73] text-2xl">person_pin</span>
                         <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Customer & Venue</h2>

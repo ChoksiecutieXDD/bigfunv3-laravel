@@ -17,6 +17,9 @@
         deleteLegacyModal: false,
         quotaWarningModal: false,
         quotaLimitModal: false,
+        completeStatusConfirmModal: false,
+        futureCompleteModal: false,
+        restrictedStatusModal: false,
         termsConfirmModal: false
     }"
     class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
@@ -132,9 +135,9 @@
             <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                     <span class="text-[10px] font-extrabold text-gray-300 uppercase tracking-widest mr-1">Manage:</span>
-                    <a href="{{ route('supervisor.customer.profile', $booking->id) }}" wire:navigate class="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-600 hover:text-[#9D686E] hover:underline transition"><i class="fa-regular fa-eye"></i> View Customer</a>
+                    <a href="{{ route('supervisor.customer.profile', ['id' => $booking->id, 'back' => $backUrl]) }}" wire:navigate class="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-600 hover:text-[#9D686E] hover:underline transition"><i class="fa-regular fa-eye"></i> View Customer</a>
                     <span class="text-gray-200 hidden sm:inline">|</span>
-                    <a href="{{ route('supervisor.bookings.edit', $booking->id) }}" wire:navigate class="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline transition"><i class="fa-solid fa-pen-to-square"></i> Edit Booking</a>
+                    <a href="{{ route('supervisor.bookings.edit', ['id' => $booking->id, 'back' => $backUrl]) }}" wire:navigate class="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline transition"><i class="fa-solid fa-pen-to-square"></i> Edit Booking</a>
                     <span class="text-gray-200 hidden sm:inline">|</span>
                     <div class="flex items-center gap-2">
                         <label for="attraction_cost_toggle" class="text-[10px] font-bold text-slate-500 uppercase cursor-pointer">PDF Price:</label>
@@ -1827,9 +1830,86 @@
             </div>
         </div>
     </template>
+    <template x-teleport="body">
+        <!-- FUTURE COMPLETE WARNING MODAL -->
+        <div x-show="futureCompleteModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
+            <div x-show="futureCompleteModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="futureCompleteModal = false"></div>
+
+            <div x-show="futureCompleteModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                class="relative w-full max-w-sm bg-white rounded-[32px] shadow-2xl p-8 z-10 text-center border border-rose-100 uppercase">
+                <div class="w-20 h-20 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                    <span class="material-symbols-rounded text-4xl">event_busy</span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight uppercase">Action Invalid</h3>
+                <p class="text-[14px] font-bold text-slate-500 mb-8 leading-relaxed normal-case">
+                    You cannot mark this booking as <strong>COMPLETED</strong> because the event date (<span class="text-rose-600">{{ \Carbon\Carbon::parse($booking->event_date)->format('F j, Y') }}</span>) is still in the future.
+                </p>
+                <button @click="futureCompleteModal = false" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs shadow-xl transition-all active:scale-95 uppercase tracking-widest">Understood</button>
+            </div>
+        </div>
+    </template>
+
+    <template x-teleport="body">
+        <!-- COMPLETE STATUS CONFIRMATION MODAL -->
+        <div x-show="completeStatusConfirmModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
+            <div x-show="completeStatusConfirmModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="completeStatusConfirmModal = false"></div>
+
+            <div x-show="completeStatusConfirmModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                class="relative w-full max-w-sm bg-white rounded-[32px] shadow-2xl p-10 z-10 text-center border border-emerald-100">
+                <div class="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                    <span class="material-symbols-rounded text-4xl">task_alt</span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight uppercase">Finalize Booking?</h3>
+                <p class="text-[14px] font-bold text-slate-500 mb-10 leading-relaxed">
+                    Are you sure you want to mark this booking as <strong>COMPLETED</strong>? This signifies that the event has been successfully executed.
+                </p>
+                <div class="flex gap-4">
+                    <button @click="completeStatusConfirmModal = false" class="flex-1 py-4 text-slate-600 font-extrabold text-[12px] hover:bg-slate-50 rounded-2xl transition-all border border-slate-100 uppercase tracking-widest">Cancel</button>
+                    <button wire:click="executeStatusUpdate" @click="completeStatusConfirmModal = false" class="flex-1 py-4 bg-emerald-500 text-white hover:bg-emerald-600 rounded-2xl font-black text-[12px] shadow-xl shadow-emerald-500/20 transition-all active:scale-95 uppercase tracking-widest">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template x-teleport="body">
+        <!-- RESTRICTED STATUS TRANSITION MODAL -->
+        <div x-show="restrictedStatusModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4" x-cloak>
+            <div x-show="restrictedStatusModal"
+                x-transition.opacity.duration.300ms
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                @click="restrictedStatusModal = false"></div>
+
+            <div x-show="restrictedStatusModal"
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                class="relative w-full max-w-sm bg-white rounded-[32px] shadow-2xl p-8 z-10 text-center border border-amber-100">
+                <div class="w-20 h-20 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                    <span class="material-symbols-rounded text-4xl">info</span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight uppercase">Sequence Error</h3>
+                <p class="text-[14px] font-bold text-slate-500 mb-8 leading-relaxed">
+                    This booking is currently <strong class="text-amber-600 underline">{{ strtoupper($booking->status) }}</strong>. <br><br>You must return it to <strong>CONFIRMED</strong> first before it can be finalized as Completed.
+                </p>
+                <button @click="restrictedStatusModal = false" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs shadow-xl transition-all active:scale-95 uppercase tracking-widest">Understood</button>
+            </div>
+        </div>
+    </template>
 
     <div
-        x-on:close-modal.window="paymentModal = false; emailModal = false; deleteModal = false; calendarModal = false; paymentDetailsModal = false; draftModal = false; statusConfirmModal = false; confirmEmailModal = false; historyClearModal = false; deleteSingleLogModal = false; deleteLegacyModal = false; quotaWarningModal = false; quotaLimitModal = false; termsConfirmModal = false;"
+        x-on:close-modal.window="paymentModal = false; emailModal = false; deleteModal = false; calendarModal = false; paymentDetailsModal = false; draftModal = false; statusConfirmModal = false; confirmEmailModal = false; historyClearModal = false; deleteSingleLogModal = false; deleteLegacyModal = false; quotaWarningModal = false; quotaLimitModal = false; termsConfirmModal = false; completeStatusConfirmModal = false; futureCompleteModal = false; restrictedStatusModal = false;"
         x-on:open-modal.window="
             let modalToOpen = typeof $event.detail === 'string' ? $event.detail : $event.detail[0];
             if (modalToOpen === 'paymentModal') paymentModal = true;
@@ -1845,5 +1925,8 @@
             if (modalToOpen === 'deleteLegacyModal') deleteLegacyModal = true;
             if (modalToOpen === 'quotaWarningModal') quotaWarningModal = true;
             if (modalToOpen === 'quotaLimitModal') quotaLimitModal = true;
+            if (modalToOpen === 'completeStatusConfirmModal') completeStatusConfirmModal = true;
+            if (modalToOpen === 'futureCompleteModal') futureCompleteModal = true;
+            if (modalToOpen === 'restrictedStatusModal') restrictedStatusModal = true;
         "></div>
 </div>

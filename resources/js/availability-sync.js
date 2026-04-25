@@ -207,7 +207,11 @@
 
         // Also count selected Extras (Addons, Dropdowns, Questions)
         // CRITICAL: Avoid double-counting items that are also selected as rides (synced items)
-        const selectedRideNames = new Set(Object.keys(window.bookingAppData.selectedItems || {}).map(s => s.toLowerCase().trim()));
+        const items = window.bookingAppData.selectedItems || {};
+        const selectedRideNames = new Set(
+            (Array.isArray(items) ? items : Object.keys(items))
+            .map(s => s.toLowerCase().trim())
+        );
 
         document.querySelectorAll('.ext-price').forEach(el => {
             if (!el.dataset.countsAgainst) return;
@@ -334,7 +338,11 @@
      * Refresh the dynamic extras sidebar based on selected attractions and category dependencies.
      */
     window.updateDynamicExtras = function () {
-        const selectedRideNames = new Set(Object.keys(window.bookingAppData.selectedItems || {}).map(s => s.toLowerCase().trim()));
+        const items = window.bookingAppData.selectedItems || {};
+        const selectedRideNames = new Set(
+            (Array.isArray(items) ? items : Object.keys(items))
+            .map(s => s.toLowerCase().trim())
+        );
 
         // --- Just-in-Time Parity Sync ---
         // CRITICAL: Run this BEFORE saving state so we don't accidentally wipe selections on first render
@@ -454,17 +462,35 @@
     window.renderCategoryBlockHTML = function (catName) {
         let catHtml = '';
         if (!window.bookingAppData) return '';
-        const config = window.bookingAppData.config;
-        const savedExtras = window.bookingAppData.savedExtras;
-        const selectedRideNames = new Set(Object.keys(window.bookingAppData.selectedItems || {}).map(s => s.toLowerCase().trim()));
+        const config = window.bookingAppData.config || { questions: {}, addons: {}, dropdowns: {} };
+        let savedExtras = window.bookingAppData.savedExtras || {};
+        if (Array.isArray(savedExtras)) {
+            // Convert empty array to object if needed
+            savedExtras = {};
+        }
+        
+        const items = window.bookingAppData.selectedItems || {};
+        const selectedRideNames = new Set(
+            (Array.isArray(items) ? items : Object.keys(items))
+            .map(s => s.toLowerCase().trim())
+        );
 
         if (config.dropdowns[catName]) {
             config.dropdowns[catName].forEach(dd => {
                 let key = `dd_${dd.id}`;
                 let val = savedExtras[key] || '';
                 let countsAgainst = (dd.counts_against || catName).trim();
+                let ddLabel = (dd.label || '').toLowerCase().trim();
+
                 let placeholder = `<option value="" data-price="0" ${val == '' ? 'selected' : ''}>-- Select Option --</option>`;
-                let opts = placeholder + dd.options.map(o => `<option value="${o.id}" data-price="${o.option_price}" ${val == o.id ? 'selected' : ''}>${o.option_label} (+$${o.option_price})</option>`).join('');
+                let opts = placeholder + dd.options.map(o => {
+                    const optLabel = (o.option_label || '').toLowerCase().trim();
+                    const fullMatch = `${ddLabel}: ${optLabel}`;
+                    const dashMatch = `${ddLabel} - ${optLabel}`;
+                    const isSelectedByRide = selectedRideNames.has(optLabel) || selectedRideNames.has(fullMatch) || selectedRideNames.has(dashMatch);
+                    
+                    return `<option value="${o.id}" data-price="${o.option_price}" ${(val == o.id || isSelectedByRide) ? 'selected' : ''}>${o.option_label} (+$${o.option_price})</option>`;
+                }).join('');
                 catHtml += `<div class="mt-3"><label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 ml-1">${dd.label}</label><select name="${key}" data-counts-against="${countsAgainst}" data-original-value="${val}" class="input-field !py-2 text-sm ext-price bg-white cursor-pointer" onchange="window.handleExtraSelection(this)">${opts}</select></div>`;
             });
         }
@@ -474,7 +500,12 @@
                 let key = `q_${q.id}`;
                 let val = savedExtras[key] || '';
                 let countsAgainst = (q.counts_against || catName).trim();
-                let yesSel = (val == (q.yes_price + '|yes')) ? 'selected' : '';
+                let qText = (q.question_text || '').toLowerCase().trim();
+                
+                // Match if the question text is in selected items (usually "Question Text (Yes)")
+                let matchesRide = [...selectedRideNames].some(name => name.includes(qText));
+
+                let yesSel = (val == (q.yes_price + '|yes') || matchesRide) ? 'selected' : '';
                 let noSel = (val == (q.no_price + '|no')) ? 'selected' : '';
                 let placeholderSel = (!yesSel && !noSel) ? 'selected' : '';
                 catHtml += `<div class="mt-3"><label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 ml-1">${q.question_text}</label><select name="${key}" data-counts-against="${countsAgainst}" data-original-value="${val}" class="input-field !py-2 text-sm ext-price bg-white cursor-pointer" onchange="window.handleExtraSelection(this)"><option value="" data-price="0" ${placeholderSel}>-- Select Choice --</option><option value="${q.yes_price}|yes" data-price="${q.yes_price}" ${yesSel}>${q.yes_label} (+$${q.yes_price})</option><option value="${q.no_price}|no" data-price="${q.no_price}" ${noSel}>${q.no_label} (+$${q.no_price})</option></select></div>`;
@@ -485,8 +516,15 @@
             config.addons[catName].forEach(addon => {
                 let key = `add_${addon.id}`;
                 let addonLabel = (addon.addon_label || '').toLowerCase().trim();
-                // FORCE CHECK if it was in the savedExtras OR if it matches a selected ride item
-                let isChecked = (savedExtras[key] == '1' || selectedRideNames.has(addonLabel));
+                let catTarget = (addon.category_target || '').toLowerCase().trim();
+                
+                // Aggressive matching: exact, category-prefixed, or substring (most robust)
+                const itemsList = (Array.isArray(items) ? items : Object.keys(items)).map(s => s.toLowerCase().trim());
+                let isChecked = (savedExtras[key] == '1' || 
+                                 itemsList.some(name => name === addonLabel || 
+                                                       name === `${catTarget}: ${addonLabel}` || 
+                                                       name.includes(addonLabel)));
+                
                 let countsAgainst = (addon.counts_against || catName).trim();
                 catHtml += `<label class="flex items-center gap-3 mt-3 p-3 bg-white border border-slate-200 rounded-xl hover:border-[#9E6B73] cursor-pointer transition shadow-sm h-[42px]"><input type="checkbox" name="${key}" value="1" class="ext-price w-4 h-4 text-[#9E6B73] focus:ring-[#9E6B73]" data-price="${addon.addon_price}" data-counts-against="${countsAgainst}" data-original-checked="${isChecked}" ${isChecked ? 'checked' : ''} onchange="window.handleExtraSelection(this)"><span class="text-sm font-bold text-slate-700 flex-1">${addon.addon_label}</span><span class="text-xs font-bold text-[#9E6B73] bg-[#9E6B73]/10 px-2 py-1 rounded-lg">+$${addon.addon_price}</span></label>`;
             });

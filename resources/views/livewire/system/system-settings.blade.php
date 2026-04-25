@@ -301,7 +301,64 @@
                 </div>
             </div>
 
-            <!-- 3. BUSINESS MODULES (FULL WIDTH) -->
+            <!-- 3. ACTIVE USERS -->
+            <div wire:poll.30s class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full lg:col-span-2">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
+                            <span class="material-symbols-rounded">group</span>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-white">Active Users</h2>
+                            <p class="text-xs text-slate-400">Who is currently using the system</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                        <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{{ count($activeUsers) }} Online Now</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @forelse($activeUsers as $user)
+                        <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-700 flex items-center justify-between group hover:border-plum transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-lg">
+                                    {{ substr($user->first_name, 0, 1) }}{{ substr($user->last_name, 0, 1) }}
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold text-white">{{ $user->first_name }} {{ $user->last_name }}</span>
+                                    <div class="flex items-center gap-1.5 mt-0.5">
+                                        @php
+                                            $roleColor = match(strtolower($user->role)) {
+                                                'admin' => 'bg-red-500/10 text-red-400 border-red-500/20',
+                                                'supervisor' => 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+                                                'staff' => 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+                                                default => 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                                            };
+                                        @endphp
+                                        <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter border {{ $roleColor }}">
+                                            {{ $user->role }}
+                                        </span>
+                                        <span class="text-[10px] text-slate-500 font-medium">{{ $user->ip_address }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] font-bold text-slate-500 block uppercase">Active</span>
+                                <span class="text-[11px] font-semibold text-emerald-400">{{ \Carbon\Carbon::createFromTimestamp($user->last_activity)->diffForHumans() }}</span>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="col-span-full py-10 flex flex-col items-center justify-center border-2 border-dashed border-slate-700 rounded-3xl opacity-50">
+                            <span class="material-symbols-rounded text-4xl text-slate-600 mb-2">person_off</span>
+                            <p class="text-sm font-bold text-slate-500 uppercase tracking-widest">No active users found</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
+            <!-- 4. BUSINESS MODULES (FULL WIDTH) -->
             <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl w-full lg:col-span-2">
                 <div class="flex items-center gap-3 mb-6">
                     <div class="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">

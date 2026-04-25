@@ -26,6 +26,12 @@ class LogisticsInbox extends Component
     public $search_deb = '';
     public $search_op = '';
 
+    // --- Sort Directions ---
+    public $sort_pay = 'asc';
+    public $sort_inv = 'asc';
+    public $sort_deb = 'desc';
+    public $sort_full = 'desc';
+
     // --- Modal Forms ---
     // Payment Processing
     public $saving_type_id = null;
@@ -87,6 +93,10 @@ class LogisticsInbox extends Component
         'search_ord' => ['except' => ''],
         'search_deb' => ['except' => ''],
         'search_op' => ['except' => ''],
+        'sort_pay' => ['except' => 'asc'],
+        'sort_inv' => ['except' => 'asc'],
+        'sort_deb' => ['except' => 'desc'],
+        'sort_full' => ['except' => 'desc'],
     ];
 
     public function mount()
@@ -118,6 +128,13 @@ class LogisticsInbox extends Component
     public function updatingSearchOp()
     {
         $this->resetPage('page_op');
+    }
+
+    public function toggleSort($section)
+    {
+        $prop = "sort_" . $section;
+        $this->$prop = ($this->$prop === 'asc') ? 'desc' : 'asc';
+        $this->resetPage("page_" . $section);
     }
 
     // --- Helpers ---
@@ -627,7 +644,7 @@ class LogisticsInbox extends Component
                     ->orWhere('customer_organization', 'like', "%{$this->search_pay}%");
             });
         }
-        $pendingPayments = $paymentsQuery->orderBy('event_date', 'asc')->paginate(5, ['*'], 'page_pay');
+        $pendingPayments = $paymentsQuery->orderBy('event_date', $this->sort_pay)->paginate(5, ['*'], 'page_pay');
 
         // 2. Fully Paid Bookings (All settled bookings, including completed)
         $fullyPaidQuery = Booking::with('payments')
@@ -643,7 +660,7 @@ class LogisticsInbox extends Component
                     ->orWhere('customer_organization', 'like', "%{$this->search_full}%");
             });
         }
-        $fullyPaidBookings = $fullyPaidQuery->orderBy('event_date', 'desc')->paginate(5, ['*'], 'page_full');
+        $fullyPaidBookings = $fullyPaidQuery->orderBy('event_date', $this->sort_full)->paginate(5, ['*'], 'page_full');
 
         $invoicesQuery = Booking::where('invoice_emailed', 0)->where('status', '!=', 'Cancelled');
         if ($this->search_inv) {
@@ -653,7 +670,7 @@ class LogisticsInbox extends Component
                     ->orWhere('customer_last_name', 'like', "%{$this->search_inv}%");
             });
         }
-        $invoices = $invoicesQuery->orderBy('event_date', 'asc')->paginate(5, ['*'], 'page_inv');
+        $invoices = $invoicesQuery->orderBy('event_date', $this->sort_inv)->paginate(5, ['*'], 'page_inv');
 
         $ordersQuery = Booking::where('event_date', '>=', now()->toDateString())->where('status', 'Confirmed');
         if ($this->search_ord) {
@@ -674,7 +691,7 @@ class LogisticsInbox extends Component
                     ->orWhere('customer_last_name', 'like', "%{$this->search_deb}%");
             });
         }
-        $debtors = $debtorsQuery->orderBy('event_date', 'desc')->paginate(5, ['*'], 'page_deb');
+        $debtors = $debtorsQuery->orderBy('event_date', $this->sort_deb)->paginate(5, ['*'], 'page_deb');
 
         $operatorsQuery = User::whereIn('role', ['Operator', 'Staff']);
         if ($this->search_op) {

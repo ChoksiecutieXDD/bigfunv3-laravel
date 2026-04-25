@@ -79,6 +79,7 @@ class BookingOverview extends Component
     public $edit_payment_notes;
     public $selectedLogToDelete;
 
+    public $deleteConfirmId;
     public $backUrl;
 
     public function mount($id)
@@ -91,21 +92,52 @@ class BookingOverview extends Component
         $this->calMonth = Carbon::parse($this->newDate)->month;
         $this->calYear = Carbon::parse($this->newDate)->year;
 
-        // Dynamic Back Redirect Logic
+        // Dynamic Back Redirect Logic - Priority: 1. 'back' query param, 2. previous, 3. calendar
+        $backParam = request()->query('back');
         $prev = url()->previous();
-        $this->backUrl = ($prev === url()->current() || empty($prev)) 
-            ? route('supervisor.calendar') 
-            : $prev;
+
+        if ($backParam) {
+            $this->backUrl = $backParam;
+        } elseif ($prev && !str_contains($prev, '/overview') && !str_contains($prev, '/edit')) {
+            $this->backUrl = $prev;
+        } else {
+            $this->backUrl = route('supervisor.calendar');
+        }
     }
 
     // --- Core Updates ---
     public function updateStatus()
     {
+        // 1. COMPLETION VALIDATION (Strict) - Check this FIRST to avoid bypasses
+        if ($this->newStatus === 'Completed') {
+            $eventDate = Carbon::parse($this->booking->event_date)->startOfDay();
+            $today = now()->startOfDay();
+
+            // Date Check (Future events cannot be completed)
+            if ($eventDate->isAfter($today)) {
+                $this->dispatch('open-modal', 'futureCompleteModal');
+                $this->newStatus = $this->booking->status; 
+                return;
+            }
+
+            // State Check (Hold/Cancelled -> Completed is forbidden, must go to Confirmed first)
+            if (in_array($this->booking->status, ['Cancelled', 'Hold'])) {
+                $this->dispatch('open-modal', 'restrictedStatusModal');
+                $this->newStatus = $this->booking->status;
+                return;
+            }
+
+            $this->dispatch('open-modal', 'completeStatusConfirmModal');
+            return;
+        }
+
+        // 2. DRAFT EXIT CHECK
         if ($this->booking->status === 'Draft' && $this->newStatus !== 'Draft') {
             $this->dispatch('open-modal', 'draftModal');
             return;
         }
 
+        // 3. CANCELLATION TOGGLE CHECK
         if (
             ($this->booking->status !== 'Cancelled' && $this->newStatus === 'Cancelled') ||
             ($this->booking->status === 'Cancelled' && $this->newStatus !== 'Cancelled')

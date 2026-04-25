@@ -273,11 +273,18 @@ class SystemSettings extends Component
     // ==========================================
     public function forceLogout()
     {
-        Auth::logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
+        try {
+            DB::table('sessions')->truncate();
+            
+            Auth::logout();
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
 
-        return redirect('/');
+            $this->dispatch('show-toast', message: 'All users have been logged out.', type: 'success');
+            return redirect()->route('system.settings');
+        } catch (\Exception $e) {
+            $this->dispatch('show-alert', message: 'Error clearing sessions: ' . $e->getMessage(), type: 'error');
+        }
     }
 
     // ==========================================
@@ -509,6 +516,19 @@ class SystemSettings extends Component
         return round($bytes, $precision) . ' ' . $units[$pow];
     }
 
+    private function getActiveUsers(): array
+    {
+        $fiveMinutesAgo = now()->subMinutes(5)->timestamp;
+        
+        return DB::table('sessions')
+            ->join('users', 'sessions.user_id', '=', 'users.user_id')
+            ->where('sessions.last_activity', '>=', $fiveMinutesAgo)
+            ->select('users.first_name', 'users.last_name', 'users.role', 'sessions.ip_address', 'sessions.last_activity')
+            ->orderBy('sessions.last_activity', 'desc')
+            ->get()
+            ->toArray();
+    }
+
     public function render()
     {
         $quotaService = app(\App\Services\EmailQuotaService::class);
@@ -517,7 +537,8 @@ class SystemSettings extends Component
         return view('livewire.system.system-settings', [
             'brevoQuota' => $quotaService->statusForMailer('smtp'),
             'googleQuota' => $quotaService->statusForMailer('google'),
-            'stats' => $stats
+            'stats' => $stats,
+            'activeUsers' => $this->getActiveUsers()
         ]);
     }
 }
