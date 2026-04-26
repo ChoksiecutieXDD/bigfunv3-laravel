@@ -7,6 +7,7 @@
     window.availabilityAbortController = null;
     window.lastCheckedDate = null;
     window.availabilityCheckTimer = null;
+    window.lastActiveCategoriesStr = "";
 
     /**
      * Main API entry point to sync server-side availability with the frontend.
@@ -19,6 +20,7 @@
 
         const date = dateEl.value;
         const invoice = invoiceEl ? invoiceEl.value : '';
+        const token = window.bookingAppData ? window.bookingAppData.formToken : '';
         const bookingId = window.bookingAppData ? window.bookingAppData.bookingId : '';
 
         if (!date) {
@@ -31,10 +33,12 @@
 
         window.lastCheckedDate = date;
 
-        // Visual Sync Progress: Pulse the badges to show it is LIVE and not static
-        document.querySelectorAll('.status-badge').forEach(badge => {
-            badge.classList.add('opacity-50', 'animate-pulse');
-        });
+        // Visual Sync Progress: Removed flickering effect
+        if (!silent) {
+            document.querySelectorAll('.status-badge').forEach(badge => {
+                // badge.classList.add('opacity-50', 'animate-pulse'); // Removed
+            });
+        }
 
         // Use current AbortController system to prevent hangs
         if (window.availabilityAbortController) window.availabilityAbortController.abort();
@@ -42,7 +46,7 @@
 
         try {
             console.log(`Syncing availability for date: ${date} (Silent: ${silent})`);
-            const response = await fetch(`/api/bookings/check-availability?date=${date}&invoice=${invoice}&booking_id=${bookingId}`, {
+            const response = await fetch(`/api/bookings/check-availability?date=${date}&invoice=${invoice}&booking_id=${bookingId}&token=${token}`, {
                 signal: window.availabilityAbortController.signal
             });
             if (!response.ok) {
@@ -70,11 +74,16 @@
                 }
 
                 // Use the API's categorical counts as the base if provided
-                if (data.categories) {
-                    for (let cat in data.categories) {
-                        window.globalCategoryBooked[cat.trim().toLowerCase()] = data.categories[cat].booked || 0;
+            if (data.categories) {
+                for (let cat in data.categories) {
+                    const catKey = cat.trim().toLowerCase();
+                    window.globalCategoryBooked[catKey] = data.categories[cat].booked || 0;
+                    // Also sync the limit in case it changed on server
+                    if (window.bookingAppData && window.bookingAppData.categories && window.bookingAppData.categories[cat]) {
+                        window.bookingAppData.categories[cat].limit = data.categories[cat].limit;
                     }
                 }
+            }
 
                 document.querySelectorAll('.product-card').forEach(card => {
                     try {
@@ -89,11 +98,25 @@
                         const cleanName = rawName.toLowerCase().replace(/\s+/g, ' ').trim();
                         const checkbox = card.querySelector('.ride-checkbox');
 
+                        const statusWrapper = card.querySelector('.status-wrapper');
                         const actionText = card.querySelector('.action-text');
                         const targetCat = (card.dataset.countsAgainst || '').trim().toLowerCase();
                         const itemLimit = parseInt(card.dataset.dailyLimit) || 0;
                         const initialStock = parseInt(card.dataset.stock) || 999;
                         const UNLIMITED_THRESHOLD = 99;
+
+                        // LIVE SELECTION BADGES
+                        if (statusWrapper) {
+                            statusWrapper.querySelectorAll('.live-item-badge').forEach(b => b.remove());
+                            if (data.live_selections && data.live_selections[cleanName]) {
+                                data.live_selections[cleanName].forEach(user => {
+                                    const lBadge = document.createElement('span');
+                                    lBadge.className = 'live-item-badge text-[8px] bg-slate-800 text-white px-1.5 py-0.5 rounded ml-1 font-bold uppercase whitespace-nowrap border border-slate-600';
+                                    lBadge.innerText = `${user.name} | ${user.role}`;
+                                    statusWrapper.appendChild(lBadge);
+                                });
+                            }
+                        }
 
                         // 2. CHANGE THIS: Check against our new normalizedApiProducts object
                         if (normalizedApiProducts[cleanName]) {
@@ -258,7 +281,7 @@
                 const remaining = Math.max(0, catData.limit - used);
                 const badge = section.querySelector('.cat-limit-badge');
                 if (badge) {
-                    badge.innerText = `Limit: ${catData.limit} (Left: ${remaining})`;
+                    badge.innerText = `LIMIT: ${catData.limit} (LEFT: ${remaining})`;
                     if (remaining <= 0) {
                         badge.className = 'cat-limit-badge text-[10px] bg-red-100 text-red-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide border border-red-200';
                     } else {
@@ -400,6 +423,25 @@
         const container = document.getElementById('dynamicExtrasContainer');
         if (!container) return;
 
+        const activeCategoriesArray = Array.from(activeCategories).sort();
+        const activeCategoriesStr = activeCategoriesArray.join('|');
+        
+        // --- PERFORMANCE/UX FIX: Only re-render if categories changed ---
+        // If categories are same, just update limits, don't wipe innerHTML
+        if (window.lastActiveCategoriesStr === activeCategoriesStr) {
+            window.updateCategoryLimitsUI();
+            if (typeof window.triggerRecalculate === 'function') window.triggerRecalculate();
+            return;
+        }
+
+        // --- UX SAFETY: Don't re-render if user is currently interacting with a dropdown ---
+        const focusedEl = document.activeElement;
+        if (focusedEl && focusedEl.closest('#dynamicExtrasContainer') && focusedEl.tagName === 'SELECT') {
+            console.log("Skipping extras re-render: User is interacting with a dropdown.");
+            return;
+        }
+
+        window.lastActiveCategoriesStr = activeCategoriesStr;
         container.innerHTML = '';
         const configCategories = window.bookingAppData.categories;
 

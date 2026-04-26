@@ -91,6 +91,7 @@ document.addEventListener('alpine:init', () => {
             costDelta: 0,
             saveDuplicateConfirm: false,
             removeConfirm: false,
+            systemInfo: false,
             imagePreview: '',
             imagePreviewVisible: false,
         },
@@ -431,6 +432,11 @@ window.calLoad = async function () {
         if (summaryEl) summaryEl.innerText = `Daily limit: ${dailyLimit} bookings`;
 
         const liveBadges = res.live_badges || {};
+        
+        // Also trigger checkRealTimeAvailability to update product badges if on same date
+        if (dateInput && dateInput.value) {
+             if (typeof checkRealTimeAvailability === 'function') checkRealTimeAvailability(true);
+        }
 
         for (let d = 1; d <= e.getDate(); d++) {
             let dStr = `${calCursor.getFullYear()}-${String(calCursor.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -449,7 +455,7 @@ window.calLoad = async function () {
                     const textColor = 'text-white';
                     const displayName = badge.name; // Show full name always as requested
                     
-                    badgeHtml += `<div class="${bgColor} ${textColor} text-[7px] sm:text-[8px] px-2 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap animate-pulse max-w-full truncate text-center leading-none" title="${badge.name} (${badge.role})">
+                    badgeHtml += `<div class="${bgColor} ${textColor} text-[7px] sm:text-[8px] px-2 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap max-w-full truncate text-center leading-none" title="${badge.name} (${badge.role})">
                         ${displayName} (${badge.role})
                     </div>`;
                 });
@@ -657,6 +663,53 @@ function processSelection(checkbox, card) {
         console.error("Selection sync error:", error);
         showToast("Sync Issue", "Could not fully update selection. Please refresh.", "error");
     }
+
+    // NEW: Sync live selection to server immediately
+    window.syncLiveSelectionsToServer();
+};
+
+window.syncLiveSelectionsToServer = function() {
+    const dateInput = document.getElementById('event_date');
+    if (!dateInput || !dateInput.value) return;
+
+    // Collect all selected rides and extras
+    let items = [];
+    document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
+        const card = cb.closest('.product-card');
+        if (card && card.dataset.name) {
+            items.push({
+                name: card.dataset.name,
+                value: "1",
+                key: card.dataset.name
+            });
+        }
+    });
+
+    // Collect all selected extras
+    document.querySelectorAll('.ext-price').forEach(el => {
+        const isSelected = (el.type === 'checkbox' ? el.checked : (el.value !== '' && el.value !== '0' && !el.value.includes('|no')));
+        if (isSelected) {
+            let label = "";
+            if (el.type === 'checkbox') {
+                label = el.closest('label').querySelector('span')?.innerText || el.name;
+            } else if (el.tagName === 'SELECT') {
+                const labelEl = el.closest('div').querySelector('label');
+                label = labelEl?.innerText || el.name;
+            }
+            items.push({
+                name: label,
+                value: el.value,
+                key: el.name
+            });
+        }
+    });
+
+    apiPost('select_calendar_date', {
+        date: dateInput.value,
+        invoice: window.bookingAppData ? window.bookingAppData.invoiceNumber : '',
+        token: window.bookingAppData ? window.bookingAppData.formToken : '',
+        selected_items: JSON.stringify(items)
+    });
 };
 
 
@@ -737,6 +790,9 @@ window.handleExtraSelection = function (element) {
     triggerRecalculate();
     saveCurrentExtrasState();
     updateCategoryLimitsUI();
+    
+    // NEW: Sync live selection to server immediately
+    window.syncLiveSelectionsToServer();
 };
 
 window.finalizeBooking = async function () {
@@ -1318,6 +1374,19 @@ window.finalizeBooking = async function () {
         }
 
         const fd = new FormData(form);
+
+        // CRITICAL FIX: Explicitly append all selected products to ensure they aren't lost 
+        // in the JS-to-Livewire sync race during the final save.
+        if (window.bookingAppData && window.bookingAppData.selectedItems) {
+            // Clear any existing products[] entries from FormData to avoid duplicates if they DID sync
+            fd.delete('products[]');
+            for (let name in window.bookingAppData.selectedItems) {
+                if (window.bookingAppData.selectedItems[name]) {
+                    fd.append('products[]', name);
+                }
+            }
+        }
+
         const overrideTotal = document.getElementById('override_total');
         const dispTotal = document.getElementById('disp_total');
 

@@ -26,8 +26,13 @@
                                 <span class="material-symbols-rounded text-2xl">arrow_back</span>
                             </a>
                             <div>
+                            <div class="flex items-center gap-2">
                                 <h1 class="text-3xl font-extrabold text-[#1E293B]">{{ $is_edit_mode ? 'Edit Booking' : 'Create Booking' }}</h1>
-                                <p class="text-sm text-slate-500 font-medium mt-1 uppercase tracking-wide text-[10px]">Invoice: <span class="font-bold text-[#9D686E]">{{ $invoice_number }}</span></p>
+                                <button type="button" @click="modals.systemInfo = true" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:bg-[#9E6B73]/10 hover:text-[#9E6B73] transition-colors flex items-center justify-center">
+                                    <span class="material-symbols-rounded text-base">info</span>
+                                </button>
+                            </div>
+                            <p class="text-sm text-slate-500 font-medium mt-1 uppercase tracking-wide text-[10px]">Invoice: <span class="font-bold text-[#9D686E]">{{ $invoice_number }}</span></p>
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
@@ -876,6 +881,58 @@
             <button type="button" @click="modals.limitExceeded = false" class="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition shadow-lg shadow-slate-200 uppercase tracking-widest text-xs">
                 I Understand
             </button>
+        </div>
+    </div>
+
+    <!-- SYSTEM INFO MODAL -->
+    <div x-show="modals.systemInfo" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10005]">
+        <div x-show="modals.systemInfo" x-transition.opacity.duration.300ms class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="modals.systemInfo = false"></div>
+        <div x-show="modals.systemInfo" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="opacity-0 scale-90 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+            class="relative w-full max-w-lg bg-white rounded-[24px] shadow-2xl overflow-hidden z-10 border-t-8 border-[#9E6B73]">
+            
+            <div class="p-8 pb-4 text-left">
+                <div class="w-16 h-16 bg-[#9E6B73]/10 rounded-2xl flex items-center justify-center mb-6 text-[#9E6B73]">
+                    <span class="material-symbols-rounded text-3xl font-bold">help_center</span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 mb-2 tracking-tight">System Concurrency & Guidelines</h3>
+                <p class="text-[13px] font-medium text-slate-500 mb-8 leading-relaxed">To ensure data integrity and prevent double-bookings, the system implements the following real-time guards:</p>
+
+                <div class="space-y-6">
+                    <div class="flex gap-4 text-left">
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded text-xl">sync_alt</span>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-800 mb-1 uppercase tracking-wider text-[11px]">Real-Time Sync</h4>
+                            <p class="text-[12px] text-slate-500 leading-relaxed font-medium">When another staff member selects an attraction, a badge with their name appears instantly. Available slots decrease in real-time to prevent overbooking.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 text-left">
+                        <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded text-xl">timer</span>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-800 mb-1 uppercase tracking-wider text-[11px]">Draft Expiration</h4>
+                            <p class="text-[12px] text-slate-500 leading-relaxed font-medium">New bookings are held as "Drafts" for 20 minutes. If not saved within this time, held slots are automatically released for other staff members.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 text-left">
+                        <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded text-xl">lock</span>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-800 mb-1 uppercase tracking-wider text-[11px]">Category Limits</h4>
+                            <p class="text-[12px] text-slate-500 leading-relaxed font-medium">Certain categories (like Mechanical Rides) have shared limits. Selecting any item in these categories counts against the limit shown in header badges.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-8 pt-4">
+                <button @click="modals.systemInfo = false" class="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition shadow-lg uppercase tracking-widest text-[10px]">I Understand</button>
+            </div>
         </div>
     </div>
 

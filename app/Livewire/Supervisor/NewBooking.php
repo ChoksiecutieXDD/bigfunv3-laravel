@@ -57,11 +57,11 @@ class NewBooking extends Component
         }
 
         if (empty($this->default_event_date)) {
-            $this->default_event_date = date('Y-m-d');
+            $this->default_event_date = '';
         }
         
-        $this->calMonth = Carbon::parse($this->default_event_date)->month;
-        $this->calYear = Carbon::parse($this->default_event_date)->year;
+        $this->calMonth = Carbon::parse($this->default_event_date ?: now())->month;
+        $this->calYear = Carbon::parse($this->default_event_date ?: now())->year;
 
         $this->checkAvailability();
     }
