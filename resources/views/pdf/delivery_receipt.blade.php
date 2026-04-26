@@ -22,6 +22,10 @@
     $start = !empty($booking->start_time) ? date('h:i A', strtotime($booking->start_time)) : '-';
     $end   = (!empty($booking->end_time) && $booking->end_time !== '00:00:00') ? date('h:i A', strtotime($booking->end_time)) : '';
     $timeRange = $end ? ($start . ' - ' . $end) : $start;
+    $stdDurations = ['1 Hour','2 Hours','3 Hours','4 Hours','5 Hours','6 Hours','7 Hours','8 Hours','9 Hours','10 Hours','11 Hours','12 Hours','Overnight'];
+    if (!empty($booking->duration) && !in_array($booking->duration, $stdDurations)) {
+        $timeRange = $booking->duration;
+    }
 
     // Special instructions
     $specialInstructions = '';
@@ -32,6 +36,10 @@
     } else {
         $specialInstructions = '-';
     }
+
+    // Extract General and Specific Extras
+    $general_extras = !empty($booking->general_extra) ? (is_string($booking->general_extra) ? json_decode($booking->general_extra, true) : $booking->general_extra) : [];
+    $specific_extras = !empty($booking->specific_extra) ? (is_string($booking->specific_extra) ? json_decode($booking->specific_extra, true) : $booking->specific_extra) : [];
 
     $col_span = 3;
 @endphp
@@ -248,6 +256,55 @@
                         <td class="text-center">{{ $qty }}</td>
                     </tr>
                 @endforeach
+            @endif
+
+            @php
+                $has_json_extras = !empty($general_extras) || !empty($specific_extras);
+                $show_extras_section = $has_json_extras || !empty($booking->logistics_surfaces);
+            @endphp
+
+            @if($show_extras_section)
+                @if(!empty($general_extras) || !empty($booking->logistics_surfaces))
+                    <tr>
+                        <td colspan="{{ $col_span }}" style="padding: 10px 5px 5px 5px; border-bottom: 1px solid #000;">
+                            <span class="bold" style="font-size: 11px;">General Logistic Extras:</span>
+                        </td>
+                    </tr>
+                    @if(!empty($booking->logistics_surfaces))
+                        <tr style="border-bottom: 1px dashed #eee;">
+                            <td colspan="2" style="padding: 5px 5px 5px 15px; font-size: 10px;">
+                                &bull; Logistics Surface: {{ $booking->logistics_surfaces }}
+                            </td>
+                            <td class="text-center" style="padding: 5px; font-size: 10px;">1</td>
+                        </tr>
+                    @endif
+                    @if(is_array($general_extras))
+                        @foreach($general_extras as $label => $cost)
+                            <tr style="border-bottom: 1px dashed #eee;">
+                                <td colspan="2" style="padding: 5px 5px 5px 15px; font-size: 10px;">
+                                    &bull; {{ $label }}
+                                </td>
+                                <td class="text-center" style="padding: 5px; font-size: 10px;">1</td>
+                            </tr>
+                        @endforeach
+                    @endif
+                @endif
+
+                @if(!empty($specific_extras))
+                    <tr>
+                        <td colspan="{{ $col_span }}" style="padding: 10px 5px 5px 5px; border-bottom: 1px solid #000;">
+                            <span class="bold" style="font-size: 11px;">Specific Extras:</span>
+                        </td>
+                    </tr>
+                    @foreach($specific_extras as $label => $cost)
+                        <tr style="border-bottom: 1px dashed #eee;">
+                            <td colspan="2" style="padding: 5px 5px 5px 15px; font-size: 10px;">
+                                &bull; {{ $label }}
+                            </td>
+                            <td class="text-center" style="padding: 5px; font-size: 10px;">1</td>
+                        </tr>
+                    @endforeach
+                @endif
             @endif
 
             <tr>

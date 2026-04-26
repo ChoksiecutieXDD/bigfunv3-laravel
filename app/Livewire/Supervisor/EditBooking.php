@@ -314,6 +314,8 @@ class EditBooking extends Component
                 $this->form['duration_cost'] = $dur ? (float)$dur->price : 0;
             } else {
                 $this->form['is_custom_duration'] = true;
+                $this->form['start_time'] = '00:00:00';
+                $this->form['end_time'] = '23:59:59';
             }
             $this->calculateTotals();
         }

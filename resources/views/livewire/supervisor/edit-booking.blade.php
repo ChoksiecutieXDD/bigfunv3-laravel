@@ -10,9 +10,6 @@
             csrfToken: '{{ csrf_token() }}'
         };
 
-        showCustomDelivery = @entangle('form.delivery_area').live === 'custom' || (@entangle('form.delivery_area').live !== '' && !@js($deliveryOptions->pluck('zone_name')->contains($form['delivery_area'] ?? '')));
-        showCustomDuration = @entangle('form.duration').live === 'custom';
-        
         // Removal Modal State
         modals.removeConfirm = false;
         itemToRemove = '';
@@ -79,10 +76,10 @@
                                 <h3 class="text-base font-bold text-red-800 mb-1 leading-none uppercase tracking-wide">Validation Blocked</h3>
                                 <div class="text-sm text-red-700 space-y-1 mt-2">
                                     @foreach($activeConflicts as $conf)
-                                        <p class="flex items-center gap-2 font-medium">• <span class="font-bold">{{ $conf }}</span> is already booked on this date.</p>
+                                    <p class="flex items-center gap-2 font-medium">• <span class="font-bold">{{ $conf }}</span> is already booked on this date.</p>
                                     @endforeach
                                     @foreach($activeCapacityBreaches as $cat => $data)
-                                        <p class="flex items-center gap-2 font-medium">• <span class="font-bold">{{ $cat }}</span> capacity exceeded ({{ $data['current'] + $data['added'] }} / {{ $data['limit'] }}).</p>
+                                    <p class="flex items-center gap-2 font-medium">• <span class="font-bold">{{ $cat }}</span> capacity exceeded ({{ $data['current'] + $data['added'] }} / {{ $data['limit'] }}).</p>
                                     @endforeach
                                 </div>
                                 <p class="text-[11px] font-black text-red-600 mt-3 uppercase tracking-widest">Please change the date or remove items to enable saving</p>
@@ -117,20 +114,19 @@
                         </div>
                         <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                             @php
-                                $hasConflicts = !empty($activeConflicts) || !empty($activeCapacityBreaches);
-                                $saveBtnClass = $hasConflicts 
-                                    ? 'bg-red-100 text-red-400 cursor-not-allowed border-red-200 opacity-60' 
-                                    : 'bg-[#9E6B73] text-white hover:bg-[#86545C] shadow-md shadow-[#9E6B73]/20';
+                            $hasConflicts = !empty($activeConflicts) || !empty($activeCapacityBreaches);
+                            $saveBtnClass = $hasConflicts
+                            ? 'bg-red-100 text-red-400 cursor-not-allowed border-red-200 opacity-60'
+                            : 'bg-[#9E6B73] text-white hover:bg-[#86545C] shadow-md shadow-[#9E6B73]/20';
                             @endphp
                             <button type="button" @click="modals.history = true; filteredCustomers = previousCustomers; searchHistory = ''" class="btn-action bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 flex-1 sm:flex-none justify-center">
                                 <span class="material-symbols-rounded mr-2 text-lg">history</span> Past Customer
                             </button>
-                            <button 
+                            <button
                                 @if(!$hasConflicts) @click="modals.saveConfirm = true" @endif
-                                type="button" 
+                                type="button"
                                 class="btn-action flex-1 sm:flex-none justify-center transition-all duration-300 {{ $saveBtnClass }}"
-                                @if($hasConflicts) disabled @endif
-                            >
+                                @if($hasConflicts) disabled @endif>
                                 <span class="material-symbols-rounded text-lg mr-2">{{ $hasConflicts ? 'block' : 'save' }}</span>
                                 {{ $hasConflicts ? 'BLOCKED: FIX CONFLICTS' : 'SAVE CHANGES' }}
                             </button>
@@ -308,68 +304,74 @@
                         </div>
                     </div>
 
-                <div class="grid grid-cols-7 text-[10px] font-black text-slate-300 mb-4 uppercase tracking-[0.2em] text-center px-1">
-                    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-                </div>
+                    <div class="grid grid-cols-7 text-[10px] font-black text-slate-300 mb-4 uppercase tracking-[0.2em] text-center px-1">
+                        <div>Sun</div>
+                        <div>Mon</div>
+                        <div>Tue</div>
+                        <div>Wed</div>
+                        <div>Thu</div>
+                        <div>Fri</div>
+                        <div>Sat</div>
+                    </div>
 
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-8">
-                    @foreach($calDays as $d)
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-8">
+                        @foreach($calDays as $d)
                         @if($d === null)
-                            <div class="hidden lg:block h-24 rounded-2xl bg-slate-50/30"></div>
+                        <div class="hidden lg:block h-24 rounded-2xl bg-slate-50/30"></div>
                         @else
-                            @php
-                                $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-100';
-                                if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-100'; }
-                                elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-100' ; }
+                        @php
+                        $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-100';
+                        if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-100'; }
+                        elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-100' ; }
 
-                                $isSelected = $d['date'] === $tempSelectedDate;
-                                $isOriginal = $d['date'] === ($booking->event_date);
-                                
-                                $ring = $isSelected ? 'border-[#9D686E] bg-pink-50 ring-4 ring-[#9D686E]/10 shadow-md z-10' : '';
-                                $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9D686E] shadow-inner' : '';
+                            $isSelected=$d['date']===$tempSelectedDate;
+                            $isOriginal=$d['date']===($booking->event_date);
+
+                            $ring = $isSelected ? 'border-[#9D686E] bg-pink-50 ring-4 ring-[#9D686E]/10 shadow-md z-10' : '';
+                            $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9D686E] shadow-inner' : '';
                             @endphp
                             <button type="button" wire:click="selectDate('{{ $d['date'] }}')"
                                 class="h-24 rounded-2xl border transition-all relative group {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $originStyle }} hover:-translate-y-1 hover:shadow-lg hover:border-[#9D686E]">
-                                
+
                                 @if($isOriginal)
-                                    <div class="absolute -top-1.5 -right-1.5 bg-[#9D686E] text-white text-[7px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
+                                <div class="absolute -top-1.5 -right-1.5 bg-[#9D686E] text-white text-[7px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
                                 @endif
-                                
+
                                 @if($d['conflict'] ?? false)
-                                    <div class="absolute top-2 right-2 flex items-center justify-center w-5 h-5 bg-red-500 text-white rounded-full shadow-sm animate-pulse z-20">
-                                        <span class="material-symbols-rounded text-sm font-bold">warning</span>
-                                    </div>
+                                <div class="absolute top-2 right-2 flex items-center justify-center w-5 h-5 bg-red-500 text-white rounded-full shadow-sm animate-pulse z-20">
+                                    <span class="material-symbols-rounded text-sm font-bold">warning</span>
+                                </div>
                                 @endif
 
                                 @if($d['breach'] ?? false)
-                                    <div class="absolute top-2 left-2 flex items-center justify-center w-5 h-5 bg-amber-500 text-white rounded-full shadow-sm z-20">
-                                        <span class="material-symbols-rounded text-sm font-bold">inventory_2</span>
-                                    </div>
+                                <div class="absolute top-2 left-2 flex items-center justify-center w-5 h-5 bg-amber-500 text-white rounded-full shadow-sm z-20">
+                                    <span class="material-symbols-rounded text-sm font-bold">inventory_2</span>
+                                </div>
                                 @endif
 
                                 @if($d['duplicate'] ?? false)
-                                    <div class="absolute bottom-2 right-2 flex items-center justify-center w-5 h-5 bg-amber-600 text-white rounded-full shadow-sm z-20">
-                                        <span class="material-symbols-rounded text-sm font-bold">person_alert</span>
-                                    </div>
+                                <div class="absolute bottom-2 right-2 flex items-center justify-center w-5 h-5 bg-amber-600 text-white rounded-full shadow-sm z-20">
+                                    <span class="material-symbols-rounded text-sm font-bold">person_alert</span>
+                                </div>
                                 @endif
 
                                 <span class="font-black text-2xl mb-1">{{ $d['day'] }}</span>
                                 <span class="text-[9px] uppercase font-black tracking-tighter opacity-70 group-hover:opacity-100">{{ $d['left'] }} Left</span>
                             </button>
-                        @endif
-                    @endforeach
-                </div>
+                            @endif
+                            @endforeach
+                    </div>
 
-                <div class="flex flex-wrap items-center gap-6 text-[9px] text-slate-400 font-extrabold justify-center border-t border-slate-50 pt-8 uppercase tracking-[0.15em] mb-10">
-                    <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span>AVAILABLE</span>
-                    <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm"></span>BUSY</span>
-                    <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm"></span>FULL</span>
-                    <span class="inline-flex items-center gap-2 p-1.5 bg-red-50 text-red-600 rounded-lg border border-red-100"><span class="material-symbols-rounded text-xs">warning</span> CONFLICT</span>
-                    <span class="inline-flex items-center gap-2 p-1.5 bg-amber-50 text-amber-600 rounded-lg border border-amber-100"><span class="material-symbols-rounded text-xs">inventory_2</span> AT CAPACITY</span>
-                    <span class="inline-flex items-center gap-2 p-1.5 bg-amber-100/50 text-amber-700 rounded-lg border border-amber-200"><span class="material-symbols-rounded text-xs">person_alert</span> DUPLICATE</span>
-                </div>
+                    <div class="flex flex-wrap items-center gap-6 text-[9px] text-slate-400 font-extrabold justify-center border-t border-slate-50 pt-8 uppercase tracking-[0.15em] mb-10">
+                        <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span>AVAILABLE</span>
+                        <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm"></span>BUSY</span>
+                        <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm"></span>FULL</span>
+                        <span class="inline-flex items-center gap-2 p-1.5 bg-red-50 text-red-600 rounded-lg border border-red-100"><span class="material-symbols-rounded text-xs">warning</span> CONFLICT</span>
+                        <span class="inline-flex items-center gap-2 p-1.5 bg-amber-50 text-amber-600 rounded-lg border border-amber-100"><span class="material-symbols-rounded text-xs">inventory_2</span> AT CAPACITY</span>
+                        <span class="inline-flex items-center gap-2 p-1.5 bg-amber-100/50 text-amber-700 rounded-lg border border-amber-200"><span class="material-symbols-rounded text-xs">person_alert</span> DUPLICATE</span>
+                    </div>
 
-                @if($tempSelectedDate)
+                    @if($tempSelectedDate)
                     <div class="p-6 bg-slate-50 border border-slate-200 rounded-[28px] animate-[fadeIn_0.3s_ease-out]">
                         <div class="flex items-center justify-between mb-6">
                             <div class="flex items-center gap-3">
@@ -382,13 +384,13 @@
                                 </div>
                             </div>
                             @if(count($modalConflicts) > 0 || count($modalCapacityBreaches) > 0)
-                                <span class="bg-red-50 text-red-600 text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest border border-red-100 flex items-center gap-2 shadow-sm">
-                                    <span class="material-symbols-rounded text-sm">block</span> Move Blocked
-                                </span>
+                            <span class="bg-red-50 text-red-600 text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest border border-red-100 flex items-center gap-2 shadow-sm">
+                                <span class="material-symbols-rounded text-sm">block</span> Move Blocked
+                            </span>
                             @else
-                                <span class="bg-emerald-50 text-emerald-600 text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest border border-emerald-100 flex items-center gap-2 shadow-sm">
-                                    <span class="material-symbols-rounded text-sm">check_circle</span> Optimized Path
-                                </span>
+                            <span class="bg-emerald-50 text-emerald-600 text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest border border-emerald-100 flex items-center gap-2 shadow-sm">
+                                <span class="material-symbols-rounded text-sm">check_circle</span> Optimized Path
+                            </span>
                             @endif
                         </div>
 
@@ -399,72 +401,72 @@
                                     <div class="flex flex-wrap gap-2">
                                         @php $dayItems = $dailyAttractions[$tempSelectedDate] ?? []; @endphp
                                         @forelse($dayItems as $itemName)
-                                            @php $isConflict = in_array($itemName, $bookedAttractions); @endphp
-                                            <span class="px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all {{ $isConflict ? 'bg-red-50 text-red-600 border-red-200 shadow-sm shadow-red-500/10' : 'bg-white text-slate-600 border-slate-200' }}">
-                                                {{ strtoupper($itemName) }}
-                                            </span>
+                                        @php $isConflict = in_array($itemName, $bookedAttractions); @endphp
+                                        <span class="px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all {{ $isConflict ? 'bg-red-50 text-red-600 border-red-200 shadow-sm shadow-red-500/10' : 'bg-white text-slate-600 border-slate-200' }}">
+                                            {{ strtoupper($itemName) }}
+                                        </span>
                                         @empty
-                                            <p class="text-[10px] font-bold text-slate-300 italic">No attractions reserved yet.</p>
+                                        <p class="text-[10px] font-bold text-slate-300 italic">No attractions reserved yet.</p>
                                         @endforelse
                                     </div>
                                 </div>
 
                                 @if(!empty($modalNameConflicts))
-                                    <div class="bg-[#9D686E]/5 border border-[#9D686E]/10 rounded-[24px] p-5">
-                                        <p class="text-[10px] font-black text-[#9D686E] uppercase tracking-tight mb-4 flex items-center gap-2">
-                                            <span class="material-symbols-rounded text-sm">person_alert</span>
-                                            Duplicate Contact Found
-                                        </p>
-                                        <div class="space-y-2">
-                                            @foreach($modalNameConflicts as $nc)
-                                                <div class="flex justify-between items-center bg-white/80 p-3 rounded-2xl border border-[#9D686E]/10 shadow-sm">
-                                                    <div class="flex items-center gap-3">
-                                                        <span class="text-[10px] font-black text-[#9D686E]">#{{ $nc['invoice_number'] ?? $nc['id'] }}</span>
-                                                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{{ $nc['item_names_summary'] ?? 'Customer Record' }}</span>
-                                                    </div>
-                                                    <span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 uppercase">{{ $nc['status'] }}</span>
-                                                </div>
-                                            @endforeach
+                                <div class="bg-[#9D686E]/5 border border-[#9D686E]/10 rounded-[24px] p-5">
+                                    <p class="text-[10px] font-black text-[#9D686E] uppercase tracking-tight mb-4 flex items-center gap-2">
+                                        <span class="material-symbols-rounded text-sm">person_alert</span>
+                                        Duplicate Contact Found
+                                    </p>
+                                    <div class="space-y-2">
+                                        @foreach($modalNameConflicts as $nc)
+                                        <div class="flex justify-between items-center bg-white/80 p-3 rounded-2xl border border-[#9D686E]/10 shadow-sm">
+                                            <div class="flex items-center gap-3">
+                                                <span class="text-[10px] font-black text-[#9D686E]">#{{ $nc['invoice_number'] ?? $nc['id'] }}</span>
+                                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{{ $nc['item_names_summary'] ?? 'Customer Record' }}</span>
+                                            </div>
+                                            <span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 uppercase">{{ $nc['status'] }}</span>
                                         </div>
+                                        @endforeach
                                     </div>
+                                </div>
                                 @endif
                             </div>
 
                             <div class="p-3 bg-white rounded-2xl border border-slate-100 flex items-center justify-center min-h-[50px]">
                                 @if(empty($modalConflicts) && empty($modalCapacityBreaches))
-                                    <div class="flex items-center gap-2 text-emerald-600 font-bold px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100 w-full justify-center">
-                                        <span class="material-symbols-rounded text-xl">check_circle</span>
-                                        <span class="text-sm uppercase tracking-wider">Optimized Selection Path</span>
-                                    </div>
+                                <div class="flex items-center gap-2 text-emerald-600 font-bold px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100 w-full justify-center">
+                                    <span class="material-symbols-rounded text-xl">check_circle</span>
+                                    <span class="text-sm uppercase tracking-wider">Optimized Selection Path</span>
+                                </div>
                                 @else
-                                    <div class="flex items-center gap-2 text-red-600 font-bold px-4 py-2 bg-red-50 rounded-xl border border-red-100 w-full justify-center">
-                                        <span class="material-symbols-rounded text-xl">block</span>
-                                        <span class="text-sm uppercase tracking-wider">Analysis Blocked</span>
-                                    </div>
+                                <div class="flex items-center gap-2 text-red-600 font-bold px-4 py-2 bg-red-50 rounded-xl border border-red-100 w-full justify-center">
+                                    <span class="material-symbols-rounded text-xl">block</span>
+                                    <span class="text-sm uppercase tracking-wider">Analysis Blocked</span>
+                                </div>
                                 @endif
                             </div>
                         </div>
                     </div>
-                @endif
+                    @endif
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-10 mt-10 border-t border-slate-100">
-                    <div class="input-group">
-                        <label class="input-label">Event Date</label>
-                        <input type="date" id="event_date" name="event_date" wire:model.live="form.event_date" value="{{ $form['event_date'] }}" class="input-field" @change="dateChanged()">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-10 mt-10 border-t border-slate-100">
+                        <div class="input-group">
+                            <label class="input-label">Event Date</label>
+                            <input type="date" id="event_date" name="event_date" wire:model.live="form.event_date" value="{{ $form['event_date'] }}" class="input-field" @change="dateChanged()">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Operational Hours</label>
+                            <input type="text" wire:model="form.operational_hours" placeholder="e.g. 9am to 5pm or TBC" class="input-field">
+                        </div>
+                        <div class="input-group" x-show="$wire.form.duration !== 'custom'">
+                            <label class="input-label">Start Time</label>
+                            <input type="time" wire:model="form.start_time" class="input-field">
+                        </div>
+                        <div class="input-group" x-show="$wire.form.duration !== 'custom'">
+                            <label class="input-label">End Time</label>
+                            <input type="time" wire:model="form.end_time" class="input-field">
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label class="input-label">Operational Hours</label>
-                        <input type="text" wire:model="form.operational_hours" placeholder="e.g. 9am to 5pm or TBC" class="input-field">
-                    </div>
-                    <div class="input-group" x-show="!showCustomDuration">
-                        <label class="input-label">Start Time</label>
-                        <input type="time" wire:model="form.start_time" class="input-field">
-                    </div>
-                    <div class="input-group" x-show="!showCustomDuration">
-                        <label class="input-label">End Time</label>
-                        <input type="time" wire:model="form.end_time" class="input-field">
-                    </div>
-                </div>
 
                     <div class="pt-6 border-t border-gray-100 mt-6">
                         <label class="input-label mb-3">Duration Pricing</label>
@@ -630,7 +632,7 @@
                                     </div>
                                 </div>
 
-                                <div x-show="showCustomDelivery" x-collapse class="mt-4">
+                                <div x-show="$wire.form.is_custom_duration || $wire.form.delivery_area === 'custom' || ($wire.form.delivery_area !== '' && !@js($deliveryOptions->pluck('zone_name')->contains($form['delivery_area'] ?? '')))" x-collapse class="mt-4">
                                     <div class="input-group">
                                         <label class="input-label text-[#9E6B73]">Manual Delivery Cost</label>
                                         <div class="relative">
@@ -670,8 +672,8 @@
                         </div>
                     </div>
 
-                    <div class="pt-6 border-t border-gray-100 mt-6" 
-                         x-data="{
+                    <div class="pt-6 border-t border-gray-100 mt-6"
+                        x-data="{
                             totalSizeMB: '0.00',
                             calculateTotalSize() {
                                 let total = 0;
@@ -690,8 +692,8 @@
                                 this.totalSizeMB = (total / (1024 * 1024)).toFixed(2);
                             }
                          }"
-                         x-init="calculateTotalSize()"
-                         @recalc-size="calculateTotalSize()">
+                        x-init="calculateTotalSize()"
+                        @recalc-size="calculateTotalSize()">
                         <div class="flex items-center justify-between mb-4">
                             <label class="input-label mb-0 flex items-center gap-2">
                                 <span class="material-symbols-rounded text-sm text-[#9E6B73]">attachment</span>
@@ -699,7 +701,7 @@
                             </label>
                             <div class="flex items-center gap-2">
                                 <span class="flex items-center gap-1.5 text-[9px] bg-slate-100 text-slate-500 border border-slate-200 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider transition-colors duration-300"
-                                      :class="{'bg-rose-50 text-rose-600 border-rose-200': parseFloat(totalSizeMB) >= 5}">
+                                    :class="{'bg-rose-50 text-rose-600 border-rose-200': parseFloat(totalSizeMB) >= 5}">
                                     <span class="material-symbols-rounded text-xs">storage</span>
                                     <span x-text="totalSizeMB + ' MB Used'"></span>
                                 </span>
@@ -711,29 +713,29 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                             @foreach([
-                                1 => 'delivery_attachment',
-                                2 => 'delivery_attachment_2',
-                                3 => 'delivery_attachment_3',
-                                4 => 'delivery_attachment_4',
-                                5 => 'delivery_attachment_5'
+                            1 => 'delivery_attachment',
+                            2 => 'delivery_attachment_2',
+                            3 => 'delivery_attachment_3',
+                            4 => 'delivery_attachment_4',
+                            5 => 'delivery_attachment_5'
                             ] as $i => $dbCol)
-                                @php 
-                                    $existingFile = $form[$dbCol] ?? null;
-                                    $existingExt = $existingFile ? strtolower(pathinfo($existingFile, PATHINFO_EXTENSION)) : '';
-                                    $existingSize = 0;
-                                    if ($existingFile) {
-                                        $p1 = public_path('uploads/' . $existingFile);
-                                        $p2 = storage_path('app/public/uploads/' . $existingFile);
-                                        if (file_exists($p1)) $existingSize = filesize($p1);
-                                        elseif (file_exists($p2)) $existingSize = filesize($p2);
-                                    }
-                                @endphp
+                            @php
+                            $existingFile = $form[$dbCol] ?? null;
+                            $existingExt = $existingFile ? strtolower(pathinfo($existingFile, PATHINFO_EXTENSION)) : '';
+                            $existingSize = 0;
+                            if ($existingFile) {
+                            $p1 = public_path('uploads/' . $existingFile);
+                            $p2 = storage_path('app/public/uploads/' . $existingFile);
+                            if (file_exists($p1)) $existingSize = filesize($p1);
+                            elseif (file_exists($p2)) $existingSize = filesize($p2);
+                            }
+                            @endphp
 
-                                 <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col relative group transition-all hover:bg-white hover:shadow-md attachment-slot" 
-                                     data-slot-name="{{ $dbCol }}"
-                                     data-existing-size="{{ $existingSize }}"
-                                     data-is-deleted="false"
-                                     x-data="{ 
+                            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col relative group transition-all hover:bg-white hover:shadow-md attachment-slot"
+                                data-slot-name="{{ $dbCol }}"
+                                data-existing-size="{{ $existingSize }}"
+                                data-is-deleted="false"
+                                x-data="{ 
                                         fileName: '{{ $existingFile }}', 
                                         fileExt: '{{ $existingExt }}',
                                         isImage: {{ in_array($existingExt, ['jpg', 'jpeg', 'png']) ? 'true' : 'false' }},
@@ -775,60 +777,60 @@
                                             document.body.removeChild(a);
                                         }
                                      }">
-                                    
-                                    <div class="flex items-center justify-between mb-3">
-                                        <div class="flex items-center gap-2">
-                                            <div class="w-8 h-8 rounded-lg bg-[#9E6B73]/10 flex items-center justify-center text-[#9E6B73]">
-                                                <span class="material-symbols-rounded text-lg" x-text="isImage ? 'image' : (fileName ? 'description' : 'upload_file')"></span>
-                                            </div>
-                                            <div class="flex flex-col">
-                                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Slot {{ $i }}</span>
-                                                <template x-if="fileExt">
-                                                    <span class="text-[9px] font-bold bg-[#9E6B73] text-white px-1.5 py-0.5 rounded-md uppercase w-fit" x-text="fileExt"></span>
-                                                </template>
-                                            </div>
+
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-lg bg-[#9E6B73]/10 flex items-center justify-center text-[#9E6B73]">
+                                            <span class="material-symbols-rounded text-lg" x-text="isImage ? 'image' : (fileName ? 'description' : 'upload_file')"></span>
                                         </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Slot {{ $i }}</span>
+                                            <template x-if="fileExt">
+                                                <span class="text-[9px] font-bold bg-[#9E6B73] text-white px-1.5 py-0.5 rounded-md uppercase w-fit" x-text="fileExt"></span>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <template x-if="fileName">
+                                        <button type="button"
+                                            @click="$wire.removeAttachment('{{ $dbCol }}'); fileName = ''; fileExt = ''; previewUrl = ''; isImage = false; $el.closest('.group').querySelector('input[type=file]').value = ''; $el.closest('.attachment-slot').dataset.isDeleted = 'true'; $dispatch('recalc-size');"
+                                            class="w-7 h-7 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm z-20">
+                                            <span class="material-symbols-rounded text-sm">close</span>
+                                        </button>
+                                    </template>
+                                </div>
+
+                                <div class="relative flex-1">
+                                    <input type="file" name="delivery_attachment{{ $i > 1 ? "_$i" : "" }}"
+                                        wire:model="temp_attachment_{{ $i }}"
+                                        accept="image/png, image/jpeg"
+                                        @change="handleFile($el)"
+                                        class="absolute inset-0 opacity-0 cursor-pointer z-10">
+
+                                    <div class="border-2 border-dashed border-slate-200 rounded-xl p-2 h-24 flex items-center justify-center bg-white overflow-hidden group-hover:border-[#9E6B73]/30 transition-colors">
+                                        <template x-if="!fileName">
+                                            <div class="flex flex-col items-center gap-1">
+                                                <span class="text-[10px] font-bold text-slate-400">Click to Upload</span>
+                                                <span class="text-[9px] text-slate-300">JPG, PNG Only</span>
+                                            </div>
+                                        </template>
 
                                         <template x-if="fileName">
-                                            <button type="button" 
-                                                    @click="$wire.removeAttachment('{{ $dbCol }}'); fileName = ''; fileExt = ''; previewUrl = ''; isImage = false; $el.closest('.group').querySelector('input[type=file]').value = ''; $el.closest('.attachment-slot').dataset.isDeleted = 'true'; $dispatch('recalc-size');"
-                                                    class="w-7 h-7 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm z-20">
-                                                <span class="material-symbols-rounded text-sm">close</span>
-                                            </button>
+                                            <div class="w-full h-full flex items-center justify-center relative">
+                                                <template x-if="isImage">
+                                                    <img :src="previewUrl" class="h-full w-full object-cover rounded-lg cursor-zoom-in z-20" @click.stop="openFile()">
+                                                </template>
+                                                <template x-if="!isImage">
+                                                    <div class="flex flex-col items-center justify-center gap-1 p-2 text-center cursor-pointer z-20 w-full h-full" @click.stop="openFile()">
+                                                        <span class="material-symbols-rounded text-[#9E6B73] text-2xl">description</span>
+                                                        <span class="text-[9px] font-bold text-slate-600 truncate max-w-[120px]" x-text="fileName"></span>
+                                                    </div>
+                                                </template>
+                                            </div>
                                         </template>
                                     </div>
-
-                                    <div class="relative flex-1">
-                                        <input type="file" name="delivery_attachment{{ $i > 1 ? "_$i" : "" }}" 
-                                               wire:model="temp_attachment_{{ $i }}"
-                                               accept="image/png, image/jpeg" 
-                                               @change="handleFile($el)" 
-                                               class="absolute inset-0 opacity-0 cursor-pointer z-10">
-                                        
-                                        <div class="border-2 border-dashed border-slate-200 rounded-xl p-2 h-24 flex items-center justify-center bg-white overflow-hidden group-hover:border-[#9E6B73]/30 transition-colors">
-                                            <template x-if="!fileName">
-                                                <div class="flex flex-col items-center gap-1">
-                                                    <span class="text-[10px] font-bold text-slate-400">Click to Upload</span>
-                                                    <span class="text-[9px] text-slate-300">JPG, PNG Only</span>
-                                                </div>
-                                            </template>
-                                            
-                                            <template x-if="fileName">
-                                                <div class="w-full h-full flex items-center justify-center relative">
-                                                    <template x-if="isImage">
-                                                        <img :src="previewUrl" class="h-full w-full object-cover rounded-lg cursor-zoom-in z-20" @click.stop="openFile()">
-                                                    </template>
-                                                    <template x-if="!isImage">
-                                                        <div class="flex flex-col items-center justify-center gap-1 p-2 text-center cursor-pointer z-20 w-full h-full" @click.stop="openFile()">
-                                                            <span class="material-symbols-rounded text-[#9E6B73] text-2xl">description</span>
-                                                            <span class="text-[9px] font-bold text-slate-600 truncate max-w-[120px]" x-text="fileName"></span>
-                                                        </div>
-                                                    </template>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </div>
                                 </div>
+                            </div>
                             @endforeach
                         </div>
                     </div>
@@ -904,9 +906,9 @@
                                     </div>
                                     <div class="text-[10px] text-slate-400 font-medium action-text mt-auto">
                                         @if($isSelected)
-                                            Selected
+                                        Selected
                                         @else
-                                            Click to select
+                                        Click to select
                                         @endif
                                     </div>
                                 </div>
@@ -1272,7 +1274,7 @@
                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                 x-transition:leave-end="opacity-0 scale-90 translate-y-4"
                 class="relative w-full max-w-lg bg-white rounded-[24px] shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]">
-                
+
                 <div class="px-8 py-8 border-b border-slate-50 flex justify-between items-center shrink-0 bg-white">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-2xl bg-[#9D686E]/10 text-[#9D686E] flex items-center justify-center">
@@ -1321,42 +1323,42 @@
                         <div></div>
                         @else
                         @php
-                            $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-100';
-                            if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-100'; }
-                            elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-100' ; }
-                            
-                            $isSelected = $d['date'] === $tempSelectedDate;
-                            $isOriginal = $d['date'] === $booking->event_date;
-                            
+                        $bg = 'bg-emerald-50'; $text = 'text-emerald-700'; $border = 'border-emerald-100';
+                        if ($d['left'] == 0) { $bg = 'bg-red-50'; $text = 'text-red-700'; $border = 'border-red-100'; }
+                        elseif ($d['left'] <= 2) { $bg='bg-amber-50' ; $text='text-amber-700' ; $border='border-amber-100' ; }
+
+                            $isSelected=$d['date']===$tempSelectedDate;
+                            $isOriginal=$d['date']===$booking->event_date;
+
                             $ring = $isSelected ? 'border-[#9D686E] bg-pink-50 ring-4 ring-[#9D686E]/10 shadow-md z-10' : '' ;
                             $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9D686E] shadow-inner' : '';
                             $opacity = ($d['left'] == 0 && !$isSelected && !$isOriginal) ? 'opacity-40 grayscale-[0.5]' : '' ;
-                        @endphp
-                        <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')" 
+                            @endphp
+                            <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')"
                                 class="h-20 rounded-2xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $originStyle }} {{ $opacity }} flex flex-col items-center justify-center cursor-pointer transition-all relative hover:-translate-y-1 hover:shadow-lg group">
-                            @if($isOriginal)
+                                @if($isOriginal)
                                 <div class="absolute -top-1.5 -right-1.5 bg-[#9D686E] text-white text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
-                            @endif
-                            @if($d['conflict'] ?? false)
+                                @endif
+                                @if($d['conflict'] ?? false)
                                 <div class="absolute -top-1.5 -left-1.5 bg-red-600 text-white p-1 rounded-lg shadow-sm animate-pulse z-20">
                                     <span class="material-symbols-rounded text-[10px] font-black">warning</span>
                                 </div>
-                            @endif
-                            @if($d['breach'] ?? false)
+                                @endif
+                                @if($d['breach'] ?? false)
                                 <div class="absolute -top-1.5 -right-1.5 bg-amber-600 text-white p-1 rounded-lg shadow-sm animate-pulse z-20">
                                     <span class="material-symbols-rounded text-[10px] font-black">inventory_2</span>
                                 </div>
-                            @endif
-                            @if($d['duplicate'] ?? false)
+                                @endif
+                                @if($d['duplicate'] ?? false)
                                 <div class="absolute -bottom-1 -right-1 bg-amber-600 text-white p-1 rounded-lg shadow-sm z-20">
                                     <span class="material-symbols-rounded text-[10px] font-black">person_alert</span>
                                 </div>
+                                @endif
+                                <span class="font-black text-lg">{{ $d['day'] }}</span>
+                                <span class="text-[9px] uppercase tracking-tighter font-extrabold mt-0.5 opacity-60 group-hover:opacity-100">{{ $d['left'] }} Left</span>
+                            </button>
                             @endif
-                            <span class="font-black text-lg">{{ $d['day'] }}</span>
-                            <span class="text-[9px] uppercase tracking-tighter font-extrabold mt-0.5 opacity-60 group-hover:opacity-100">{{ $d['left'] }} Left</span>
-                        </button>
-                        @endif
-                        @endforeach
+                            @endforeach
                     </div>
 
                     @if($tempSelectedDate)
@@ -1380,12 +1382,12 @@
                                 <div class="flex flex-wrap gap-2">
                                     @php $dayItems = $dailyAttractions[$tempSelectedDate] ?? []; @endphp
                                     @forelse($dayItems as $itemName)
-                                        @php $isConflict = in_array($itemName, $bookedAttractions); @endphp
-                                        <span class="px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all {{ $isConflict ? 'bg-red-50 text-red-600 border-red-200 shadow-sm shadow-red-500/10' : 'bg-white text-slate-600 border-slate-200' }}">
-                                            {{ $itemName }}
-                                        </span>
+                                    @php $isConflict = in_array($itemName, $bookedAttractions); @endphp
+                                    <span class="px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all {{ $isConflict ? 'bg-red-50 text-red-600 border-red-200 shadow-sm shadow-red-500/10' : 'bg-white text-slate-600 border-slate-200' }}">
+                                        {{ $itemName }}
+                                    </span>
                                     @empty
-                                        <p class="text-[10px] font-bold text-slate-400 italic">No attractions reserved for this day.</p>
+                                    <p class="text-[10px] font-bold text-slate-400 italic">No attractions reserved for this day.</p>
                                     @endforelse
                                 </div>
                             </div>
@@ -1464,21 +1466,21 @@
                 </div>
 
                 <div class="p-8 border-t border-slate-50 bg-white">
-                    <button wire:click="applySelectedDate()" 
-                            @if(count($modalConflicts) > 0 || count($modalCapacityBreaches) > 0) disabled @endif
-                            class="w-full py-5 rounded-2xl font-black transition-all transform active:scale-95 uppercase tracking-widest text-xs {{ (count($modalConflicts) > 0 || count($modalCapacityBreaches) > 0) ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-[#9D686E] text-white shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359]' }}">
+                    <button wire:click="applySelectedDate()"
+                        @if(count($modalConflicts)> 0 || count($modalCapacityBreaches) > 0) disabled @endif
+                        class="w-full py-5 rounded-2xl font-black transition-all transform active:scale-95 uppercase tracking-widest text-xs {{ (count($modalConflicts) > 0 || count($modalCapacityBreaches) > 0) ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-[#9D686E] text-white shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359]' }}">
                         @if(count($modalConflicts) > 0)
-                            <span class="flex items-center justify-center gap-2">
-                                <span class="material-symbols-rounded text-sm">block</span>
-                                Attraction Conflict
-                            </span>
+                        <span class="flex items-center justify-center gap-2">
+                            <span class="material-symbols-rounded text-sm">block</span>
+                            Attraction Conflict
+                        </span>
                         @elseif(count($modalCapacityBreaches) > 0)
-                            <span class="flex items-center justify-center gap-2">
-                                <span class="material-symbols-rounded text-sm">inventory_2</span>
-                                Capacity Breach
-                            </span>
+                        <span class="flex items-center justify-center gap-2">
+                            <span class="material-symbols-rounded text-sm">inventory_2</span>
+                            Capacity Breach
+                        </span>
                         @else
-                            Apply Selection
+                        Apply Selection
                         @endif
                     </button>
                 </div>
@@ -1538,7 +1540,7 @@
         data-csrf="{{ csrf_token() }}"
         data-id="{{ $this->booking->id }}"
         data-invoice="{{ $this->booking->invoice_number }}">
-</div>
+    </div>
 </div>
 
 @vite(['resources/js/availability-sync.js', 'resources/js/edit-booking.js'])
@@ -1546,58 +1548,58 @@
 @script
 <script>
     document.addEventListener('livewire:navigated', () => {
-         // 0. Refresh bridge data on navigation entry
-         if (typeof window.initBookingAppData === 'function') {
-             window.initBookingAppData();
-         }
+        // 0. Refresh bridge data on navigation entry
+        if (typeof window.initBookingAppData === 'function') {
+            window.initBookingAppData();
+        }
 
-         // 1. Initial check after load/navigation
-         setTimeout(() => {
+        // 1. Initial check after load/navigation
+        setTimeout(() => {
             if (typeof checkRealTimeAvailability === 'function') {
                 checkRealTimeAvailability(true);
             }
             if (typeof window.triggerRecalculate === 'function') {
                 window.triggerRecalculate();
             }
-         }, 500);
+        }, 500);
 
-         // 2. Force a direct bridge between Vanilla JS and Livewire
-         window.lwBookingComponent = $wire;
+        // 2. Force a direct bridge between Vanilla JS and Livewire
+        window.lwBookingComponent = $wire;
 
-         // 3. Override the Extra saving to guarantee Livewire gets the data
-         const originalSaveExtras = window.saveCurrentExtrasState;
-         window.saveCurrentExtrasState = function(ignoreSync = false) {
-             if (typeof originalSaveExtras === 'function') {
+        // 3. Override the Extra saving to guarantee Livewire gets the data
+        const originalSaveExtras = window.saveCurrentExtrasState;
+        window.saveCurrentExtrasState = function(ignoreSync = false) {
+            if (typeof originalSaveExtras === 'function') {
                 originalSaveExtras(true); // Run original UI updates but block old sync
-             }
-             if (!ignoreSync && window.lwBookingComponent) {
-                 window.lwBookingComponent.syncExtras(window.bookingAppData.savedExtras);
-             }
-         };
+            }
+            if (!ignoreSync && window.lwBookingComponent) {
+                window.lwBookingComponent.syncExtras(window.bookingAppData.savedExtras);
+            }
+        };
 
-         // 4. Override Item toggling to guarantee Livewire sync on UI interactions
-         const originalToggleItemUI = window.toggleItemUI;
-         window.toggleItemUI = function(checkbox, card) {
-             if (typeof originalToggleItemUI === 'function') {
+        // 4. Override Item toggling to guarantee Livewire sync on UI interactions
+        const originalToggleItemUI = window.toggleItemUI;
+        window.toggleItemUI = function(checkbox, card) {
+            if (typeof originalToggleItemUI === 'function') {
                 originalToggleItemUI(checkbox, card);
-             }
-             if (window.lwBookingComponent) {
-                 window.lwBookingComponent.toggleItem(card.dataset.name, checkbox.checked);
-             }
-         };
+            }
+            if (window.lwBookingComponent) {
+                window.lwBookingComponent.toggleItem(card.dataset.name, checkbox.checked);
+            }
+        };
     });
 
     // For first load if navigated didn't fire
     document.addEventListener('livewire:initialized', () => {
-         setTimeout(() => {
+        setTimeout(() => {
             if (typeof checkRealTimeAvailability === 'function') {
                 checkRealTimeAvailability(true);
             }
             if (typeof window.triggerRecalculate === 'function') {
                 window.triggerRecalculate();
             }
-         }, 300);
-         window.lwBookingComponent = $wire;
+        }, 300);
+        window.lwBookingComponent = $wire;
     });
 </script>
 @endscript

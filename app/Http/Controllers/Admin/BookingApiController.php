@@ -230,7 +230,13 @@ class BookingApiController extends Controller
                     if (!$start || !$end) return response()->json(['success' => false, 'status' => 'error', 'message' => 'Missing dates']);
 
                     $booking_id = $request->input('booking_id');
+                    $invoice_number = $request->input('invoice');
+                    $form_token = $request->input('token');
 
+                    // 1. Aggressive Cleanup: Remove ALL expired selections from the entire database
+                    DB::table('booking_selections')->where('expires_at', '<', now())->delete();
+
+                    // 2. Fetch existing booking counts (Confirmed/Draft)
                     $res = DB::table('bookings')
                         ->select('event_date', DB::raw('COUNT(*) as cnt'))
                         ->whereBetween('event_date', [$start, $end])
@@ -249,7 +255,113 @@ class BookingApiController extends Controller
                     foreach ($res as $row) {
                         $map[$row->event_date] = (int)$row->cnt;
                     }
-                    return response()->json(['success' => true, 'status' => 'success', 'daily_limit' => $DAILY_TOTAL_LIMIT, 'counts' => $map]);
+
+                        // 3. Fetch Live Selections (Locks)
+                        $selections = DB::table('booking_selections')
+                            ->whereBetween('event_date', [$start, $end])
+                            ->where('expires_at', '>=', now())
+                            ->get();
+
+                        // Pre-fetch invoices that are already counted in $map to avoid double counting
+                        $countedInvoices = DB::table('bookings')
+                            ->whereBetween('event_date', [$start, $end])
+                            ->where(function ($q) use ($booking_id) {
+                                $q->whereNotIn('status', ['Cancelled'])
+                                    ->where(function ($q2) use ($booking_id) {
+                                        $q2->where('status', '!=', 'Draft')
+                                            ->orWhere('created_at', '>=', now()->subMinutes(20))
+                                            ->orWhere('id', '=', $booking_id);
+                                    });
+                            })
+                            ->pluck('invoice_number')
+                            ->toArray();
+
+                        $live_badges = [];
+                        $seenSelections = []; // Track to avoid double counting same session
+                        foreach ($selections as $sel) {
+                            $d = $sel->event_date;
+                            
+                            $isMe = false;
+                            if ($form_token && $sel->form_token == $form_token) {
+                                $isMe = true;
+                            } elseif (!$form_token && Auth::check() && Auth::id() == $sel->user_id) {
+                                $isMe = true;
+                            }
+                            
+                            if ($invoice_number && $sel->invoice_number == $invoice_number && $sel->invoice_number != '') {
+                                $isMe = true;
+                            }
+
+                            // Count EVERY unique selection towards the slot decrease
+                            // We use a combination of date, token and invoice to ensure accuracy per day
+                            $selKey = $d . '_' . ($sel->form_token ?: ($sel->user_id . '_' . $sel->invoice_number));
+                            if (!in_array($sel->invoice_number, $countedInvoices) && !isset($seenSelections[$selKey])) {
+                                if (!isset($map[$d])) $map[$d] = 0;
+                                $map[$d]++;
+                                $seenSelections[$selKey] = true;
+                            }
+
+                            if (!isset($live_badges[$d])) $live_badges[$d] = [];
+                            $live_badges[$d][] = [
+                                'name' => $sel->user_name,
+                                'role' => $sel->user_role,
+                                'is_me' => $isMe
+                            ];
+                        }
+
+                    return response()->json([
+                        'success' => true, 
+                        'status' => 'success', 
+                        'daily_limit' => $DAILY_TOTAL_LIMIT, 
+                        'counts' => $map,
+                        'live_badges' => $live_badges
+                    ]);
+
+                case 'select_calendar_date':
+                    $date = $request->input('date');
+                    $invoice = $request->input('invoice');
+                    $token = $request->input('token');
+
+                    if (Auth::check()) {
+                        $user = Auth::user();
+                        
+                        // Strict Session Cleanup: Only remove the selection that belongs to THIS specific tab (token).
+                        // This ensures that an Admin and a Supervisor (even if sharing an account)
+                        // can both have their own unique badges visible at the same time.
+                        if ($token) {
+                            DB::table('booking_selections')->where('form_token', $token)->delete();
+                        } else {
+                            // Fallback for non-tokenized requests (if any)
+                            DB::table('booking_selections')
+                                ->where('user_id', $user->id)
+                                ->where('invoice_number', $invoice)
+                                ->delete();
+                        }
+                        
+                        $firstName = explode(' ', $user->first_name)[0];
+                        
+                        // Insert new selection only if date is provided
+                        if (!empty($date)) {
+                            DB::table('booking_selections')->insert([
+                                'user_id' => $user->id,
+                                'user_name' => $firstName, 
+                                'user_role' => $user->role,
+                                'event_date' => $date,
+                                'invoice_number' => $invoice,
+                                'form_token' => $token,
+                                'expires_at' => now()->addMinutes(2),
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+
+                        // NEW: If booking_id is provided (usually from sendBeacon cleanup), delete the draft too
+                        $bid = $request->input('booking_id');
+                        if ($bid) {
+                            DB::table('bookings')->where('id', $bid)->where('status', 'Draft')->delete();
+                        }
+                    }
+                    return response()->json(['success' => true]);
 
                 case 'check_duplicates':
                     $date = $request->input('date');

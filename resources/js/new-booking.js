@@ -8,6 +8,15 @@ window.initBookingAppData = function () {
             csrfToken: bridge.dataset.csrf,
             bookingId: bridge.dataset.id,
             invoiceNumber: bridge.dataset.invoice,
+            formToken: (function() {
+                // Use sessionStorage to persist the token across refreshes of the SAME tab
+                let token = sessionStorage.getItem('booking_form_token');
+                if (!token) {
+                    token = bridge.dataset.token || Math.random().toString(36).substring(2, 15);
+                    sessionStorage.setItem('booking_form_token', token);
+                }
+                return token;
+            })(),
             pastCustomers: bridge.dataset.customers ? JSON.parse(bridge.dataset.customers) : [],
             selectedItems: (bridge.dataset.selected && bridge.dataset.selected !== '[]' && bridge.dataset.selected !== 'null') ? JSON.parse(bridge.dataset.selected) : {},
         };
@@ -24,6 +33,39 @@ let calCursor = new Date();
 let lastCalRenderMonth = -1;
 let lastCalRenderYear = -1;
 window.hasBookingDuplicates = false;
+
+// --- LIVE POLLING & CLEANUP ---
+let livePollingInterval = null;
+function clearLiveSelectionOnExit() {
+    if (window.bookingAppData && window.bookingAppData.formToken) {
+        const url = '/api/bookings/handler';
+        const fd = new FormData();
+        fd.append('action', 'select_calendar_date');
+        fd.append('date', ''); // Clear selection
+        fd.append('token', window.bookingAppData.formToken);
+        fd.append('_token', window.bookingAppData.csrfToken); // For CSRF
+        
+        // Also cleanup draft if exists (merging with previous logic)
+        const bookingIdEl = document.getElementById('booking_id');
+        if (!isProceeding && bookingIdEl && bookingIdEl.value) {
+            fd.append('booking_id', bookingIdEl.value);
+            // The handler will process 'select_calendar_date' first, then we can add 'delete_draft' logic 
+            // but navigator.sendBeacon only sends ONE request reliably.
+            // I'll make the handler smart enough to handle both if needed or just send separate if possible.
+            // Actually, I'll add a 'cleanup_all' action or just handle 'booking_id' in select_calendar_date.
+        }
+        navigator.sendBeacon(url, fd);
+    }
+}
+window.addEventListener('beforeunload', clearLiveSelectionOnExit);
+
+window.startLivePolling = function() {
+    if (livePollingInterval) clearInterval(livePollingInterval);
+    livePollingInterval = setInterval(() => {
+        if (typeof calLoad === 'function') calLoad();
+    }, 1000); // 1 second for absolute real-time
+};
+window.startLivePolling();
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('bookingApp', () => ({
@@ -370,7 +412,9 @@ window.calLoad = async function () {
         const res = await apiPost('get_calendar_slots', {
             start: fmtDate(s),
             end: fmtDate(e),
-            booking_id: window.bookingAppData ? window.bookingAppData.bookingId : ''
+            booking_id: window.bookingAppData ? window.bookingAppData.bookingId : '',
+            invoice: window.bookingAppData ? window.bookingAppData.invoiceNumber : '',
+            token: window.bookingAppData ? window.bookingAppData.formToken : ''
         });
         const grid = document.getElementById('calGrid');
         if (!grid) return;
@@ -386,6 +430,8 @@ window.calLoad = async function () {
         const summaryEl = document.getElementById('calSummary');
         if (summaryEl) summaryEl.innerText = `Daily limit: ${dailyLimit} bookings`;
 
+        const liveBadges = res.live_badges || {};
+
         for (let d = 1; d <= e.getDate(); d++) {
             let dStr = `${calCursor.getFullYear()}-${String(calCursor.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             let used = (res.counts && res.counts[dStr]) ? parseInt(res.counts[dStr]) : 0;
@@ -394,12 +440,29 @@ window.calLoad = async function () {
             let bg = left === 0 ? 'bg-red-50 border-red-200 text-red-500 opacity-60' : (left <= 2 ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700');
             let todayBadge = todayKey === dStr ? '<span class="absolute top-2 right-2 w-3 h-3 rounded-full bg-[#9E6B73]/40"></span>' : '';
 
-            grid.innerHTML += `<div class="cal-day ${bg} p-4 sm:p-6 min-h-[80px] sm:min-h-[100px] border rounded-2xl cursor-pointer flex flex-col items-center justify-center relative hover:shadow-md transition-all duration-300" 
+            // Render Live Selection Badges (Labels instead of dots)
+            let badgeHtml = '';
+            if (liveBadges[dStr]) {
+                badgeHtml = '<div class="absolute bottom-1 left-0 right-0 flex flex-col items-center gap-0.5 px-1 overflow-hidden">';
+                liveBadges[dStr].forEach(badge => {
+                    const bgColor = badge.is_me ? 'bg-[#9D686E]' : 'bg-slate-700';
+                    const textColor = 'text-white';
+                    const displayName = badge.name; // Show full name always as requested
+                    
+                    badgeHtml += `<div class="${bgColor} ${textColor} text-[7px] sm:text-[8px] px-2 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap animate-pulse max-w-full truncate text-center leading-none" title="${badge.name} (${badge.role})">
+                        ${displayName} (${badge.role})
+                    </div>`;
+                });
+                badgeHtml += '</div>';
+            }
+
+            grid.innerHTML += `<div class="cal-day ${bg} p-2 sm:p-4 min-h-[80px] sm:min-h-[100px] border rounded-2xl cursor-pointer flex flex-col items-center justify-start relative hover:shadow-md transition-all duration-300" 
                 data-date="${dStr}"
                 onclick="selectDate('${dStr}', ${left})">
                 ${todayBadge}
-                <span class="font-extrabold text-xl sm:text-3xl leading-none mb-2">${d}</span>
-                <span class="text-[10px] sm:text-xs font-bold bg-white/80 px-2 py-1 rounded-full leading-none shadow-sm">${left === 0 ? 'Full' : left + ' Left'}</span>
+                <span class="font-extrabold text-lg sm:text-2xl leading-none mt-1 mb-1">${d}</span>
+                <span class="text-[8px] sm:text-[10px] font-bold bg-white/80 px-1.5 py-0.5 rounded-full leading-none shadow-sm">${left === 0 ? 'Full' : left + ' Left'}</span>
+                ${badgeHtml}
             </div>`;
         }
     } catch (e) {
@@ -442,14 +505,40 @@ window.calNext = function () {
 };
 
 window.selectDate = function (dateStr, left) {
+    const dateInput = document.getElementById('event_date');
+    const currentVal = dateInput ? dateInput.value : '';
+
+    // Toggle logic: if clicking the same date, unselect it
+    if (currentVal === dateStr) {
+        if (dateInput) dateInput.value = '';
+        updateCalSelection();
+        dateChanged();
+        apiPost('select_calendar_date', { 
+            date: '', // Send empty to clear
+            invoice: window.bookingAppData ? window.bookingAppData.invoiceNumber : '',
+            token: window.bookingAppData ? window.bookingAppData.formToken : ''
+        }).then(() => calLoad());
+        showToast("Selection Cleared", "Date selection removed.", "info");
+        return;
+    }
+
     if (left <= 0) {
         showToast("Sold Out", "This date is fully booked.", "error");
         return;
     }
-    const dateInput = document.getElementById('event_date');
     if (dateInput) dateInput.value = dateStr;
     updateCalSelection();
     dateChanged();
+    
+    // Notify server about selection
+    apiPost('select_calendar_date', { 
+        date: dateStr,
+        invoice: window.bookingAppData ? window.bookingAppData.invoiceNumber : '',
+        token: window.bookingAppData ? window.bookingAppData.formToken : ''
+    }).then(() => {
+        calLoad(); // Reload to show my own badge and refreshed counts
+    });
+
     showToast("Date Selected", "Date updated to " + dateStr, "success");
 };
 
@@ -814,6 +903,13 @@ window.selectDurationCard = function (labelEl) {
     if (input.value === 'custom') {
         if (wrapper) wrapper.classList.remove('hidden');
         if (app) app.isDurationCustom = true;
+        
+        // Reset times when custom is selected
+        const sEl = document.getElementById('start_time');
+        const eEl = document.getElementById('end_time');
+        if (sEl) sEl.value = "";
+        if (eEl) eEl.value = "";
+
         if (durCostInput && manualCost && manualCost.value !== "") {
             durCostInput.value = manualCost.value;
         }
@@ -1056,9 +1152,6 @@ window.openReviewModal = async function () {
     let timeStr = "TBD - TBD";
     if (isCustom && durLabel) {
         timeStr = durLabel;
-        if (startTime || endTime) {
-            timeStr += " [" + (startTime || "TBD") + " - " + (endTime || "TBD") + "]";
-        }
     } else if (startTime || endTime) {
         timeStr = (startTime || "TBD") + " - " + (endTime || "TBD");
     }
@@ -1360,13 +1453,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 100);
 });
 
-window.addEventListener('beforeunload', () => {
-    const bookingIdEl = document.getElementById('booking_id');
-    if (!isProceeding && bookingIdEl && bookingIdEl.value) {
-        let fd = new FormData();
-        fd.append('action', 'delete_draft');
-        fd.append('booking_id', bookingIdEl.value);
-        fd.append('_token', window.bookingAppData.csrfToken);
-        navigator.sendBeacon('/api/bookings/handler', fd);
-    }
-});
+window.addEventListener('beforeunload', clearLiveSelectionOnExit);

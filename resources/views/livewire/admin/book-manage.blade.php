@@ -205,34 +205,34 @@
     </section>
 
     <section class="bg-white rounded-[2rem] shadow-xl border border-gray-100 p-5 sm:p-6 relative overflow-hidden mb-10">
-        <div class="absolute top-0 left-0 w-1.5 h-full bg-orange-400"></div>
+        <div class="absolute top-0 left-0 w-1.5 h-full bg-green-500"></div>
 
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6 pl-2">
             <div class="flex items-center gap-3">
                 <h3 class="text-base sm:text-lg font-extrabold text-gray-800 flex items-center gap-2">
-                    <span class="material-symbols-rounded text-orange-500 bg-orange-100 p-1 rounded-full text-lg">hourglass_top</span>
-                    Pending Confirmation
+                    <span class="material-symbols-rounded text-green-500 bg-green-100 p-1 rounded-full text-lg">check_circle</span>
+                    Confirmed Booking
                 </h3>
-                <span class="text-xs font-extrabold bg-orange-100 text-orange-700 px-2 py-1 rounded-xl shrink-0">{{ $total_pen }} New</span>
+                <span class="text-xs font-extrabold bg-green-100 text-green-700 px-2 py-1 rounded-xl shrink-0">{{ $total_conf }} Booked</span>
             </div>
 
             <div class="relative w-full lg:w-auto">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                     <span class="material-symbols-rounded text-lg">search</span>
                 </span>
-                <input type="text" wire:model.live.debounce.300ms="search_pen" placeholder="Search pending..."
-                    class="w-full lg:w-72 pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400 transition">
+                <input type="text" wire:model.live.debounce.300ms="search_conf" placeholder="Search confirmed..."
+                    class="w-full lg:w-72 pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-green-400 focus:ring-1 focus:ring-green-400 transition">
             </div>
         </div>
 
         <div class="relative">
-            <div wire:loading wire:target="search_pen, previousPage, nextPage" class="absolute inset-0 bg-white/50 backdrop-blur-[2px] z-10 rounded-2xl"></div>
+            <div wire:loading wire:target="search_conf, previousPage, nextPage" class="absolute inset-0 bg-white/50 backdrop-blur-[2px] z-10 rounded-2xl"></div>
 
-            @if ($pending_bookings->isEmpty())
-            <div class="text-center py-10 text-gray-400 italic bg-gray-50 rounded-2xl">No pending bookings found.</div>
+            @if ($confirmed_bookings->isEmpty())
+            <div class="text-center py-10 text-gray-400 italic bg-gray-50 rounded-2xl">No confirmed bookings found.</div>
             @else
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                @foreach ($pending_bookings as $b)
+                @foreach ($confirmed_bookings as $b)
                 <div class="border border-gray-200 rounded-2xl p-4 hover:shadow-md transition bg-gray-50/50 flex flex-col h-full">
                     <div class="flex justify-between items-start mb-2 gap-2">
                         <span class="text-xs font-extrabold text-gray-400">#{{ $b->id }}</span>
@@ -265,12 +265,86 @@
                 @endforeach
             </div>
 
-            @if ($pending_bookings->lastPage() > 1)
+            @if ($confirmed_bookings->lastPage() > 1)
             <div class="mt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <span class="text-xs text-gray-500 font-medium">Page {{ $pending_bookings->currentPage() }} of {{ $pending_bookings->lastPage() }}</span>
+                <span class="text-xs text-gray-500 font-medium">Page {{ $confirmed_bookings->currentPage() }} of {{ $confirmed_bookings->lastPage() }}</span>
                 <div class="flex gap-2">
-                    <button wire:click="previousPage('page_pen')" @if($pending_bookings->onFirstPage()) disabled class="px-3 py-2 bg-gray-100 border text-gray-300 rounded-xl text-xs font-extrabold cursor-not-allowed" @else class="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-extrabold text-gray-600 hover:bg-gray-100" @endif>Prev</button>
-                    <button wire:click="nextPage('page_pen')" @if(!$pending_bookings->hasMorePages()) disabled class="px-3 py-2 bg-gray-100 border text-gray-300 rounded-xl text-xs font-extrabold cursor-not-allowed" @else class="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-extrabold text-gray-600 hover:bg-gray-100" @endif>Next</button>
+                    <button wire:click="previousPage('page_conf')" @if($confirmed_bookings->onFirstPage()) disabled class="px-3 py-2 bg-gray-100 border text-gray-300 rounded-xl text-xs font-extrabold cursor-not-allowed" @else class="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-extrabold text-gray-600 hover:bg-gray-100" @endif>Prev</button>
+                    <button wire:click="nextPage('page_conf')" @if(!$confirmed_bookings->hasMorePages()) disabled class="px-3 py-2 bg-gray-100 border text-gray-300 rounded-xl text-xs font-extrabold cursor-not-allowed" @else class="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-extrabold text-gray-600 hover:bg-gray-100" @endif>Next</button>
+                </div>
+            </div>
+            @endif
+            @endif
+        </div>
+    </section>
+
+    <section class="bg-white rounded-[2rem] shadow-xl border border-gray-100 p-5 sm:p-6 relative overflow-hidden mb-10">
+        <div class="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
+
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6 pl-2">
+            <div class="flex items-center gap-3">
+                <h3 class="text-base sm:text-lg font-extrabold text-gray-800 flex items-center gap-2">
+                    <span class="material-symbols-rounded text-blue-500 bg-blue-100 p-1 rounded-full text-lg">task_alt</span>
+                    Completed Booking
+                </h3>
+                <span class="text-xs font-extrabold bg-blue-100 text-blue-700 px-2 py-1 rounded-xl shrink-0">{{ $total_comp }} Done</span>
+            </div>
+
+            <div class="relative w-full lg:w-auto">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                    <span class="material-symbols-rounded text-lg">search</span>
+                </span>
+                <input type="text" wire:model.live.debounce.300ms="search_comp" placeholder="Search completed..."
+                    class="w-full lg:w-72 pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition">
+            </div>
+        </div>
+
+        <div class="relative">
+            <div wire:loading wire:target="search_comp, previousPage, nextPage" class="absolute inset-0 bg-white/50 backdrop-blur-[2px] z-10 rounded-2xl"></div>
+
+            @if ($completed_bookings->isEmpty())
+            <div class="text-center py-10 text-gray-400 italic bg-gray-50 rounded-2xl">No completed bookings found.</div>
+            @else
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                @foreach ($completed_bookings as $b)
+                <div class="border border-gray-200 rounded-2xl p-4 hover:shadow-md transition bg-gray-50/50 flex flex-col h-full">
+                    <div class="flex justify-between items-start mb-2 gap-2">
+                        <span class="text-xs font-extrabold text-gray-400">#{{ $b->id }}</span>
+                        <span class="text-xs font-extrabold text-blue-600 bg-blue-50 px-2 py-1 rounded-xl whitespace-nowrap">
+                            {{ \Carbon\Carbon::parse($b->event_date)->format('M d, Y') }}
+                        </span>
+                    </div>
+
+                    <h4 class="font-extrabold text-gray-800 text-sm mb-1 truncate" title="{{ trim($b->customer_first_name . ' ' . $b->customer_last_name) }}">
+                        {{ trim($b->customer_first_name . ' ' . $b->customer_last_name) }}
+                    </h4>
+
+                    <p class="text-xs text-gray-500 mb-1 truncate">{{ $b->event_type ?? 'Event' }}</p>
+
+                    @if($b->booked_by)
+                    <div class="mb-4 text-[10px] font-bold text-blue-600/60 italic flex items-center gap-1">
+                        <span class="material-symbols-rounded text-xs">person_add</span>
+                        By: {{ $b->booked_by }}
+                    </div>
+                    @else
+                    <div class="mb-4"></div>
+                    @endif
+
+                    <div class="mt-auto">
+                        <a href="{{ route('admin.bookings.overview', $b->id) }}" wire:navigate class="w-full py-2.5 bg-white border border-gray-200 text-gray-700 hover:text-blue-600 hover:border-blue-600 hover:bg-gray-50 rounded-2xl flex items-center justify-center gap-2 transition text-xs font-extrabold shadow-sm">
+                            <span class="material-symbols-rounded text-base">visibility</span> View Details
+                        </a>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+
+            @if ($completed_bookings->lastPage() > 1)
+            <div class="mt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <span class="text-xs text-gray-500 font-medium">Page {{ $completed_bookings->currentPage() }} of {{ $completed_bookings->lastPage() }}</span>
+                <div class="flex gap-2">
+                    <button wire:click="previousPage('page_comp')" @if($completed_bookings->onFirstPage()) disabled class="px-3 py-2 bg-gray-100 border text-gray-300 rounded-xl text-xs font-extrabold cursor-not-allowed" @else class="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-extrabold text-gray-600 hover:bg-gray-100" @endif>Prev</button>
+                    <button wire:click="nextPage('page_comp')" @if(!$completed_bookings->hasMorePages()) disabled class="px-3 py-2 bg-gray-100 border text-gray-300 rounded-xl text-xs font-extrabold cursor-not-allowed" @else class="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-extrabold text-gray-600 hover:bg-gray-100" @endif>Next</button>
                 </div>
             </div>
             @endif

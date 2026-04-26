@@ -13,6 +13,7 @@ class NewBooking extends Component
     public $invoice_number;
     public $booking_id = '';
     public $is_edit_mode = false;
+    public $form_token;
 
     public $existing_data = [];
     public $saved_extras = [];
@@ -34,9 +35,15 @@ class NewBooking extends Component
 
     public function mount()
     {
+        $this->form_token = bin2hex(random_bytes(8));
         $dateStr = date('Ymd');
-        $todayCount = DB::table('bookings')->where('invoice_number', 'like', "INV-$dateStr-%")->count();
-        $this->invoice_number = "INV-" . $dateStr . "-" . str_pad($todayCount + 1, 4, '0', STR_PAD_LEFT);
+        $lastInvoiceNum = DB::table('bookings')
+            ->where('invoice_number', 'like', 'INV-%')
+            ->selectRaw("MAX(CAST(SUBSTRING_INDEX(invoice_number, '-', -1) AS UNSIGNED)) as max_num")
+            ->value('max_num');
+
+        $nextNum = ($lastInvoiceNum ?? 0) + 1;
+        $this->invoice_number = "INV-" . $dateStr . "-" . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
 
         $this->loadInitialData();
 

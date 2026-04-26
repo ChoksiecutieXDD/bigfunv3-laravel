@@ -987,7 +987,8 @@
         data-customers='@json($past_customers ?? [])'
         data-csrf="{{ csrf_token() }}"
         data-id="{{ $booking_id }}"
-        data-invoice="{{ $invoice_number }}">
+        data-invoice="{{ $invoice_number }}"
+        data-token="{{ $form_token }}">
     </div>
     <!-- Product Details Modal -->
     <div x-show="productDetails.visible" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[20000]">
@@ -1050,6 +1051,9 @@
                 }
                 if (typeof window.triggerRecalculate === 'function') {
                     window.triggerRecalculate();
+                }
+                if (typeof window.startLivePolling === 'function') {
+                    window.startLivePolling();
                 }
              }, 500);
              window.lwBookingComponent = $wire;
