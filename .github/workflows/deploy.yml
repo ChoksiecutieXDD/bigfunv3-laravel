@@ -1,0 +1,56 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [ main ] # Change this to your default branch name
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2' # Match your Hostinger PHP version
+          extensions: mbstring, xml, bcmath, curl, gd
+
+      - name: Install Composer Dependencies
+        run: composer install --no-dev --optimize-autoloader
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install NPM Dependencies & Build
+        run: |
+          npm install
+          npm run build
+
+      - name: Deploy via SSH (rsync)
+        uses: contention/rsync-deployments@v2.0.0
+        with:
+          user: u598061734
+          host: 46.202.138.102
+          port: 65002
+          localpath: "."
+          remotepath: "/home/u598061734/domains/bigfunbooking.online/public_html"
+          deploykey: ${{ secrets.HOSTINGER_SSH_KEY }}
+          flags: "-avz --delete --exclude='.env' --exclude='/storage/app/*' --exclude='/storage/framework/sessions/*' --exclude='/storage/logs/*'"
+
+      - name: Post-Deployment Commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 46.202.138.102
+          port: 65002
+          username: u598061734
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          script: |
+            cd /home/u598061734/domains/bigfunbooking.online/public_html
+            php artisan migrate --force
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
