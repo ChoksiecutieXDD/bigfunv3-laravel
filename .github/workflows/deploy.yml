@@ -31,16 +31,17 @@ jobs:
           npm install
           npm run build
 
-      - name: Deploy via SSH (rsync)
-        uses: contention/rsync-deployments@v2.0.0
+      - name: Deploy to Hostinger via SSH
+        uses: easingthemes/ssh-deploy@v5.1.0
         with:
-          user: u598061734
-          host: 46.202.138.102
-          port: 65002
-          localpath: "."
-          remotepath: "/home/u598061734/domains/bigfunbooking.online/public_html"
-          deploykey: ${{ secrets.HOSTINGER_SSH_KEY }}
-          flags: "-avz --delete --exclude='.env' --exclude='/storage/app/*' --exclude='/storage/framework/sessions/*' --exclude='/storage/logs/*'"
+          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          ARGS: "-avz --delete"
+          SOURCE: "."
+          REMOTE_HOST: 46.202.138.102
+          REMOTE_USER: u598061734
+          REMOTE_PORT: 65002
+          TARGET: "/home/u598061734/domains/bigfunbooking.online/public_html"
+          EXCLUDE: "/dist/, /node_modules/, /.git/, /.github/, .env, /storage/app/*, /storage/framework/sessions/*, /storage/logs/*"
 
       - name: Post-Deployment Commands
         uses: appleboy/ssh-action@v1.0.3
