@@ -1,3 +1,66 @@
+// edit-booking.js - Core logic for editing bookings
+(function() {
+    function registerBookingApp() {
+        if (window.bookingAppRegistered) return;
+        if (!window.Alpine) return;
+
+        Alpine.data('bookingApp', () => ({
+            totalSizeMB: '0.00',
+            modals: {
+                review: false,
+                history: false,
+                exit: false,
+                reset: false,
+                limitExceeded: false,
+                saveConfirm: false,
+                calendar: false,
+                fullCapacityWarning: false,
+                changeExtrasConfirm: false,
+                fileSizeAlert: false,
+                costIncrease: false,
+                costDecrease: false,
+                negativeBalance: false,
+                costDelta: 0,
+                saveDuplicateConfirm: false,
+                removeConfirm: false,
+                systemInfo: false,
+                imagePreview: '',
+                imagePreviewVisible: false,
+            },
+            itemToRemove: '',
+            productDetails: {
+                visible: false,
+                name: '',
+                spec: '',
+                price: 0
+            },
+            calculateTotalSize() {
+                let total = 0;
+                const slots = document.querySelectorAll('.attachment-slot');
+                slots.forEach(slot => {
+                    const input = slot.querySelector('input[type=\'file\']');
+                    const isDeleted = slot.dataset.isDeleted === 'true';
+                    let existingSize = parseInt(slot.dataset.existingSize || '0', 10);
+                    
+                    if (input && input.files && input.files[0]) {
+                        total += input.files[0].size;
+                    } else if (!isDeleted && existingSize > 0) {
+                        total += existingSize;
+                    }
+                });
+                this.totalSizeMB = (total / (1024 * 1024)).toFixed(2);
+            }
+        }));
+        window.bookingAppRegistered = true;
+    }
+
+    if (window.Alpine) {
+        registerBookingApp();
+    } else {
+        document.addEventListener('alpine:init', registerBookingApp);
+    }
+})();
+
 window.initBookingAppData = function () {
     const bridge = document.getElementById('booking-data-bridge');
     if (bridge) {
@@ -477,7 +540,16 @@ window.dateChanged = function () {
 
 window.handleSelection = function (checkbox) {
     const card = checkbox.closest('.product-card');
-    const dateVal = document.getElementById('event_date')?.value;
+    const dateInput = document.getElementById('event_date');
+    let dateVal = dateInput ? dateInput.value : '';
+
+    // Fallback to Livewire state if DOM is somehow out of sync
+    if (!dateVal && window.lwBookingComponent) {
+        // In EditBooking, it's form.event_date
+        const formData = window.lwBookingComponent.get('form');
+        dateVal = formData ? formData.event_date : '';
+        if (dateVal && dateInput) dateInput.value = dateVal;
+    }
 
     if (!dateVal) {
         checkbox.checked = false;
@@ -602,6 +674,17 @@ function processSelection(checkbox, card) {
                 }
             }
         }
+
+        // Trigger real-time sync to update other products and calendar
+        if (typeof window.syncLiveSelectionsToServer === 'function') {
+            window.syncLiveSelectionsToServer();
+        }
+
+        // Force a refresh of badges to show updated "Left" counts across all cards
+        setTimeout(() => {
+            if (typeof checkRealTimeAvailability === 'function') checkRealTimeAvailability(true);
+        }, 500);
+
     } catch (error) {
         console.error("Selection sync error:", error);
         showToast("Sync Issue", "Could not fully update selection. Please refresh.", "error");
@@ -645,7 +728,7 @@ window.handleExtraSelection = function (element) {
         }
 
         if (limitCategory && catLimit > 0) {
-            let currentUsage = (globalCategoryBooked[limitCategory] || 0);
+            let currentUsage = (window.globalCategoryBooked ? (window.globalCategoryBooked[limitCategory] || 0) : 0);
 
             document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
                 const cbCat = (cb.closest('.product-card').dataset.countsAgainst || '').trim().toLowerCase();
@@ -656,13 +739,13 @@ window.handleExtraSelection = function (element) {
 
             document.querySelectorAll('.ext-price[data-counts-against]').forEach(el => {
                 const elCat = (el.dataset.countsAgainst || '').trim().toLowerCase();
-                if (el !== element && elCat === limitCategory) {
+                if (elCat === limitCategory) {
                     if (el.type === 'checkbox' && el.checked) currentUsage++;
                     else if (el.tagName === 'SELECT' && el.value !== '' && el.value !== '0' && !el.value.includes('|no')) currentUsage++;
                 }
             });
 
-            if (currentUsage + 1 > catLimit) {
+            if (currentUsage > catLimit) {
                 const appEl = document.querySelector('[x-data="bookingApp"]');
                 const alpine = appEl ? (appEl._x_dataStack ? appEl._x_dataStack[0] : (appEl.__x ? appEl.__x.$data : null)) : null;
                 if (alpine) {
@@ -858,7 +941,7 @@ window.updateDeliveryCost = function (sel) {
     triggerRecalculate();
 };
 
-window.triggerRecalculate = function () {
+window.triggerRecalculate = function (priceOnly = false) {
     // Determine source of costs (Livewire inputs or hidden fields)
     const manualDurInput = document.querySelector('input[wire\\:model\\.live="form.duration_cost"]');
     const durCostHidden = document.getElementById('duration_cost');
@@ -929,7 +1012,9 @@ window.triggerRecalculate = function () {
     // Call total calculation regardless of Edit Mode for dynamic feedback
     calculateFinalTotals();
 
-    updateCategoryLimitsUI();
+    if (!priceOnly && typeof updateCategoryLimitsUI === 'function') {
+        updateCategoryLimitsUI();
+    }
 };
 
 window.calculateFinalTotals = function () {

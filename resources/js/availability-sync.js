@@ -77,10 +77,14 @@
             if (data.categories) {
                 for (let cat in data.categories) {
                     const catKey = cat.trim().toLowerCase();
-                    window.globalCategoryBooked[catKey] = data.categories[cat].booked || 0;
-                    // Also sync the limit in case it changed on server
-                    if (window.bookingAppData && window.bookingAppData.categories && window.bookingAppData.categories[cat]) {
-                        window.bookingAppData.categories[cat].limit = data.categories[cat].limit;
+                    // The server now EXCLUDES current user's selections from 'booked',
+                    // so we can use this as the base for 'globalCategoryBooked'
+                    if (data.categories[cat]) {
+                        window.globalCategoryBooked[catKey] = data.categories[cat].booked || 0;
+                        // Also sync the limit in case it changed on server
+                        if (window.bookingAppData && window.bookingAppData.categories && window.bookingAppData.categories[cat]) {
+                            window.bookingAppData.categories[cat].limit = data.categories[cat].limit;
+                        }
                     }
                 }
             }
@@ -221,13 +225,18 @@
         let usage = {};
         if (!window.bookingAppData) return;
         const categories = window.bookingAppData.categories;
-        for (let cat in categories) usage[cat.trim().toLowerCase()] = window.globalCategoryBooked[cat.trim().toLowerCase()] || 0;
+        
+        // Start with server's count of OTHERS' bookings
+        for (let cat in categories) {
+            const catKey = cat.trim().toLowerCase();
+            usage[catKey] = window.globalCategoryBooked[catKey] || 0;
+        }
 
         const rideNamesCounted = new Set();
         document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
             const card = cb.closest('.product-card');
             const limitCategory = (card.dataset.countsAgainst || '').trim().toLowerCase();
-            const rideName = (card.dataset.name || '').trim().toLowerCase();
+            const rideName = (card.dataset.name || '').trim().toLowerCase().replace(/\s+/g, ' ');
             if (limitCategory) usage[limitCategory] = (usage[limitCategory] || 0) + 1;
             if (rideName) rideNamesCounted.add(rideName);
         });
@@ -433,12 +442,15 @@
         const activeCategoriesStr = activeCategoriesArray.join('|');
         const activeOverridesStr = JSON.stringify(window.bookingAppData.activeOverrides || {});
         
-        // --- PERFORMANCE/UX FIX: Only re-render if categories or override states changed ---
-        // We also check if the user is typing in an input inside the extras container
+        // --- PERFORMANCE/UX FIX: Only re-render if categories changed ---
+        // We avoid re-rendering just for override state changes or if user is typing
         const focusedEl = document.activeElement;
         const isTypingInExtras = focusedEl && focusedEl.closest('#dynamicExtrasContainer') && (focusedEl.tagName === 'INPUT' || focusedEl.tagName === 'SELECT');
 
-        if (window.lastActiveCategoriesStr === activeCategoriesStr && window.lastActiveOverridesStr === activeOverridesStr) {
+        // CATEGORY CHANGE is the main reason to re-render the whole container
+        if (window.lastActiveCategoriesStr === activeCategoriesStr) {
+            // Even if activeOverridesStr changed, we don't want to re-render the WHOLE container 
+            // if it's just a price update. Individual visibility logic for wraps is handled in updateExtraPrice.
             if (!isTypingInExtras) {
                 window.updateCategoryLimitsUI();
                 if (typeof window.triggerRecalculate === 'function') window.triggerRecalculate();
@@ -452,8 +464,6 @@
             console.log("Skipping extras re-render: User is interacting with a dropdown.");
             return;
         }
-
-        window.lastActiveCategoriesStr = activeCategoriesStr;
         container.innerHTML = '';
         const configCategories = window.bookingAppData.categories;
 
@@ -739,6 +749,7 @@
         }
     };
 
+    let extraPriceDebounceTimer;
     window.updateExtraPrice = function (key, price) {
         if (!window.bookingAppData) return;
         
@@ -748,19 +759,66 @@
         window.bookingAppData.activeOverrides = window.bookingAppData.activeOverrides || {};
         window.bookingAppData.lockedOverrides = window.bookingAppData.lockedOverrides || {};
 
-        // Update local state (which is entangled with Livewire)
         const p = parseFloat(price) || 0;
+        
+        // 1. INSTANT LOCAL UPDATE (for breakdown calculation)
         window.bookingAppData.extraPrices[key] = p;
         window.bookingAppData.manualPrices[key] = p;
         window.bookingAppData.activeOverrides[key] = true;
         window.bookingAppData.lockedOverrides[key] = true;
 
-        if (window.lwBookingComponent) {
-            window.lwBookingComponent.updateExtraPrice(key, p);
+        // 2. INSTANT BREAKDOWN UPDATE (No heavy DOM scan, just the total)
+        if (typeof window.triggerRecalculate === 'function') {
+            window.triggerRecalculate(true);
         }
 
-        if (typeof window.triggerRecalculate === 'function') {
-            window.triggerRecalculate();
-        }
+    // 3. DEBOUNCED SERVER SYNC
+        clearTimeout(extraPriceDebounceTimer);
+        extraPriceDebounceTimer = setTimeout(() => {
+            if (window.lwBookingComponent) {
+                window.lwBookingComponent.updateExtraPrice(key, p);
+            }
+            // Also sync the live selection to server to keep badges fresh
+            if (typeof window.syncLiveSelectionsToServer === 'function') {
+                window.syncLiveSelectionsToServer();
+            }
+        }, 500);
     };
+
+    /**
+     * Master Synchronization Hooks
+     * These listeners ensure that ANY update to the booking date (from JS or Livewire)
+     * triggers an immediate refresh of the availability badges.
+     */
+    document.addEventListener('date-selected', (e) => {
+        console.log("Master Sync: date-selected caught. Refreshing badges...");
+        if (typeof window.checkRealTimeAvailability === 'function') {
+            window.checkRealTimeAvailability(true);
+        }
+    });
+
+    // Listen for Alpine-based date changes that might not trigger @change
+    window.addEventListener('date-changed-manual', () => {
+        if (typeof window.checkRealTimeAvailability === 'function') {
+            window.checkRealTimeAvailability(false);
+        }
+    });
+
+    // Hook into Livewire's lifecycle to ensure badges are refreshed after a morph
+    document.addEventListener('livewire:init', () => {
+        Livewire.hook('morph.updated', ({ el, component }) => {
+            // Only re-check if we are in a booking component and the date is set
+            const dateInput = document.getElementById('event_date');
+            if (dateInput && dateInput.value && !window.isInitialLoading) {
+                // Use a small delay to ensure DOM is fully ready
+                if (window.checkRealTimeAvailability) {
+                    // Debounce it slightly to avoid hammer
+                    clearTimeout(window.badgeRefreshTimer);
+                    window.badgeRefreshTimer = setTimeout(() => {
+                        window.checkRealTimeAvailability(true);
+                    }, 100);
+                }
+            }
+        });
+    });
 })();

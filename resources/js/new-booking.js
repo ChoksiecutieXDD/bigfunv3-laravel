@@ -326,7 +326,7 @@ window.apiPost = async function (action, payload = null) {
     const res = await fetch('/api/bookings/handler', {
         method: 'POST',
         headers: {
-            'X-CSRF-TOKEN': window.bookingAppData.csrfToken
+            'X-CSRF-TOKEN': window.bookingAppData ? window.bookingAppData.csrfToken : document.querySelector('meta[name="csrf-token"]')?.content
         },
         body: fd
     });
@@ -538,6 +538,12 @@ window.selectDate = function (dateStr, left) {
     }
     if (dateInput) dateInput.value = dateStr;
     updateCalSelection();
+
+    // CRITICAL: Sync with Livewire so re-renders don't clear the date
+    if (window.lwBookingComponent) {
+        window.lwBookingComponent.set('default_event_date', dateStr);
+    }
+
     dateChanged();
 
     // Notify server about selection
@@ -553,6 +559,10 @@ window.selectDate = function (dateStr, left) {
 };
 
 window.dateChanged = function () {
+    const dateInput = document.getElementById('event_date');
+    if (dateInput && window.lwBookingComponent) {
+        window.lwBookingComponent.set('default_event_date', dateInput.value);
+    }
     checkRealTimeAvailability();
     checkDuplicates(); // Re-verify duplicates whenever the date changes
 };
@@ -563,7 +573,14 @@ window.dateChanged = function () {
 
 window.handleSelection = function (checkbox) {
     const card = checkbox.closest('.product-card');
-    const dateVal = document.getElementById('event_date')?.value;
+    const dateInput = document.getElementById('event_date');
+    let dateVal = dateInput ? dateInput.value : '';
+
+    // Fallback to Livewire state if DOM is somehow out of sync
+    if (!dateVal && window.lwBookingComponent) {
+        dateVal = window.lwBookingComponent.get('default_event_date');
+        if (dateVal && dateInput) dateInput.value = dateVal;
+    }
 
     if (!dateVal) {
         checkbox.checked = false;
@@ -649,9 +666,7 @@ function processSelection(checkbox, card) {
         if (typeof updateCategoryLimitsUI === 'function') updateCategoryLimitsUI();
         if (typeof updateDynamicExtras === 'function') updateDynamicExtras();
         if (typeof saveCurrentExtrasState === 'function') saveCurrentExtrasState(true);
-        if (typeof triggerRecalculate === 'function') triggerRecalculate();
-
-        // Communicate to Livewire
+        if (typeof triggerRecalculate === 'function') triggerRecalculate();        // Communicate to Livewire
         if (window.lwBookingComponent) {
             window.lwBookingComponent.toggleItem(card.dataset.name, checkbox.checked);
         } else {
@@ -663,14 +678,22 @@ function processSelection(checkbox, card) {
                 }
             }
         }
+
+        // Trigger real-time sync to update other products and calendar
+        if (typeof window.syncLiveSelectionsToServer === 'function') {
+            window.syncLiveSelectionsToServer();
+        }
+
+        // Force a refresh of badges to show updated "Left" counts across all cards
+        setTimeout(() => {
+            if (typeof checkRealTimeAvailability === 'function') checkRealTimeAvailability(true);
+        }, 500);
+
     } catch (error) {
         console.error("Selection sync error:", error);
         showToast("Sync Issue", "Could not fully update selection. Please refresh.", "error");
     }
-
-    // NEW: Sync live selection to server immediately
-    window.syncLiveSelectionsToServer();
-};
+}
 
 window.syncLiveSelectionsToServer = function () {
     const dateInput = document.getElementById('event_date');
@@ -708,12 +731,16 @@ window.syncLiveSelectionsToServer = function () {
         }
     });
 
-    apiPost('select_calendar_date', {
-        date: dateInput.value,
-        invoice: window.bookingAppData ? window.bookingAppData.invoiceNumber : '',
-        token: window.bookingAppData ? window.bookingAppData.formToken : '',
-        selected_items: JSON.stringify(items)
-    });
+    // DEBOUNCE: Use a small timer to prevent rapid-fire API calls while clicking
+    clearTimeout(window.syncLiveTimer);
+    window.syncLiveTimer = setTimeout(() => {
+        apiPost('select_calendar_date', {
+            date: dateInput.value,
+            invoice: window.bookingAppData ? window.bookingAppData.invoiceNumber : '',
+            token: window.bookingAppData ? window.bookingAppData.formToken : '',
+            selected_items: JSON.stringify(items)
+        });
+    }, 300);
 };
 
 
@@ -753,7 +780,7 @@ window.handleExtraSelection = function (element) {
         }
 
         if (limitCategory && catLimit > 0) {
-            let currentUsage = (globalCategoryBooked[limitCategory] || 0);
+            let currentUsage = (window.globalCategoryBooked ? (window.globalCategoryBooked[limitCategory] || 0) : 0);
 
             document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
                 const cbCat = (cb.closest('.product-card').dataset.countsAgainst || '').trim().toLowerCase();
@@ -812,7 +839,7 @@ window.handleExtraSelection = function (element) {
                 price = parseFloat(opt.dataset.price || 0);
             }
         }
-        
+
         // Force update extraPrices if it's currently 0 or undefined, 
         // OR if it's a dropdown/question change (most common case for "accuracy")
         if (!window.bookingAppData.extraPrices[key] || window.bookingAppData.extraPrices[key] == 0 || element.tagName === 'SELECT') {
@@ -991,7 +1018,7 @@ window.updateDeliveryCost = function (sel) {
     triggerRecalculate();
 };
 
-window.triggerRecalculate = function () {
+window.triggerRecalculate = function (priceOnly = false) {
     // Force calculation even in edit mode to satisfy wire:ignore breakdown panels
 
     const durCostInput = document.getElementById('duration_cost');
@@ -1068,7 +1095,11 @@ window.triggerRecalculate = function () {
     if (calcSub) calcSub.value = sub.toFixed(2);
 
     calculateFinalTotals();
-    updateCategoryLimitsUI();
+
+    // Only update limits if the selection changed, not just prices
+    if (!priceOnly && typeof updateCategoryLimitsUI === 'function') {
+        updateCategoryLimitsUI();
+    }
 };
 
 window.calculateFinalTotals = function () {
@@ -1419,11 +1450,11 @@ window.finalizeBooking = async function () {
             for (let name in window.bookingAppData.selectedItems) {
                 if (window.bookingAppData.selectedItems[name]) {
                     fd.append('products[]', name);
-                    
+
                     // Also find the manual price input for this product if it exists
                     const cleanName = name.toLowerCase().trim();
-                    const manualInput = document.querySelector(`input[name="manual_prices[${cleanName}]"]`) || 
-                                      document.querySelector(`.product-card[data-name="${cleanName}"] .manual-ride-price`);
+                    const manualInput = document.querySelector(`input[name="manual_prices[${cleanName}]"]`) ||
+                        document.querySelector(`.product-card[data-name="${cleanName}"] .manual-ride-price`);
                     if (manualInput && manualInput.value !== '') {
                         fd.append(`manual_prices[${name}]`, manualInput.value);
                     }

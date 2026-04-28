@@ -104,11 +104,40 @@ class BookingOverview extends Component
 
         $selectedExtras = json_decode($this->booking->extras_json ?? '[]', true) ?? [];
 
-        $startTime = Carbon::parse($this->booking->start_time);
-        $timeString = $startTime->format('g:i A');
-        if (!empty($this->booking->end_time) && $this->booking->end_time != '00:00:00') { $timeString .= ' - ' . Carbon::parse($this->booking->end_time)->format('g:i A'); }
+        $rawStartTime = $this->booking->start_time;
+        $rawEndTime = $this->booking->end_time;
+        $isFullDay = ($rawStartTime === '00:00:00' && ($rawEndTime === '23:59:59' || $rawEndTime === '23:59:00' || $rawEndTime === '23:30:00'));
+
+        if ($isFullDay && !empty($this->booking->duration) && !in_array($this->booking->duration, ['4 Hours', '7 Hours'])) {
+            $timeString = 'Full Day (Duration Selected)';
+        } else {
+            $startTime = Carbon::parse($rawStartTime);
+            $timeString = $startTime->format('g:i A');
+            if (!empty($rawEndTime) && $rawEndTime != '00:00:00') {
+                $timeString .= ' - ' . Carbon::parse($rawEndTime)->format('g:i A');
+            }
+        }
 
         $galleryFiles = collect([$this->booking->delivery_attachment, $this->booking->delivery_attachment_2, $this->booking->delivery_attachment_3, $this->booking->delivery_attachment_4, $this->booking->delivery_attachment_5])->filter()->toArray();
+
+        // --- FILTER DUPLICATES ---
+        $allAddonLabels = DB::table('category_addons')->select('addon_label', 'category_target')->get()->flatMap(function($a) {
+            return [strtolower(trim($a->addon_label)), strtolower(trim($a->category_target . ': ' . $a->addon_label))];
+        })->toArray();
+        $allQuestionLabels = DB::table('product_extras')->pluck('question_text')->map(fn($l) => strtolower(trim($l)))->toArray();
+        $allDropdownOptions = DB::table('dropdown_options as do')
+            ->join('product_dropdowns as pd', 'do.dropdown_id', '=', 'pd.id')
+            ->select('do.option_label', 'pd.label as dd_label')
+            ->get()
+            ->flatMap(function($o) {
+                return [strtolower(trim($o->option_label)), strtolower(trim($o->dd_label . ' - ' . $o->option_label))];
+            })->toArray();
+            
+        $allExtraLabels = array_unique(array_merge($allAddonLabels, $allQuestionLabels, $allDropdownOptions));
+
+        $items = $items->reject(function($item) use ($allExtraLabels) {
+            return in_array(strtolower(trim($item->item_name)), $allExtraLabels);
+        });
 
         return view('livewire.staff.booking-overview', compact(
             'items', 'statusColor', 'timeString', 'galleryFiles', 'activeCategories', 'config', 'selectedExtras'

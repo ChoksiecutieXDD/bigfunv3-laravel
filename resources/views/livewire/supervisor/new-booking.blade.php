@@ -1,14 +1,15 @@
 <div x-data="bookingApp" 
     x-init="
+        window.dayjs = window.dayjs || function() { return { format: () => '' } };
         window.lwBookingComponent = @this;
-        window.bookingAppData = {
-            savedExtras: @entangle('saved_extras'),
-            selectedItems: @entangle('selected_products'),
-            extraPrices: @entangle('extraPrices'),
-            activeOverrides: @entangle('activeOverrides'),
-            csrfToken: '{{ csrf_token() }}',
-            formToken: '{{ $form_token }}'
-        };
+        window.bookingAppData = window.bookingAppData || {};
+        window.bookingAppData.savedExtras = @entangle('saved_extras');
+        window.bookingAppData.selectedItems = @entangle('selected_products');
+        window.bookingAppData.extraPrices = @entangle('extraPrices');
+        window.bookingAppData.activeOverrides = @entangle('activeOverrides');
+        
+        // Ensure productDetails exists in scope
+        $data.productDetails = $data.productDetails || { visible: false, name: '', spec: '', price: 0 };
     "
     class="w-full relative pb-8">
 
@@ -312,13 +313,13 @@
                         <div id="customDurationWrapper" class="hidden mt-4 p-5 bg-slate-50 rounded-2xl border border-slate-200 animate-[fadeIn_0.2s_ease-in] grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="input-group">
                                 <label class="input-label">Custom Duration Label</label>
-                                <input type="text" name="custom_duration_text" id="custom_duration_text" placeholder="e.g. 2 Days, Full Weekend" class="input-field bg-white" @input="triggerRecalculate()">
+                                <input type="text" name="custom_duration_text" id="custom_duration_text" placeholder="e.g. 2 Days, Full Weekend" class="input-field bg-white" @input="triggerRecalculate(true)">
                             </div>
                             <div class="input-group">
                                 <label class="input-label text-[#9E6B73]">Manual Duration Cost</label>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
-                                    <input type="number" id="manual_duration_cost" step="0.01" class="input-field bg-white pl-8" placeholder="0.00" @input="document.getElementById('duration_cost').value = $el.value; triggerRecalculate();">
+                                    <input type="number" id="manual_duration_cost" step="0.01" class="input-field bg-white pl-8" placeholder="0.00" @input="document.getElementById('duration_cost').value = $el.value; triggerRecalculate(true);">
                                 </div>
                             </div>
                         </div>
@@ -458,7 +459,7 @@
                                         <label class="input-label text-[#9E6B73]">Manual Delivery Cost</label>
                                         <div class="relative">
                                             <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
-                                            <input type="number" id="delivery_area_manual" step="0.01" class="input-field input-with-icon" placeholder="0.00" value="{{ $this->getVal('delivery_cost') }}" @input="document.getElementById('delivery_cost').value = $el.value; triggerRecalculate();">
+                                            <input type="number" id="delivery_area_manual" step="0.01" class="input-field input-with-icon" placeholder="0.00" value="{{ $this->getVal('delivery_cost') }}" @input="document.getElementById('delivery_cost').value = $el.value; triggerRecalculate(true);">
                                         </div>
                                     </div>
                                 </div>
@@ -697,7 +698,8 @@
                                                        class="manual-ride-price w-full bg-white border border-slate-200 rounded-xl py-1.5 pl-5 pr-2 text-[11px] font-black text-slate-700 focus:ring-2 focus:ring-[#9E6B73]/20 focus:border-[#9E6B73] transition-all" 
                                                        placeholder="{{ number_format($product['price'] ?? 100, 2) }}"
                                                        value="{{ $isChecked ? ($this->selected_manual_prices[$pName] ?? '') : '' }}"
-                                                       @input.debounce.500ms="$wire.updateManualPrice('{{ $pName }}', $event.target.value); triggerRecalculate()">
+                                                       @input="triggerRecalculate(true)"
+                                                       @input.debounce.500ms="$wire.updateManualPrice('{{ $pName }}', $event.target.value)">
                                             </div>
                                         </div>
                                         <div class="text-[10px] text-slate-400 font-medium action-text mt-auto">Click to select</div>
@@ -1142,6 +1144,19 @@
             </div>
         </div>
     </div>
+
+        <div id="booking-data-bridge" class="hidden"
+            data-config='@json($config)'
+            data-categories='@json($categories)'
+            data-extras='@json($saved_extras)'
+            data-csrf="{{ csrf_token() }}"
+            data-id="{{ $booking_id }}"
+            data-invoice="{{ $invoice_number }}"
+            data-token="{{ $form_token }}"
+            data-selected='@json($selected_products)'
+            data-extra-prices='@json($extraPrices)'
+            data-customers='@json($past_customers)'>
+        </div>
 
     @vite(['resources/js/availability-sync.js', 'resources/js/new-booking.js'])
 

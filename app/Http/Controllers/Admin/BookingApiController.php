@@ -21,11 +21,22 @@ class BookingApiController extends Controller
         try {
             $date = $request->query('date');
             $invoice = $request->query('invoice');
-            $booking_id = $request->query('booking_id');
+            $booking_id_raw = $request->query('booking_id');
             $token = $request->query('token');
 
             if (empty($date)) {
-                return response()->json(['status' => 'success', 'products' => []]);
+                return response()->json(['status' => 'success', 'products' => [], 'categories' => []]);
+            }
+
+            // Sanitize booking_id (ensure it's an int or null, handle JS "null"/"undefined" strings)
+            $booking_id = null;
+            if (!empty($booking_id_raw) && $booking_id_raw !== 'null' && $booking_id_raw !== 'undefined') {
+                $booking_id = (int)$booking_id_raw;
+            }
+
+            // Sanitize invoice (handle JS "null"/"undefined" strings)
+            if ($invoice === 'null' || $invoice === 'undefined') {
+                $invoice = null;
             }
 
             $state = $this->getInventoryState($date, $invoice, $booking_id, $token);
@@ -67,7 +78,7 @@ class BookingApiController extends Controller
 
         $resProd = DB::table('products')->where('is_active', 1)->select(['name', 'total_quantity', 'daily_limit', 'counts_against', 'category'])->get();
         foreach ($resProd as $row) {
-            $cleanName = strtolower(trim($row->name));
+            $cleanName = strtolower(preg_replace('/\s+/', ' ', trim($row->name)));
             $stock = (int)$row->total_quantity;
             $item_limit = (int)$row->daily_limit;
 
@@ -90,8 +101,12 @@ class BookingApiController extends Controller
             ->join('bookings as b', 'bi.booking_id', '=', 'b.id')
             ->where('b.event_date', $date)
             ->when($booking_id, function ($q) use ($booking_id, $invoice) {
-                return $q->where('b.id', '!=', $booking_id)
-                         ->where('b.invoice_number', '!=', $invoice);
+                // If we are editing, exclude the current booking record from the "already booked" count
+                return $q->where('b.id', '!=', $booking_id);
+            })
+            ->when(!$booking_id && $invoice, function ($q) use ($invoice) {
+                // For new bookings with a known invoice, also exclude it
+                return $q->where('b.invoice_number', '!=', $invoice);
             })
             ->where(function ($q) {
                 $q->whereNotIn('b.status', ['Cancelled', 'Draft'])
@@ -105,13 +120,18 @@ class BookingApiController extends Controller
             ->get();
 
         foreach ($res as $row) {
-            $cleanName = strtolower(trim($row->item_name));
+            $cleanName = strtolower(preg_replace('/\s+/', ' ', trim($row->item_name)));
             $count = (int)$row->cnt;
 
             if (isset($master_inventory[$cleanName])) {
                 $master_inventory[$cleanName]['booked'] += $count;
             } else {
-                $master_inventory[$cleanName] = ['total' => $count, 'booked' => $count, 'left' => 0];
+                $master_inventory[$cleanName] = [
+                    'total' => $count,
+                    'booked' => $count,
+                    'limit' => 0,
+                    'left' => 0
+                ];
             }
 
             if (isset($product_targets[$cleanName])) {
@@ -190,7 +210,8 @@ class BookingApiController extends Controller
         }
 
         foreach ($categories as $cat => &$data) {
-            $data['left'] = ($data['limit'] > 0) ? max(0, $data['limit'] - $data['booked']) : 9999;
+            $catLimit = $data['limit'] ?? 0;
+            $data['left'] = ($catLimit > 0) ? max(0, $catLimit - $data['booked']) : 9999;
         }
         unset($data);
 
@@ -202,10 +223,13 @@ class BookingApiController extends Controller
         if ($includeLive) {
             $liveSelections = DB::table('booking_selections')
                 ->where('event_date', $date)
-                ->when($token, function ($q) use ($token) {
+                ->where('updated_at', '>=', now()->subMinutes(5))
+                ->when($token, function($q) use ($token) {
                     return $q->where('form_token', '!=', $token);
                 })
-                ->where('updated_at', '>=', now()->subMinutes(5))
+                ->when($invoice, function($q) use ($invoice) {
+                    return $q->where('invoice_number', '!=', $invoice);
+                })
                 ->get(['selected_items', 'user_id', 'user_role', 'user_name']);
 
             foreach ($liveSelections as $sel) {
@@ -275,7 +299,8 @@ class BookingApiController extends Controller
         foreach ($liveCategoryCounts as $cat => $count) {
             if (isset($categories[$cat])) {
                 $categories[$cat]['booked'] += $count;
-                $categories[$cat]['left'] = ($categories[$cat]['limit'] > 0) ? max(0, $categories[$cat]['limit'] - $categories[$cat]['booked']) : 9999;
+                $catLimit = $categories[$cat]['limit'] ?? 0;
+                $categories[$cat]['left'] = ($catLimit > 0) ? max(0, $catLimit - $categories[$cat]['booked']) : 9999;
             }
         }
 
@@ -285,7 +310,7 @@ class BookingApiController extends Controller
             }
             $booked = $prodData['booked'];
             $stock = $prodData['total'];
-            $iLimit = $prodData['limit'];
+            $iLimit = $prodData['limit'] ?? 0;
             $left = max(0, $stock - $booked);
             if ($iLimit > 0) {
                 $limit_left = max(0, $iLimit - $booked);
@@ -394,17 +419,24 @@ class BookingApiController extends Controller
                         $isMe = false;
                         if ($form_token && $sel->form_token == $form_token) {
                             $isMe = true;
+                        } elseif ($invoice_number && $sel->invoice_number == $invoice_number && $sel->invoice_number != '') {
+                            $isMe = true;
                         } elseif (!$form_token && Auth::check() && Auth::id() == $sel->user_id) {
                             $isMe = true;
                         }
 
-                        if ($invoice_number && $sel->invoice_number == $invoice_number && $sel->invoice_number != '') {
-                            $isMe = true;
-                        }
-
-                        // Count EVERY unique selection towards the slot decrease
-                        // We use a combination of date, token and invoice to ensure accuracy per day
+                        // Count unique selections towards the slot decrease
+                        // EXCLUDE "ME" from the count so the UI can add it back locally if needed,
+                        // or just to avoid double counting if the UI already knows it's "Me".
+                        // Actually, for the calendar "Left" count, we WANT to include "Me" 
+                        // so it says "6 Left" instead of "7 Left" when I select it.
+                        // BUT we must avoid double counting if I already have a Draft booking.
+                        
                         $selKey = $d . '_' . ($sel->form_token ?: ($sel->user_id . '_' . $sel->invoice_number));
+                        
+                        // Only count if it's NOT me OR if we specifically want to see our own impact.
+                        // The current UI expects the server to return the count including everyone.
+                        // To avoid double counting with existing bookings:
                         if (!in_array($sel->invoice_number, $countedInvoices) && !isset($seenSelections[$selKey])) {
                             if (!isset($map[$d])) $map[$d] = 0;
                             $map[$d]++;

@@ -67,7 +67,7 @@ class Calendar extends Component
                 $q->select('id', 'booking_id', 'item_name');
             }])
             ->withSum('payments as real_paid', 'amount')
-            ->select('id', 'event_date', 'start_time', 'end_time', 'customer_first_name', 'customer_last_name', 'status', 'total_amount', 'payment_type', 'lead_operator', 'lead_deliverer', 'address_line_1', 'custom_duration_text', 'duration_cost', 'terms_agreed', 'installation_plan', 'booked_by')
+            ->select('id', 'event_date', 'start_time', 'end_time', 'customer_first_name', 'customer_last_name', 'status', 'total_amount', 'payment_type', 'lead_operator', 'lead_deliverer', 'address_line_1', 'duration', 'duration_cost', 'terms_agreed', 'installation_plan', 'booked_by')
             ->whereYear('event_date', $searchYear)
             ->orderBy('event_date', 'asc')
             ->orderBy('start_time', 'asc');

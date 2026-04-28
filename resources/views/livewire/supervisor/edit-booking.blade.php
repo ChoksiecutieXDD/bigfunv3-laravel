@@ -1,5 +1,7 @@
+@vite(['resources/js/availability-sync.js', 'resources/js/edit-booking.js'])
 <div x-data="bookingApp"
     x-init="
+        window.dayjs = window.dayjs || function() { return { format: () => '' } };
         window.lwBookingComponent = @this;
         window.bookingAppData = {
             savedExtras: @entangle('saved_extras'),
@@ -17,6 +19,14 @@
         // Removal Modal State
         modals.removeConfirm = false;
         itemToRemove = '';
+
+        // Product Details State
+        productDetails = {
+            visible: false,
+            name: '',
+            spec: '',
+            price: 0
+        };
         pendingRemovalCheckbox = null;
         pendingRemovalCard = null;
 
@@ -498,13 +508,13 @@
                         <div class="mt-4 p-5 bg-slate-50 rounded-2xl border border-slate-200 animate-[fadeIn_0.2s_ease-in] grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="input-group">
                                 <label class="input-label">Custom Duration Label</label>
-                                <input type="text" wire:model.live="form.custom_duration_text" placeholder="e.g. 2 Days, Full Weekend" class="input-field bg-white">
+                                <input type="text" wire:model.live.debounce.500ms="form.custom_duration_text" placeholder="e.g. 2 Days, Full Weekend" class="input-field bg-white">
                             </div>
                             <div class="input-group">
                                 <label class="input-label text-[#9E6B73]">Manual Duration Cost</label>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
-                                    <input type="number" wire:model.live="form.duration_cost" oninput="if(window.triggerRecalculate) window.triggerRecalculate()" step="0.01" class="input-field bg-white pl-8" placeholder="0.00">
+                                    <input type="number" wire:model.live.debounce.500ms="form.duration_cost" oninput="if(window.triggerRecalculate) window.triggerRecalculate(true)" step="0.01" class="input-field bg-white pl-8" placeholder="0.00">
                                 </div>
                             </div>
                         </div>
@@ -641,7 +651,7 @@
                                         <label class="input-label text-[#9E6B73]">Manual Delivery Cost</label>
                                         <div class="relative">
                                             <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
-                                            <input type="number" wire:model.live="form.delivery_cost" oninput="if(window.triggerRecalculate) window.triggerRecalculate()" step="0.01" class="input-field input-with-icon" placeholder="0.00">
+                                            <input type="number" wire:model.live.debounce.500ms="form.delivery_cost" oninput="if(window.triggerRecalculate) window.triggerRecalculate(true)" step="0.01" class="input-field input-with-icon" placeholder="0.00">
                                         </div>
                                     </div>
                                 </div>
@@ -677,25 +687,6 @@
                     </div>
 
                     <div class="pt-6 border-t border-gray-100 mt-6"
-                        x-data="{
-                            totalSizeMB: '0.00',
-                            calculateTotalSize() {
-                                let total = 0;
-                                const slots = this.$el.querySelectorAll('.attachment-slot');
-                                slots.forEach(slot => {
-                                    const input = slot.querySelector('input[type=\'file\']');
-                                    const isDeleted = slot.dataset.isDeleted === 'true';
-                                    let existingSize = parseInt(slot.dataset.existingSize || '0', 10);
-                                    
-                                    if (input && input.files && input.files[0]) {
-                                        total += input.files[0].size;
-                                    } else if (!isDeleted && existingSize > 0) {
-                                        total += existingSize;
-                                    }
-                                });
-                                this.totalSizeMB = (total / (1024 * 1024)).toFixed(2);
-                            }
-                         }"
                         x-init="calculateTotalSize()"
                         @recalc-size="calculateTotalSize()">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -957,8 +948,8 @@
                                         <div class="relative">
                                             <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 text-[10px] font-bold">$</span>
                                             <input type="number"
-                                                wire:model.live="selectedItems.{{ $cleanName }}.price"
-                                                oninput="if(window.triggerRecalculate) window.triggerRecalculate()"
+                                                wire:model.live.debounce.500ms="selectedItems.{{ $cleanName }}.price"
+                                                oninput="if(window.triggerRecalculate) window.triggerRecalculate(true)"
                                                 step="0.01"
                                                 class="manual-ride-price w-full bg-white border border-slate-200 rounded-xl py-1.5 pl-5 pr-2 text-[11px] font-black text-slate-700 focus:ring-2 focus:ring-[#9E6B73]/20 focus:border-[#9E6B73] transition-all"
                                                 placeholder="{{ number_format($p['price'], 2) }}">
@@ -1590,8 +1581,6 @@
     </div>
 </div>
 
-@vite(['resources/js/availability-sync.js', 'resources/js/edit-booking.js'])
-
 @script
 <script>
     // CLEANED UP BRIDGE LOGIC
@@ -1626,7 +1615,6 @@
             window.saveCurrentExtrasState._isWrapped = true;
         }
 
-        // One-time wrapper for toggleItemUI
         if (typeof window.toggleItemUI === 'function' && !window.toggleItemUI._isWrapped) {
             const originalToggleItemUI = window.toggleItemUI;
             window.toggleItemUI = function(checkbox, card) {

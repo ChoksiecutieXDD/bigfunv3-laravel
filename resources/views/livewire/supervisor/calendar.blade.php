@@ -170,8 +170,15 @@
                         <div>
                             <span class="booking-label">Time & Duration</span>
                             <span class="booking-value block">
-                                @if($booking->custom_duration_text)
-                                    {{ $booking->custom_duration_text }} @if(($booking->duration_cost ?? 0) > 0) (${{ number_format($booking->duration_cost, 2) }}) @endif
+                                @php
+                                    $startTime = $booking->start_time;
+                                    $endTime = $booking->end_time;
+                                    $isFullDay = ($startTime === '00:00:00' && ($endTime === '23:59:59' || $endTime === '23:59:00' || $endTime === '23:30:00'));
+                                    $hasDuration = !empty($booking->duration) && !in_array($booking->duration, ['4 Hours', '7 Hours']);
+                                @endphp
+
+                                @if(($hasDuration || $isFullDay) && !empty($booking->duration))
+                                    {{ $booking->duration }} @if(($booking->duration_cost ?? 0) > 0) (${{ number_format($booking->duration_cost, 2) }}) @endif
                                 @else
                                     {{ \Carbon\Carbon::parse($booking->start_time)->format('g:i A') }} - {{ $booking->end_time ? \Carbon\Carbon::parse($booking->end_time)->format('g:i A') : 'TBD' }}
                                 @endif
@@ -332,8 +339,13 @@
                         <div class="flex justify-between items-start mb-1">
                             <p class="font-bold text-orange-700 group-hover:text-orange-800 transition">{{ \Carbon\Carbon::parse($event->event_date)->format('l, M d') }}</p>
                             <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-orange-600 bg-orange-200/50">
-                                @if($event->custom_duration_text)
-                                    {{ $event->custom_duration_text }} @if(($event->duration_cost ?? 0) > 0) (${{ number_format($event->duration_cost, 2) }}) @endif
+                                @php
+                                    $startTime = $event->start_time;
+                                    $endTime = $event->end_time;
+                                    $isFullDay = ($startTime === '00:00:00' && ($endTime === '23:59:59' || $endTime === '23:59:00' || $endTime === '23:30:00'));
+                                @endphp
+                                @if(!empty($event->duration) && ($isFullDay || !in_array($event->duration, ['4 Hours', '7 Hours'])))
+                                    {{ $event->duration }} @if(($event->duration_cost ?? 0) > 0) (${{ number_format($event->duration_cost, 2) }}) @endif
                                 @else
                                     {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }}
                                 @endif
@@ -374,8 +386,13 @@
                         <div class="flex justify-between items-start mb-1">
                             <p class="font-bold transition text-gray-700 group-hover:text-[#9D686E]">{{ \Carbon\Carbon::parse($event->event_date)->format('l, M d') }}</p>
                             <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-gray-500 bg-gray-200/50">
-                                @if($event->custom_duration_text)
-                                    {{ $event->custom_duration_text }} @if(($event->duration_cost ?? 0) > 0) (${{ number_format($event->duration_cost, 2) }}) @endif
+                                @php
+                                    $startTime = $event->start_time;
+                                    $endTime = $event->end_time;
+                                    $isFullDay = ($startTime === '00:00:00' && ($endTime === '23:59:59' || $endTime === '23:59:00' || $endTime === '23:30:00'));
+                                @endphp
+                                @if(!empty($event->duration) && ($isFullDay || !in_array($event->duration, ['4 Hours', '7 Hours'])))
+                                    {{ $event->duration }} @if(($event->duration_cost ?? 0) > 0) (${{ number_format($event->duration_cost, 2) }}) @endif
                                 @else
                                     {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }}
                                 @endif

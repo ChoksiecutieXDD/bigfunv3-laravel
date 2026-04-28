@@ -162,7 +162,6 @@ class Calendar extends Component
                 'booked_by' => $booking->booked_by,
                 'end_time' => $booking->end_time,
                 'duration' => $booking->duration,
-                'custom_duration_text' => $booking->custom_duration_text,
             ];
         });
 

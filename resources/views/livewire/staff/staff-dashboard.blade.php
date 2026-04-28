@@ -174,8 +174,14 @@
                         </h3>
                         <p class="text-[#9E6B73] font-bold text-sm flex items-center gap-1 mt-1">
                             <span class="material-symbols-rounded text-sm">schedule</span>
-                            @if($job->custom_duration_text)
-                                {{ $job->custom_duration_text }} @if(($job->duration_cost ?? 0) > 0) (${{ number_format($job->duration_cost, 2) }}) @endif
+                            @php
+                                $startTime = $job->start_time;
+                                $endTime = $job->end_time;
+                                $isFullDay = ($startTime === '00:00:00' && ($endTime === '23:59:59' || $endTime === '23:59:00' || $endTime === '23:30:00'));
+                            @endphp
+
+                            @if(!empty($job->duration) && ($isFullDay || !in_array($job->duration, ['4 Hours', '7 Hours'])))
+                                {{ $job->duration }} @if(($job->duration_cost ?? 0) > 0) (${{ number_format($job->duration_cost, 2) }}) @endif
                             @else
                                 {{ \Carbon\Carbon::parse($job->start_time)->format('g:i A') }}
                             @endif

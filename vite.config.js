@@ -10,7 +10,7 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/availability-sync.js',
                 'resources/js/new-booking.js',
-                'resources/js/edit-booking.js'
+                'resources/js/edit-booking.js',
             ],
             refresh: true,
         }),

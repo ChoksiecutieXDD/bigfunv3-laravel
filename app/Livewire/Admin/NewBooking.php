@@ -31,12 +31,14 @@ class NewBooking extends Component
     public array $calDays = [];
     public int $calMonth = 0;
     public int $calYear = 0;
+    
+    // File Upload Temporary Properties
+    public $temp_attachment_1;
+    public $temp_attachment_2;
+    public $temp_attachment_3;
+    public $temp_attachment_4;
+    public $temp_attachment_5;
 
-    public mixed $temp_attachment_1 = null;
-    public mixed $temp_attachment_2 = null;
-    public mixed $temp_attachment_3 = null;
-    public mixed $temp_attachment_4 = null;
-    public mixed $temp_attachment_5 = null;
 
     public function mount()
     {
@@ -68,28 +70,13 @@ class NewBooking extends Component
         if (empty($this->default_event_date)) {
             $this->default_event_date = '';
         }
-        
+
         $this->calMonth = Carbon::parse($this->default_event_date ?: now())->month;
         $this->calYear = Carbon::parse($this->default_event_date ?: now())->year;
+        $this->form_token = session()->get('booking_form_token', bin2hex(random_bytes(16)));
+        session()->put('booking_form_token', $this->form_token);
 
         $this->checkAvailability();
-    }
-
-    #[Computed]
-    public function past_customers(): array
-    {
-        return DB::table('bookings')
-            ->select(['customer_first_name', 'customer_last_name', 'customer_email', 'customer_phone', 'customer_organization', 'customer_abn', 'employer_name', 'customer_business_phone', 'address_line_1', 'business_address', 'suburb', 'state', 'postcode'])
-            ->whereIn('id', function ($query) {
-                $query->select(DB::raw('MAX(id)'))
-                    ->from('bookings')
-                    ->where('customer_first_name', '!=', '')
-                    ->groupBy('customer_first_name', 'customer_last_name', 'customer_email', 'address_line_1');
-            })
-            ->orderBy('id', 'desc')
-            ->limit(200)
-            ->get()
-            ->toArray();
     }
 
     #[Computed]
@@ -105,6 +92,38 @@ class NewBooking extends Component
     }
 
     #[Computed]
+    public function operators_list(): array
+    {
+        $staff = DB::table('users')
+            ->whereIn('role', ['Staff', 'Operator', 'Supervisor'])
+            ->where('is_active', 1)
+            ->orderBy('first_name')
+            ->get();
+        $list = [];
+        foreach ($staff as $row) {
+            $list[] = trim($row->first_name . ' ' . $row->last_name);
+        }
+        return empty($list) ? ["No staff found"] : $list;
+    }
+
+    #[Computed]
+    public function past_customers(): array
+    {
+        // PERFORMANCE FIX: Avoid heavy subquery groupBy on whole table
+        // Just get 500 latest and unique them in PHP
+        return DB::table('bookings')
+            ->select(['customer_first_name', 'customer_last_name', 'customer_email', 'customer_phone', 'customer_organization', 'customer_abn', 'employer_name', 'customer_business_phone', 'address_line_1', 'business_address', 'suburb', 'state', 'postcode'])
+            ->where('customer_first_name', '!=', '')
+            ->orderBy('id', 'desc')
+            ->limit(500)
+            ->get()
+            ->unique(fn($b) => strtolower(trim($b->customer_first_name . $b->customer_last_name . $b->customer_email)))
+            ->take(100)
+            ->values()
+            ->toArray();
+    }
+
+    #[Computed]
     public function categories(): array
     {
         $categories = [];
@@ -112,7 +131,6 @@ class NewBooking extends Component
         foreach ($cats as $c) {
             $categories[$c->category_name] = ['limit' => (int)$c->daily_limit, 'products' => []];
         }
-
         $prods = DB::table('products')->where('is_active', 1)->orderBy('category')->orderBy('name')->get();
         foreach ($prods as $p) {
             if (isset($categories[$p->category])) {
@@ -130,12 +148,10 @@ class NewBooking extends Component
         foreach ($questions as $q) {
             $config['questions'][$q->category_target][] = (array)$q;
         }
-
         $addons = DB::table('category_addons')->orderBy('category_target', 'asc')->get();
         foreach ($addons as $a) {
             $config['addons'][$a->category_target][] = (array)$a;
         }
-
         $dropdowns = DB::table('product_dropdowns')->orderBy('sort_order', 'asc')->get();
         foreach ($dropdowns as $d) {
             $opts = DB::table('dropdown_options')->where('dropdown_id', $d->id)->get()->toArray();
@@ -144,22 +160,6 @@ class NewBooking extends Component
             $config['dropdowns'][$d->category_target][] = $dArray;
         }
         return $config;
-    }
-
-    #[Computed]
-    public function operators_list(): array
-    {
-        $staff = DB::table('users')
-            ->whereIn('role', ['Staff', 'Operator', 'Supervisor'])
-            ->where('is_active', 1)
-            ->orderBy('first_name')
-            ->get();
-
-        $list = [];
-        foreach ($staff as $row) {
-            $list[] = trim($row->first_name . ' ' . $row->last_name);
-        }
-        return empty($list) ? ["No staff found"] : $list;
     }
 
     private function loadExistingBooking(mixed $booking)
@@ -218,9 +218,7 @@ class NewBooking extends Component
         }
     }
 
-    public function updateItemQty(string $name, int $change)
-    {
-    }
+    public function updateItemQty(string $name, int $change) {}
 
     public function syncExtras(array $extras)
     {
@@ -228,7 +226,7 @@ class NewBooking extends Component
 
         foreach ($extras as $key => $val) {
             $isSelected = ($val && $val !== "0" && !str_ends_with($val, "|no"));
-            
+
             if ($isSelected && (!isset($this->extraPrices[$key]) || $this->extraPrices[$key] == 0)) {
                 if (str_starts_with($key, 'add_')) {
                     $id = str_replace('add_', '', $key);
@@ -289,7 +287,7 @@ class NewBooking extends Component
             $limit = (int) $p->daily_limit;
             $stock = (int) $p->total_quantity;
             $used = $usage[$cleanName] ?? 0;
-            
+
             $left = max(0, $stock - $used);
 
             if ($limit > 0) {
@@ -313,14 +311,14 @@ class NewBooking extends Component
         $booking = DB::table('bookings')->where('id', $this->booking_id)->first();
         if ($booking && !empty($booking->$column)) {
             $fileName = $booking->$column;
-            
+
             @unlink(public_path('uploads/' . $fileName));
             @unlink(storage_path('app/public/uploads/' . $fileName));
 
             DB::table('bookings')->where('id', $this->booking_id)->update([$column => null]);
-            
+
             $this->existing_data[$column] = null;
-            
+
             $this->dispatch('attachment-removed');
         }
     }
@@ -330,16 +328,18 @@ class NewBooking extends Component
         $this->existing_data[$column] = $fileName;
     }
 
+
     public function render()
     {
         return view('livewire.admin.new-booking', [
             'title' => $this->is_edit_mode ? 'Edit Booking | BigFun Admin' : 'New Booking | BigFun Admin',
-            'config' => $this->config(),
-            'categories' => $this->categories(),
+            'config' => $this->config,
+            'categories' => $this->categories,
             'saved_extras' => $this->saved_extras,
-            'past_customers' => $this->past_customers(),
-            'delivery_options' => $this->delivery_options(),
-            'operators_list' => $this->operators_list(),
+            'past_customers' => $this->past_customers,
+            'delivery_options' => $this->delivery_options,
+            'duration_options' => $this->duration_options,
+            'operators_list' => $this->operators_list,
             'selected_products' => $this->selected_products
         ]);
     }

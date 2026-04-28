@@ -63,6 +63,8 @@ class EditBooking extends Component
     public array $activeCapacityBreaches = [];
     public ?string $lastToastDate = null;
     public ?string $backUrl = null;
+    public array $categories = [];
+    public array $config = [];
 
     protected array $rules = [
         'temp_attachment_1' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
@@ -1764,7 +1766,15 @@ class EditBooking extends Component
             $this->modalNameConflicts = $analysis['nameConflicts'];
         }
 
+        $staffList = DB::table('users')
+            ->whereIn('role', ['Staff', 'Operator', 'Supervisor'])
+            ->where('is_active', 1)
+            ->orderBy('first_name')
+            ->get()
+            ->map(fn($u) => trim($u->first_name . ' ' . $u->last_name))
+            ->toArray();
+
         // Note: passing just other standard variables.
-        return view('livewire.supervisor.edit-booking', compact('deliveryOptions', 'durationOptions', 'activeCategories', 'selectedItemsClean'));
+        return view('livewire.supervisor.edit-booking', compact('deliveryOptions', 'durationOptions', 'activeCategories', 'selectedItemsClean', 'staffList'));
     }
 }

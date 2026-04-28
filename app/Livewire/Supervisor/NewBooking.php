@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Livewire\Attributes\Computed;
 
 #[Layout('components.layouts.plain')]
 class NewBooking extends Component
@@ -29,13 +30,14 @@ class NewBooking extends Component
     public ?int $calMonth = null;
     public ?int $calYear = null;
 
-    // UI Data Arrays
-    public array $operators_list = [];
-    public array $past_customers = [];
-    public array $delivery_options = [];
-    public array $duration_options = [];
-    public array $categories = [];
-    public array $config = ['questions' => [], 'addons' => [], 'dropdowns' => []];
+    // File Upload Temporary Properties
+    public $temp_attachment_1;
+    public $temp_attachment_2;
+    public $temp_attachment_3;
+    public $temp_attachment_4;
+    public $temp_attachment_5;
+
+    // UI Data removed from public state
 
     public function mount()
     {
@@ -48,8 +50,6 @@ class NewBooking extends Component
 
         $nextNum = ($lastInvoiceNum ?? 0) + 1;
         $this->invoice_number = "INV-" . $dateStr . "-" . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
-
-        $this->loadInitialData();
 
         $req_id = request()->query('edit_id');
         $req_invoice = request()->query('invoice');
@@ -70,78 +70,85 @@ class NewBooking extends Component
         $this->checkAvailability();
     }
 
-    private function loadInitialData()
+    #[Computed]
+    public function delivery_options(): array
     {
-        // 1. Fetch Operators
+        return DB::table('delivery_zones')->orderBy('price', 'asc')->get()->toArray();
+    }
+
+    #[Computed]
+    public function duration_options(): array
+    {
+        return DB::table('duration_prices')->orderBy('hours', 'asc')->get()->toArray();
+    }
+
+    #[Computed]
+    public function operators_list(): array
+    {
         $staff = DB::table('users')
             ->whereIn('role', ['Staff', 'Operator', 'Supervisor'])
             ->where('is_active', 1)
             ->orderBy('first_name')
             ->get();
-
+        $list = [];
         foreach ($staff as $row) {
-            $this->operators_list[] = trim($row->first_name . ' ' . $row->last_name);
+            $list[] = trim($row->first_name . ' ' . $row->last_name);
         }
-        if (empty($this->operators_list)) $this->operators_list = ["No staff found"];
-
-        // 2. Fetch Past Customers (Group by Name/Email/Address to allow variations)
-        $this->past_customers = DB::table('bookings')
-            ->select(['customer_first_name', 'customer_last_name', 'customer_email', 'customer_phone', 'customer_organization', 'customer_abn', 'employer_name', 'customer_business_phone', 'address_line_1', 'business_address', 'suburb', 'state', 'postcode'])
-            ->whereIn('id', function ($query) {
-                $query->select(DB::raw('MAX(id)'))
-                    ->from('bookings')
-                    ->where('customer_first_name', '!=', '')
-                    ->groupBy('customer_first_name', 'customer_last_name', 'customer_email', 'address_line_1');
-            })
-            ->orderBy('id', 'desc')
-            ->limit(200)
-            ->get()
-            ->toArray();
-
-        // 3. Fetch Delivery & Durations
-        $this->delivery_options = DB::table('delivery_zones')->orderBy('price', 'asc')->get()->toArray();
-        $this->duration_options = DB::table('duration_prices')->orderBy('hours', 'asc')->get()->toArray();
-
-        // 4. Fetch Categories & Products
-        $cats = DB::table('product_categories')->orderBy('sort_order', 'asc')->get();
-        foreach ($cats as $c) {
-            $this->categories[$c->category_name] = ['limit' => (int)$c->daily_limit, 'products' => []];
-            if ($c->daily_limit > 0) {
-                $this->categoryLimits[$c->category_name] = (int)$c->daily_limit;
-            }
-        }
-
-        $prods = DB::table('products')->where('is_active', 1)->orderBy('category')->orderBy('name')->get();
-        foreach ($prods as $p) {
-            if (isset($this->categories[$p->category])) {
-                $this->categories[$p->category]['products'][] = (array)$p;
-            }
-        }
-
-        $this->loadProductConfigurations();
+        return empty($list) ? ["No staff found"] : $list;
     }
 
-    private function loadProductConfigurations()
+    #[Computed]
+    public function past_customers(): array
     {
+        return DB::table('bookings')
+            ->select(['customer_first_name', 'customer_last_name', 'customer_email', 'customer_phone', 'customer_organization', 'customer_abn', 'employer_name', 'customer_business_phone', 'address_line_1', 'business_address', 'suburb', 'state', 'postcode'])
+            ->where('customer_first_name', '!=', '')
+            ->orderBy('id', 'desc')
+            ->limit(500)
+            ->get()
+            ->unique(fn($b) => strtolower(trim($b->customer_first_name . $b->customer_last_name . $b->customer_email)))
+            ->take(100)
+            ->values()
+            ->toArray();
+    }
+
+    #[Computed]
+    public function categories(): array
+    {
+        $categories = [];
+        $cats = DB::table('product_categories')->orderBy('sort_order', 'asc')->get();
+        foreach ($cats as $c) {
+            $categories[$c->category_name] = ['limit' => (int)$c->daily_limit, 'products' => []];
+        }
+        $prods = DB::table('products')->where('is_active', 1)->orderBy('category')->orderBy('name')->get();
+        foreach ($prods as $p) {
+            if (isset($categories[$p->category])) {
+                $categories[$p->category]['products'][] = (array)$p;
+            }
+        }
+        return $categories;
+    }
+
+    #[Computed]
+    public function config(): array
+    {
+        $config = ['questions' => [], 'addons' => [], 'dropdowns' => []];
         $questions = DB::table('product_extras')->orderBy('category_target', 'asc')->get();
         foreach ($questions as $q) {
-            $this->config['questions'][$q->category_target][] = (array)$q;
+            $config['questions'][$q->category_target][] = (array)$q;
         }
-
         $addons = DB::table('category_addons')->orderBy('category_target', 'asc')->get();
         foreach ($addons as $a) {
-            $this->config['addons'][$a->category_target][] = (array)$a;
+            $config['addons'][$a->category_target][] = (array)$a;
         }
-
         $dropdowns = DB::table('product_dropdowns')->orderBy('sort_order', 'asc')->get();
         foreach ($dropdowns as $d) {
             $opts = DB::table('dropdown_options')->where('dropdown_id', $d->id)->get()->toArray();
             $dArray = (array)$d;
-            $dArray['options'] = array_map(function ($o) {
-                return (array)$o;
-            }, $opts);
-            $this->config['dropdowns'][$d->category_target][] = $dArray;
+            $dArray['options'] = array_map(fn($o) => (array)$o, $opts);
+            $config['dropdowns'][$d->category_target][] = $dArray;
         }
+        return $config;
     }
 
     private function loadExistingBooking(?object $booking)
@@ -198,7 +205,7 @@ class NewBooking extends Component
         $products = DB::table('products')->where('is_active', 1)->get();
         
         foreach ($products as $p) {
-            $cleanName = strtolower(trim($p->name));
+            $cleanName = strtolower(preg_replace('/\s+/', ' ', trim($p->name)));
             $used = $usage[$cleanName] ?? 0;
             if ($used > 0) {
                 $targetCat = $p->counts_against ?: $p->category;
@@ -211,7 +218,7 @@ class NewBooking extends Component
         $this->availability = [];
 
         foreach ($products as $p) {
-            $cleanName = strtolower(trim($p->name));
+            $cleanName = strtolower(preg_replace('/\s+/', ' ', trim($p->name)));
             $limit = (int) $p->daily_limit;
             $stock = (int) $p->total_quantity;
             $used = $usage[$cleanName] ?? 0;
@@ -344,12 +351,13 @@ class NewBooking extends Component
     public function render()
     {
         return view('livewire.supervisor.new-booking', [
-            'title' => $this->is_edit_mode ? 'Edit Booking | BigFun' : 'New Booking | BigFun',
+            'title' => $this->is_edit_mode ? 'Edit Booking | BigFun Supervisor' : 'New Booking | BigFun Supervisor',
             'config' => $this->config,
             'categories' => $this->categories,
             'saved_extras' => $this->saved_extras,
             'past_customers' => $this->past_customers,
             'delivery_options' => $this->delivery_options,
+            'duration_options' => $this->duration_options,
             'operators_list' => $this->operators_list,
             'selected_products' => $this->selected_products
         ]);

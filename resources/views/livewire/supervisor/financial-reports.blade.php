@@ -160,11 +160,17 @@
                      this.drawCharts();
                  });
              },
-             drawCharts(l1 = @js($chartLabels), d1 = @js($chartData), l2 = @js($catLabels), d2 = @js($catData)) {
+             drawCharts(l1 = [], d1 = [], l2 = [], d2 = []) {
                  const revCanvas = document.getElementById('revenueChart');
                  const catCanvas = document.getElementById('categoryChart');
 
-                 if (!revCanvas || !catCanvas) return;
+                 if (!revCanvas || !catCanvas || !window.Chart) return;
+
+                 // Ensure we have arrays even if null was passed
+                 l1 = l1 || @js($chartLabels) || [];
+                 d1 = d1 || @js($chartData) || [];
+                 l2 = l2 || @js($catLabels) || [];
+                 d2 = d2 || @js($catData) || [];
 
                  // Destroy existing instances using Alpine state to avoid leaks
                  if (this.revChart) this.revChart.destroy();
@@ -266,11 +272,11 @@
                                 <div class="flex items-center gap-2">
                                     <template x-if="u.payment_type === 'Card Holder'">
                                         <div class="flex items-center gap-1.5">
-                                            <i class="fa-brands fa-cc-visa text-blue-600" x-show="u.card_network?.toLowerCase().includes('visa')"></i>
-                                            <i class="fa-brands fa-cc-mastercard text-orange-500" x-show="u.card_network?.toLowerCase().includes('mastercard')"></i>
-                                            <i class="fa-brands fa-cc-amex text-blue-400" x-show="u.card_network?.toLowerCase().includes('amex') || u.card_network?.toLowerCase().includes('american express')"></i>
-                                            <i class="fa-brands fa-cc-discover text-orange-400" x-show="u.card_network?.toLowerCase().includes('discover')"></i>
-                                            <i class="fa-solid fa-credit-card text-gray-400" x-show="!u.card_network?.toLowerCase().includes('visa') && !u.card_network?.toLowerCase().includes('mastercard') && !u.card_network?.toLowerCase().includes('amex') && !u.card_network?.toLowerCase().includes('american express') && !u.card_network?.toLowerCase().includes('discover')"></i>
+                                             <i class="fa-brands fa-cc-visa text-blue-600" x-show="(u.card_network?.toLowerCase() || '').includes('visa')"></i>
+                                            <i class="fa-brands fa-cc-mastercard text-orange-500" x-show="(u.card_network?.toLowerCase() || '').includes('mastercard')"></i>
+                                            <i class="fa-brands fa-cc-amex text-blue-400" x-show="(u.card_network?.toLowerCase() || '').includes('amex') || (u.card_network?.toLowerCase() || '').includes('american express')"></i>
+                                            <i class="fa-brands fa-cc-discover text-orange-400" x-show="(u.card_network?.toLowerCase() || '').includes('discover')"></i>
+                                            <i class="fa-solid fa-credit-card text-gray-400" x-show="!(u.card_network?.toLowerCase() || '').includes('visa') && !(u.card_network?.toLowerCase() || '').includes('mastercard') && !(u.card_network?.toLowerCase() || '').includes('amex') && !(u.card_network?.toLowerCase() || '').includes('american express') && !(u.card_network?.toLowerCase() || '').includes('discover')"></i>
                                             <span class="text-[10px] font-bold text-gray-600 uppercase">Card</span>
                                         </div>
                                     </template>
@@ -279,9 +285,9 @@
                                     </template>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 text-right text-gray-500" x-text="'$' + u.total_amount.toFixed(2)"></td>
-                            <td class="px-6 py-4 text-right text-green-600 font-medium" x-text="'$' + u.paid_amount.toFixed(2)"></td>
-                            <td class="px-6 py-4 text-right font-bold text-red-500" x-text="'$' + u.balance.toFixed(2)"></td>
+                            <td class="px-6 py-4 text-right text-gray-500" x-text="'$' + (u.total_amount || 0).toFixed(2)"></td>
+                            <td class="px-6 py-4 text-right text-green-600 font-medium" x-text="'$' + (u.paid_amount || 0).toFixed(2)"></td>
+                            <td class="px-6 py-4 text-right font-bold text-red-500" x-text="'$' + (u.balance || 0).toFixed(2)"></td>
                             <td class="px-6 py-4 text-center"><a :href="'/supervisor/bookings/' + u.id" class="text-xs font-bold text-blue-500 hover:underline">View</a></td>
                         </tr>
                     </template>
@@ -324,11 +330,11 @@
                                 <div class="flex items-center gap-2">
                                     <template x-if="p.payment_type === 'Card Holder'">
                                         <div class="flex items-center gap-1.5">
-                                            <i class="fa-brands fa-cc-visa text-blue-600" x-show="p.card_network?.toLowerCase().includes('visa')"></i>
-                                            <i class="fa-brands fa-cc-mastercard text-orange-500" x-show="p.card_network?.toLowerCase().includes('mastercard')"></i>
-                                            <i class="fa-brands fa-cc-amex text-blue-400" x-show="p.card_network?.toLowerCase().includes('amex') || p.card_network?.toLowerCase().includes('american express')"></i>
-                                            <i class="fa-brands fa-cc-discover text-orange-400" x-show="p.card_network?.toLowerCase().includes('discover')"></i>
-                                            <i class="fa-solid fa-credit-card text-gray-400" x-show="!p.card_network?.toLowerCase().includes('visa') && !p.card_network?.toLowerCase().includes('mastercard') && !p.card_network?.toLowerCase().includes('amex') && !p.card_network?.toLowerCase().includes('american express') && !p.card_network?.toLowerCase().includes('discover')"></i>
+                                             <i class="fa-brands fa-cc-visa text-blue-600" x-show="(p.card_network?.toLowerCase() || '').includes('visa')"></i>
+                                            <i class="fa-brands fa-cc-mastercard text-orange-500" x-show="(p.card_network?.toLowerCase() || '').includes('mastercard')"></i>
+                                            <i class="fa-brands fa-cc-amex text-blue-400" x-show="(p.card_network?.toLowerCase() || '').includes('amex') || (p.card_network?.toLowerCase() || '').includes('american express')"></i>
+                                            <i class="fa-brands fa-cc-discover text-orange-400" x-show="(p.card_network?.toLowerCase() || '').includes('discover')"></i>
+                                            <i class="fa-solid fa-credit-card text-gray-400" x-show="!(p.card_network?.toLowerCase() || '').includes('visa') && !(p.card_network?.toLowerCase() || '').includes('mastercard') && !(p.card_network?.toLowerCase() || '').includes('amex') && !(p.card_network?.toLowerCase() || '').includes('american express') && !(p.card_network?.toLowerCase() || '').includes('discover')"></i>
                                             <span class="text-[10px] font-bold text-gray-600 uppercase">Card</span>
                                         </div>
                                     </template>
@@ -338,7 +344,7 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4"><span class="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs" x-text="p.event_type"></span></td>
-                            <td class="px-6 py-4 text-right font-bold text-green-600" x-text="'$' + p.total_amount.toFixed(2)"></td>
+                            <td class="px-6 py-4 text-right font-bold text-green-600" x-text="'$' + (p.total_amount || 0).toFixed(2)"></td>
                             <td class="px-6 py-4 text-center"><a :href="'/supervisor/bookings/' + p.id" class="text-xs font-bold text-blue-500 hover:underline">View</a></td>
                         </tr>
                     </template>
@@ -410,11 +416,11 @@
                                 <div class="flex items-center gap-2">
                                     <template x-if="t.payment_type === 'Card Holder'">
                                         <div class="flex items-center gap-1.5">
-                                            <i class="fa-brands fa-cc-visa text-blue-600" x-show="t.card_network?.toLowerCase().includes('visa')"></i>
-                                            <i class="fa-brands fa-cc-mastercard text-orange-500" x-show="t.card_network?.toLowerCase().includes('mastercard')"></i>
-                                            <i class="fa-brands fa-cc-amex text-blue-400" x-show="t.card_network?.toLowerCase().includes('amex') || t.card_network?.toLowerCase().includes('american express')"></i>
-                                            <i class="fa-brands fa-cc-discover text-orange-400" x-show="t.card_network?.toLowerCase().includes('discover')"></i>
-                                            <i class="fa-solid fa-credit-card text-gray-400" x-show="!t.card_network?.toLowerCase().includes('visa') && !t.card_network?.toLowerCase().includes('mastercard') && !t.card_network?.toLowerCase().includes('amex') && !t.card_network?.toLowerCase().includes('american express') && !t.card_network?.toLowerCase().includes('discover')"></i>
+                                             <i class="fa-brands fa-cc-visa text-blue-600" x-show="(t.card_network?.toLowerCase() || '').includes('visa')"></i>
+                                            <i class="fa-brands fa-cc-mastercard text-orange-500" x-show="(t.card_network?.toLowerCase() || '').includes('mastercard')"></i>
+                                            <i class="fa-brands fa-cc-amex text-blue-400" x-show="(t.card_network?.toLowerCase() || '').includes('amex') || (t.card_network?.toLowerCase() || '').includes('american express')"></i>
+                                            <i class="fa-brands fa-cc-discover text-orange-400" x-show="(t.card_network?.toLowerCase() || '').includes('discover')"></i>
+                                            <i class="fa-solid fa-credit-card text-gray-400" x-show="!(t.card_network?.toLowerCase() || '').includes('visa') && !(t.card_network?.toLowerCase() || '').includes('mastercard') && !(t.card_network?.toLowerCase() || '').includes('amex') && !(t.card_network?.toLowerCase() || '').includes('american express') && !(t.card_network?.toLowerCase() || '').includes('discover')"></i>
                                             <span class="text-[10px] font-bold text-gray-600 uppercase">Card</span>
                                         </div>
                                     </template>
@@ -424,7 +430,7 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4"><span class="px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs font-bold" x-text="t.event_type"></span></td>
-                            <td class="px-6 py-4 text-right font-bold text-green-600" x-text="'+$' + t.total_amount.toFixed(2)"></td>
+                            <td class="px-6 py-4 text-right font-bold text-green-600" x-text="'+$' + (t.total_amount || 0).toFixed(2)"></td>
                         </tr>
                     </template>
                     <tr x-show="filteredItems.length === 0">
