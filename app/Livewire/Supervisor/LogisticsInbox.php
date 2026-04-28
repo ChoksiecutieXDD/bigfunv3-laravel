@@ -19,74 +19,74 @@ class LogisticsInbox extends Component
     use WithPagination;
 
     // --- Search Filters ---
-    public $search_pay = '';
-    public $search_full = '';
-    public $search_inv = '';
-    public $search_ord = '';
-    public $search_deb = '';
-    public $search_op = '';
+    public string $search_pay = '';
+    public string $search_full = '';
+    public string $search_inv = '';
+    public string $search_ord = '';
+    public string $search_deb = '';
+    public string $search_op = '';
 
     // --- Sort Directions ---
-    public $sort_pay = 'asc';
-    public $sort_inv = 'asc';
-    public $sort_deb = 'desc';
-    public $sort_full = 'desc';
+    public string $sort_pay = 'asc';
+    public string $sort_inv = 'asc';
+    public string $sort_deb = 'desc';
+    public string $sort_full = 'desc';
 
     // --- Modal Forms ---
     // Payment Processing
     public $saving_type_id = null;
     public $pay_booking_id;
     public $pay_amount;
-    public $pay_type = 'Final Settlement';
-    public $pay_method = 'EFT';
-    public $pay_date;
-    public $pay_ref;
-    public $pay_notes;
-    public $eft_specific_method = 'Direct Deposit';
-    public $modal_card_category = 'Debit Card';
-    public $modal_card_network = 'Visa';
-    public $pay_card_holder;
-    public $pay_card_number;
-    public $pay_card_expiry;
-    public $pay_card_cvv;
-    public $pay_context = [];
+    public string $pay_type = 'Final Settlement';
+    public string $pay_method = 'EFT';
+    public string $pay_date = '';
+    public string $pay_ref = '';
+    public string $pay_notes = '';
+    public string $eft_specific_method = 'Direct Deposit';
+    public string $modal_card_category = 'Debit Card';
+    public string $modal_card_network = 'Visa';
+    public string $pay_card_holder = '';
+    public string $pay_card_number = '';
+    public string $pay_card_expiry = '';
+    public string $pay_card_cvv = '';
+    public array $pay_context = [];
 
     // Edit Card
     public $card_booking_id;
-    public $edit_card_holder;
-    public $edit_card_category;
-    public $edit_card_type;
-    public $edit_card_number;
-    public $edit_card_expiry;
-    public $edit_card_cvv;
+    public ?string $edit_card_holder = null;
+    public ?string $edit_card_category = null;
+    public ?string $edit_card_type = null;
+    public ?string $edit_card_number = null;
+    public ?string $edit_card_expiry = null;
+    public ?string $edit_card_cvv = null;
 
     // Edit EFT
     public $eft_booking_id;
-    public $edit_eft_method;
+    public ?string $edit_eft_method = null;
 
     // Email
     public $email_booking_id;
-    public $email_type = 'invoice';
-    public $email_to;
-    public $email_cc;
-    public $email_bcc = 'hire.enquiries@bigfunqld.com.au';
-    public $email_subject;
-    public $email_body;
-    public $email_attachment;
-    public $is_sent_successfully = false;
+    public string $email_type = 'invoice';
+    public string $email_to = '';
+    public string $email_cc = '';
+    public string $email_bcc = 'hire.enquiries@bigfunqld.com.au';
+    public string $email_subject = '';
+    public string $email_body = '';
+    public string $email_attachment = '';
+    public bool $is_sent_successfully = false;
 
 
     // View Details (from model directly)
     public $view_payment_details = null;
-    public $is_editing_payment = false;
+    public bool $is_editing_payment = false;
     public $edit_payment_amount;
-    public $edit_payment_method;
-    public $edit_payment_date;
-    public $edit_payment_ref;
-    public $edit_payment_notes;
+    public string $edit_payment_method = '';
+    public string $edit_payment_date = '';
+    public string $edit_payment_ref = '';
+    public string $edit_payment_notes = '';
 
     // Define unique query string keys for multiple paginators
-    protected $queryString = [
+    protected array $queryString = [
         'search_pay' => ['except' => ''],
         'search_full' => ['except' => ''],
         'search_inv' => ['except' => ''],
@@ -130,7 +130,7 @@ class LogisticsInbox extends Component
         $this->resetPage('page_op');
     }
 
-    public function toggleSort($section)
+    public function toggleSort(string $section)
     {
         $prop = "sort_" . $section;
         $this->$prop = ($this->$prop === 'asc') ? 'desc' : 'asc';
@@ -138,7 +138,7 @@ class LogisticsInbox extends Component
     }
 
     // --- Helpers ---
-    public function getCardNetwork($number, $storedType)
+    public function getCardNetwork(string|null $number, string|null $storedType)
     {
         if (!empty($storedType) && $storedType !== 'Unknown') return $storedType;
         $number = preg_replace('/\D/', '', $number ?? '');
@@ -150,7 +150,7 @@ class LogisticsInbox extends Component
         return 'Unknown';
     }
 
-    public function getCardStyle($network)
+    public function getCardStyle(string|null $network)
     {
         return match ($network) {
             'Visa' => ['icon' => 'payments', 'color' => 'text-blue-700', 'bg' => 'bg-blue-50', 'label' => 'VISA'],
@@ -164,7 +164,7 @@ class LogisticsInbox extends Component
 
     // --- Actions ---
 
-    public function savePaymentType($bookingId, $method)
+    public function savePaymentType(int|string $bookingId, string $method)
     {
         $this->saving_type_id = $bookingId;
         
@@ -180,7 +180,7 @@ class LogisticsInbox extends Component
         $this->dispatch('notify', title: 'Success', message: 'Payment method saved!');
     }
 
-    public function openPaymentModal($bookingId)
+    public function openPaymentModal(int|string $bookingId)
     {
         $booking = Booking::with('payments')->findOrFail($bookingId);
         $total = round((float)$booking->total_amount, 2);
@@ -226,7 +226,7 @@ class LogisticsInbox extends Component
         $this->dispatch('open-modal', 'paymentModal');
     }
 
-    public function updatedPayType($value)
+    public function updatedPayType(string|float|int|null $value)
     {
         if (empty($this->pay_context)) return;
 
@@ -295,7 +295,7 @@ class LogisticsInbox extends Component
         $this->dispatch('open-modal', 'paymentSuccessModal');
     }
 
-    public function openCardModal($bookingId)
+    public function openCardModal(int|string $bookingId)
     {
         $booking = Booking::findOrFail($bookingId);
         $this->card_booking_id = $bookingId;
@@ -327,7 +327,7 @@ class LogisticsInbox extends Component
         $this->dispatch('notify', title: 'Success', message: 'Card details updated!');
     }
 
-    public function openEftModal($bookingId)
+    public function openEftModal(int|string $bookingId)
     {
         $booking = Booking::findOrFail($bookingId);
         $this->eft_booking_id = $bookingId;
@@ -349,7 +349,7 @@ class LogisticsInbox extends Component
         $this->dispatch('notify', title: 'Success', message: 'EFT details updated!');
     }
 
-    public function viewPaymentDetails($paymentId)
+    public function viewPaymentDetails(int|string $paymentId)
     {
         $this->view_payment_details = BookingPayment::with('booking')->findOrFail($paymentId);
         $this->is_editing_payment = false;
@@ -405,27 +405,27 @@ class LogisticsInbox extends Component
     }
 
     // Email Confirmation
-    public $confirmEmailTitle;
-    public $confirmEmailMessage;
-    public $pendingEmailType;
-    public $pendingBookingId;
-    public $quotaWarningTitle = '';
-    public $quotaWarningMessage = '';
-    public $quotaLimitTitle = '';
-    public $quotaLimitMessage = '';
+    public string $confirmEmailTitle = '';
+    public string $confirmEmailMessage = '';
+    public string $pendingEmailType = '';
+    public $pendingBookingId = null;
+    public string $quotaWarningTitle = '';
+    public string $quotaWarningMessage = '';
+    public string $quotaLimitTitle = '';
+    public string $quotaLimitMessage = '';
 
     // Global PDF Price Toggles (per section)
-    public $invoice_pdf_prices = true;
-    public $debtor_pdf_prices = true;
+    public bool $invoice_pdf_prices = true;
+    public bool $debtor_pdf_prices = true;
 
-    public function toggleAttractionCost($bookingId)
+    public function toggleAttractionCost(int|string $bookingId)
     {
         $booking = Booking::findOrFail($bookingId);
         $booking->update(['include_attraction_cost' => !$booking->include_attraction_cost]);
         $this->dispatch('notify', title: 'Updated', message: 'PDF attraction prices ' . ($booking->include_attraction_cost ? 'included.' : 'excluded.'));
     }
 
-    public function prepareEmail($bookingId, $type)
+    public function prepareEmail(int|string $bookingId, string $type)
     {
         if ($this->handleQuotaGuardForEmail((int) $bookingId, (string) $type)) {
             return;
@@ -533,7 +533,7 @@ class LogisticsInbox extends Component
         }
     }
 
-    public function executePrepareEmail($bookingId, $type)
+    public function executePrepareEmail(int|string $bookingId, string $type)
     {
         $booking = Booking::findOrFail($bookingId);
         $this->email_booking_id = $bookingId;

@@ -313,8 +313,8 @@
                     <div class="w-full min-w-0">
                         <span class="booking-label">Time & Duration</span>
                         <div class="booking-value">
-                            @if($b->duration === 'custom' && $b->custom_duration_text)
-                                {{ $b->custom_duration_text }}
+                            @if($b->custom_duration_text)
+                                {{ $b->custom_duration_text }} @if(($b->duration_cost ?? 0) > 0) (${{ number_format($b->duration_cost, 2) }}) @endif
                             @else
                                 {{ \Carbon\Carbon::parse($b->start_time)->format('g:i A') }} - {{ $b->end_time ? \Carbon\Carbon::parse($b->end_time)->format('g:i A') : 'TBD' }}
                             @endif

@@ -11,7 +11,7 @@
         let payload = Array.isArray(detail) ? detail[0] : detail;
         if (!payload) return;
 
-        const id = Date.now();
+        const id = Date.now() + Math.random();
         const type = payload.type || 'success';
         const title = payload.title || (type.charAt(0).toUpperCase() + type.slice(1));
         const message = payload.message || '';

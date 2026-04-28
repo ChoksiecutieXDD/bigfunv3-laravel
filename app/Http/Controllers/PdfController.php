@@ -20,7 +20,7 @@ class PdfController extends Controller
         return '';
     }
 
-    public function generateInvoice(Request $request, $id)
+    public function generateInvoice(Request $request, int|string $id)
     {
         $booking = Booking::with(['items', 'payments'])->findOrFail($id);
 
@@ -41,10 +41,10 @@ class PdfController extends Controller
             'logoData' => $this->getLogoData()
         ]);
 
-        return $pdf->stream('Invoice-' . ($booking->invoice_number ?? $booking->id) . '.pdf', ['Attachment' => false]);
+        return $pdf->stream('Invoice-' . ($booking->invoice_number ?? $booking->id) . '.pdf');
     }
 
-    public function generatePurchaseOrder(Request $request, $id)
+    public function generatePurchaseOrder(Request $request, int|string $id)
     {
         $booking = Booking::with(['items'])->findOrFail($id);
 
@@ -58,10 +58,10 @@ class PdfController extends Controller
             'logoData' => $this->getLogoData()
         ]);
 
-        return $pdf->stream('PurchaseOrder-' . $booking->id . '.pdf', ['Attachment' => false]);
+        return $pdf->stream('PurchaseOrder-' . $booking->id . '.pdf');
     }
 
-    public function generateReceipt(Request $request, $id)
+    public function generateReceipt(Request $request, int|string $id)
     {
         $booking = Booking::with(['items', 'payments'])->findOrFail($id);
 
@@ -82,12 +82,12 @@ class PdfController extends Controller
             'logoData' => $this->getLogoData()
         ]);
 
-        return $pdf->stream('Receipt-' . ($booking->invoice_number ?? $booking->id) . '.pdf', ['Attachment' => false]);
+        return $pdf->stream('Receipt-' . ($booking->invoice_number ?? $booking->id) . '.pdf');
     }
 
 
 
-    public function generateDebt(Request $request, $id)
+    public function generateDebt(Request $request, int|string $id)
     {
         $booking = Booking::with(['items', 'payments'])->findOrFail($id);
 
@@ -108,10 +108,10 @@ class PdfController extends Controller
             'logoData' => $this->getLogoData()
         ]);
 
-        return $pdf->stream('Debt-' . ($booking->invoice_number ?? $booking->id) . '.pdf', ['Attachment' => false]);
+        return $pdf->stream('Debt-' . ($booking->invoice_number ?? $booking->id) . '.pdf');
     }
 
-    public function generateDeliveryReceipt($id)
+    public function generateDeliveryReceipt(int|string $id)
     {
         $booking = Booking::with(['items'])->findOrFail($id);
 
@@ -121,6 +121,6 @@ class PdfController extends Controller
             'logoData' => $this->getLogoData()
         ]);
 
-        return $pdf->stream('DeliveryReceipt-' . ($booking->invoice_number ?? $booking->id) . '.pdf', ['Attachment' => false]);
+        return $pdf->stream('DeliveryReceipt-' . ($booking->invoice_number ?? $booking->id) . '.pdf');
     }
 }

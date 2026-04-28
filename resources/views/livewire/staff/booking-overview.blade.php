@@ -199,7 +199,7 @@
                         @endif
 
                         @foreach($catAddons as $addon)
-                        @php $isSelected = isset($selectedExtras['add_'.$addon['id']]); @endphp
+                        @php $isSelected = ($selectedExtras['add_'.$addon['id']] ?? '0') !== '0'; @endphp
                         @if($isSelected)
                         <div class="grid grid-cols-12 gap-2 items-center bg-slate-50/50 rounded-xl px-3 py-2.5 border border-slate-100 hover:bg-white hover:shadow-sm transition-all duration-200">
                             <div class="col-span-7 flex items-center gap-2">

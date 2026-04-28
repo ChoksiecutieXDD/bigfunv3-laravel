@@ -9,8 +9,6 @@
             config: @js($config),
             extraPrices: @entangle('extraPrices'),
             activeOverrides: @entangle('activeOverrides'),
-            manualPrices: @entangle('manualPrices'),
-            lockedOverrides: @entangle('lockedOverrides'),
             csrfToken: '{{ csrf_token() }}'
         };
 
@@ -23,18 +21,17 @@
         window.confirmRemoval = () => {
             if (pendingRemovalCheckbox && pendingRemovalCard) {
                 const itemName = pendingRemovalCard.dataset.name;
+                
+                // Ensure checkout is FALSE before processing
                 pendingRemovalCheckbox.checked = false;
 
+                // Perform the actual selection change logic in UI (updates classes, action text)
                 if (typeof processSelection === 'function') {
                     processSelection(pendingRemovalCheckbox, pendingRemovalCard);
                 }
                 
+                // Then notify Livewire to update the database and recalculate
                 if (window.lwBookingComponent) {
-                    // Force the deep object sync into Livewire
-                    window.lwBookingComponent.extraPrices = JSON.parse(JSON.stringify(window.bookingAppData.extraPrices || {}));
-                    window.lwBookingComponent.activeOverrides = JSON.parse(JSON.stringify(window.bookingAppData.activeOverrides || {}));
-                    window.lwBookingComponent.saved_extras = JSON.parse(JSON.stringify(window.bookingAppData.savedExtras || {}));
-                    
                     window.lwBookingComponent.toggleItem(itemName, false);
                 }
             }
@@ -50,9 +47,6 @@
             }
         });
     "
-    @notify.window="addToast($event.detail.title, $event.detail.message, $event.detail.type || 'success')"
-    @show-toast.window="addToast($event.detail.title, $event.detail.message, $event.detail.type || 'success')"
-    @booking-updated.window="modals.saveConfirm = false"
     class="w-full relative pb-8">
 
     <div class="flex w-full relative overflow-hidden">
@@ -139,20 +133,14 @@
                             <span class="material-symbols-rounded text-[#9E6B73] text-3xl">account_balance_wallet</span>
                             <h2 class="text-xl font-bold text-white uppercase tracking-wide">Financials & Payment</h2>
                         </div>
-                        <div class="flex gap-4">
-                            <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 shadow-inner flex flex-col items-end min-w-[200px]">
-                                <p class="text-[10px] text-slate-400 uppercase font-black tracking-[0.15em] mb-1">Outstanding Balance</p>
-                                <div class="flex items-center gap-2">
-                                    <span id="icon_balance" class="material-symbols-rounded text-xl {{ $balanceDue > 0.01 ? 'text-rose-500' : 'text-emerald-500' }}">{{ $balanceDue > 0.01 ? 'pending' : 'check_circle' }}</span>
-                                    <p class="text-4xl font-extrabold tracking-tighter {{ $balanceDue > 0.01 ? 'text-rose-400' : 'text-emerald-400' }}" id="disp_balance">${{ number_format($balanceDue, 2) }}</p>
-                                </div>
+                        <div class="flex gap-10">
+                            <div class="text-right">
+                                <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Outstanding Balance</p>
+                                <p class="text-4xl font-extrabold tracking-tighter {{ $balanceDue > 0.01 ? 'text-rose-400' : 'text-emerald-400' }}" id="disp_balance">${{ number_format($balanceDue, 2) }}</p>
                             </div>
-                            <div class="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/30 shadow-inner flex flex-col items-end min-w-[200px]">
-                                <p class="text-[10px] text-slate-500 uppercase font-black tracking-[0.15em] mb-1">Total Amount</p>
-                                <div class="flex items-center gap-2">
-                                    <span class="material-symbols-rounded text-xl text-white/20">payments</span>
-                                    <p class="text-4xl font-extrabold tracking-tighter text-white/50" id="disp_total">${{ number_format($totalAmount, 2) }}</p>
-                                </div>
+                            <div class="text-right">
+                                <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Total Amount</p>
+                                <p class="text-4xl font-extrabold tracking-tighter text-white/50" id="disp_total">${{ number_format($totalAmount, 2) }}</p>
                             </div>
                         </div>
                     </div>
@@ -196,15 +184,14 @@
 
                             <div class="flex justify-between items-center text-sm font-bold text-emerald-400/90">
                                 <span class="flex items-center gap-2"><span class="material-symbols-rounded text-xs">payments</span> Total Paid (Track Record)</span>
-                                <span class="font-bold" id="disp_total_paid">-${{ number_format($totalPaid, 2) }}</span>
+                                <span class="font-bold">-${{ number_format($totalPaid, 2) }}</span>
                             </div>
                             <div class="flex justify-between items-center text-base font-black text-white mt-1.5 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
-                                <div class="flex items-center gap-2">
-                                    <span class="material-symbols-rounded text-[#9E6B73] text-lg">account_balance</span>
-                                    <span class="font-bold uppercase tracking-wider text-[11px]">Outstanding Balance</span>
-                                </div>
-                                <span class="text-xl font-black {{ $balanceDue > 0.01 ? 'text-rose-400' : 'text-emerald-400' }}" id="disp_balance_footer">${{ number_format($balanceDue, 2) }}</span>
+                                <span class="flex items-center gap-2 font-bold uppercase tracking-wider text-[11px]">Outstanding Balance</span>
+                                <span class="text-xl {{ $balanceDue > 0.01 ? 'text-rose-400' : 'text-emerald-400' }}">${{ number_format($balanceDue, 2) }}</span>
                             </div>
+
+                            <!-- Manual override removed as requested -->
                         </div>
 
                         <div class="space-y-5">
@@ -504,7 +491,7 @@
                                 <label class="input-label text-[#9E6B73]">Manual Duration Cost</label>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
-                                    <input type="number" wire:model.live="form.duration_cost" oninput="if(window.triggerRecalculate) window.triggerRecalculate()" step="0.01" class="input-field bg-white pl-8" placeholder="0.00">
+                                    <input type="number" wire:model.live="form.duration_cost" step="0.01" class="input-field bg-white pl-8" placeholder="0.00">
                                 </div>
                             </div>
                         </div>
@@ -641,7 +628,7 @@
                                         <label class="input-label text-[#9E6B73]">Manual Delivery Cost</label>
                                         <div class="relative">
                                             <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
-                                            <input type="number" wire:model.live="form.delivery_cost" oninput="if(window.triggerRecalculate) window.triggerRecalculate()" step="0.01" class="input-field input-with-icon" placeholder="0.00">
+                                            <input type="number" wire:model.live="form.delivery_cost" step="0.01" class="input-field input-with-icon" placeholder="0.00">
                                         </div>
                                     </div>
                                 </div>
@@ -709,8 +696,8 @@
                             <div class="flex flex-wrap items-center gap-3">
                                 <!-- Detailed Storage Status Card -->
                                 <div class="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 flex items-center gap-4 shadow-sm transition-all duration-300"
-                                    :class="{'bg-rose-50 border-rose-200 shadow-rose-100/50': parseFloat(totalSizeMB) >= 4.5, 'bg-amber-50 border-amber-200': parseFloat(totalSizeMB) >= 3.5 && parseFloat(totalSizeMB) < 4.5}">
-
+                                     :class="{'bg-rose-50 border-rose-200 shadow-rose-100/50': parseFloat(totalSizeMB) >= 4.5, 'bg-amber-50 border-amber-200': parseFloat(totalSizeMB) >= 3.5 && parseFloat(totalSizeMB) < 4.5}">
+                                    
                                     <div class="flex flex-col">
                                         <div class="flex items-center gap-1.5 mb-1">
                                             <span class="material-symbols-rounded text-[16px]" :class="parseFloat(totalSizeMB) >= 5 ? 'text-rose-500 animate-pulse' : 'text-slate-400'">database</span>
@@ -719,8 +706,8 @@
                                         <div class="flex items-center gap-2">
                                             <div class="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                                                 <div class="h-full transition-all duration-500 ease-out rounded-full"
-                                                    :class="parseFloat(totalSizeMB) >= 5 ? 'bg-rose-500' : (parseFloat(totalSizeMB) >= 3.5 ? 'bg-amber-500' : 'bg-[#9E6B73]')"
-                                                    :style="'width: ' + Math.min(100, (parseFloat(totalSizeMB) / 5) * 100) + '%'"></div>
+                                                     :class="parseFloat(totalSizeMB) >= 5 ? 'bg-rose-500' : (parseFloat(totalSizeMB) >= 3.5 ? 'bg-amber-500' : 'bg-[#9E6B73]')"
+                                                     :style="'width: ' + Math.min(100, (parseFloat(totalSizeMB) / 5) * 100) + '%'"></div>
                                             </div>
                                             <span class="text-[11px] font-black text-slate-700" x-text="totalSizeMB + 'MB / 5MB'"></span>
                                         </div>
@@ -730,8 +717,8 @@
 
                                     <div class="flex flex-col items-end">
                                         <span class="text-[9px] font-bold uppercase tracking-tighter text-slate-400">Remaining</span>
-                                        <span class="text-[11px] font-black" :class="parseFloat(totalSizeMB) >= 5 ? 'text-rose-600' : 'text-emerald-600'"
-                                            x-text="(Math.max(0, 5 - parseFloat(totalSizeMB))).toFixed(2) + ' MB'"></span>
+                                        <span class="text-[11px] font-black" :class="parseFloat(totalSizeMB) >= 5 ? 'text-rose-600' : 'text-emerald-600'" 
+                                              x-text="(Math.max(0, 5 - parseFloat(totalSizeMB))).toFixed(2) + ' MB'"></span>
                                     </div>
                                 </div>
                             </div>
@@ -901,7 +888,7 @@
                                 $cardClass = $isSelected ? 'border-[#9E6B73] bg-[#FFF5F7] ring-2 ring-[#9E6B73]/20' : 'border-slate-200 hover:border-slate-300';
                                 if (!$isSelected && $availInfo['sold_out']) $cardClass = 'opacity-60 bg-slate-50 border-slate-200';
                                 @endphp
-                                <div class="product-card group relative h-full flex flex-col rounded-[22px] border pb-4 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1.5 {{ $isSelected ? 'selected ring-2 ring-[#9D686E] bg-white shadow-xl translate-y--1' : 'bg-white/40 border-slate-100 hover:border-[#9E6B73]/30 bg-white shadow-sm' }}"
+                                <div class="product-card group relative h-full flex flex-col rounded-[22px] border pb-4 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1.5 {{ $isSelected ? 'selected ring-2 ring-[#9D686E] bg-white shadow-xl translate-y--1' : 'bg-white/40 border-slate-100 hover:border-[#9D686E]/30 bg-white shadow-sm' }}"
                                     wire:loading.class="opacity-60 pointer-events-none grayscale-[0.5]"
                                     wire:key="product-{{ $p['name'] }}"
                                     data-name="{{ $p['name'] }}"
@@ -930,40 +917,41 @@
                                             </div>
                                             <div class="mt-2 status-wrapper flex items-center gap-2">
                                                 @php
-                                                $left = $availInfo['left'] ?? 0;
-                                                $isSoldOut = $availInfo['sold_out'] ?? false;
-                                                $badgeClass = 'status-available bg-emerald-100 text-emerald-700';
-                                                if ($isSoldOut) {
-                                                $badgeClass = 'status-full bg-rose-100 text-rose-700';
-                                                } elseif ($left <= 2) {
-                                                    $badgeClass='status-limited bg-amber-100 text-amber-700 border border-amber-200' ;
+                                                    $left = $availInfo['left'] ?? 0;
+                                                    $isSoldOut = $availInfo['sold_out'] ?? false;
+                                                    $badgeClass = 'status-available bg-emerald-100 text-emerald-700';
+                                                    if ($isSoldOut) {
+                                                        $badgeClass = 'status-full bg-rose-100 text-rose-700';
+                                                    } elseif ($left <= 2) {
+                                                        $badgeClass = 'status-limited bg-amber-100 text-amber-700 border border-amber-200';
                                                     }
-                                                    @endphp
-                                                    <span class="status-badge {{ $badgeClass }}">{{ $isSoldOut ? 'SOLD OUT' : $left . ' AVAILABLE' }}</span>
-                                                    <span class="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100 uppercase tracking-tighter">
-                                                        ${{ number_format($p['price'], 2) }}
-                                                    </span>
+                                                @endphp
+                                                <span class="status-badge {{ $badgeClass }}">{{ $isSoldOut ? 'SOLD OUT' : $left . ' AVAILABLE' }}</span>
+                                                <span class="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100 uppercase tracking-tighter">
+                                                    ${{ number_format($p['price'], 2) }}
+                                                </span>
                                             </div>
                                         </div>
                                         <div class="custom-checkbox flex-shrink-0"></div>
                                         <input type="checkbox" class="ride-checkbox hidden" {{ $isSelected ? 'checked' : '' }}>
                                     </div>
-
-                                    <div class="mt-4 pt-3 border-t border-slate-100 ride-override-panel {{ $isSelected ? '' : 'hidden' }}" @click.stop x-cloak>
+                                    
+                                    @if($isSelected)
+                                    <div class="mt-4 pt-3 border-t border-slate-100" @click.stop x-cloak>
                                         <label class="text-[9px] font-black text-[#9E6B73] uppercase tracking-widest block mb-1.5 flex items-center gap-1.5">
                                             <span class="material-symbols-rounded text-xs">edit_note</span>
                                             Price Override
                                         </label>
                                         <div class="relative">
                                             <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 text-[10px] font-bold">$</span>
-                                            <input type="number"
-                                                wire:model.live="selectedItems.{{ $cleanName }}.price"
-                                                oninput="if(window.triggerRecalculate) window.triggerRecalculate()"
-                                                step="0.01"
-                                                class="manual-ride-price w-full bg-white border border-slate-200 rounded-xl py-1.5 pl-5 pr-2 text-[11px] font-black text-slate-700 focus:ring-2 focus:ring-[#9E6B73]/20 focus:border-[#9E6B73] transition-all"
-                                                placeholder="{{ number_format($p['price'], 2) }}">
+                                            <input type="number" 
+                                                   wire:model.live="selectedItems.{{ $cleanName }}.price"
+                                                   step="0.01" 
+                                                   class="manual-ride-price w-full bg-white border border-slate-200 rounded-xl py-1.5 pl-5 pr-2 text-[11px] font-black text-slate-700 focus:ring-2 focus:ring-[#9E6B73]/20 focus:border-[#9E6B73] transition-all" 
+                                                   placeholder="{{ number_format($p['price'], 2) }}">
                                         </div>
                                     </div>
+                                    @endif
                                     <div class="text-[10px] text-slate-400 font-medium action-text mt-auto">
                                         @if($isSelected)
                                         Selected
@@ -1028,8 +1016,7 @@
                     <!-- Buttons stacked -->
                     <div class="flex flex-col gap-3">
                         <button
-                            wire:click="saveBooking"
-                            @click="if(typeof saveCurrentExtrasState === 'function') saveCurrentExtrasState(false); if(typeof triggerRecalculate === 'function') triggerRecalculate();"
+                            @click="saveCurrentExtrasState(true); $wire.saveBooking(window.bookingAppData.savedExtras);"
                             wire:loading.attr="disabled"
                             class="w-full py-4 bg-[#9D686E] text-white hover:bg-[#7C4E54] font-black text-[13px] rounded-2xl transition-all active:scale-95 uppercase tracking-widest flex items-center justify-center gap-2.5 disabled:opacity-75 disabled:cursor-wait shadow-none">
                             <span wire:loading.remove wire:target="saveBooking" class="flex items-center gap-2.5">
@@ -1052,6 +1039,8 @@
             </div>
         </div>
     </template>
+
+
 
     <template x-teleport="body">
         <!-- CHANGE EXTRAS CONFIRM MODAL -->
@@ -1081,6 +1070,9 @@
             </div>
         </div>
     </template>
+
+
+
 
     <template x-teleport="body">
         <!-- FULL CAPACITY / 0 LIMIT MODAL -->
@@ -1157,11 +1149,11 @@
                 x-transition:enter-start="opacity-0 scale-90 translate-y-4"
                 x-transition:enter-end="opacity-100 scale-100 translate-y-0"
                 class="relative w-full max-w-lg bg-white rounded-[24px] shadow-2xl overflow-hidden z-10 border-t-8 border-rose-500 p-8 text-center">
-
+                
                 <div class="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500 ring-8 ring-rose-50/50">
                     <span class="material-symbols-rounded text-4xl font-bold">file_upload_off</span>
                 </div>
-
+                
                 <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">Storage Limit Exceeded</h3>
                 <p class="text-[14px] font-medium text-slate-500 mb-4 leading-relaxed px-2">
                     This file would exceed the <span class="font-black text-rose-600">5MB</span> combined size limit for all attachments.
@@ -1172,7 +1164,7 @@
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Storage Details</span>
                         <span class="text-[10px] font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded border border-rose-100 uppercase" x-text="totalSizeMB + 'MB / 5.00MB'"></span>
                     </div>
-
+                    
                     <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden mb-4">
                         <div class="h-full bg-rose-500 transition-all duration-500" :style="'width: ' + Math.min(100, (parseFloat(totalSizeMB) / 5) * 100) + '%'"></div>
                     </div>
@@ -1257,6 +1249,9 @@
             </div>
         </div>
     </template>
+
+    <!-- Cost modals removed in favor of toasts -->
+
 
     <template x-teleport="body">
         <!-- MOVE CONFIRM MODAL -->
@@ -1571,6 +1566,7 @@
     </template>
 
     <div id="booking-data-bridge"
+        wire:ignore
         class="hidden"
         data-config='@json($this->config)'
         data-categories='@json($this->categories)'
@@ -1582,10 +1578,7 @@
         data-csrf="{{ csrf_token() }}"
         data-extra-prices='@json($extraPrices)'
         data-active-overrides='@json($activeOverrides)'
-        data-locked-overrides='@json($lockedOverrides)'
-        data-manual-prices='@json($manualPrices)'
         data-id="{{ $this->booking->id }}"
-        data-total-paid="{{ $totalPaid }}"
         data-invoice="{{ $this->booking->invoice_number }}">
     </div>
 </div>
@@ -1594,72 +1587,67 @@
 
 @script
 <script>
-    // CLEANED UP BRIDGE LOGIC
-    window.initJSBridge = function() {
-        if (window.jsBridgeInitialized) return;
-        
-        console.log("Initializing Booking JS Bridge...");
-        
+    document.addEventListener('livewire:navigated', () => {
+        // 0. Refresh bridge data on navigation entry
         if (typeof window.initBookingAppData === 'function') {
             window.initBookingAppData();
         }
 
+        // 1. Initial check after load/navigation
         setTimeout(() => {
-            if (typeof checkRealTimeAvailability === 'function') checkRealTimeAvailability(true);
-            if (typeof window.triggerRecalculate === 'function') window.triggerRecalculate();
+            if (typeof checkRealTimeAvailability === 'function') {
+                checkRealTimeAvailability(true);
+            }
+            if (typeof window.triggerRecalculate === 'function') {
+                window.triggerRecalculate();
+            }
         }, 500);
 
+        // 2. Force a direct bridge between Vanilla JS and Livewire
         window.lwBookingComponent = $wire;
 
-        // One-time wrapper for saveCurrentExtrasState
-        if (typeof window.saveCurrentExtrasState === 'function' && !window.saveCurrentExtrasState._isWrapped) {
-            const originalSaveExtras = window.saveCurrentExtrasState;
-            window.saveCurrentExtrasState = function(ignoreSync = false) {
-                if (typeof originalSaveExtras === 'function') {
-                    originalSaveExtras(true); // Always run original UI updates
-                }
-                // Only sync back to server if explicitly requested
-                if (!ignoreSync && window.lwBookingComponent) {
-                    window.lwBookingComponent.syncExtras(window.bookingAppData && window.bookingAppData.savedExtras ? window.bookingAppData.savedExtras : {});
-                }
-            };
-            window.saveCurrentExtrasState._isWrapped = true;
-        }
+        // 3. Override the Extra saving to guarantee Livewire gets the data
+        const originalSaveExtras = window.saveCurrentExtrasState;
+        window.saveCurrentExtrasState = function(ignoreSync = false) {
+            if (typeof originalSaveExtras === 'function') {
+                originalSaveExtras(true); // Run original UI updates but block old sync
+            }
+            if (!ignoreSync && window.lwBookingComponent) {
+                window.lwBookingComponent.syncExtras(window.bookingAppData.savedExtras);
+            }
+        };
 
-        // One-time wrapper for toggleItemUI
-        if (typeof window.toggleItemUI === 'function' && !window.toggleItemUI._isWrapped) {
-            const originalToggleItemUI = window.toggleItemUI;
-            window.toggleItemUI = function(checkbox, card) {
-                if (typeof originalToggleItemUI === 'function') {
-                    originalToggleItemUI(checkbox, card);
-                }
-                if (window.lwBookingComponent) {
-                    window.lwBookingComponent.toggleItem(card.dataset.name, checkbox.checked);
-                }
-            };
-            window.toggleItemUI._isWrapped = true;
-        }
+        // 4. Override Item toggling to guarantee Livewire sync on UI interactions
+        const originalToggleItemUI = window.toggleItemUI;
+        window.toggleItemUI = function(checkbox, card) {
+            if (typeof originalToggleItemUI === 'function') {
+                originalToggleItemUI(checkbox, card);
+            }
+            if (window.lwBookingComponent) {
+                window.lwBookingComponent.toggleItem(card.dataset.name, checkbox.checked);
+            }
+        };
+    });
 
-        window.jsBridgeInitialized = true;
-    };
+    // For first load if navigated didn't fire
+    document.addEventListener('livewire:initialized', () => {
+        setTimeout(() => {
+            if (typeof checkRealTimeAvailability === 'function') {
+                checkRealTimeAvailability(true);
+            }
+            if (typeof window.triggerRecalculate === 'function') {
+                window.triggerRecalculate();
+            }
+        }, 300);
+        window.lwBookingComponent = $wire;
+    });
 
-    document.addEventListener('livewire:navigated', window.initJSBridge);
-    document.addEventListener('livewire:initialized', window.initJSBridge);
-
+    // CRITICAL: Refresh bridge data after EVERY Livewire update
     document.addEventListener('livewire:update', () => {
         if (typeof window.initBookingAppData === 'function') {
             window.initBookingAppData();
         }
-        if (typeof updateDynamicExtras === 'function') {
-            updateDynamicExtras();
-        }
-        if (typeof window.triggerRecalculate === 'function') {
-            window.triggerRecalculate();
-        }
     });
-
-    // Run once on load
-    window.initJSBridge();
 </script>
 @endscript
 </div>

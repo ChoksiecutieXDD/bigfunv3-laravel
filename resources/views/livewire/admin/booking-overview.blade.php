@@ -132,7 +132,7 @@
                         <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Lead Contact</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->customer_first_name }} {{ $booking->customer_last_name }}</span></div>
                         <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Service Date</span><span class="text-[0.8rem] font-bold text-slate-800">{{ \Carbon\Carbon::parse($booking->event_date)->format('l, d M Y') }}</span></div>
                         <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Operations Window</span><span class="text-[0.8rem] font-black text-[#9D686E]">{{ $timeString }}</span></div>
-                        <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Shift Duration</span><span class="text-[0.8rem] font-bold text-gray-800">{{ $booking->duration ?: 'no note' }} @if($booking->duration_cost > 0) <span class="text-[#9D686E] ml-1">({{ number_format($booking->duration_cost, 2) }})</span> @endif</span></div>
+                        <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Shift Duration</span><span class="text-[0.8rem] font-bold text-gray-800">{{ $booking->duration ?: 'no note' }} @if($booking->duration_cost >= 0) <span class="text-[#9D686E] ml-1">({{ number_format($booking->duration_cost, 2) }})</span> @endif</span></div>
                         <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Operational Hour</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->operational_hours ?: '-' }}</span></div>
                         <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Delivery</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->delivery_area ?: 'Not Set' }} <span class="text-[#9D686E] ml-1">(${{ number_format($deliveryCost, 2) }})</span></span></div>
                         <div class="flex justify-between mb-1 pb-1"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Expected Pax</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->expected_people }}</span></div>
@@ -150,7 +150,7 @@
                     </div>
                     <div class="space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-1">
                         @foreach($items as $item)
-                        @if($item->unit_price > 0)
+                        @if($item->unit_price >= 0)
                         <div class="flex justify-between items-start text-xs border-b border-[#9D686E]/5 pb-2">
                             <span class="font-medium text-slate-500 flex-1">{{ $item->item_name }} ({{ $item->total_qty }})</span>
                             <span class="font-bold text-[#9D686E] ml-2 shrink-0">${{ number_format($item->unit_price * $item->total_qty, 2) }}</span>
@@ -182,8 +182,8 @@
                             $catDropdowns = $config['dropdowns'][$cat] ?? [];
                         @endphp
                         @foreach($catAddons as $addon)
-                        @php $isSelected = isset($selectedExtras['add_'.$addon['id']]); @endphp
-                        @if($isSelected && $addon['addon_price'] > 0)
+                        @php $isSelected = ($selectedExtras['add_'.$addon['id']] ?? '0') !== '0'; @endphp
+                        @if($isSelected && $addon['addon_price'] >= 0)
                         <div class="flex justify-between items-start text-xs border-b border-[#9D686E]/5 pb-2">
                             <span class="font-medium text-slate-500 flex-1">{{ $addon['addon_label'] }}</span>
                             <span class="font-bold text-[#9D686E] ml-2 shrink-0">${{ number_format($addon['addon_price'], 2) }}</span>
@@ -196,7 +196,7 @@
                         $price = 0; $isYes = false;
                         if ($val && is_string($val)) { $parts = explode('|', $val); $price = (float)($parts[0] ?? 0); $answer = $parts[1] ?? 'yes'; $isYes = ($answer === 'yes'); }
                         @endphp
-                        @if($isYes && $price > 0)
+                        @if($isYes && $price >= 0)
                         <div class="flex justify-between items-start text-xs border-b border-[#9D686E]/5 pb-2">
                             <span class="font-medium text-slate-500 flex-1">{{ $q['question_text'] ?? $q->question_text }}</span>
                             <span class="font-bold text-[#9D686E] ml-2 shrink-0">${{ number_format($price, 2) }}</span>
@@ -213,7 +213,7 @@
                                 }
                             }
                         @endphp
-                        @if($selectedOpt && $selectedOpt['option_price'] > 0)
+                        @if($selectedOpt && $selectedOpt['option_price'] >= 0)
                         <div class="flex justify-between items-start text-xs border-b border-[#9D686E]/5 pb-2">
                             <span class="font-medium text-slate-500 flex-1">{{ $dd['label'] }}: {{ $selectedOpt['option_label'] }}</span>
                             <span class="font-bold text-[#9D686E] ml-2 shrink-0">${{ number_format($selectedOpt['option_price'], 2) }}</span>
@@ -221,7 +221,7 @@
                         @endif
                         @endforeach
                         @endforeach
-                        @if($isCard && $surcharge > 0)
+                        @if($isCard && $surcharge >= 0)
                         <div class="flex justify-between items-center text-xs border-t border-dotted border-[#9D686E]/20 pt-2 mt-2 text-purple-600">
                             <span class="font-bold italic">Surcharge (2.9%):</span>
                             <span class="font-black shrink-0">${{ number_format($surcharge, 2) }}</span>
@@ -329,7 +329,7 @@
                         @endif
 
                         @foreach($catAddons as $addon)
-                        @php $isSelected = isset($selectedExtras['add_'.$addon['id']]); @endphp
+                        @php $isSelected = ($selectedExtras['add_'.$addon['id']] ?? '0') !== '0'; @endphp
                         @if($isSelected)
                         <div class="grid grid-cols-12 gap-2 items-center bg-slate-50/50 rounded-xl px-3 py-2.5 border border-slate-100 hover:bg-white hover:shadow-sm transition-all duration-200">
                             <div class="col-span-5 flex items-center gap-2">

@@ -8,7 +8,7 @@ window.initBookingAppData = function () {
             csrfToken: bridge.dataset.csrf,
             bookingId: bridge.dataset.id,
             invoiceNumber: bridge.dataset.invoice,
-            formToken: (function() {
+            formToken: (function () {
                 // Use sessionStorage to persist the token across refreshes of the SAME tab
                 let token = sessionStorage.getItem('booking_form_token');
                 if (!token) {
@@ -19,6 +19,7 @@ window.initBookingAppData = function () {
             })(),
             pastCustomers: bridge.dataset.customers ? JSON.parse(bridge.dataset.customers) : [],
             selectedItems: (bridge.dataset.selected && bridge.dataset.selected !== '[]' && bridge.dataset.selected !== 'null') ? JSON.parse(bridge.dataset.selected) : {},
+            extraPrices: bridge.dataset.extraPrices ? JSON.parse(bridge.dataset.extraPrices) : {},
         };
     }
 };
@@ -44,7 +45,7 @@ function clearLiveSelectionOnExit() {
         fd.append('date', ''); // Clear selection
         fd.append('token', window.bookingAppData.formToken);
         fd.append('_token', window.bookingAppData.csrfToken); // For CSRF
-        
+
         // Also cleanup draft if exists (merging with previous logic)
         const bookingIdEl = document.getElementById('booking_id');
         if (!isProceeding && bookingIdEl && bookingIdEl.value) {
@@ -59,7 +60,7 @@ function clearLiveSelectionOnExit() {
 }
 window.addEventListener('beforeunload', clearLiveSelectionOnExit);
 
-window.startLivePolling = function() {
+window.startLivePolling = function () {
     if (livePollingInterval) clearInterval(livePollingInterval);
     livePollingInterval = setInterval(() => {
         if (typeof calLoad === 'function') calLoad();
@@ -432,10 +433,10 @@ window.calLoad = async function () {
         if (summaryEl) summaryEl.innerText = `Daily limit: ${dailyLimit} bookings`;
 
         const liveBadges = res.live_badges || {};
-        
+
         // Also trigger checkRealTimeAvailability to update product badges if on same date
         if (dateInput && dateInput.value) {
-             if (typeof checkRealTimeAvailability === 'function') checkRealTimeAvailability(true);
+            if (typeof checkRealTimeAvailability === 'function') checkRealTimeAvailability(true);
         }
 
         for (let d = 1; d <= e.getDate(); d++) {
@@ -454,7 +455,7 @@ window.calLoad = async function () {
                     const bgColor = badge.is_me ? 'bg-[#9D686E]' : 'bg-slate-700';
                     const textColor = 'text-white';
                     const displayName = badge.name; // Show full name always as requested
-                    
+
                     badgeHtml += `<div class="${bgColor} ${textColor} text-[7px] sm:text-[8px] px-2 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap max-w-full truncate text-center leading-none" title="${badge.name} (${badge.role})">
                         ${displayName} (${badge.role})
                     </div>`;
@@ -519,7 +520,7 @@ window.selectDate = function (dateStr, left) {
         if (dateInput) dateInput.value = '';
         updateCalSelection();
         dateChanged();
-        apiPost('select_calendar_date', { 
+        apiPost('select_calendar_date', {
             date: '', // Send empty to clear
             invoice: window.bookingAppData ? window.bookingAppData.invoiceNumber : '',
             token: window.bookingAppData ? window.bookingAppData.formToken : ''
@@ -535,9 +536,9 @@ window.selectDate = function (dateStr, left) {
     if (dateInput) dateInput.value = dateStr;
     updateCalSelection();
     dateChanged();
-    
+
     // Notify server about selection
-    apiPost('select_calendar_date', { 
+    apiPost('select_calendar_date', {
         date: dateStr,
         invoice: window.bookingAppData ? window.bookingAppData.invoiceNumber : '',
         token: window.bookingAppData ? window.bookingAppData.formToken : ''
@@ -668,7 +669,7 @@ function processSelection(checkbox, card) {
     window.syncLiveSelectionsToServer();
 };
 
-window.syncLiveSelectionsToServer = function() {
+window.syncLiveSelectionsToServer = function () {
     const dateInput = document.getElementById('event_date');
     if (!dateInput || !dateInput.value) return;
 
@@ -790,72 +791,49 @@ window.handleExtraSelection = function (element) {
     triggerRecalculate();
     saveCurrentExtrasState();
     updateCategoryLimitsUI();
-    
+
+    // UI SYNC: Update the dynamic extras container to show/hide overrides
+    if (typeof updateDynamicExtras === 'function') updateDynamicExtras();
+
+    // --- Price Override Force Sync ---
+    const key = element.name;
+    if (isSelected) {
+        let price = 0;
+        if (element.type === 'checkbox') {
+            price = parseFloat(element.dataset.price || 0);
+        } else if (element.tagName === 'SELECT') {
+            const opt = element.options[element.selectedIndex];
+            if (opt && opt.value.includes('|')) {
+                price = parseFloat(opt.value.split('|')[0] || 0);
+            } else if (opt) {
+                price = parseFloat(opt.dataset.price || 0);
+            }
+        }
+        
+        // Force update extraPrices if it's currently 0 or undefined, 
+        // OR if it's a dropdown/question change (most common case for "accuracy")
+        if (!window.bookingAppData.extraPrices[key] || window.bookingAppData.extraPrices[key] == 0 || element.tagName === 'SELECT') {
+            if (window.updateExtraPrice) window.updateExtraPrice(key, price);
+        }
+        // Force override state to active for "instant check"
+        if (window.toggleOverrideState) window.toggleOverrideState(key, true);
+    } else {
+        if (window.updateExtraPrice) window.updateExtraPrice(key, 0);
+        if (window.toggleOverrideState) window.toggleOverrideState(key, false);
+    }
+
+    const wrap = document.getElementById(`ov_wrap_${key}`);
+    if (wrap) {
+        if (isSelected) wrap.classList.remove('hidden');
+        else wrap.classList.add('hidden');
+    }
+
     // NEW: Sync live selection to server immediately
     window.syncLiveSelectionsToServer();
 };
 
-window.finalizeBooking = async function () {
-    if (isProceeding) return;
-    isProceeding = true;
-    const btn = document.getElementById('btnSaveFinal');
-    const oldText = btn.innerHTML;
-    btn.innerHTML = '<span class="material-symbols-rounded animate-spin">sync</span> Saving...';
-    btn.disabled = true;
 
-    const form = document.getElementById('combinedBookingForm');
-    const fd = new FormData(form);
 
-    // --- FILE SIZE VALIDATION (Max 5MB Total) ---
-    let totalSize = 0;
-    let fileCount = 0;
-    for (let [key, value] of fd.entries()) {
-        if (value instanceof File && value.size > 0 && key.startsWith('delivery_attachment')) {
-            totalSize += value.size;
-            fileCount++;
-        }
-    }
-
-    if (totalSize > 5 * 1024 * 1024) {
-        showToast("Storage Limit", "Total size of all attachments must not exceed 5MB. Current: " + (totalSize / (1024 * 1024)).toFixed(2) + "MB", "error");
-        isProceeding = false;
-        return;
-    }
-
-    fd.append('action', 'save_full_booking');
-
-    // For Edit Mode, we rely on the backend sync
-    if (window.bookingAppData && window.bookingAppData.bookingId) {
-        // Just proceed, backend has the totals
-    } else {
-        // Ensure we have a final total even if override is empty (New Booking mode)
-        const override = document.getElementById('override_total').value;
-        if (!override) {
-            const totalDisp = document.getElementById('disp_total').innerText.replace('$', '');
-            fd.set('final_total', totalDisp);
-        }
-    }
-
-    try {
-        const res = await fetch('/api/bookings/handler', {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': window.bookingAppData.csrfToken },
-            body: fd
-        });
-        const data = await res.json();
-        if (data.success) {
-            showToast("Success", "Booking has been saved successfully!", "success");
-            setTimeout(() => window.location.href = '/enquiries', 1500);
-        } else {
-            throw new Error(data.message || "Failed to save.");
-        }
-    } catch (e) {
-        showToast("Error", e.message, "error");
-        btn.innerHTML = oldText;
-        btn.disabled = false;
-        isProceeding = false;
-    }
-};
 
 window.checkTotalAttachmentSize = function (currentInput) {
     const inputs = document.querySelectorAll('input[type="file"]');
@@ -959,7 +937,7 @@ window.selectDurationCard = function (labelEl) {
     if (input.value === 'custom') {
         if (wrapper) wrapper.classList.remove('hidden');
         if (app) app.isDurationCustom = true;
-        
+
         // Reset times when custom is selected
         const sEl = document.getElementById('start_time');
         const eEl = document.getElementById('end_time');
@@ -1029,7 +1007,13 @@ window.triggerRecalculate = function () {
         if (card) {
             const qtyInput = card.querySelector('input[readonly].w-8'); // Match the quantity input in Edit mode
             const q = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
-            attractionsCost += (parseFloat(card.dataset.price || 0) * q);
+
+            // Check for manual price override
+            const manualPriceInput = card.querySelector('.manual-ride-price');
+            const defaultPrice = parseFloat(card.dataset.price || 0);
+            const price = (manualPriceInput && manualPriceInput.value !== '') ? parseFloat(manualPriceInput.value) : defaultPrice;
+
+            attractionsCost += (price * q);
         }
     });
     const breakAttractions = document.getElementById('breakdown_attractions');
@@ -1037,16 +1021,40 @@ window.triggerRecalculate = function () {
 
     let extCost = 0;
     document.querySelectorAll('.ext-price').forEach(el => {
+        const key = el.name;
+        let price = 0;
+        let isSelected = false;
+
         if (el.tagName === 'SELECT') {
             let val = el.value;
-            if (val.includes('|')) {
-                extCost += parseFloat(val.split('|')[0] || 0);
-            } else {
-                extCost += parseFloat(el.options[el.selectedIndex].dataset.price || 0);
+            if (val !== '' && val !== '0') {
+                isSelected = true;
+                if (val.includes('|')) {
+                    price = parseFloat(val.split('|')[0] || 0);
+                } else {
+                    price = parseFloat(el.options[el.selectedIndex].dataset.price || 0);
+                }
             }
+        } else if (el.tagName === 'INPUT' && el.type === 'checkbox' && el.checked) {
+            isSelected = true;
+            price = parseFloat(el.dataset.price || 0);
         }
-        if (el.tagName === 'INPUT' && el.checked) {
-            extCost += parseFloat(el.dataset.price || 0);
+
+        if (isSelected) {
+            // Check for manual override
+            let useOverride = false;
+            if (window.bookingAppData && window.bookingAppData.activeOverrides && window.bookingAppData.activeOverrides[key]) {
+                useOverride = true;
+            }
+            // For addons (checkboxes), they are implicitly active if checked
+            if (el.tagName === 'INPUT' && el.type === 'checkbox') {
+                useOverride = true;
+            }
+
+            if (useOverride && window.bookingAppData && window.bookingAppData.extraPrices && window.bookingAppData.extraPrices[key] !== undefined && window.bookingAppData.extraPrices[key] !== '') {
+                price = parseFloat(window.bookingAppData.extraPrices[key]);
+            }
+            extCost += price;
         }
     });
     const breakExt = document.getElementById('breakdown_ext');
@@ -1187,7 +1195,7 @@ window.openReviewModal = async function () {
 
     document.getElementById('rev_operator').innerText = (document.getElementById('lead_operator') || {}).value || "Team (Default)";
     document.getElementById('rev_deliverer').innerText = (document.getElementById('lead_deliverer') || {}).value || "Team (Default)";
-    
+
     // Duration Label & Cost
     let durPrice = document.getElementById('breakdown_dur').innerText;
     let durLabel = "";
@@ -1275,21 +1283,46 @@ window.openReviewModal = async function () {
 
     // 1. Add Rides
     checkedRides.forEach(cb => {
-        attractionList.innerHTML += `<li><span class="material-symbols-rounded text-[#9E6B73] text-sm align-middle mr-1">check_circle</span>${cb.value}</li>`;
+        const card = cb.closest('.product-card');
+        const manualPriceInput = card.querySelector('.manual-ride-price');
+        const defaultPrice = parseFloat(card.dataset.price || 0);
+        const price = (manualPriceInput && manualPriceInput.value !== '') ? parseFloat(manualPriceInput.value) : defaultPrice;
+
+        attractionList.innerHTML += `<li><span class="material-symbols-rounded text-[#9E6B73] text-sm align-middle mr-1">check_circle</span>${cb.value} <span class="font-bold text-slate-600 ml-1">($${price.toFixed(2)})</span></li>`;
     });
 
     // 2. Add Extras (Grouped with Attractions)
     document.querySelectorAll('.ext-price').forEach(el => {
+        const key = el.name;
+        if (!key) return;
+
+        let isSelected = false;
+        let originalPrice = 0;
+        let label = '';
+
         if (el.tagName === 'SELECT') {
             const opt = el.options[el.selectedIndex];
-            const price = parseFloat(opt.dataset.price || 0);
-            if (price > 0 || el.value.includes('|yes')) {
-                const label = opt.textContent;
-                attractionList.innerHTML += `<li><span class="material-symbols-rounded text-green-500 text-sm align-middle mr-1">add_circle</span>${escapeHTML(label)}</li>`;
-            }
+            originalPrice = parseFloat(opt.dataset.price || 0);
+            isSelected = originalPrice > 0 || el.value.includes('|yes');
+            label = opt.textContent;
+
+            // Clean up label if it contains price (e.g. "Anchor Weights (+$400.00)")
+            label = label.replace(/\s*\(\+\$.*?\)/, '').trim();
         } else if (el.tagName === 'INPUT' && el.checked) {
-            const label = el.nextElementSibling.textContent;
-            const price = parseFloat(el.dataset.price || 0);
+            originalPrice = parseFloat(el.dataset.price || 0);
+            isSelected = true;
+            label = el.nextElementSibling ? el.nextElementSibling.textContent : key;
+        }
+
+        if (isSelected) {
+            const overrideCheckbox = document.getElementById(`chk_ov_${key}`);
+            const isOverrideActive = overrideCheckbox ? overrideCheckbox.checked : true;
+
+            let price = originalPrice;
+            if (window.bookingAppData.extraPrices && window.bookingAppData.extraPrices[key] !== undefined && isOverrideActive) {
+                price = parseFloat(window.bookingAppData.extraPrices[key]);
+            }
+
             attractionList.innerHTML += `<li><span class="material-symbols-rounded text-green-500 text-sm align-middle mr-1">add_circle</span>${escapeHTML(label)} (+$${price.toFixed(2)})</li>`;
         }
     });
@@ -1349,6 +1382,7 @@ function escapeHTML(str) {
 }
 
 window.finalizeBooking = async function () {
+    if (isProceeding) return;
     const btn = document.getElementById('btnSaveFinal');
     if (!btn) return;
     btn.innerHTML = '<span class="material-symbols-rounded animate-spin">refresh</span> Processing...';
@@ -1378,11 +1412,28 @@ window.finalizeBooking = async function () {
         // CRITICAL FIX: Explicitly append all selected products to ensure they aren't lost 
         // in the JS-to-Livewire sync race during the final save.
         if (window.bookingAppData && window.bookingAppData.selectedItems) {
-            // Clear any existing products[] entries from FormData to avoid duplicates if they DID sync
             fd.delete('products[]');
             for (let name in window.bookingAppData.selectedItems) {
                 if (window.bookingAppData.selectedItems[name]) {
                     fd.append('products[]', name);
+                    
+                    // Also find the manual price input for this product if it exists
+                    const cleanName = name.toLowerCase().trim();
+                    const manualInput = document.querySelector(`input[name="manual_prices[${cleanName}]"]`) || 
+                                      document.querySelector(`.product-card[data-name="${cleanName}"] .manual-ride-price`);
+                    if (manualInput && manualInput.value !== '') {
+                        fd.append(`manual_prices[${name}]`, manualInput.value);
+                    }
+                }
+            }
+        }
+
+        // --- APPEND MANUAL EXTRA PRICES ---
+        if (window.bookingAppData && window.bookingAppData.extraPrices) {
+            for (let key in window.bookingAppData.extraPrices) {
+                const price = window.bookingAppData.extraPrices[key];
+                if (price !== undefined && price !== '') {
+                    fd.append(`extra_prices[${key}]`, price);
                 }
             }
         }

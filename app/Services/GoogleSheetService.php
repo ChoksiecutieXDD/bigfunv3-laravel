@@ -22,7 +22,7 @@ class GoogleSheetService
     /**
      * Syncs booking data to the Google Spreadsheet via Web App Webhook.
      */
-    public static function sync($bookingId, $isNew = false)
+    public static function sync(int|string $bookingId, bool $isNew = false)
     {
         try {
             $webhookUrl = config('services.google.sheet_webhook');
@@ -212,15 +212,19 @@ class GoogleSheetService
             // Log Payload for debugging
             Log::info("Google Sheet Sync Payload for Invoice: {$booking->invoice_number}", $payload);
 
-            $response = Http::withoutVerifying()->post($webhookUrl, $payload);
+            // Add a strict timeout to prevent hanging the main request
+            $response = Http::withoutVerifying()
+                ->timeout(10)
+                ->post($webhookUrl, $payload);
 
             if ($response->failed()) {
                 Log::error("Google Sheet Sync Failed for Invoice: {$booking->invoice_number}", [
+                    'status' => $response->status(),
                     'error' => $response->body()
                 ]);
             }
-        } catch (\Exception $e) {
-            Log::error("Google Sheet Sync Exception: " . $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error("Google Sheet Sync Exception: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
         }
     }
 }

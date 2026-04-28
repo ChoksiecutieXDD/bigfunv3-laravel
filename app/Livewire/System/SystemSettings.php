@@ -14,14 +14,14 @@ use Illuminate\Support\Facades\Config;
 #[Layout('components.layouts.settings-layout')]
 class SystemSettings extends Component
 {
-    public $isMaintenance;
-    public $currentEnv;
-    public $showLogViewer = false;
-    public $logs = '';
+    public bool $isMaintenance = false;
+    public string $currentEnv = '';
+    public bool $showLogViewer = false;
+    public string $logs = '';
     
     // Password protection
-    public $systemPassword = '';
-    public $isUnlocked = false;
+    public string $systemPassword = '';
+    public bool $isUnlocked = false;
 
     /**
      * Active application mailer: smtp (Brevo) or google (Gmail). Synced to MAIL_MAILER in .env.
@@ -209,7 +209,7 @@ class SystemSettings extends Component
     // ==========================================
     // 4. ENVIRONMENT TOGGLE
     // ==========================================
-    public function changeEnvironment($id = null)
+    public function changeEnvironment(mixed $id = null)
     {
         // Extract the target environment string safely
         $targetEnv = is_array($id) ? ($id['id'] ?? $id[0] ?? null) : $id;
@@ -506,7 +506,7 @@ class SystemSettings extends Component
         }
     }
 
-    private function formatBytes($bytes, $precision = 1)
+    private function formatBytes(float|int $bytes, int $precision = 1)
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
         $bytes = max($bytes, 0);
@@ -523,7 +523,7 @@ class SystemSettings extends Component
         return DB::table('sessions')
             ->join('users', 'sessions.user_id', '=', 'users.user_id')
             ->where('sessions.last_activity', '>=', $fiveMinutesAgo)
-            ->select('users.first_name', 'users.last_name', 'users.role', 'sessions.ip_address', 'sessions.last_activity')
+            ->select(['users.first_name', 'users.last_name', 'users.role', 'sessions.ip_address', 'sessions.last_activity'])
             ->orderBy('sessions.last_activity', 'desc')
             ->get()
             ->toArray();

@@ -11,9 +11,9 @@ use Carbon\CarbonPeriod;
 #[Layout('components.layouts.supervisor')]
 class FinancialReports extends Component
 {
-    public $period = 'this_month';
-    public $customStart;
-    public $customEnd;
+    public string $period = 'this_month';
+    public string $customStart = '';
+    public string $customEnd = '';
 
     public function mount()
     {

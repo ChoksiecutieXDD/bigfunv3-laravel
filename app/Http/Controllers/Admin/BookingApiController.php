@@ -49,10 +49,10 @@ class BookingApiController extends Controller
      * Internal method to calculate inventory state for a specific date.
      * @param bool $includeLive Whether to include temporary selections (carts) in the booked count.
      */
-    private function getInventoryState($date, $invoice = null, $booking_id = null, $token = null, $includeLive = true)
+    private function getInventoryState(string $date, ?string $invoice = null, ?int $booking_id = null, ?string $token = null, bool $includeLive = true)
     {
         $categories = [];
-        $resCat = DB::table('product_categories')->select('category_name', 'daily_limit')->get();
+        $resCat = DB::table('product_categories')->select(['category_name', 'daily_limit'])->get();
         foreach ($resCat as $row) {
             $catName = strtolower(trim($row->category_name));
             $categories[$catName] = [
@@ -65,7 +65,7 @@ class BookingApiController extends Controller
         $master_inventory = [];
         $product_targets = [];
 
-        $resProd = DB::table('products')->where('is_active', 1)->select('name', 'total_quantity', 'daily_limit', 'counts_against', 'category')->get();
+        $resProd = DB::table('products')->where('is_active', 1)->select(['name', 'total_quantity', 'daily_limit', 'counts_against', 'category'])->get();
         foreach ($resProd as $row) {
             $cleanName = strtolower(trim($row->name));
             $stock = (int)$row->total_quantity;
@@ -100,7 +100,7 @@ class BookingApiController extends Controller
                             ->where('b.created_at', '>=', Carbon::now()->subMinutes(20));
                     });
             })
-            ->select('bi.item_name', DB::raw('COUNT(bi.id) as cnt'))
+            ->select(['bi.item_name', DB::raw('COUNT(bi.id) as cnt')])
             ->groupBy('bi.item_name')
             ->get();
 
@@ -322,7 +322,8 @@ class BookingApiController extends Controller
                 case 'delete_draft':
                     $del_id = (int)$request->input('booking_id', 0);
                     if ($del_id > 0) {
-                        DB::table('bookings')->where('id', $del_id)->where('status', 'Draft')->delete();
+                        // Use the Model to trigger SoftDeletes
+                        Booking::where('id', $del_id)->where('status', 'Draft')->delete();
                     }
                     return response()->json(['success' => true, 'status' => 'success', 'message' => 'Draft deleted']);
 
@@ -347,7 +348,7 @@ class BookingApiController extends Controller
 
                     // 2. Fetch existing booking counts (Confirmed/Draft)
                     $res = DB::table('bookings')
-                        ->select('event_date', DB::raw('COUNT(*) as cnt'))
+                        ->select(['event_date', DB::raw('COUNT(*) as cnt')])
                         ->whereBetween('event_date', [$start, $end])
                         ->where(function ($q) use ($booking_id) {
                             $q->whereNotIn('status', ['Cancelled'])
@@ -617,6 +618,25 @@ class BookingApiController extends Controller
                         return response()->json(['success' => false, 'status' => 'error', 'message' => 'Total size of all attachments must not exceed 5MB.']);
                     }
 
+                    // Handle Deleted Attachments Signal
+                    $deleted_attachments = $request->input('deleted_attachments', []);
+                    if (is_array($deleted_attachments)) {
+                        foreach ($deleted_attachments as $slotName) {
+                            $slotIdx = match($slotName) {
+                                'delivery_attachment'   => 0,
+                                'delivery_attachment_2' => 1,
+                                'delivery_attachment_3' => 2,
+                                'delivery_attachment_4' => 3,
+                                'delivery_attachment_5' => 4,
+                                default => -1
+                            };
+                            if ($slotIdx !== -1) {
+                                $existing_files[$slotIdx] = null;
+                                Log::info("Marking $slotName for deletion");
+                            }
+                        }
+                    }
+
                     // Handle File Uploads
                     for ($i = 1; $i <= 5; $i++) {
                         $suffix = ($i === 1) ? '' : "_$i";
@@ -708,15 +728,27 @@ class BookingApiController extends Controller
                     // Save Items
                     DB::table('booking_items')->where('booking_id', $booking_id)->delete();
                     $products = $request->input('products', []);
+                    $manual_prices_raw = $request->input('manual_prices', []);
+                    $manual_prices = [];
+                    foreach($manual_prices_raw as $k => $v) {
+                        $manual_prices[strtolower(trim($k))] = $v;
+                    }
+
                     if (is_array($products) && count($products) > 0) {
                         $insertItems = [];
                         foreach ($products as $p) {
                             if (trim($p)) {
+                                $cleanP = strtolower(trim($p));
+                                // Fetch inventory price as fallback
+                                $defaultPrice = DB::table('products')->whereRaw('LOWER(TRIM(name)) = ?', [$cleanP])->value('price') ?: 0.00;
+                                $manualPrice = isset($manual_prices[$cleanP]) && $manual_prices[$cleanP] !== '' ? (float)$manual_prices[$cleanP] : null;
+                                $itemPrice = $manualPrice !== null ? $manualPrice : $defaultPrice;
+
                                 $insertItems[] = [
                                     'booking_id' => $booking_id,
                                     'item_name' => trim($p),
-                                    'item_price' => 0.00,
-                                    'is_custom' => 0,
+                                    'item_price' => $itemPrice,
+                                    'is_custom' => $manualPrice !== null ? 1 : 0,
                                     'qty' => 1
                                 ];
                             }
@@ -734,6 +766,8 @@ class BookingApiController extends Controller
                     $allOptions = DB::table('dropdown_options')->get()->keyBy('id');
                     $allQuestions = DB::table('product_extras')->get()->keyBy('id');
 
+                    $extra_prices_input = $request->input('extra_prices', []);
+
                     foreach ($request->all() as $key => $val) {
                         if (str_starts_with($key, 'dd_') || str_starts_with($key, 'add_') || str_starts_with($key, 'q_')) {
                             // Raw storage
@@ -747,10 +781,11 @@ class BookingApiController extends Controller
                             if (str_starts_with($key, 'add_') && (string)$val === '1') {
                                 $id = str_replace('add_', '', $key);
                                 if ($addon = $allAddons->get($id)) {
+                                    $price = (float)($extra_prices_input[$key] ?? $addon->addon_price);
                                     if ($addon->category_target === 'General Logistics') {
-                                        $general_extra[$addon->addon_label] = (float)$addon->addon_price;
+                                        $general_extra[$addon->addon_label] = $price;
                                     } else {
-                                        $specific_extra[$addon->category_target . ': ' . $addon->addon_label] = (float)$addon->addon_price;
+                                        $specific_extra[$addon->category_target . ': ' . $addon->addon_label] = $price;
                                     }
                                 }
                             }
@@ -758,10 +793,11 @@ class BookingApiController extends Controller
                                 $ddId = str_replace('dd_', '', $key);
                                 if (($dd = $allDropdowns->get($ddId)) && ($opt = $allOptions->get($val))) {
                                     $label = $dd->label . ' - ' . $opt->option_label;
+                                    $price = (float)($extra_prices_input[$key] ?? $opt->option_price);
                                     if ($dd->category_target === 'General Logistics') {
-                                        $general_extra[$label] = (float)$opt->option_price;
+                                        $general_extra[$label] = $price;
                                     } else {
-                                        $specific_extra[$dd->category_target . ': ' . $label] = (float)$opt->option_price;
+                                        $specific_extra[$dd->category_target . ': ' . $label] = $price;
                                     }
                                 }
                             }
@@ -769,7 +805,7 @@ class BookingApiController extends Controller
                                 $qId = str_replace('q_', '', $key);
                                 if ($q = $allQuestions->get($qId)) {
                                     $parts = explode('|', $val);
-                                    $price = (float)($parts[0] ?? 0);
+                                    $price = (float)($extra_prices_input[$key] ?? ($parts[0] ?? 0));
                                     $answer = $parts[1] ?? 'yes';
                                     $label = $q->question_text . ' (' . ucfirst($answer) . ')';
                                     if ($q->category_target === 'General Logistics') {
@@ -855,6 +891,7 @@ class BookingApiController extends Controller
         $dateStr = date('Ymd');
         $lastInvoiceNum = DB::table('bookings')
             ->where('invoice_number', 'like', 'INV-%')
+            // Using MAX on a derived number from both active and soft-deleted records
             ->selectRaw("MAX(CAST(SUBSTRING_INDEX(invoice_number, '-', -1) AS UNSIGNED)) as max_num")
             ->value('max_num');
 
@@ -865,7 +902,7 @@ class BookingApiController extends Controller
     /**
      * Syncs booking data to the Google Spreadsheet via Web App Webhook.
      */
-    protected function syncToGoogleSheet($bookingId, $isNew = false)
+    protected function syncToGoogleSheet(int $bookingId, bool $isNew = false)
     {
         app(\App\Services\GoogleSheetService::class)->sync($bookingId, $isNew);
     }

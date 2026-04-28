@@ -170,8 +170,8 @@
                         <div>
                             <span class="booking-label">Time & Duration</span>
                             <span class="booking-value block">
-                                @if($booking->duration === 'custom' && $booking->custom_duration_text)
-                                    {{ $booking->custom_duration_text }}
+                                @if($booking->custom_duration_text)
+                                    {{ $booking->custom_duration_text }} @if(($booking->duration_cost ?? 0) > 0) (${{ number_format($booking->duration_cost, 2) }}) @endif
                                 @else
                                     {{ \Carbon\Carbon::parse($booking->start_time)->format('g:i A') }} - {{ $booking->end_time ? \Carbon\Carbon::parse($booking->end_time)->format('g:i A') : 'TBD' }}
                                 @endif
@@ -331,7 +331,13 @@
                     <a href="{{ route('supervisor.bookings.overview', $event->id) }}" class="block p-3 bg-orange-50 hover:bg-orange-100 border-orange-200 border rounded-lg text-sm transition shadow-sm group">
                         <div class="flex justify-between items-start mb-1">
                             <p class="font-bold text-orange-700 group-hover:text-orange-800 transition">{{ \Carbon\Carbon::parse($event->event_date)->format('l, M d') }}</p>
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-orange-600 bg-orange-200/50">{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }}</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-orange-600 bg-orange-200/50">
+                                @if($event->custom_duration_text)
+                                    {{ $event->custom_duration_text }} @if(($event->duration_cost ?? 0) > 0) (${{ number_format($event->duration_cost, 2) }}) @endif
+                                @else
+                                    {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }}
+                                @endif
+                            </span>
                         </div>
                         <div class="flex items-center gap-2 mb-1">
                              <span class="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-tight border {{ $statusClasses }}">
@@ -367,7 +373,13 @@
                     <a href="{{ route('supervisor.bookings.overview', $event->id) }}" class="block p-3 border rounded-lg text-sm transition shadow-sm group bg-gray-50 hover:bg-white border-gray-100 hover:border-[#9D686E]/40">
                         <div class="flex justify-between items-start mb-1">
                             <p class="font-bold transition text-gray-700 group-hover:text-[#9D686E]">{{ \Carbon\Carbon::parse($event->event_date)->format('l, M d') }}</p>
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-gray-500 bg-gray-200/50">{{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }}</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-gray-500 bg-gray-200/50">
+                                @if($event->custom_duration_text)
+                                    {{ $event->custom_duration_text }} @if(($event->duration_cost ?? 0) > 0) (${{ number_format($event->duration_cost, 2) }}) @endif
+                                @else
+                                    {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }}
+                                @endif
+                            </span>
                         </div>
                         <div class="flex items-center gap-2 mb-1">
                              <span class="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-tight border {{ $statusClasses }}">

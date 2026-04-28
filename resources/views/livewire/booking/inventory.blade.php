@@ -173,7 +173,7 @@
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Price ($)</label>
-                        <input type="number" step="0.01" wire:model="prod_price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" placeholder="0.00">
+                        <input type="number" step="0.01" wire:model="prod_price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" placeholder="100.00">
                     </div>
                 </div>
 

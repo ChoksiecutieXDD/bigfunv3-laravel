@@ -4,6 +4,8 @@ namespace App\Livewire\Supervisor;
 
 use Livewire\Component;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
+
 use App\Models\Booking;
 use App\Models\BookingItem;
 use App\Models\BookingPayment;
@@ -17,72 +19,75 @@ class BookingOverview extends Component
     public Booking $booking;
 
     // --- General Properties ---
-    public $newStatus;
-    public $newDate;
+    public ?string $newStatus = null;
+    public ?string $newDate = null;
 
-    // --- Payment Properties ---
+    // Payment Logic
     public $payAmount;
-    public $payType = 'Remaining Balance';
-    public $payMethod = 'EFT';
-    public $eftMethod = 'Direct Deposit';
-    public $payCardHolder;
-    public $cardNumber;
-    public $cardExpiry;
-    public $cardCvv;
-    public $cardCategory = 'Debit Card';
-    public $cardNetwork = 'Visa';
-    public $payDate;
-    public $payRef;
-    public $payNotes;
+    public string $payType = '';
+    public string $payMethod = '';
+    public string $eftMethod = 'Standard EFT';
+    public string $payCardHolder = '';
+    public string $cardNumber = '';
+    public string $cardExpiry = '';
+    public string $cardCvv = '';
+    public string $cardCategory = 'Personal';
+    public string $cardNetwork = 'Visa';
+    public string $payDate = '';
+    public string $payRef = '';
+    public string $payNotes = '';
 
-    // --- Email Properties ---
-    public $emailType = 'invoice';
-    public $emailTo;
-    public $emailCc;
-    public $emailBcc = 'hire.enquiries@bigfunqld.com.au';
-    public $emailSubject;
-    public $emailBody;
-    public $emailAttachment;
-    public $emailFrom = 'bigfun.qld.au@gmail.com';
-    public $isSentSuccessfully = false;
+    // Email UI
+    public string $emailType = '';
+    public string $emailTo = '';
+    public string $emailCc = '';
+    public string $emailBcc = '';
+    public string $emailSubject = '';
+    public string $emailBody = '';
+    public string $emailAttachment = '';
+    public string $emailFrom = 'accounts@bigfun.com.au';
+    public bool $isSentSuccessfully = false;
 
-    // --- Confirmation Properties ---
-    public $confirmEmailMessage = '';
-    public $confirmEmailTitle = '';
-    public $pendingEmailType = '';
-    public $quotaWarningTitle = '';
-    public $quotaWarningMessage = '';
-    public $quotaLimitTitle = '';
-    public $quotaLimitMessage = '';
+    // Email Confirmation Modals
+    public string $confirmEmailMessage = '';
+    public string $confirmEmailTitle = '';
+    public string $pendingEmailType = '';
+    public string $quotaWarningTitle = '';
+    public string $quotaWarningMessage = '';
+    public string $quotaLimitTitle = '';
+    public string $quotaLimitMessage = '';
 
+    // Calendar
+    public int $calMonth;
+    public int $calYear;
+    public array $calDays = [];
+    public ?string $tempSelectedDate = null;
+    public array $bookedAttractions = [];
+    public array $dailyAttractions = [];
+    public array $categoryLimits = [];
+    public array $dailyUsage = [];
+    public array $bookingImpact = [];
+    public array $modalNameConflicts = [];
+    public ?string $lastToastDate = null;
 
-    // --- Calendar Modals Properties ---
-    public $calMonth;
-    public $calYear;
-    public $calDays = [];
-    public $tempSelectedDate;
-    public $bookedAttractions = []; // For the current booking
-    public $dailyAttractions = []; // To store what's booked each day this month
-    public $categoryLimits = [];   // [category_name => limit]
-    public $dailyUsage = [];       // [date => [category_name => count]]
-    public $bookingImpact = [];
-    public $modalNameConflicts = [];
-    public $lastToastDate = null;    // [category_name => count] for current booking
+    public ?array $previewExtras = null;
+    public ?array $previewSelectedItems = null;
+    public ?array $previewTotals = null;
 
-    // --- Detail Selection ---
-    public $selectedPayment;
-    public $is_editing_payment = false;
+    // Edit Payment
+    public $selectedPayment = null;
+    public bool $is_editing_payment = false;
     public $edit_payment_amount;
-    public $edit_payment_method;
-    public $edit_payment_date;
-    public $edit_payment_ref;
-    public $edit_payment_notes;
-    public $selectedLogToDelete;
+    public string $edit_payment_method = '';
+    public string $edit_payment_date = '';
+    public string $edit_payment_ref = '';
+    public string $edit_payment_notes = '';
+    public $selectedLogToDelete = null;
 
-    public $deleteConfirmId;
-    public $backUrl;
+    public $deleteConfirmId = null;
+    public string $backUrl = '';
 
-    public function mount($id)
+    public function mount(int|string $id)
     {
         $this->booking = Booking::findOrFail($id);
         $this->newStatus = $this->booking->status;
@@ -116,7 +121,7 @@ class BookingOverview extends Component
             // Date Check (Future events cannot be completed)
             if ($eventDate->isAfter($today)) {
                 $this->dispatch('open-modal', 'futureCompleteModal');
-                $this->newStatus = $this->booking->status; 
+                $this->newStatus = $this->booking->status;
                 return;
             }
 
@@ -206,8 +211,9 @@ class BookingOverview extends Component
             ->toArray();
 
         if (!empty($conflicts)) {
-            $this->dispatch('notify', 
-                title: 'Move Blocked', 
+            $this->dispatch(
+                'notify',
+                title: 'Move Blocked',
                 message: 'Conflict detected: ' . implode(', ', $conflicts) . ' already booked for this day.',
                 type: 'error'
             );
@@ -246,8 +252,9 @@ class BookingOverview extends Component
             if ($limit > 0) {
                 $current = $usage[$cat] ?? 0;
                 if ($current + $qty > $limit) {
-                    $this->dispatch('notify', 
-                        title: 'Move Blocked', 
+                    $this->dispatch(
+                        'notify',
+                        title: 'Move Blocked',
                         message: "The daily limit for '{$cat}' has been reached on this date.",
                         type: 'error'
                     );
@@ -278,13 +285,13 @@ class BookingOverview extends Component
         // 1. Mark status as 'Deleted' in database for the sync payload
         // (This status matches the logic in GoogleSheetService to set is_deleted='YES')
         $this->booking->update(['status' => 'Deleted']);
-        
+
         // 2. Sync to Google Sheets BEFORE database deletion
         app(\App\Services\GoogleSheetService::class)->sync($this->booking->id);
 
         // 3. Final deletion from database
         $this->booking->delete();
-        
+
         return redirect()->to('/supervisor/calendar');
     }
 
@@ -313,7 +320,7 @@ class BookingOverview extends Component
             $this->payAmount = $balanceDue;
         }
 
-        $this->payMethod = match($this->booking->payment_type) {
+        $this->payMethod = match ($this->booking->payment_type) {
             'Card Holder', 'credit_card' => 'Card Holder',
             'Cash' => 'Cash',
             default => 'EFT',
@@ -325,7 +332,7 @@ class BookingOverview extends Component
         $this->dispatch('open-modal', 'paymentModal');
     }
 
-    public function updatedPayType($value)
+    public function updatedPayType(string|float|int|null $value)
     {
         $amountPaid = round(BookingPayment::where('booking_id', $this->booking->id)->sum('amount'), 2);
         $totalAmount = round((float) $this->booking->total_amount, 2);
@@ -400,7 +407,7 @@ class BookingOverview extends Component
         $this->dispatch('notify', title: 'Success', message: 'Payment recorded.');
     }
 
-    public function selectPayment($id)
+    public function selectPayment(int|string $id)
     {
         $this->selectedPayment = BookingPayment::find($id);
         $this->is_editing_payment = false;
@@ -410,13 +417,13 @@ class BookingOverview extends Component
     public function editPaymentDetails()
     {
         if (!$this->selectedPayment) return;
-        
+
         $this->edit_payment_amount = $this->selectedPayment->amount;
         $this->edit_payment_method = $this->selectedPayment->payment_method;
         $this->edit_payment_date = $this->selectedPayment->payment_date ? Carbon::parse($this->selectedPayment->payment_date)->format('Y-m-d') : date('Y-m-d');
         $this->edit_payment_ref = $this->selectedPayment->reference;
         $this->edit_payment_notes = $this->selectedPayment->notes;
-        
+
         $this->is_editing_payment = true;
     }
 
@@ -453,7 +460,7 @@ class BookingOverview extends Component
     }
 
     // --- Email Logic ---
-    public function openEmailModal($type)
+    public function openEmailModal(string $type)
     {
         if ($this->handleQuotaGuardForEmail($type)) {
             return;
@@ -469,9 +476,9 @@ class BookingOverview extends Component
             ->where('booking_id', $this->booking->id)
             ->where('type', $type)
             ->max('sent_at'); // String timestamp
-            
+
         $lastPaymentAt = BookingPayment::where('booking_id', $this->booking->id)->max('payment_date');
-        
+
         $hasHistory = !empty($lastSentAt);
         $newPaymentMade = $hasHistory && (!empty($lastPaymentAt) && Carbon::parse($lastPaymentAt)->isAfter(Carbon::parse($lastSentAt)));
 
@@ -492,7 +499,7 @@ class BookingOverview extends Component
                 $warnings[] = "A receipt has already been sent for the existing payments.";
             } else {
                 $prefix = ($type === 'invoice') ? 'An' : 'A';
-                $typeName = match($type) {
+                $typeName = match ($type) {
                     'invoice' => 'Invoice',
                     'po' => 'Purchase Order',
                     default => 'Email'
@@ -543,7 +550,7 @@ class BookingOverview extends Component
         $this->executeOpenEmailModal($type);
     }
 
-    public function deleteEmailLog($logId)
+    public function deleteEmailLog(int|string|null $logId)
     {
         if ($logId) {
             \Illuminate\Support\Facades\DB::table('email_logs')->where('id', $logId)->delete();
@@ -579,7 +586,7 @@ class BookingOverview extends Component
         $this->executeOpenEmailModal($this->pendingEmailType);
     }
 
-    private function executeOpenEmailModal($type)
+    private function executeOpenEmailModal(string $type)
     {
         $this->emailType = $type;
         $this->emailTo = $this->booking->customer_email;
@@ -592,7 +599,7 @@ class BookingOverview extends Component
         $eventDate = Carbon::parse($this->booking->event_date)->format('d/m/Y');
         $invNum = $this->booking->invoice_number ?? $this->booking->id;
         $fullAddress = $this->booking->address_line_1 . ', ' . $this->booking->suburb . ' ' . $this->booking->state . ' ' . $this->booking->postcode;
-        
+
         $startTime = Carbon::parse($this->booking->start_time);
         $timeString = $startTime->format('g:i A');
         if (!empty($this->booking->end_time) && $this->booking->end_time != '00:00:00') {
@@ -649,7 +656,7 @@ class BookingOverview extends Component
             $this->isSentSuccessfully = true;
             $this->dispatch('close-modal', 'emailModal');
             $this->dispatch('open-modal', 'sentSuccessModal');
-            
+
             // Re-fetch email logs to show the new one
             $this->booking->refresh();
         } else {
@@ -673,7 +680,7 @@ class BookingOverview extends Component
     public function openCalendarModal()
     {
         $this->tempSelectedDate = $this->booking->event_date;
-        
+
         // 1. Current Booking Attractions
         $this->bookedAttractions = BookingItem::where('booking_id', $this->booking->id)
             ->where('is_custom', 0)
@@ -740,7 +747,7 @@ class BookingOverview extends Component
             ->whereNotIn('bookings.status', ['Cancelled'])
             ->where('bookings.id', '!=', $this->booking->id) // Exclude current booking
             ->where('booking_items.is_custom', 0)
-            ->select('bookings.event_date', 'booking_items.item_name')
+            ->select(['bookings.event_date', 'booking_items.item_name'])
             ->get()
             ->groupBy('event_date')
             ->map(fn($group) => $group->pluck('item_name')->unique()->values()->toArray())
@@ -797,7 +804,7 @@ class BookingOverview extends Component
                     }
                 }
             }
-            
+
             $this->calDays[] = [
                 'date' => $dateStr,
                 'day' => $day,
@@ -815,7 +822,7 @@ class BookingOverview extends Component
             // 1. Conflict Check
             $dayItems = $this->dailyAttractions[$this->tempSelectedDate] ?? [];
             $conflicts = array_intersect($this->bookedAttractions, $dayItems);
-            
+
             if (!empty($conflicts)) {
                 $this->dispatch('notify', title: 'Invalid Selection', message: 'You cannot move to this date due to attraction conflicts.', type: 'error');
                 return;
@@ -839,16 +846,40 @@ class BookingOverview extends Component
         }
     }
 
+    #[On('booking-preview-updated')]
+    public function updatePreview(?array $extras, ?array $selectedItems, ?array $totals)
+    {
+        $this->previewExtras = $extras;
+        $this->previewSelectedItems = $selectedItems;
+        $this->previewTotals = $totals;
+    }
+
+    #[On('booking-updated')]
     public function render()
     {
-        $items = BookingItem::where('booking_id', $this->booking->id)
-            ->leftJoin('products', function($join) {
-                $join->on('booking_items.item_name', '=', 'products.name')
-                     ->where('booking_items.is_custom', '=', 0);
-            })
-            ->selectRaw('booking_items.item_name, booking_items.is_custom, SUM(booking_items.qty) as total_qty, products.specification, products.price as unit_price, products.category')
-            ->groupBy('booking_items.item_name', 'booking_items.is_custom', 'products.specification', 'products.price', 'products.category')
-            ->get();
+        if ($this->previewSelectedItems !== null) {
+            // Build virtual items collection from preview data
+            $items = collect($this->previewSelectedItems)->map(function($data, $name) {
+                $product = DB::table('products')->whereRaw('LOWER(TRIM(name)) = ?', [$name])->first();
+                return (object)[
+                    'item_name' => $product ? $product->name : ucwords($name),
+                    'total_qty' => $data['qty'],
+                    'unit_price' => $data['price'] ?? ($product ? $product->price : 0),
+                    'specification' => $product ? $product->specification : '',
+                    'category' => $product ? $product->category : 'Custom',
+                    'is_custom' => $product ? 0 : 1
+                ];
+            });
+        } else {
+            $items = BookingItem::where('booking_id', $this->booking->id)
+                ->leftJoin('products', function ($join) {
+                    $join->on('booking_items.item_name', '=', 'products.name')
+                        ->where('booking_items.is_custom', '=', 0);
+                })
+                ->selectRaw('booking_items.item_name, booking_items.is_custom, SUM(booking_items.qty) as total_qty, products.specification, COALESCE(NULLIF(booking_items.item_price, 0), products.price, 0) as unit_price, products.category')
+                ->groupBy('booking_items.item_name', 'booking_items.is_custom', 'products.specification', 'booking_items.item_price', 'products.price', 'products.category')
+                ->get();
+        }
 
         $payments = BookingPayment::where('booking_id', $this->booking->id)->orderBy('payment_date', 'asc')->get();
         $emailLogs = DB::table('email_logs')->where('booking_id', $this->booking->id)->orderBy('sent_at', 'desc')->get();
@@ -889,8 +920,9 @@ class BookingOverview extends Component
 
             // Notify if newly discovered
             if (!empty($this->modalNameConflicts) && $this->lastToastDate !== $this->tempSelectedDate) {
-                $this->dispatch('notify', 
-                    title: 'Duplicate Contact Detected', 
+                $this->dispatch(
+                    'notify',
+                    title: 'Duplicate Contact Detected',
                     message: "This customer already has a booking on " . \Carbon\Carbon::parse($this->tempSelectedDate)->format('d M Y'),
                     type: 'warning'
                 );
@@ -899,34 +931,31 @@ class BookingOverview extends Component
         }
 
         $amountPaid = $payments->sum('amount');
-        $totalAmount = (float) $this->booking->total_amount;
+        $totalAmount = $this->previewTotals['total'] ?? (float) $this->booking->total_amount;
         $balanceDue = max(0, $totalAmount - $amountPaid);
-        $depositReq = $this->booking->deposit_required > 0 ? $this->booking->deposit_required : ($totalAmount / 2);
+        $depositReq = ($this->previewTotals['total'] ?? 0) > 0 ? ($this->previewTotals['total'] / 2) : ($this->booking->deposit_required > 0 ? $this->booking->deposit_required : ($totalAmount / 2));
 
         // Check if Debt Indicators should be active (Must have balance AND be in the past)
         $isPastDate = Carbon::parse($this->booking->event_date)->startOfDay()->isBefore(now()->startOfDay());
-        $isDebt = $balanceDue > 0 && ($isPastDate || $this->booking->status === 'Completed');
-        // Actually, the user wants it to ONLY activate if the date has passed.
-        // But usually, if it's marked 'Completed' manually, it might be a debt too.
-        // Let's stick closer to the user's wish: "it will activate if the date of event has passed on"
         $isDebt = $balanceDue > 0 && $isPastDate;
 
         $extrasList = array_merge(
             json_decode($this->booking->general_extra ?? '[]', true) ?? [],
             json_decode($this->booking->specific_extra ?? '[]', true) ?? []
         );
-        $calculatedExtrasTotal = empty($extrasList) ? ($this->booking->extra_logistics_cost ?? 0) : array_sum($extrasList);
+        $calculatedExtrasTotal = $this->previewTotals['extras'] ?? (empty($extrasList) ? ($this->booking->extra_logistics_cost ?? 0) : array_sum($extrasList));
 
         $isCard = in_array($this->booking->payment_type, ['credit_card', 'Card Holder']);
-        $baseAmount = $totalAmount;
-        $surcharge = 0;
-        if ($isCard && $totalAmount > 0) {
+        $baseAmount = $this->previewTotals['subtotal'] ?? $totalAmount;
+        $surcharge = $this->previewTotals['surcharge'] ?? 0;
+        
+        if ($this->previewTotals === null && $isCard && $totalAmount > 0) {
             $baseAmount = $totalAmount / 1.029;
             $surcharge = $totalAmount - $baseAmount;
         }
 
-        $deliveryCost = ($this->booking->delivery_cost ?: $this->booking->delivery_fee) ?: 0;
-        $ridesCost = max(0, $baseAmount - $calculatedExtrasTotal - $deliveryCost);
+        $deliveryCost = $this->previewTotals['delivery'] ?? (($this->booking->delivery_cost ?: $this->booking->delivery_fee) ?: 0);
+        $ridesCost = $this->previewTotals['attractions'] ?? max(0, $baseAmount - $calculatedExtrasTotal - $deliveryCost);
 
         $statusColor = match ($this->booking->status) {
             'Completed' => 'bg-green-100 text-green-700 border-green-200',
@@ -944,13 +973,36 @@ class BookingOverview extends Component
         }
         $activeCategories = array_unique($activeCategories);
 
-        // Fetch configs for Extra Configurations display matching new-booking/edit-booking logic
         $config = [
-            'addons' => DB::table('category_addons')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { 
-                return $g->map(fn($v) => (array)$v)->toArray(); 
+            'addons' => DB::table('category_addons')->orderBy('category_target')->get()->groupBy('category_target')->map(function ($g) use ($extrasList) {
+                // Lowercase keys for case-insensitive lookup
+                $extrasListLower = array_combine(
+                    array_map(fn($k) => strtolower(trim($k)), array_keys($extrasList)),
+                    array_values($extrasList)
+                );
+
+                return $g->map(function($v) use ($extrasListLower) {
+                    $arr = (array)$v;
+                    $label = strtolower(trim($arr['addon_label']));
+                    $catLabel = strtolower(trim($arr['category_target'] . ': ' . $arr['addon_label']));
+                    if (isset($extrasListLower[$label])) $arr['addon_price'] = (float)$extrasListLower[$label];
+                    elseif (isset($extrasListLower[$catLabel])) $arr['addon_price'] = (float)$extrasListLower[$catLabel];
+                    return $arr;
+                })->toArray();
             })->toArray(),
-            'questions' => DB::table('product_extras')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { 
-                return $g->map(fn($v) => (array)$v)->toArray(); 
+            'questions' => DB::table('product_extras')->orderBy('category_target')->get()->groupBy('category_target')->map(function ($g) use ($extrasList) {
+                return $g->map(function($v) use ($extrasList) {
+                    $arr = (array)$v;
+                    $qText = strtolower(trim($arr['question_text']));
+                    // Search in extrasList for any key containing the question text
+                    foreach ($extrasList as $label => $price) {
+                        if (str_contains(strtolower(trim($label)), $qText)) {
+                            $arr['yes_price'] = (float)$price;
+                            break;
+                        }
+                    }
+                    return $arr;
+                })->toArray();
             })->toArray(),
             'dropdowns' => []
         ];
@@ -960,41 +1012,62 @@ class BookingOverview extends Component
         foreach ($rawDropdowns as $dd) {
             $ddArray = (array)$dd;
             $opts = $rawOpts->get($dd->id) ?? collect([]);
-            $ddArray['options'] = $opts->map(function($o) { return (array)$o; })->toArray();
+            $ddArray['options'] = $opts->map(function ($o) use ($extrasList, $dd) {
+                $arr = (array)$o;
+                $optLabel = strtolower(trim($arr['option_label']));
+                $ddLabel = strtolower(trim($dd->label));
+                $targetLabel = strtolower(trim($dd->category_target));
+
+                foreach ($extrasList as $label => $price) {
+                    $lowLabel = strtolower(trim($label));
+                    if (str_contains($lowLabel, $optLabel) && (str_contains($lowLabel, $ddLabel) || str_contains($lowLabel, $targetLabel))) {
+                        $arr['option_price'] = (float)$price;
+                        break;
+                    }
+                }
+                return $arr;
+            })->toArray();
             $config['dropdowns'][$dd->category_target][] = $ddArray;
         }
 
-        $selectedExtras = json_decode($this->booking->extras_json ?? '[]', true) ?? [];
+        $selectedExtras = $this->previewExtras ?? json_decode($this->booking->extras_json ?? '[]', true) ?? [];
 
         // --- DATA RECOVERY & PARITY CHECK FOR OVERVIEW ---
-        // Ensure that if a ride item is selected (like Generator or Dropbox), it is shown in Extra Logistics table 
-        // even if not explicitly in extras_json.
-        $lowercaseItems = array_map(fn($it) => strtolower(trim($it->item_name)), $items->all());
+        // ONLY run recovery if we are NOT in preview mode (to allow explicit unselection)
+        if ($this->previewExtras === null) {
+            $lowercaseItems = array_map(fn($it) => strtolower(trim($it->item_name)), $items->all());
 
-        // 1. Sync Addons
-        $addonsLookup = DB::table('category_addons')->get();
-        foreach ($addonsLookup as $a) {
-            $addonKey = 'add_' . $a->id;
-            if (!isset($selectedExtras[$addonKey]) && in_array(strtolower(trim($a->addon_label)), $lowercaseItems)) {
-                $selectedExtras[$addonKey] = "1";
+            // 1. Sync Addons - Only if not explicitly '0'
+            $addonsLookup = DB::table('category_addons')->get();
+            foreach ($addonsLookup as $a) {
+                $addonKey = 'add_' . $a->id;
+                if (!isset($selectedExtras[$addonKey]) && in_array(strtolower(trim($a->addon_label)), $lowercaseItems)) {
+                    $selectedExtras[$addonKey] = "1";
+                } elseif (isset($selectedExtras[$addonKey]) && $selectedExtras[$addonKey] === "0") {
+                    // Keep it removed if explicitly 0
+                }
             }
-        }
 
-        // 2. Sync Questions
-        $questionsLookup = DB::table('product_extras')->get();
-        foreach ($questionsLookup as $q) {
-            $qKey = 'q_' . $q->id;
-            if (!isset($selectedExtras[$qKey]) && in_array(strtolower(trim($q->question_text)), $lowercaseItems)) {
-                $selectedExtras[$qKey] = $q->yes_price . '|yes';
+            // 2. Sync Questions - Only if not explicitly 'no' or '0'
+            $questionsLookup = DB::table('product_extras')->get();
+            foreach ($questionsLookup as $q) {
+                $qKey = 'q_' . $q->id;
+                if (!isset($selectedExtras[$qKey]) && in_array(strtolower(trim($q->question_text)), $lowercaseItems)) {
+                    $selectedExtras[$qKey] = $q->yes_price . '|yes';
+                } elseif (isset($selectedExtras[$qKey]) && (str_ends_with($selectedExtras[$qKey], '|no') || $selectedExtras[$qKey] === "0")) {
+                    // Keep it removed
+                }
             }
-        }
 
-        // 3. Sync Dropdowns
-        $dropdownOptions = DB::table('dropdown_options')->get();
-        foreach ($dropdownOptions as $opt) {
-            $ddKey = 'dd_' . $opt->dropdown_id;
-            if (!isset($selectedExtras[$ddKey]) && in_array(strtolower(trim($opt->option_label)), $lowercaseItems)) {
-                $selectedExtras[$ddKey] = $opt->id;
+            // 3. Sync Dropdowns - Only if not explicitly '0'
+            $dropdownOptions = DB::table('dropdown_options')->get();
+            foreach ($dropdownOptions as $opt) {
+                $ddKey = 'dd_' . $opt->dropdown_id;
+                if (!isset($selectedExtras[$ddKey]) && in_array(strtolower(trim($opt->option_label)), $lowercaseItems)) {
+                    $selectedExtras[$ddKey] = $opt->id;
+                } elseif (isset($selectedExtras[$ddKey]) && ($selectedExtras[$ddKey] === "0" || $selectedExtras[$ddKey] === "")) {
+                    // Keep it removed
+                }
             }
         }
 

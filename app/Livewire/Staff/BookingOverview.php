@@ -44,9 +44,38 @@ class BookingOverview extends Component
         foreach ($items as $item) { if ($item->category) { $activeCategories[] = $item->category; } }
         $activeCategories = array_unique($activeCategories);
 
+        $extrasList = array_merge(json_decode($this->booking->general_extra ?? '[]', true) ?? [], json_decode($this->booking->specific_extra ?? '[]', true) ?? []);
+        
         $config = [
-            'addons' => DB::table('category_addons')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { return $g->map(fn($v) => (array)$v)->toArray(); })->toArray(),
-            'questions' => DB::table('product_extras')->orderBy('category_target')->get()->groupBy('category_target')->map(function($g) { return $g->map(fn($v) => (array)$v)->toArray(); })->toArray(),
+            'addons' => DB::table('category_addons')->orderBy('category_target')->get()->groupBy('category_target')->map(function ($g) use ($extrasList) {
+                // Lowercase keys for case-insensitive lookup
+                $extrasListLower = array_combine(
+                    array_map(fn($k) => strtolower(trim($k)), array_keys($extrasList)),
+                    array_values($extrasList)
+                );
+
+                return $g->map(function($v) use ($extrasListLower) {
+                    $arr = (array)$v;
+                    $label = strtolower(trim($arr['addon_label']));
+                    $catLabel = strtolower(trim($arr['category_target'] . ': ' . $arr['addon_label']));
+                    if (isset($extrasListLower[$label])) $arr['addon_price'] = (float)$extrasListLower[$label];
+                    elseif (isset($extrasListLower[$catLabel])) $arr['addon_price'] = (float)$extrasListLower[$catLabel];
+                    return $arr;
+                })->toArray();
+            })->toArray(),
+            'questions' => DB::table('product_extras')->orderBy('category_target')->get()->groupBy('category_target')->map(function ($g) use ($extrasList) {
+                return $g->map(function($v) use ($extrasList) {
+                    $arr = (array)$v;
+                    $qText = strtolower(trim($arr['question_text']));
+                    foreach ($extrasList as $label => $price) {
+                        if (str_contains(strtolower(trim($label)), $qText)) {
+                            $arr['yes_price'] = (float)$price;
+                            break;
+                        }
+                    }
+                    return $arr;
+                })->toArray();
+            })->toArray(),
             'dropdowns' => []
         ];
 
@@ -55,7 +84,21 @@ class BookingOverview extends Component
         foreach ($rawDropdowns as $dd) {
             $ddArray = (array)$dd;
             $opts = $rawOpts->get($dd->id) ?? collect([]);
-            $ddArray['options'] = $opts->map(function($o) { return (array)$o; })->toArray();
+            $ddArray['options'] = $opts->map(function ($o) use ($extrasList, $dd) {
+                $arr = (array)$o;
+                $optLabel = strtolower(trim($arr['option_label']));
+                $ddLabel = strtolower(trim($dd->label));
+                $targetLabel = strtolower(trim($dd->category_target));
+
+                foreach ($extrasList as $label => $price) {
+                    $lowLabel = strtolower(trim($label));
+                    if (str_contains($lowLabel, $optLabel) && (str_contains($lowLabel, $ddLabel) || str_contains($lowLabel, $targetLabel))) {
+                        $arr['option_price'] = (float)$price;
+                        break;
+                    }
+                }
+                return $arr;
+            })->toArray();
             $config['dropdowns'][$dd->category_target][] = $ddArray;
         }
 

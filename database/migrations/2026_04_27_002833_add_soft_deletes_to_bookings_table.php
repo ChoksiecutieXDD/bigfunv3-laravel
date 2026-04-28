@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasColumn('booking_selections', 'selected_items')) {
-            Schema::table('booking_selections', function (Blueprint $table) {
-                $table->text('selected_items')->nullable()->after('event_date');
+        if (!Schema::hasColumn('bookings', 'deleted_at')) {
+            Schema::table('bookings', function (Blueprint $table) {
+                $table->softDeletes();
             });
         }
     }
@@ -23,8 +23,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('booking_selections', function (Blueprint $table) {
-            $table->dropColumn('selected_items');
+        Schema::table('bookings', function (Blueprint $table) {
+            $table->dropSoftDeletes();
         });
     }
 };

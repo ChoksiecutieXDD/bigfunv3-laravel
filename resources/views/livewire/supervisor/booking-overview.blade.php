@@ -67,7 +67,7 @@
             </div>
             <div>
                 <span class="block font-bold text-gray-400 uppercase text-[10px]">Current Status</span>
-                <span class="font-bold {{ $booking->status == 'Confirmed' ? 'text-green-600' : 'text-gray-700' }}">{{ strtoupper($booking->status) }}</span>
+                <span class="font-bold {{ $booking->status == 'Confirmed' ? 'text-green-600' : 'text-gray-700' }}">{{ strtoupper($booking->status ?? '') }}</span>
             </div>
             <div>
                 <span class="block font-bold text-amber-600 uppercase text-[10px]">Event Date</span>
@@ -282,7 +282,7 @@
             <div class="bg-[#9D686E]/10 rounded-xl p-4 sm:p-5 space-y-3 border border-[#9D686E]/20 flex flex-col justify-center">
                 <div class="space-y-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                     @foreach($items as $item)
-                    @if($item->unit_price > 0)
+                    @if($item->unit_price >= 0)
                     <div class="flex justify-between items-start text-[11px] border-b border-[#9D686E]/5 pb-1 last:border-0 mb-1">
                         <span class="font-medium text-slate-500 flex-1">{{ $item->item_name }} ({{ $item->total_qty }})</span>
                         <span class="font-bold text-slate-700 ml-4">${{ number_format($item->unit_price * $item->total_qty, 2) }}</span>
@@ -290,19 +290,6 @@
                     @endif
                     @endforeach
 
-                    @if(($booking->duration_cost ?? 0) >= 0)
-                    <div class="flex justify-between items-center text-[11px] border-b border-[#9D686E]/5 pb-1 mb-1">
-                        <span class="font-medium text-slate-500">Duration Cost:</span>
-                        <span class="font-bold text-slate-700">${{ number_format($booking->duration_cost, 2) }}</span>
-                    </div>
-                    @endif
-
-                    @if(($deliveryCost ?? 0) >= 0)
-                    <div class="flex justify-between items-center text-[11px] border-b border-[#9D686E]/5 pb-1 mb-1">
-                        <span class="font-medium text-slate-500">Delivery Fee:</span>
-                        <span class="font-bold text-slate-700">${{ number_format($deliveryCost, 2) }}</span>
-                    </div>
-                    @endif
 
                     {{-- Dynamically Derived Extras with Costing --}}
                     @foreach($activeCategories as $cat)
@@ -312,8 +299,8 @@
                     @endphp
 
                     @foreach($catAddons as $addon)
-                    @php $isSelected = isset($selectedExtras['add_'.$addon['id']]); @endphp
-                    @if($isSelected && $addon['addon_price'] > 0)
+                    @php $isSelected = ($selectedExtras['add_'.$addon['id']] ?? '0') !== '0'; @endphp
+                    @if($isSelected && $addon['addon_price'] >= 0)
                     <div class="flex justify-between items-start text-[11px] border-b border-[#9D686E]/5 pb-1 mb-1">
                         <span class="font-medium text-slate-500 flex-1">{{ $addon['addon_label'] }}</span>
                         <span class="font-bold text-slate-700 ml-4">${{ number_format($addon['addon_price'], 2) }}</span>
@@ -324,31 +311,38 @@
                     @foreach($catQuestions as $q)
                     @php
                     $val = $selectedExtras['extra_'.$q['id']] ?? $selectedExtras['q_'.$q['id']] ?? null;
-                    $price = 0;
                     $isYes = false;
                     if ($val) {
-                    $parts = explode('|', $val);
-                    $price = (float)($parts[0] ?? 0);
-                    $answer = $parts[1] ?? 'yes';
-                    $isYes = ($answer === 'yes');
+                        $parts = explode('|', $val);
+                        $isYes = (($parts[1] ?? 'yes') === 'yes');
                     }
                     @endphp
-                    @if($isYes && $price > 0)
+                    @if($isYes)
                     <div class="flex justify-between items-start text-[11px] border-b border-[#9D686E]/5 pb-1 mb-1">
                         <span class="font-medium text-slate-500 flex-1">{{ $q['question_text'] }}</span>
-                        <span class="font-bold text-slate-700 ml-4">${{ number_format($price, 2) }}</span>
+                        <span class="font-bold text-slate-700 ml-4">${{ number_format($q['yes_price'], 2) }}</span>
                     </div>
                     @endif
-                    @endforeach
                     @endforeach
 
-                    @foreach($items as $item)
-                    @if($item->unit_price > 0)
-                    <div class="flex justify-between items-start text-[11px] border-b border-[#9D686E]/5 pb-1 last:border-0 mb-1">
-                        <span class="font-medium text-slate-500 flex-1">{{ $item->item_name }} ({{ $item->total_qty }})</span>
-                        <span class="font-bold text-slate-700 ml-4">${{ number_format($item->unit_price * $item->total_qty, 2) }}</span>
+                    @php $catDropdowns = $config['dropdowns'][$cat] ?? []; @endphp
+                    @foreach($catDropdowns as $dd)
+                    @php
+                    $val = $selectedExtras['dd_'.$dd['id']] ?? null;
+                    $selectedOpt = null;
+                    if ($val) {
+                        foreach($dd['options'] as $opt) {
+                            if($opt['id'] == $val) { $selectedOpt = $opt; break; }
+                        }
+                    }
+                    @endphp
+                    @if($selectedOpt)
+                    <div class="flex justify-between items-start text-[11px] border-b border-[#9D686E]/5 pb-1 mb-1">
+                        <span class="font-medium text-slate-500 flex-1">{{ $dd['label'] }}: {{ $selectedOpt['option_label'] }}</span>
+                        <span class="font-bold text-slate-700 ml-4">${{ number_format($selectedOpt['option_price'], 2) }}</span>
                     </div>
                     @endif
+                    @endforeach
                     @endforeach
 
                     @if(($booking->duration_cost ?? 0) >= 0)
@@ -365,10 +359,6 @@
                     </div>
                     @endif
 
-                    <div class="flex justify-between items-center text-[11px] border-b border-[#9D686E]/5 pb-1 mb-1">
-                         <span class="font-medium text-slate-500">Operational Hour:</span>
-                         <span class="font-bold text-slate-700">{{ $booking->operational_hours ?: '-' }}</span>
-                    </div>
 
                     @if($isCard && $surcharge > 0)
                     <div class="flex justify-between items-center text-[11px] border-t border-dotted border-[#9D686E]/20 pt-1 mt-1 text-purple-600">
@@ -606,7 +596,7 @@
                             @endphp
 
                             @foreach($catAddons as $addon)
-                            @php $isSelected = isset($selectedExtras['add_'.$addon['id']]); @endphp
+                            @php $isSelected = ($selectedExtras['add_'.$addon['id']] ?? '0') !== '0'; @endphp
                             @if($isSelected && $addon['addon_price'] > 0)
                             <tr class="hover:bg-gray-50 transition border-b border-gray-50 last:border-0 bg-slate-50/30">
                                 <td class="p-2 font-bold text-slate-600 py-4">
@@ -634,7 +624,7 @@
                             $isYes = ($answer === 'yes');
                             }
                             @endphp
-                            @if($isYes && $price > 0)
+                            @if($isYes && $price >= 0)
                             <tr class="hover:bg-gray-50 transition border-b border-gray-50 last:border-0 bg-slate-50/30">
                                 <td class="p-2 font-bold text-slate-600 py-4">
                                     <div class="flex items-center gap-2">
@@ -661,7 +651,7 @@
                             }
                             }
                             @endphp
-                            @if($selectedOpt && $selectedOpt['option_price'] > 0)
+                            @if($selectedOpt && $selectedOpt['option_price'] >= 0)
                             <tr class="hover:bg-gray-50 transition border-b border-gray-50 last:border-0 bg-slate-50/30">
                                 <td class="p-2 font-bold text-slate-600 py-4">
                                     <div class="flex items-center gap-2">
@@ -1447,7 +1437,7 @@
                                         @foreach($modalNameConflicts as $nc)
                                         <div class="flex justify-between items-center bg-white/50 p-1.5 px-3 rounded-lg border border-amber-200/50">
                                             <span class="text-[9px] font-black text-amber-900">#{{ $nc['invoice_number'] ?? $nc['id'] }}</span>
-                                            <span class="text-[9px] font-bold text-slate-500 italic">{{ strtoupper($nc['status']) }}</span>
+                                            <span class="text-[9px] font-bold text-slate-500 italic">{{ strtoupper($nc['status'] ?? '') }}</span>
                                         </div>
                                         @endforeach
                                     </div>
@@ -1595,7 +1585,7 @@
                             </div>
                             <div class="p-4 bg-white border border-slate-100 rounded-2xl">
                                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Reference ID</p>
-                                <p class="text-[11px] font-bold text-slate-700 break-all">{{ $selectedPayment->reference ?: 'GEN-' . strtoupper(substr(md5($selectedPayment->id), 0, 8)) }}</p>
+                                <p class="text-[11px] font-bold text-slate-700 break-all">{{ $selectedPayment->reference ?: 'GEN-' . strtoupper(substr(md5($selectedPayment->id ?? ''), 0, 8)) }}</p>
                             </div>
 
                             @if($selectedPayment->notes)
@@ -1901,7 +1891,7 @@
                 </div>
                 <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight uppercase">Sequence Error</h3>
                 <p class="text-[14px] font-bold text-slate-500 mb-8 leading-relaxed">
-                    This booking is currently <strong class="text-amber-600 underline">{{ strtoupper($booking->status) }}</strong>. <br><br>You must return it to <strong>CONFIRMED</strong> first before it can be finalized as Completed.
+                    This booking is currently <strong class="text-amber-600 underline">{{ strtoupper($booking->status ?? '') }}</strong>. <br><br>You must return it to <strong>CONFIRMED</strong> first before it can be finalized as Completed.
                 </p>
                 <button @click="restrictedStatusModal = false" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs shadow-xl transition-all active:scale-95 uppercase tracking-widest">Understood</button>
             </div>

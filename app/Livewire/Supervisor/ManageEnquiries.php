@@ -14,19 +14,19 @@ class ManageEnquiries extends Component
 {
     use WithFileUploads;
 
-    public $emails = [];
-    public $syncStatus = 'Waiting to sync...';
-    public $syncError = null;
+    public array $emails = [];
+    public string $syncStatus = 'Waiting to sync...';
+    public ?string $syncError = null;
 
     // Reply Modal State
-    public $replyModalOpen = false;
-    public $replyId = '';
-    public $replyName = '';
-    public $replyEmail = '';
-    public $replySnippet = '';
-    public $replySubject = '';
-    public $replyBody = '';
-    public $attachments = [];
+    public bool $replyModalOpen = false;
+    public string $replyId = '';
+    public string $replyName = '';
+    public string $replyEmail = '';
+    public string $replySnippet = '';
+    public string $replySubject = '';
+    public string $replyBody = '';
+    public array $attachments = [];
 
     // We removed loadEnquiries() from mount() so the page loads instantly.
     public function mount()
@@ -138,7 +138,7 @@ class ManageEnquiries extends Component
         }
     }
 
-    public function openReplyModal($emailId, $name, $email, $subject, $snippet)
+    public function openReplyModal(string $emailId, string $name, string $email, string $subject, string $snippet)
     {
         $this->replyId = $emailId;
         $this->replyName = $name;

@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Booking extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     // This tells Laravel which table to look at (optional if your table is named 'bookings')
     protected $table = 'bookings';
@@ -76,7 +77,7 @@ class Booking extends Model
      * Updates the payment method and recalculates surcharges/totals.
      * Processing Fee (2.9%) applies for 'Card Holder'.
      */
-    public function updatePaymentMethod($newMethod)
+    public function updatePaymentMethod(string|null $newMethod)
     {
         $baseTotal = (float)$this->total_amount - (float)$this->surcharge_amount;
         $newSurcharge = 0;

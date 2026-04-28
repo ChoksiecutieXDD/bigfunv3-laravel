@@ -10,28 +10,32 @@ use Carbon\Carbon;
 #[Layout('components.layouts.plain')]
 class NewBooking extends Component
 {
-    public $invoice_number;
-    public $booking_id = '';
-    public $is_edit_mode = false;
-    public $form_token;
+    public string $invoice_number = '';
+    public string $booking_id = '';
+    public bool $is_edit_mode = false;
+    public string $form_token = '';
 
-    public $existing_data = [];
-    public $saved_extras = [];
-    public $selected_products = [];
-    public $default_event_date = '';
-    public $operational_hours = '';
-    public $availability = [];
-    public $categoryLimits = [];
-    public $calDays = [];
-    public $calMonth, $calYear;
+    public array $existing_data = [];
+    public array $saved_extras = [];
+    public array $selected_products = [];
+    public array $selected_manual_prices = [];
+    public array $extraPrices = [];
+    public array $activeOverrides = [];
+    public string $default_event_date = '';
+    public string $operational_hours = '';
+    public array $availability = [];
+    public array $categoryLimits = [];
+    public array $calDays = [];
+    public ?int $calMonth = null;
+    public ?int $calYear = null;
 
     // UI Data Arrays
-    public $operators_list = [];
-    public $past_customers = [];
-    public $delivery_options = [];
-    public $duration_options = [];
-    public $categories = [];
-    public $config = ['questions' => [], 'addons' => [], 'dropdowns' => []];
+    public array $operators_list = [];
+    public array $past_customers = [];
+    public array $delivery_options = [];
+    public array $duration_options = [];
+    public array $categories = [];
+    public array $config = ['questions' => [], 'addons' => [], 'dropdowns' => []];
 
     public function mount()
     {
@@ -82,7 +86,7 @@ class NewBooking extends Component
 
         // 2. Fetch Past Customers (Group by Name/Email/Address to allow variations)
         $this->past_customers = DB::table('bookings')
-            ->select('customer_first_name', 'customer_last_name', 'customer_email', 'customer_phone', 'customer_organization', 'customer_abn', 'employer_name', 'customer_business_phone', 'address_line_1', 'business_address', 'suburb', 'state', 'postcode')
+            ->select(['customer_first_name', 'customer_last_name', 'customer_email', 'customer_phone', 'customer_organization', 'customer_abn', 'employer_name', 'customer_business_phone', 'address_line_1', 'business_address', 'suburb', 'state', 'postcode'])
             ->whereIn('id', function ($query) {
                 $query->select(DB::raw('MAX(id)'))
                     ->from('bookings')
@@ -140,7 +144,7 @@ class NewBooking extends Component
         }
     }
 
-    private function loadExistingBooking($booking)
+    private function loadExistingBooking(?object $booking)
     {
         if ($booking) {
             $this->existing_data = (array)$booking;
@@ -156,13 +160,18 @@ class NewBooking extends Component
                 ->pluck('item_name')
                 ->toArray();
 
+            $this->selected_manual_prices = DB::table('booking_items')
+                ->where('booking_id', $this->booking_id)
+                ->pluck('item_price', 'item_name')
+                ->toArray();
+
             if (!empty($booking->extras_json)) {
                 $this->saved_extras = json_decode($booking->extras_json, true) ?: [];
             }
         }
     }
 
-    public function getVal($key, $default = '')
+    public function getVal(string $key, mixed $default = '')
     {
         return isset($this->existing_data[$key]) && $this->existing_data[$key] !== ''
             ? htmlspecialchars($this->existing_data[$key], ENT_QUOTES)
@@ -176,38 +185,65 @@ class NewBooking extends Component
         $usage = DB::table('booking_items')
             ->join('bookings', 'booking_items.booking_id', '=', 'bookings.id')
             ->where('bookings.event_date', $date)
-            ->where('bookings.id', '!=', $this->booking_id)
-            ->where(function ($q) {
-                $q->whereNotIn('bookings.status', ['Cancelled', 'Draft'])
-                    ->orWhere(function ($q2) {
-                        $q2->where('bookings.status', 'Draft')
-                            ->where('bookings.created_at', '>=', now()->subMinutes(20));
-                    });
-            })
+            ->whereNotIn('bookings.status', ['Cancelled'])
             ->selectRaw('LOWER(TRIM(booking_items.item_name)) as name, SUM(booking_items.qty) as total')
             ->groupBy('name')
             ->pluck('total', 'name')
             ->toArray();
 
+        // 2. Fetch Category Limits & Calculate Category Usage
+        $catLimits = DB::table('product_categories')->pluck('daily_limit', 'category_name')->toArray();
+        $catUsage = [];
+        
         $products = DB::table('products')->where('is_active', 1)->get();
+        
+        foreach ($products as $p) {
+            $cleanName = strtolower(trim($p->name));
+            $used = $usage[$cleanName] ?? 0;
+            if ($used > 0) {
+                $targetCat = $p->counts_against ?: $p->category;
+                if ($targetCat) {
+                    $catUsage[$targetCat] = ($catUsage[$targetCat] ?? 0) + $used;
+                }
+            }
+        }
+
         $this->availability = [];
 
         foreach ($products as $p) {
             $cleanName = strtolower(trim($p->name));
             $limit = (int) $p->daily_limit;
+            $stock = (int) $p->total_quantity;
             $used = $usage[$cleanName] ?? 0;
-            $left = ($limit > 0) ? max(0, $limit - $used) : 999;
+            $targetCat = $p->counts_against ?: $p->category;
+            
+            // Base availability is physical stock
+            $left = max(0, $stock - $used);
+
+            // Cap by Product Daily Limit
+            if ($limit > 0) {
+                $limit_left = max(0, $limit - $used);
+                if ($limit_left < $left) $left = $limit_left;
+            }
+
+            // Cap by Category Daily Limit
+            if ($targetCat && isset($catLimits[$targetCat]) && $catLimits[$targetCat] > 0) {
+                $cLimit = (int)$catLimits[$targetCat];
+                $cUsed = $catUsage[$targetCat] ?? 0;
+                $cLeft = max(0, $cLimit - $cUsed);
+                if ($cLeft < $left) $left = $cLeft;
+            }
 
             $this->availability[$cleanName] = [
                 'used' => $used,
                 'limit' => $limit,
                 'left' => $left,
-                'sold_out' => ($limit > 0 && $left <= 0)
+                'sold_out' => ($left <= 0)
             ];
         }
     }
 
-    public function toggleItem($name, $selected)
+    public function toggleItem(string $name, bool|string|int|null $selected)
     {
         if ($selected) {
             if (!in_array($name, $this->selected_products)) {
@@ -215,8 +251,20 @@ class NewBooking extends Component
             }
         } else {
             $this->selected_products = array_diff($this->selected_products, [$name]);
+            if (isset($this->selected_manual_prices[$name])) {
+                unset($this->selected_manual_prices[$name]);
+            }
         }
         $this->checkAvailability();
+    }
+
+    public function updateManualPrice(string $name, float|int|string|null $price)
+    {
+        if ($price === '' || $price === null) {
+            unset($this->selected_manual_prices[$name]);
+        } else {
+            $this->selected_manual_prices[$name] = (float)$price;
+        }
     }
 
     public function updateItemQty($name, $change)
@@ -225,13 +273,48 @@ class NewBooking extends Component
         // For now, it ensures the frontend call doesn't 500
     }
 
-    public function syncExtras($extras)
+    public function syncExtras(array $extras)
     {
         $this->saved_extras = $extras;
-        // Logic for re-calculating totals can be added here if needed for live preview
+        
+        // Ensure extraPrices has keys for all extras
+        foreach ($extras as $key => $val) {
+            $isSelected = ($val && $val !== "0" && !str_ends_with($val, "|no"));
+            
+            if ($isSelected && (!isset($this->extraPrices[$key]) || $this->extraPrices[$key] == 0)) {
+                // Initialize default price if missing or zero
+                if (str_starts_with($key, 'add_')) {
+                    $id = str_replace('add_', '', $key);
+                    $addon = DB::table('category_addons')->where('id', $id)->first();
+                    $this->extraPrices[$key] = $addon ? (float)$addon->addon_price : 0;
+                } elseif (str_starts_with($key, 'dd_')) {
+                    if ($val && $val !== "0") {
+                        $opt = DB::table('dropdown_options')->where('id', $val)->first();
+                        $this->extraPrices[$key] = $opt ? (float)$opt->option_price : 0;
+                    } else {
+                        $this->extraPrices[$key] = 0;
+                    }
+                } elseif (str_starts_with($key, 'q_')) {
+                    $parts = explode('|', $val);
+                    $this->extraPrices[$key] = (float)($parts[0] ?? 0);
+                }
+            } elseif (!$isSelected) {
+                $this->extraPrices[$key] = 0;
+            }
+        }
     }
 
-    public function removeAttachment($column)
+    public function updateExtraPrice(string|int $key, float|int|string|null $price)
+    {
+        $this->extraPrices[$key] = (float)$price;
+    }
+
+    public function updateOverrideState(string|int $key, bool|int|string|null $isActive)
+    {
+        $this->activeOverrides[$key] = $isActive;
+    }
+
+    public function removeAttachment(string $column)
     {
         if (!$this->booking_id) return;
 
@@ -253,7 +336,7 @@ class NewBooking extends Component
         }
     }
 
-    public function attachmentUploaded($column, $fileName)
+    public function attachmentUploaded(string $column, string $fileName)
     {
         $this->existing_data[$column] = $fileName;
     }

@@ -12,34 +12,38 @@ use Carbon\Carbon;
 class NewBooking extends Component
 {
     use WithFileUploads;
-    public $invoice_number;
-    public $booking_id = '';
-    public $is_edit_mode = false;
-    public $form_token;
+    public string $invoice_number = '';
+    public string $booking_id = '';
+    public bool $is_edit_mode = false;
+    public string $form_token = '';
 
-    public $existing_data = [];
-    public $saved_extras = [];
-    public $selected_products = [];
-    public $default_event_date = '';
-    public $operational_hours = '';
-    public $availability = [];
-    public $categoryLimits = [];
-    public $calDays = [];
-    public $calMonth, $calYear;
+    public array $existing_data = [];
+    public array $saved_extras = [];
+    public array $selected_products = [];
+    public array $selected_manual_prices = [];
+    public array $extraPrices = [];
+    public array $activeOverrides = [];
+    public string $default_event_date = '';
+    public string $operational_hours = '';
+    public array $availability = [];
+    public array $categoryLimits = [];
+    public array $calDays = [];
+    public int $calMonth = 0;
+    public int $calYear = 0;
 
-    public $temp_attachment_1;
-    public $temp_attachment_2;
-    public $temp_attachment_3;
-    public $temp_attachment_4;
-    public $temp_attachment_5;
+    public mixed $temp_attachment_1 = null;
+    public mixed $temp_attachment_2 = null;
+    public mixed $temp_attachment_3 = null;
+    public mixed $temp_attachment_4 = null;
+    public mixed $temp_attachment_5 = null;
 
     // UI Data Arrays
-    public $operators_list = [];
-    public $past_customers = [];
-    public $delivery_options = [];
-    public $duration_options = [];
-    public $categories = [];
-    public $config = ['questions' => [], 'addons' => [], 'dropdowns' => []];
+    public array $operators_list = [];
+    public array $past_customers = [];
+    public array $delivery_options = [];
+    public array $duration_options = [];
+    public array $categories = [];
+    public array $config = ['questions' => [], 'addons' => [], 'dropdowns' => []];
 
     public function mount()
     {
@@ -90,7 +94,7 @@ class NewBooking extends Component
 
         // 2. Fetch Past Customers (Group by Name/Email/Address to allow variations)
         $this->past_customers = DB::table('bookings')
-            ->select('customer_first_name', 'customer_last_name', 'customer_email', 'customer_phone', 'customer_organization', 'customer_abn', 'employer_name', 'customer_business_phone', 'address_line_1', 'business_address', 'suburb', 'state', 'postcode')
+            ->select(['customer_first_name', 'customer_last_name', 'customer_email', 'customer_phone', 'customer_organization', 'customer_abn', 'employer_name', 'customer_business_phone', 'address_line_1', 'business_address', 'suburb', 'state', 'postcode'])
             ->whereIn('id', function ($query) {
                 $query->select(DB::raw('MAX(id)'))
                     ->from('bookings')
@@ -148,7 +152,7 @@ class NewBooking extends Component
         }
     }
 
-    private function loadExistingBooking($booking)
+    private function loadExistingBooking(mixed $booking)
     {
         if ($booking) {
             $this->existing_data = (array)$booking;
@@ -163,6 +167,11 @@ class NewBooking extends Component
                 ->pluck('item_name')
                 ->toArray();
 
+            $this->selected_manual_prices = DB::table('booking_items')
+                ->where('booking_id', $this->booking_id)
+                ->pluck('item_price', 'item_name')
+                ->toArray();
+
             if (!empty($booking->extras_json)) {
                 $this->saved_extras = json_decode($booking->extras_json, true) ?: [];
             }
@@ -170,14 +179,14 @@ class NewBooking extends Component
     }
 
     // Helper method to safely get values for the blade view
-    public function getVal($key, $default = '')
+    public function getVal(string $key, string $default = '')
     {
         return isset($this->existing_data[$key]) && $this->existing_data[$key] !== ''
             ? htmlspecialchars($this->existing_data[$key], ENT_QUOTES)
             : $default;
     }
 
-    public function toggleItem($name, $selected)
+    public function toggleItem(string $name, bool $selected)
     {
         if ($selected) {
             if (!in_array($name, $this->selected_products)) {
@@ -185,18 +194,66 @@ class NewBooking extends Component
             }
         } else {
             $this->selected_products = array_diff($this->selected_products, [$name]);
+            if (isset($this->selected_manual_prices[$name])) {
+                unset($this->selected_manual_prices[$name]);
+            }
         }
     }
 
-    public function updateItemQty($name, $change)
+    public function updateManualPrice(string $name, mixed $price)
+    {
+        if ($price === '' || $price === null) {
+            unset($this->selected_manual_prices[$name]);
+        } else {
+            $this->selected_manual_prices[$name] = (float)$price;
+        }
+    }
+
+    public function updateItemQty(string $name, int $change)
     {
         // This is a placeholder for quantity-based logic if needed in the future
         // For now, it ensures the frontend call doesn't 500
     }
 
-    public function syncExtras($extras)
+    public function syncExtras(array $extras)
     {
         $this->saved_extras = $extras;
+
+        // Ensure extraPrices has keys for all extras
+        foreach ($extras as $key => $val) {
+            $isSelected = ($val && $val !== "0" && !str_ends_with($val, "|no"));
+            
+            if ($isSelected && (!isset($this->extraPrices[$key]) || $this->extraPrices[$key] == 0)) {
+                // Initialize default price if missing or zero
+                if (str_starts_with($key, 'add_')) {
+                    $id = str_replace('add_', '', $key);
+                    $addon = DB::table('category_addons')->where('id', $id)->first();
+                    $this->extraPrices[$key] = $addon ? (float)$addon->addon_price : 0;
+                } elseif (str_starts_with($key, 'dd_')) {
+                    if ($val && $val !== "0") {
+                        $opt = DB::table('dropdown_options')->where('id', $val)->first();
+                        $this->extraPrices[$key] = $opt ? (float)$opt->option_price : 0;
+                    } else {
+                        $this->extraPrices[$key] = 0;
+                    }
+                } elseif (str_starts_with($key, 'q_')) {
+                    $parts = explode('|', $val);
+                    $this->extraPrices[$key] = (float)($parts[0] ?? 0);
+                }
+            } elseif (!$isSelected) {
+                $this->extraPrices[$key] = 0;
+            }
+        }
+    }
+
+    public function updateExtraPrice(string $key, mixed $price)
+    {
+        $this->extraPrices[$key] = (float)$price;
+    }
+
+    public function updateOverrideState(string $key, bool $isActive)
+    {
+        $this->activeOverrides[$key] = $isActive;
     }
 
     public function checkAvailability()
@@ -225,19 +282,28 @@ class NewBooking extends Component
         foreach ($products as $p) {
             $cleanName = strtolower(trim($p->name));
             $limit = (int) $p->daily_limit;
+            $stock = (int) $p->total_quantity;
             $used = $usage[$cleanName] ?? 0;
-            $left = ($limit > 0) ? max(0, $limit - $used) : 999;
+            
+            // Base availability is the physical stock minus what's already booked
+            $left = max(0, $stock - $used);
+
+            // If there's a daily limit set (cap), further restrict availability
+            if ($limit > 0) {
+                $limit_left = max(0, $limit - $used);
+                if ($limit_left < $left) $left = $limit_left;
+            }
 
             $this->availability[$cleanName] = [
                 'used' => $used,
                 'limit' => $limit,
                 'left' => $left,
-                'sold_out' => ($limit > 0 && $left <= 0)
+                'sold_out' => ($left <= 0)
             ];
         }
     }
 
-    public function removeAttachment($column)
+    public function removeAttachment(string $column)
     {
         if (!$this->booking_id) return;
 
@@ -259,7 +325,7 @@ class NewBooking extends Component
         }
     }
 
-    public function attachmentUploaded($column, $fileName)
+    public function attachmentUploaded(string $column, string $fileName)
     {
         $this->existing_data[$column] = $fileName;
     }

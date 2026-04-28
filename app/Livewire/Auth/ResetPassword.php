@@ -11,13 +11,13 @@ use Illuminate\Support\Facades\Auth;
 #[Layout('components.layouts.auth-layout')]
 class ResetPassword extends Component
 {
-    public $token;
-    public $password = '';
-    public $password_confirmation = '';
-    public $isValid = false;
-    public $errorMsg = '';
+    public ?string $token = null;
+    public string $password = '';
+    public string $password_confirmation = '';
+    public bool $isValid = false;
+    public string $errorMsg = '';
 
-    public function mount($token)
+    public function mount(?string $token)
     {
         $this->token = $token;
 

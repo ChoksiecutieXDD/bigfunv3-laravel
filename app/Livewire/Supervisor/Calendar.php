@@ -12,11 +12,11 @@ use Illuminate\Support\Facades\DB;
 class Calendar extends Component
 {
     // 1. FIXED: Remove strict types (int, string, bool) to prevent Livewire crashes
-    public $currentMonth;
-    public $currentYear;
-    public $statusFilter = 'All';
-    public $showOnlyBooked = false;
-    public $showWholeYear = false;
+    public int|string $currentMonth;
+    public int|string $currentYear;
+    public string $statusFilter = 'All';
+    public bool $showOnlyBooked = false;
+    public bool $showWholeYear = false;
 
     public function mount()
     {

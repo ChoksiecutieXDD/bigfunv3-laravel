@@ -102,7 +102,7 @@
                         const actionText = card.querySelector('.action-text');
                         const targetCat = (card.dataset.countsAgainst || '').trim().toLowerCase();
                         const itemLimit = parseInt(card.dataset.dailyLimit) || 0;
-                        const initialStock = parseInt(card.dataset.stock) || 999;
+                        const initialStock = (card.dataset.stock !== undefined && card.dataset.stock !== '') ? parseInt(card.dataset.stock) : 999;
                         const UNLIMITED_THRESHOLD = 99;
 
                         // LIVE SELECTION BADGES
@@ -223,19 +223,17 @@
         const categories = window.bookingAppData.categories;
         for (let cat in categories) usage[cat.trim().toLowerCase()] = window.globalCategoryBooked[cat.trim().toLowerCase()] || 0;
 
+        const rideNamesCounted = new Set();
         document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
-            const limitCategory = (cb.closest('.product-card').dataset.countsAgainst || '').trim().toLowerCase();
+            const card = cb.closest('.product-card');
+            const limitCategory = (card.dataset.countsAgainst || '').trim().toLowerCase();
+            const rideName = (card.dataset.name || '').trim().toLowerCase();
             if (limitCategory) usage[limitCategory] = (usage[limitCategory] || 0) + 1;
+            if (rideName) rideNamesCounted.add(rideName);
         });
 
         // Also count selected Extras (Addons, Dropdowns, Questions)
         // CRITICAL: Avoid double-counting items that are also selected as rides (synced items)
-        const items = window.bookingAppData.selectedItems || {};
-        const selectedRideNames = new Set(
-            (Array.isArray(items) ? items : Object.keys(items))
-            .map(s => s.toLowerCase().trim())
-        );
-
         document.querySelectorAll('.ext-price').forEach(el => {
             if (!el.dataset.countsAgainst) return;
             const catKey = el.dataset.countsAgainst.trim().toLowerCase();
@@ -250,18 +248,16 @@
                 // For selects/questions/dropdowns, identify the label
                 const labelEl = el.closest('div').querySelector('label');
                 label = (labelEl?.innerText || "").toLowerCase().trim();
-                // If it's a dropdown, also check the selected option label
+                
+                // If it's a dropdown, check if the selected OPTION matches a counted ride
                 if (isSelected && el.options[el.selectedIndex]) {
                     const optLabel = el.options[el.selectedIndex].text.split('(')[0].toLowerCase().trim();
-                    if (selectedRideNames.has(optLabel)) {
-                        // This specific option matches a ride, skip counting
-                        return;
-                    }
+                    if (rideNamesCounted.has(optLabel)) return;
                 }
             }
 
-            // If the addon label matches a selected ride, don't double count
-            if (isSelected && selectedRideNames.has(label)) return;
+            // If the addon label matches a ride ALREADY COUNTED above, don't double count
+            if (isSelected && rideNamesCounted.has(label)) return;
 
             if (isSelected) usage[catKey] = (usage[catKey] || 0) + 1;
         });
@@ -371,39 +367,49 @@
         // CRITICAL: Run this BEFORE saving state so we don't accidentally wipe selections on first render
         if (window.bookingAppData && window.bookingAppData.config) {
             
-            // 1. Sync Addons
+            // 1. Sync Addons - Only if not explicitly '0'
             if (window.bookingAppData.config.addons) {
                 for (let cat in window.bookingAppData.config.addons) {
                     window.bookingAppData.config.addons[cat].forEach(addon => {
                         const addonName = (addon.addon_label || '').toLowerCase().trim();
+                        const key = `add_${addon.id}`;
                         if (addonName && selectedRideNames.has(addonName)) {
-                            window.bookingAppData.savedExtras[`add_${addon.id}`] = "1";
+                            if (!window.bookingAppData.savedExtras[key] || window.bookingAppData.savedExtras[key] !== "0") {
+                                window.bookingAppData.savedExtras[key] = "1";
+                            }
                         }
                     });
                 }
             }
 
-            // 2. Sync Questions
+            // 2. Sync Questions - Only if not explicitly 'no' or '0'
             if (window.bookingAppData.config.questions) {
                 for (let cat in window.bookingAppData.config.questions) {
                     window.bookingAppData.config.questions[cat].forEach(q => {
                         const qName = (q.question_text || '').toLowerCase().trim();
+                        const key = `q_${q.id}`;
                         if (qName && selectedRideNames.has(qName)) {
-                            window.bookingAppData.savedExtras[`q_${q.id}`] = `${q.yes_price}|yes`;
+                            const val = window.bookingAppData.savedExtras[key];
+                            if (!val || (!val.endsWith('|no') && val !== "0")) {
+                                window.bookingAppData.savedExtras[key] = `${q.yes_price}|yes`;
+                            }
                         }
                     });
                 }
             }
 
-            // 3. Sync Dropdowns (Match Option Labels)
+            // 3. Sync Dropdowns - Only if not explicitly '0'
             if (window.bookingAppData.config.dropdowns) {
                 for (let cat in window.bookingAppData.config.dropdowns) {
                     window.bookingAppData.config.dropdowns[cat].forEach(dd => {
                         if (dd.options) {
                             dd.options.forEach(opt => {
                                 const optName = (opt.option_label || '').toLowerCase().trim();
+                                const key = `dd_${dd.id}`;
                                 if (optName && selectedRideNames.has(optName)) {
-                                    window.bookingAppData.savedExtras[`dd_${dd.id}`] = opt.id;
+                                    if (!window.bookingAppData.savedExtras[key] || window.bookingAppData.savedExtras[key] !== "0") {
+                                        window.bookingAppData.savedExtras[key] = opt.id;
+                                    }
                                 }
                             });
                         }
@@ -425,17 +431,23 @@
 
         const activeCategoriesArray = Array.from(activeCategories).sort();
         const activeCategoriesStr = activeCategoriesArray.join('|');
+        const activeOverridesStr = JSON.stringify(window.bookingAppData.activeOverrides || {});
         
-        // --- PERFORMANCE/UX FIX: Only re-render if categories changed ---
-        // If categories are same, just update limits, don't wipe innerHTML
-        if (window.lastActiveCategoriesStr === activeCategoriesStr) {
-            window.updateCategoryLimitsUI();
-            if (typeof window.triggerRecalculate === 'function') window.triggerRecalculate();
+        // --- PERFORMANCE/UX FIX: Only re-render if categories or override states changed ---
+        // We also check if the user is typing in an input inside the extras container
+        const focusedEl = document.activeElement;
+        const isTypingInExtras = focusedEl && focusedEl.closest('#dynamicExtrasContainer') && (focusedEl.tagName === 'INPUT' || focusedEl.tagName === 'SELECT');
+
+        if (window.lastActiveCategoriesStr === activeCategoriesStr && window.lastActiveOverridesStr === activeOverridesStr) {
+            if (!isTypingInExtras) {
+                window.updateCategoryLimitsUI();
+                if (typeof window.triggerRecalculate === 'function') window.triggerRecalculate();
+            }
             return;
         }
 
-        // --- UX SAFETY: Don't re-render if user is currently interacting with a dropdown ---
-        const focusedEl = document.activeElement;
+        window.lastActiveCategoriesStr = activeCategoriesStr;
+        window.lastActiveOverridesStr = activeOverridesStr;
         if (focusedEl && focusedEl.closest('#dynamicExtrasContainer') && focusedEl.tagName === 'SELECT') {
             console.log("Skipping extras re-render: User is interacting with a dropdown.");
             return;
@@ -495,7 +507,6 @@
         }
 
         window.updateCategoryLimitsUI();
-        if (typeof window.triggerRecalculate === 'function') window.triggerRecalculate();
     };
 
     /**
@@ -533,7 +544,42 @@
                     
                     return `<option value="${o.id}" data-price="${o.option_price}" ${(val == o.id || isSelectedByRide) ? 'selected' : ''}>${o.option_label} (+$${o.option_price})</option>`;
                 }).join('');
-                catHtml += `<div class="mt-3"><label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 ml-1">${dd.label}</label><select name="${key}" data-counts-against="${countsAgainst}" data-original-value="${val}" class="input-field !py-2 text-sm ext-price bg-white cursor-pointer" onchange="window.handleExtraSelection(this)">${opts}</select></div>`;
+                
+                let selectedId = val;
+                if (!selectedId) {
+                    const matchedOpt = dd.options.find(o => {
+                        const optLabel = (o.option_label || '').toLowerCase().trim();
+                        const fullMatch = `${ddLabel}: ${optLabel}`;
+                        const dashMatch = `${ddLabel} - ${optLabel}`;
+                        return selectedRideNames.has(optLabel) || selectedRideNames.has(fullMatch) || selectedRideNames.has(dashMatch);
+                    });
+                    if (matchedOpt) selectedId = matchedOpt.id;
+                }
+                let selectedOpt = dd.options.find(o => o.id == selectedId);
+                let defaultPrice = selectedOpt ? selectedOpt.option_price : 0;
+                let currentPrice = (window.bookingAppData.extraPrices && window.bookingAppData.extraPrices[key] !== undefined) ? window.bookingAppData.extraPrices[key] : defaultPrice;
+                let isSelected = selectedId !== '' && selectedId !== '0';
+                
+                const isOverrideActive = window.bookingAppData.activeOverrides && window.bookingAppData.activeOverrides[key];
+
+                catHtml += `
+                    <div class="mt-4 first:mt-0">
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1.5 ml-1 tracking-widest">${dd.label}</label>
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                            <div class="flex-1">
+                                <select name="${key}" data-counts-against="${countsAgainst}" data-original-value="${val}" class="input-field !py-3 text-sm ext-price bg-white cursor-pointer w-full border-slate-200 focus:border-[#9E6B73] transition shadow-sm" onchange="window.handleExtraSelection(this)">${opts}</select>
+                            </div>
+                            
+                            <div id="ov_wrap_${key}" class="w-full sm:w-32 shrink-0 ${ isSelected ? '' : 'hidden' }">
+                                <div class="text-[8px] font-bold text-slate-400 mb-1 uppercase tracking-tighter">Price Override</div>
+                                <div class="relative flex items-center group">
+                                    <span class="absolute left-3.5 text-slate-400 text-[11px] font-black group-focus-within:text-[#9E6B73] transition-colors">$</span>
+                                    <input type="number" step="0.01" class="w-full bg-white border border-slate-200 rounded-xl py-3 pl-8 pr-3 text-[11px] font-black text-slate-700 focus:border-[#9E6B73] transition shadow-sm outline-none" 
+                                            value="${currentPrice}" oninput="window.updateExtraPrice('${key}', this.value)" placeholder="${defaultPrice}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
             });
         }
 
@@ -550,7 +596,35 @@
                 let yesSel = (val == (q.yes_price + '|yes') || matchesRide) ? 'selected' : '';
                 let noSel = (val == (q.no_price + '|no')) ? 'selected' : '';
                 let placeholderSel = (!yesSel && !noSel) ? 'selected' : '';
-                catHtml += `<div class="mt-3"><label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 ml-1">${q.question_text}</label><select name="${key}" data-counts-against="${countsAgainst}" data-original-value="${val}" class="input-field !py-2 text-sm ext-price bg-white cursor-pointer" onchange="window.handleExtraSelection(this)"><option value="" data-price="0" ${placeholderSel}>-- Select Choice --</option><option value="${q.yes_price}|yes" data-price="${q.yes_price}" ${yesSel}>${q.yes_label} (+$${q.yes_price})</option><option value="${q.no_price}|no" data-price="${q.no_price}" ${noSel}>${q.no_label} (+$${q.no_price})</option></select></div>`;
+                let isSelected = yesSel || noSel;
+                
+                let currentPrice = (window.bookingAppData.extraPrices && window.bookingAppData.extraPrices[key] !== undefined) ? window.bookingAppData.extraPrices[key] : (isSelected ? (yesSel ? q.yes_price : q.no_price) : 0);
+                let defaultPrice = (yesSel ? q.yes_price : (noSel ? q.no_price : 0));
+
+                const isOverrideActive = window.bookingAppData.activeOverrides && window.bookingAppData.activeOverrides[key];
+
+                catHtml += `
+                    <div class="mt-4">
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1.5 ml-1 tracking-widest">${q.question_text}</label>
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                            <div class="flex-1">
+                                <select name="${key}" data-counts-against="${countsAgainst}" data-original-value="${val}" class="input-field !py-3 text-sm ext-price bg-white cursor-pointer w-full border-slate-200 focus:border-[#9E6B73] transition shadow-sm" onchange="window.handleExtraSelection(this)">
+                                    <option value="" data-price="0" ${placeholderSel}>-- Select Choice --</option>
+                                    <option value="${q.yes_price}|yes" data-price="${q.yes_price}" ${yesSel}>${q.yes_label} (+$${q.yes_price})</option>
+                                    <option value="${q.no_price}|no" data-price="${q.no_price}" ${noSel}>${q.no_label} (+$${q.no_price})</option>
+                                </select>
+                            </div>
+                            
+                             <div id="ov_wrap_${key}" class="w-full sm:w-32 shrink-0 ${ isSelected ? '' : 'hidden' }">
+                                <div class="text-[8px] font-bold text-slate-400 mb-1 uppercase tracking-tighter">Price Override</div>
+                                <div class="relative flex items-center group">
+                                    <span class="absolute left-3.5 text-slate-400 text-[11px] font-black group-focus-within:text-[#9E6B73] transition-colors">$</span>
+                                    <input type="number" step="0.01" class="w-full bg-white border border-slate-200 rounded-xl py-3 pl-8 pr-3 text-[11px] font-black text-slate-700 focus:border-[#9E6B73] transition shadow-sm outline-none" 
+                                           value="${currentPrice}" oninput="window.updateExtraPrice('${key}', this.value)" placeholder="${defaultPrice}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
             });
         }
 
@@ -562,13 +636,39 @@
                 
                 // Aggressive matching: exact, category-prefixed, or substring (most robust)
                 const itemsList = (Array.isArray(items) ? items : Object.keys(items)).map(s => s.toLowerCase().trim());
+                const isExplicitlyUnselected = savedExtras[key] === '0';
                 let isChecked = (savedExtras[key] == '1' || 
-                                 itemsList.some(name => name === addonLabel || 
-                                                       name === `${catTarget}: ${addonLabel}` || 
-                                                       name.includes(addonLabel)));
+                                 (!isExplicitlyUnselected && itemsList.some(name => name === addonLabel || 
+                                                        name === `${catTarget}: ${addonLabel}` || 
+                                                        name.includes(addonLabel))));
                 
+                let currentPrice = (window.bookingAppData.extraPrices && window.bookingAppData.extraPrices[key] !== undefined) ? window.bookingAppData.extraPrices[key] : addon.addon_price;
                 let countsAgainst = (addon.counts_against || catName).trim();
-                catHtml += `<label class="flex items-center gap-3 mt-3 p-3 bg-white border border-slate-200 rounded-xl hover:border-[#9E6B73] cursor-pointer transition shadow-sm h-[42px]"><input type="checkbox" name="${key}" value="1" class="ext-price w-4 h-4 text-[#9E6B73] focus:ring-[#9E6B73]" data-price="${addon.addon_price}" data-counts-against="${countsAgainst}" data-original-checked="${isChecked}" ${isChecked ? 'checked' : ''} onchange="window.handleExtraSelection(this)"><span class="text-sm font-bold text-slate-700 flex-1">${addon.addon_label}</span><span class="text-xs font-bold text-[#9E6B73] bg-[#9E6B73]/10 px-2 py-1 rounded-lg">+$${addon.addon_price}</span></label>`;
+
+                catHtml += `
+                    <div class="mt-4">
+                        <div class="flex flex-col gap-2">
+                            <label class="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl hover:border-[#9E6B73] cursor-pointer transition shadow-sm min-h-[56px] relative group overflow-hidden">
+                                <input type="checkbox" name="${key}" value="1" class="ext-price w-5 h-5 text-[#9E6B73] border-slate-300 rounded focus:ring-[#9E6B73] transition-all" data-price="${addon.addon_price}" data-counts-against="${countsAgainst}" data-original-checked="${isChecked}" ${isChecked ? 'checked' : ''} onchange="window.handleExtraSelection(this)">
+                                <span class="text-sm font-extrabold text-slate-700 flex-1">${addon.addon_label}</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-black text-[#9E6B73] bg-[#9E6B73]/10 px-3 py-1.5 rounded-xl border border-[#9E6B73]/20 shadow-sm transition-all group-hover:scale-105">+$${Number(addon.addon_price).toFixed(2)}</span>
+                                </div>
+                            </label>
+                            
+                             <div id="ov_wrap_${key}" class="ml-10 bg-slate-50/50 border border-slate-200/60 rounded-2xl p-4 flex items-center gap-4 ${isChecked ? '' : 'hidden'}">
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-[9px] font-black text-[#9E6B73] uppercase tracking-[0.2em] whitespace-nowrap">Price Override</span>
+                                    <span class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Enter manual cost</span>
+                                </div>
+                                <div class="relative flex-1 flex items-center group">
+                                    <span class="absolute left-3.5 text-slate-400 text-[11px] font-black group-focus-within:text-[#9E6B73] transition-colors">$</span>
+                                    <input type="number" step="0.01" class="w-full bg-white border border-slate-200 rounded-xl py-3 pl-8 pr-3 text-[11px] font-black text-slate-700 focus:border-[#9E6B73] transition shadow-sm outline-none" 
+                                           value="${currentPrice}" oninput="window.updateExtraPrice('${key}', this.value)" placeholder="${addon.addon_price}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
             });
         }
 
@@ -594,6 +694,7 @@
         if (!window.bookingAppData) return;
         const container = document.getElementById('dynamicExtrasContainer');
         if (!container) return;
+        if (!window.bookingAppData.savedExtras) window.bookingAppData.savedExtras = {};
 
         container.querySelectorAll('.ext-price').forEach(el => {
             if (el.type === 'checkbox') {
@@ -606,7 +707,7 @@
         if (ignoreSync) return;
 
         const bridge = document.getElementById('booking-data-bridge');
-        if (bridge && bridge.dataset.id) {
+        if (bridge) {
             const lwEl = document.querySelector('[wire\\:id]');
             if (lwEl && window.Livewire) {
                 const lwComp = window.Livewire.find(lwEl.getAttribute('wire:id'));
@@ -614,6 +715,52 @@
                     lwComp.syncExtras(window.bookingAppData.savedExtras);
                 }
             }
+        }
+    };
+
+    window.toggleOverrideState = function (key, isActive) {
+        if (!window.bookingAppData) return;
+        window.bookingAppData.activeOverrides = window.bookingAppData.activeOverrides || {};
+        window.bookingAppData.activeOverrides[key] = isActive;
+        
+        // INSTANT TOGGLE: Directly manipulation DOM for speed
+        const wrap = document.getElementById(`ov_wrap_${key}`);
+        if (wrap) {
+            // Only show if the extra is actually selected
+            const el = document.querySelector(`[name="${key}"]`);
+            const isSelected = el ? (el.type === 'checkbox' ? el.checked : (el.value !== '' && el.value !== '0' && !el.value.includes('|no'))) : false;
+            
+            if (isActive && isSelected) wrap.classList.remove('hidden');
+            else wrap.classList.add('hidden');
+        }
+        
+        if (window.lwBookingComponent) {
+            window.lwBookingComponent.updateOverrideState(key, isActive);
+        }
+    };
+
+    window.updateExtraPrice = function (key, price) {
+        if (!window.bookingAppData) return;
+        
+        // Ensure objects exist
+        window.bookingAppData.extraPrices = window.bookingAppData.extraPrices || {};
+        window.bookingAppData.manualPrices = window.bookingAppData.manualPrices || {};
+        window.bookingAppData.activeOverrides = window.bookingAppData.activeOverrides || {};
+        window.bookingAppData.lockedOverrides = window.bookingAppData.lockedOverrides || {};
+
+        // Update local state (which is entangled with Livewire)
+        const p = parseFloat(price) || 0;
+        window.bookingAppData.extraPrices[key] = p;
+        window.bookingAppData.manualPrices[key] = p;
+        window.bookingAppData.activeOverrides[key] = true;
+        window.bookingAppData.lockedOverrides[key] = true;
+
+        if (window.lwBookingComponent) {
+            window.lwBookingComponent.updateExtraPrice(key, p);
+        }
+
+        if (typeof window.triggerRecalculate === 'function') {
+            window.triggerRecalculate();
         }
     };
 })();

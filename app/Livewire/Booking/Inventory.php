@@ -19,30 +19,48 @@ use App\Models\DurationPrice;
 class Inventory extends Component
 {
     #[Url]
-    public $activeTab = 'categories';
-    public $searchProduct = '';
+    public string $activeTab = 'categories';
+    public string $searchProduct = '';
 
     // --- Category State ---
-    public $cat_id, $category_name, $cat_daily_limit = 0;
+    public $cat_id;
+    public ?string $category_name = null;
+    public int $cat_daily_limit = 0;
 
     // --- Product State ---
-    public $prod_id, $prod_name, $prod_category, $counts_against, $prod_specification, $prod_price, $prod_quantity = 999, $prod_limit = 0, $is_active = true;
+    public $prod_id;
+    public ?string $prod_name = null;
+    public ?string $prod_category = null;
+    public ?string $counts_against = null;
+    public ?string $prod_specification = null;
+    public float $prod_price = 100;
+    public int $prod_quantity = 999;
+    public int $prod_limit = 0;
+    public bool $is_active = true;
 
     // --- Add-on State ---
     public $addon_id;
-    public $addon_category = 'General Logistics';
-    public $addon_counts_against;
-    public $addonRows = [['label' => '', 'price' => '']];
+    public string $addon_category = 'General Logistics';
+    public ?string $addon_counts_against = null;
+    public array $addonRows = [['label' => '', 'price' => '']];
 
     // --- Dropdown State ---
-    public $dd_id, $dd_category = 'General Logistics', $dd_label, $dd_counts_against;
-    public $dropdownRows = [['label' => '', 'price' => '']];
+    public $dd_id;
+    public string $dd_category = 'General Logistics';
+    public ?string $dd_label = null;
+    public ?string $dd_counts_against = null;
+    public array $dropdownRows = [['label' => '', 'price' => '']];
 
     // --- Delivery State ---
-    public $del_id, $zone_name, $del_price;
+    public $del_id;
+    public ?string $zone_name = null;
+    public float|int|null $del_price = null;
 
     // --- Duration State ---
-    public $dur_id, $dur_label, $dur_hours, $dur_price;
+    public $dur_id;
+    public ?string $dur_label = null;
+    public float|int|null $dur_hours = null;
+    public float|int|null $dur_price = null;
 
     public function mount()
     {
@@ -83,7 +101,7 @@ class Inventory extends Component
         $this->dispatchToast($msg);
     }
 
-    public function editCategory($id)
+    public function editCategory(int|string $id)
     {
         $cat = ProductCategory::findOrFail($id);
         $this->cat_id = $cat->id;
@@ -93,7 +111,7 @@ class Inventory extends Component
     }
 
     #[On('execute-delete-category')]
-    public function deleteCategory($id)
+    public function deleteCategory(int|string|array $id)
     {
         $id = is_array($id) ? ($id['id'] ?? $id[0]) : $id;
 
@@ -122,7 +140,7 @@ class Inventory extends Component
         $this->dispatchToast('Category and related items deleted.');
     }
 
-    public function reorderCategory($id, $direction)
+    public function reorderCategory(int|string $id, string $direction)
     {
         $current = ProductCategory::find($id);
         if (!$current) return;
@@ -184,7 +202,7 @@ class Inventory extends Component
         $this->dispatchToast('Product saved successfully.');
     }
 
-    public function editProduct($id)
+    public function editProduct(int|string $id)
     {
         $prod = Product::findOrFail($id);
         $this->prod_id = $prod->id;
@@ -200,14 +218,14 @@ class Inventory extends Component
     }
 
     #[On('execute-delete-product')]
-    public function deleteProduct($id)
+    public function deleteProduct(int|string|array $id)
     {
         $id = is_array($id) ? ($id['id'] ?? $id[0]) : $id;
         Product::destroy($id);
         $this->dispatchToast('Product deleted.');
     }
 
-    public function reorderProduct($id, $direction)
+    public function reorderProduct(int|string $id, string $direction)
     {
         $current = Product::find($id);
         if (!$current) return;
@@ -228,7 +246,7 @@ class Inventory extends Component
         $this->dispatchToast('Product arrangement updated.');
     }
 
-    public function autoArrangeAlphabetical($categoryName)
+    public function autoArrangeAlphabetical(string $categoryName)
     {
         $products = Product::where('category', $categoryName)
             ->orderBy('name', 'asc')
@@ -246,6 +264,7 @@ class Inventory extends Component
     public function resetProductForm()
     {
         $this->reset(['prod_id', 'prod_name', 'prod_category', 'counts_against', 'prod_specification', 'prod_price', 'prod_quantity', 'prod_limit']);
+        $this->prod_price = 100;
         $this->prod_quantity = 999;
         $this->is_active = true;
     }
@@ -258,7 +277,7 @@ class Inventory extends Component
         $this->addonRows[] = ['label' => '', 'price' => ''];
     }
 
-    public function removeAddonRow($index)
+    public function removeAddonRow(int|string $index)
     {
         unset($this->addonRows[$index]);
         $this->addonRows = array_values($this->addonRows);
@@ -295,7 +314,7 @@ class Inventory extends Component
         $this->dispatchToast($msg);
     }
 
-    public function editAddon($id)
+    public function editAddon(int|string $id)
     {
         $addon = CategoryAddon::findOrFail($id);
         $this->addon_id = $addon->id;
@@ -306,7 +325,7 @@ class Inventory extends Component
     }
 
     #[On('execute-delete-addon')]
-    public function deleteAddon($id)
+    public function deleteAddon(int|string|array $id)
     {
         $id = is_array($id) ? ($id['id'] ?? $id[0]) : $id;
         CategoryAddon::destroy($id);
@@ -327,7 +346,7 @@ class Inventory extends Component
         $this->dropdownRows[] = ['label' => '', 'price' => ''];
     }
 
-    public function removeDropdownRow($index)
+    public function removeDropdownRow(int|string $index)
     {
         unset($this->dropdownRows[$index]);
         $this->dropdownRows = array_values($this->dropdownRows);
@@ -367,7 +386,7 @@ class Inventory extends Component
         $this->dispatchToast('Dropdown saved successfully.');
     }
 
-    public function editDropdown($id)
+    public function editDropdown(int|string $id)
     {
         $dd = ProductDropdown::with('options')->findOrFail($id);
         $this->dd_id = $dd->id;
@@ -387,7 +406,7 @@ class Inventory extends Component
     }
 
     #[On('execute-delete-dropdown')]
-    public function deleteDropdown($id)
+    public function deleteDropdown(int|string|array $id)
     {
         $id = is_array($id) ? ($id['id'] ?? $id[0]) : $id;
         ProductDropdown::destroy($id);
@@ -416,7 +435,7 @@ class Inventory extends Component
         $this->dispatchToast('Delivery zone saved.');
     }
 
-    public function editDelivery($id)
+    public function editDelivery(int|string $id)
     {
         $zone = DeliveryZone::findOrFail($id);
         $this->del_id = $zone->id;
@@ -426,7 +445,7 @@ class Inventory extends Component
     }
 
     #[On('execute-delete-delivery')]
-    public function deleteDelivery($id)
+    public function deleteDelivery(int|string|array $id)
     {
         $id = is_array($id) ? ($id['id'] ?? $id[0]) : $id;
         DeliveryZone::destroy($id);
@@ -453,7 +472,7 @@ class Inventory extends Component
         $this->dispatchToast('Duration saved successfully.');
     }
 
-    public function editDuration($id)
+    public function editDuration(int|string $id)
     {
         $dur = DurationPrice::findOrFail($id);
         $this->dur_id = $dur->id;
@@ -464,7 +483,7 @@ class Inventory extends Component
     }
 
     #[On('execute-delete-duration')]
-    public function deleteDuration($id)
+    public function deleteDuration(int|string|array $id)
     {
         $id = is_array($id) ? ($id['id'] ?? $id[0]) : $id;
         DurationPrice::destroy($id);
@@ -474,7 +493,7 @@ class Inventory extends Component
     // ==========================================
     // HELPER & RENDER
     // ==========================================
-    private function dispatchToast($message, $type = 'success')
+    private function dispatchToast(string $message, string $type = 'success')
     {
         $this->dispatch('show-toast', ['message' => $message, 'type' => $type]);
     }

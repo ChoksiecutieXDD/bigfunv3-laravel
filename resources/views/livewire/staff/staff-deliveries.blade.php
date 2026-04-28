@@ -36,17 +36,16 @@
             <p class="text-gray-500 mt-2">No active bookings match your criteria.</p>
         </div>
     @else
-        <!-- Pending Actions -->
         <div class="mb-12">
             <h2 class="text-xl font-black text-white mb-6 flex items-center gap-3">
-                <span class="w-2.5 h-8 bg-orange-400 rounded-full shadow-sm"></span>
+                <span class="w-2.5 h-8 bg-blue-400 rounded-full shadow-sm"></span>
                 Me as Delivery / Lead Operator
-                <span class="bg-orange-100 text-orange-700 text-xs px-3 py-1 font-bold rounded-full border border-orange-200/50">{{ $pendingDeliveries->total() }}</span>
+                <span class="bg-blue-100 text-blue-700 text-xs px-3 py-1 font-bold rounded-full border border-blue-200/50">{{ $pendingDeliveries->total() }}</span>
             </h2>
 
             @if($pendingDeliveries->isEmpty())
                 <div class="bg-white/50 backdrop-blur-sm rounded-2xl p-8 text-center text-gray-500 font-medium italic text-sm border border-white/40 shadow-inner">
-                    No pending actions on this page.
+                    No upcoming assignments found for you.
                 </div>
             @else
                 <div class="space-y-4">
@@ -60,17 +59,17 @@
             @endif
         </div>
 
-        <!-- Scheduled & Confirmed -->
+        <!-- General Overview -->
         <div class="mb-12">
             <h2 class="text-xl font-black text-white mb-6 flex items-center gap-3">
-                <span class="w-2.5 h-8 bg-green-400 rounded-full shadow-sm"></span>
-                Scheduled & Confirmed
-                <span class="bg-green-100 text-green-700 text-xs px-3 py-1 font-bold rounded-full border border-green-200/50">{{ $confirmedDeliveries->total() }}</span>
+                <span class="w-2.5 h-8 bg-white/30 rounded-full shadow-sm"></span>
+                General Logistics Overview
+                <span class="bg-white/20 text-white text-xs px-3 py-1 font-bold rounded-full border border-white/30">{{ $confirmedDeliveries->total() }}</span>
             </h2>
 
             @if($confirmedDeliveries->isEmpty())
                 <div class="bg-white/50 backdrop-blur-sm rounded-2xl p-8 text-center text-gray-500 font-medium italic text-sm border border-white/40 shadow-inner">
-                    No confirmed schedules on this page.
+                    No other upcoming schedules found.
                 </div>
             @else
                 <div class="space-y-4">

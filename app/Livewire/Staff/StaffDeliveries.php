@@ -16,9 +16,9 @@ class StaffDeliveries extends Component
 {
     use WithPagination;
 
-    public $search = '';
+    public string $search = '';
 
-    protected $queryString = [
+    protected array $queryString = [
         'search' => ['except' => ''],
     ];
 
@@ -39,9 +39,9 @@ class StaffDeliveries extends Component
         // This handles abbreviated last names like "Trishtan Alexis R." vs "Trishtan Alexis Reyes"
         $nameLike = '%' . $firstName . '%';
 
-        // Base query for deliveries
+        // Base query for deliveries: Upcoming only
         $baseQuery = DB::table('bookings')
-            ->where('status', '!=', 'Cancelled')
+            ->whereNotIn('status', ['Cancelled', 'Draft'])
             ->whereDate('event_date', '>=', $today);
 
         // Apply Search
@@ -55,29 +55,27 @@ class StaffDeliveries extends Component
             });
         }
 
-        // My Assignments (Pending) - Filtered for current user as Driver or Operator
-        // Uses LIKE matching to handle abbreviated/stored name variants
+        // My Assignments (Confirmed & Upcoming) - Filtered for current user as Driver or Operator
         $pendingDeliveries = (clone $baseQuery)
-            ->where('status', 'Pending')
-            ->where(function($q) use ($fullName, $nameLike) {
+            ->where('status', 'Confirmed')
+            ->where(function($q) use ($fullName, $firstName, $user) {
+                $lastNamePattern = '%' . $user->last_name . '%';
+                $firstNamePattern = '%' . $user->first_name . '%';
+                
                 $q->where('lead_deliverer', $fullName)
-                  ->orWhere('lead_deliverer', 'like', $nameLike)
+                  ->orWhere('lead_deliverer', 'like', $firstNamePattern)
+                  ->orWhere('lead_deliverer', 'like', $lastNamePattern)
                   ->orWhere('lead_operator', $fullName)
-                  ->orWhere('lead_operator', 'like', $nameLike);
+                  ->orWhere('lead_operator', 'like', $firstNamePattern)
+                  ->orWhere('lead_operator', 'like', $lastNamePattern);
             })
             ->orderBy('event_date', 'asc')
             ->orderBy('start_time', 'asc')
-            ->paginate(5, ['*'], 'pend_page');
+            ->paginate(10, ['*'], 'pend_page');
 
-        // My Scheduled & Confirmed - Filtered for current user as Driver or Operator
+        // All Other Assignments (General Overview) - To see what else is happening
         $confirmedDeliveries = (clone $baseQuery)
             ->whereIn('status', ['Confirmed', 'Completed'])
-            ->where(function($q) use ($fullName, $nameLike) {
-                $q->where('lead_deliverer', $fullName)
-                  ->orWhere('lead_deliverer', 'like', $nameLike)
-                  ->orWhere('lead_operator', $fullName)
-                  ->orWhere('lead_operator', 'like', $nameLike);
-            })
             ->orderBy('event_date', 'asc')
             ->orderBy('start_time', 'asc')
             ->paginate(5, ['*'], 'conf_page');

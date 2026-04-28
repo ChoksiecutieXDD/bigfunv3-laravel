@@ -1,4 +1,16 @@
-<div x-data="bookingApp" class="w-full relative pb-8">
+<div x-data="bookingApp" 
+    x-init="
+        window.lwBookingComponent = @this;
+        window.bookingAppData = {
+            savedExtras: @entangle('saved_extras'),
+            selectedItems: @entangle('selected_products'),
+            extraPrices: @entangle('extraPrices'),
+            activeOverrides: @entangle('activeOverrides'),
+            csrfToken: '{{ csrf_token() }}',
+            formToken: '{{ $form_token }}'
+        };
+    "
+    class="w-full relative pb-8">
 
 
     <div class="flex w-full relative overflow-hidden">
@@ -629,17 +641,31 @@
                                     $countsAgainst = !empty($product['counts_against']) ? $product['counts_against'] : $catName;
                                     $isChecked = in_array($pName, $selected_products);
                                     @endphp
-                                    <div class="product-card group {{ $isChecked ? 'selected' : '' }} cursor-pointer"
-                                        @click="let cb = $el.querySelector('.ride-checkbox'); if(cb && !cb.disabled) { cb.checked = !cb.checked; handleSelection(cb); }"
-                                        data-name="{{ $pName }}"
-                                        data-category="{{ $catName }}"
-                                        data-counts-against="{{ $countsAgainst }}"
-                                        data-daily-limit="{{ (int)$product['daily_limit'] }}"
-                                        data-stock="{{ (int)$product['total_quantity'] }}"
-                                        data-specification="{{ $product['specification'] ?? '' }}"
-                                        data-price="{{ $product['price'] ?? 0 }}"
-                                        data-product-sold-out="false">
-                                        <div class="flex justify-between items-start gap-2 mb-2 w-full relative">
+                                    <div class="product-card group cursor-pointer relative"
+                                         x-data="{ isChecked: {{ $isChecked ? 'true' : 'false' }} }"
+                                         :class="{ 'selected': isChecked }"
+                                         @click="
+                                            const dateVal = document.getElementById('event_date')?.value;
+                                            if (!dateVal) {
+                                                showToast('Select Date First', 'Please select a booking date before choosing an attraction.', 'warning');
+                                                return;
+                                            }
+                                            let cb = $el.querySelector('.ride-checkbox'); 
+                                            if(cb && !cb.disabled) { 
+                                                cb.checked = !cb.checked; 
+                                                isChecked = cb.checked; 
+                                                handleSelection(cb); 
+                                            }
+                                         "
+                                         data-name="{{ $pName }}"
+                                         data-category="{{ $catName }}"
+                                         data-counts-against="{{ $countsAgainst }}"
+                                         data-daily-limit="{{ (int)$product['daily_limit'] }}"
+                                         data-stock="{{ (int)$product['total_quantity'] }}"
+                                         data-specification="{{ $product['specification'] ?? '' }}"
+                                         data-price="{{ $product['price'] ?? 0 }}"
+                                         data-product-sold-out="false">
+                                        <div class="flex justify-between items-start gap-2 mb-2 w-full">
                                             <div class="pr-2 w-full">
                                                 <div class="flex items-center gap-2">
                                                     <h4 class="font-bold text-slate-800 text-sm leading-snug group-hover:text-[#9E6B73]">{{ $pName }}</h4>
@@ -647,10 +673,32 @@
                                                         <span class="material-symbols-rounded text-lg">info</span>
                                                     </button>
                                                 </div>
-                                                <div class="mt-2 status-wrapper"><span class="status-badge status-checking">Available</span></div>
+                                                <div class="mt-2 status-wrapper flex items-center gap-2">
+                                                    <span class="status-badge status-checking">Available</span>
+                                                    <span class="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100 uppercase tracking-tighter">
+                                                        ${{ number_format($product['price'] ?? 100, 2) }}
+                                                    </span>
+                                                </div>
                                             </div>
                                             <div class="custom-checkbox"></div>
-                                            <input type="checkbox" name="products[]" value="{{ $pName }}" class="ride-checkbox hidden" @change="handleSelection($event.target)" {{ $isChecked ? 'checked' : '' }} @click.stop>
+                                            <input type="checkbox" name="products[]" value="{{ $pName }}" class="ride-checkbox hidden" @change="handleSelection($event.target); isChecked = $event.target.checked" {{ $isChecked ? 'checked' : '' }} @click.stop>
+                                        </div>
+                                        
+                                        <div x-show="isChecked" class="mt-2 pt-3 border-t border-slate-100 w-full" @click.stop x-cloak>
+                                            <label class="text-[9px] font-black text-[#9E6B73] uppercase tracking-widest block mb-1.5 flex items-center gap-1.5">
+                                                <span class="material-symbols-rounded text-xs">edit_note</span>
+                                                Price Override
+                                            </label>
+                                            <div class="relative">
+                                                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 text-[10px] font-bold">$</span>
+                                                <input type="number" 
+                                                       name="manual_prices[{{ $pName }}]"
+                                                       step="0.01" 
+                                                       class="manual-ride-price w-full bg-white border border-slate-200 rounded-xl py-1.5 pl-5 pr-2 text-[11px] font-black text-slate-700 focus:ring-2 focus:ring-[#9E6B73]/20 focus:border-[#9E6B73] transition-all" 
+                                                       placeholder="{{ number_format($product['price'] ?? 100, 2) }}"
+                                                       value="{{ $isChecked ? ($this->selected_manual_prices[$pName] ?? '') : '' }}"
+                                                       @input.debounce.500ms="$wire.updateManualPrice('{{ $pName }}', $event.target.value); triggerRecalculate()">
+                                            </div>
                                         </div>
                                         <div class="text-[10px] text-slate-400 font-medium action-text mt-auto">Click to select</div>
                                     </div>
@@ -1045,7 +1093,8 @@
         data-csrf="{{ csrf_token() }}"
         data-id="{{ $booking_id }}"
         data-invoice="{{ $invoice_number }}"
-        data-token="{{ $form_token }}">
+        data-token="{{ $form_token }}"
+        data-extra-prices='@json($extraPrices)'>
     </div>
     <!-- Product Details Modal -->
     <div x-show="productDetails.visible" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[20000]">
