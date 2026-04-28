@@ -4,6 +4,7 @@ namespace App\Livewire\Supervisor;
 
 use Livewire\Component;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Computed;
 use Livewire\WithFileUploads;
 use App\Models\Booking;
 use App\Models\BookingItem;
@@ -51,10 +52,8 @@ class EditBooking extends Component
     public mixed $temp_attachment_4 = null;
     public mixed $temp_attachment_5 = null;
 
-    // --- MOVE LOGISTICS PROPERTIES ---
     public array $bookedAttractions = [];
     public array $dailyAttractions = [];
-    public array $categoryLimits = [];
     public array $dailyUsage = [];
     public array $bookingImpact = [];
     public array $modalConflicts = [];
@@ -79,16 +78,12 @@ class EditBooking extends Component
         'selectedItems' => 'array'
     ];
 
-    public array $config = [];
-    public array $categories = [];
     public bool $isSupervisor = false;
     public float $durationCost = 0;
     public float $deliveryCost = 0;
     public float $attractionsCost = 0;
     public float $extrasCost = 0;
-    public array $staffList = [];
 
-    // Computed-like property for JS bridge
     public array $selectedItemsClean = [];
 
     public function mount(int|string $id)
@@ -102,7 +97,6 @@ class EditBooking extends Component
         if (empty($this->form['eft_method']) && $this->form['payment_type'] === 'EFT') $this->form['eft_method'] = 'Direct Deposit';
 
         $items = BookingItem::where('booking_id', $id)->get();
-        // Pre-fetch product prices for fallback if needed
         $productPrices = DB::table('products')->pluck('price', DB::raw('LOWER(TRIM(name))'))->toArray();
 
         foreach ($items as $item) {
@@ -114,7 +108,6 @@ class EditBooking extends Component
                 'price' => $storedPrice
             ];
 
-            // If the stored price differs from the default product price, mark it as a manual override
             $defaultPrice = (float) ($productPrices[$key] ?? 0);
             if (round($storedPrice, 2) !== round($defaultPrice, 2)) {
                 $mKey = 'ride_' . $key;
@@ -124,29 +117,15 @@ class EditBooking extends Component
             }
         }
 
-        $this->loadProductConfigurations();
-
-        // 4. Fetch Categories & Product Limits (Match NewBooking logic)
-        $cats = DB::table('product_categories')->orderBy('sort_order', 'asc')->get();
-        foreach ($cats as $c) {
-            $this->categories[$c->category_name] = ['limit' => (int)$c->daily_limit, 'products' => []];
-        }
-
-        // --- LOADING EXTRAS ---
         $this->saved_extras = json_decode($this->booking->extras_json ?? '[]', true) ?? [];
         $this->extraPrices = [];
 
-        // Load existing prices from general/specific_extra to extraPrices
         $genExt = json_decode($this->booking->general_extra ?? '[]', true) ?? [];
         $specExt = json_decode($this->booking->specific_extra ?? '[]', true) ?? [];
         $allExt = array_merge($genExt, $specExt);
 
-        // --- DATA RECOVERY & PARITY CHECK ---
-        // Even if extras_json is not empty, it might be incomplete if items were added via ride list
-        // that are also defined as addons (e.g. 
         $itemNames = array_map(fn($it) => strtolower(trim($it)), array_keys($this->selectedItems));
 
-        // 1. Recover Addons
         $addons = DB::table('category_addons')->get();
         foreach ($addons as $a) {
             $addonKey = 'add_' . $a->id;
@@ -156,14 +135,12 @@ class EditBooking extends Component
             $foundPrice = null;
             foreach ($allExt as $label => $price) {
                 $cleanLabel = strtolower(trim($label));
-                // Match simple label or "Category: Label"
                 if ($cleanLabel === $aLabel || $cleanLabel === $aTarget . ': ' . $aLabel || str_ends_with($cleanLabel, ': ' . $aLabel)) {
                     $foundPrice = (float)$price;
                     break;
                 }
             }
 
-            // Determine if selected: check extras_json first, then fallback to itemNames
             $isSelected = ($this->saved_extras[$addonKey] ?? '0') === '1';
             if (!$isSelected) {
                 foreach ($itemNames as $itName) {
@@ -176,7 +153,6 @@ class EditBooking extends Component
             }
 
             if ($isSelected) {
-                // Priority: 1. Item Name match in selectedItems (Source of Truth), 2. allExt (JSON), 3. addon_price (Default)
                 $price = $this->selectedItems[$aLabel]['price'] ?? ($foundPrice ?? (float)$a->addon_price);
                 $this->extraPrices[$addonKey] = (float)$price;
 
@@ -190,7 +166,6 @@ class EditBooking extends Component
             }
         }
 
-        // 2. Recover Questions
         $questions = DB::table('product_extras')->get();
         foreach ($questions as $q) {
             $qKey = 'q_' . $q->id;
@@ -227,7 +202,6 @@ class EditBooking extends Component
                 $isYes = $answer === 'yes' || (isset($this->saved_extras[$qKey]) && str_ends_with($this->saved_extras[$qKey], '|yes'));
                 $basePrice = $isYes ? (float)$q->yes_price : (float)$q->no_price;
 
-                // Priority: 1. Item Name match (if YES), 2. allExt (JSON), 3. basePrice (Default)
                 $price = ($isYes && isset($this->selectedItems[$qText])) ? $this->selectedItems[$qText]['price'] : ($foundPrice ?? $basePrice);
                 $this->extraPrices[$qKey] = (float)$price;
 
@@ -241,7 +215,6 @@ class EditBooking extends Component
             }
         }
 
-        // 3. Recover Dropdowns
         $dropdowns = DB::table('product_dropdowns')->get();
         $dropdownOptions = DB::table('dropdown_options')->get();
         foreach ($dropdowns as $dd) {
@@ -249,14 +222,12 @@ class EditBooking extends Component
             $ddLabel = strtolower(trim($dd->label));
             $ddTarget = strtolower(trim($dd->category_target));
 
-            // Find which option is selected
             $selectedOptId = $this->saved_extras[$ddKey] ?? null;
             $foundOpt = null;
 
             if ($selectedOptId) {
                 $foundOpt = $dropdownOptions->where('id', $selectedOptId)->first();
             } else {
-                // Fallback to itemNames string matching
                 foreach ($dropdownOptions->where('dropdown_id', $dd->id) as $opt) {
                     $optLabel = strtolower(trim($opt->option_label));
                     foreach ($itemNames as $itName) {
@@ -274,14 +245,12 @@ class EditBooking extends Component
                 $foundPrice = null;
                 foreach ($allExt as $label => $price) {
                     $cleanLabel = strtolower(trim($label));
-                    // Match "Dropdown - Option" or "Category: Dropdown - Option" or "Dropdown: Option"
                     if (str_contains($cleanLabel, $optLabel) && (str_contains($cleanLabel, $ddLabel) || str_contains($cleanLabel, $ddTarget))) {
                         $foundPrice = (float)$price;
                         break;
                     }
                 }
 
-                // Priority: 1. Item Name match (Source of Truth), 2. allExt (JSON), 3. option_price (Default)
                 $price = $this->selectedItems[$optLabel]['price'] ?? ($foundPrice ?? (float)$foundOpt->option_price);
                 $this->extraPrices[$ddKey] = (float)$price;
 
@@ -291,14 +260,12 @@ class EditBooking extends Component
                     $this->lockedOverrides[$ddKey] = true;
                 }
             } else {
-                // Not selected, set default price of first option or 0
                 $firstOpt = $dropdownOptions->where('dropdown_id', $dd->id)->first();
                 $this->extraPrices[$ddKey] = $firstOpt ? (float)$firstOpt->option_price : 0;
             }
         }
 
         if (empty($this->booking->extras_json) || $this->booking->extras_json === '[]') {
-            // --- FALLBACK: REVERSE MAP EXTRAS ---
             $allExtClean = array_combine(
                 array_map(fn($k) => strtolower(trim($k)), array_keys($allExt)),
                 array_values($allExt)
@@ -341,8 +308,6 @@ class EditBooking extends Component
         $this->tempSelectedDate = $this->form['event_date'];
 
         $durationLabels = DB::table('duration_prices')->pluck('label')->toArray();
-        // Duration Custom Check
-        $durationLabels = DB::table('duration_prices')->pluck('label')->toArray();
         if (!empty($this->form['duration']) && !in_array($this->form['duration'], $durationLabels)) {
             $this->form['custom_duration_text'] = $this->form['duration'];
             $this->form['duration'] = 'custom';
@@ -352,7 +317,6 @@ class EditBooking extends Component
             $this->form['custom_duration_text'] = '';
         }
 
-        // Initialize costs if they are zero but an area/duration is selected
         if ((float)($this->form['delivery_cost'] ?? 0) === 0.0 && !empty($this->form['delivery_area']) && $this->form['delivery_area'] !== 'custom') {
             $zone = DB::table('delivery_zones')->where('zone_name', $this->form['delivery_area'])->first();
             if ($zone) {
@@ -360,21 +324,7 @@ class EditBooking extends Component
             }
         }
 
-        // --- CONNECT INVENTORY LIMITS ---
-        $this->categoryLimits = DB::table('product_categories')
-            ->where('daily_limit', '>', 0)
-            ->pluck('daily_limit', 'category_name')
-            ->toArray();
-
-        foreach ($this->categoryLimits as $catName => $limit) {
-            if (isset($this->categories[$catName])) {
-                $this->categories[$catName]['limit'] = (int)$limit;
-            }
-        }
-
         $this->refreshBookingImpact();
-        $this->loadCalendar();
-
         if ((float)($this->form['duration_cost'] ?? 0) === 0.0 && !empty($this->form['duration']) && $this->form['duration'] !== 'custom') {
             $dur = DB::table('duration_prices')->where('label', $this->form['duration'])->first();
             if ($dur) {
@@ -383,21 +333,64 @@ class EditBooking extends Component
         }
 
         $this->totalPaid = DB::table('booking_payments')->where('booking_id', $this->booking->id)->sum('amount') ?: 0;
+        $this->loadCalendar();
+        $this->checkAvailability();
+        $this->calculateTotals();
+        $this->syncSelectedItemsClean();
+    }
 
-        // Fetch Staff/Operators (Match formatting in NewBooking.php)
-        $this->staffList = \App\Models\User::whereIn('role', ['Staff', 'Operator', 'Supervisor'])
+    #[Computed]
+    public function config(): array
+    {
+        $config = ['questions' => [], 'addons' => [], 'dropdowns' => []];
+        $questions = DB::table('product_extras')->orderBy('category_target', 'asc')->get();
+        foreach ($questions as $q) {
+            $config['questions'][$q->category_target][] = (array)$q;
+        }
+        $addons = DB::table('category_addons')->orderBy('category_target', 'asc')->get();
+        foreach ($addons as $a) {
+            $config['addons'][$a->category_target][] = (array)$a;
+        }
+        $dropdowns = DB::table('product_dropdowns')->orderBy('sort_order', 'asc')->get();
+        foreach ($dropdowns as $d) {
+            $opts = DB::table('dropdown_options')->where('dropdown_id', $d->id)->get()->toArray();
+            $dArray = (array)$d;
+            $dArray['options'] = array_map(fn($o) => (array)$o, $opts);
+            $config['dropdowns'][$d->category_target][] = $dArray;
+        }
+        return $config;
+    }
+
+    #[Computed]
+    public function categories(): array
+    {
+        $categories = [];
+        $cats = DB::table('product_categories')->orderBy('sort_order', 'asc')->get();
+        foreach ($cats as $c) {
+            $categories[$c->category_name] = ['limit' => (int)$c->daily_limit, 'products' => []];
+        }
+        return $categories;
+    }
+
+    #[Computed]
+    public function categoryLimits(): array
+    {
+        return DB::table('product_categories')
+            ->where('daily_limit', '>', 0)
+            ->pluck('daily_limit', 'category_name')
+            ->toArray();
+    }
+
+    #[Computed]
+    public function staffList(): array
+    {
+        $list = \App\Models\User::whereIn('role', ['Staff', 'Operator', 'Supervisor'])
             ->where('is_active', 1)
             ->orderBy('first_name')
             ->get()
             ->map(fn($u) => trim($u->first_name . ' ' . $u->last_name))
             ->toArray();
-
-        if (empty($this->staffList)) $this->staffList = ["Team"];
-
-        $this->loadCalendar(); // Initialize calendar grid
-        $this->checkAvailability();
-        $this->calculateTotals();
-        $this->syncSelectedItemsClean();
+        return empty($list) ? ["Team"] : $list;
     }
 
     private function syncSelectedItemsClean()

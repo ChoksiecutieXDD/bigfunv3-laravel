@@ -41,6 +41,7 @@ class SystemSettings extends Component
 
     public function unlockSystem()
     {
+        sleep(1); // Brief delay to show the loading effect
         if ($this->systemPassword === 'bigfun_isfun') {
             session(['system_unlocked' => true]);
             $this->isUnlocked = true;

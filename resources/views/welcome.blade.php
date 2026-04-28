@@ -25,30 +25,35 @@
                         </p>
 
                         <div class="pt-4 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                            <a href="https://bigfun.com.au/" class="btn-plum text-base font-bold py-4 px-10 rounded-full flex items-center justify-center gap-2 group shadow-xl">
+                            <a href="https://bigfun.com.au/" aria-label="Check ride availability on our main website" class="btn-plum text-base font-bold py-4 px-10 rounded-full flex items-center justify-center gap-2 group shadow-xl">
                                 Check Availability
                             </a>
-                            <a href="https://bigfun.com.au/" class="btn-white text-base font-bold py-4 px-10 rounded-full flex items-center justify-center gap-2 group shadow-sm">
+                            <a href="https://bigfun.com.au/" aria-label="Browse our full catalogue of rides and games" class="btn-white text-base font-bold py-4 px-10 rounded-full flex items-center justify-center gap-2 group shadow-sm">
                                 Browse Catalogue
                             </a>
                         </div>
 
                         <div class="pt-6 flex flex-wrap justify-center lg:justify-start gap-8 text-sm font-bold text-gray-400">
-                            <div class="flex items-center gap-2"><span class="material-symbols-rounded text-[#9E6B73] text-xl">verified</span> Fully Insured</div>
-                            <div class="flex items-center gap-2"><span class="material-symbols-rounded text-[#9E6B73] text-xl">engineering</span> Safety Certified</div>
+                            <div class="flex items-center gap-2"><span class="material-symbols-rounded text-[#9E6B73] text-xl" aria-hidden="true">verified</span> Fully Insured</div>
+                            <div class="flex items-center gap-2"><span class="material-symbols-rounded text-[#9E6B73] text-xl" aria-hidden="true">engineering</span> Safety Certified</div>
                         </div>
                     </div>
 
                     <div class="relative h-[550px] hidden lg:block">
                         <div class="w-full h-full relative">
-                            <div class="img-card absolute top-0 right-0 w-80 h-[400px] z-20" style="background-image: url('/assets/img/mechanical-surf.jpg');"></div>
-                            <div class="img-card absolute bottom-10 right-52 w-64 h-64 z-30" style="background-image: url('/assets/img/splash.jpg');">
+                            <div class="img-card absolute top-0 right-0 w-80 h-[400px] z-20 overflow-hidden">
+                                <img src="/assets/img/mechanical-surf.jpg" alt="Mechanical Surfboard Ride" width="320" height="400" class="w-full h-full object-cover" fetchpriority="high">
+                            </div>
+                            <div class="img-card absolute bottom-10 right-52 w-64 h-64 z-30 overflow-hidden">
+                                <img src="/assets/img/splash.jpg" alt="Splash Game Hire" width="256" height="256" class="w-full h-full object-cover">
                                 <div class="absolute -top-5 -left-5 bg-white px-5 py-2.5 rounded-2xl shadow-lg flex items-center gap-2">
-                                    <span class="material-symbols-rounded text-[#9E6B73] text-xl">star</span>
+                                    <span class="material-symbols-rounded text-[#9E6B73] text-xl" aria-hidden="true">star</span>
                                     <span class="text-sm font-bold text-gray-800">Fan Favorite</span>
                                 </div>
                             </div>
-                            <div class="img-card bull-card absolute top-20 left-10 w-60 h-72 z-10 opacity-90" style="background-image: url('/assets/img/premiumbull.jpg'); transform: rotate(-8deg);"></div>
+                            <div class="img-card bull-card absolute top-20 left-10 w-60 h-72 z-10 opacity-90 overflow-hidden" style="transform: rotate(-8deg);">
+                                <img src="/assets/img/premiumbull.jpg" alt="Premium Mechanical Bull" width="240" height="288" class="w-full h-full object-cover">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -86,17 +91,17 @@
                 </div>
                 <div class="grid md:grid-cols-3 gap-8">
                     <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 hover:border-[#9E6B73]/30 transition-colors">
-                        <span class="material-symbols-rounded text-4xl text-[#9E6B73] mb-4 block">health_and_safety</span>
+                        <span class="material-symbols-rounded text-4xl text-[#9E6B73] mb-4 block" aria-hidden="true">health_and_safety</span>
                         <h3 class="text-xl font-bold text-gray-900 mb-2">Uncompromising Safety</h3>
                         <p class="text-gray-500 text-sm leading-relaxed">Every ride is rigorously tested, fully insured up to $20M, and operated by trained professionals to ensure zero stress.</p>
                     </div>
                     <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 hover:border-[#9E6B73]/30 transition-colors">
-                        <span class="material-symbols-rounded text-4xl text-[#9E6B73] mb-4 block">schedule</span>
+                        <span class="material-symbols-rounded text-4xl text-[#9E6B73] mb-4 block" aria-hidden="true">schedule</span>
                         <h3 class="text-xl font-bold text-gray-900 mb-2">On-Time, Every Time</h3>
                         <p class="text-gray-500 text-sm leading-relaxed">Your event schedule is tight. Our logistics team guarantees punctual delivery, setup, and pack-down so you stay on track.</p>
                     </div>
                     <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 hover:border-[#9E6B73]/30 transition-colors">
-                        <span class="material-symbols-rounded text-4xl text-[#9E6B73] mb-4 block">support_agent</span>
+                        <span class="material-symbols-rounded text-4xl text-[#9E6B73] mb-4 block" aria-hidden="true">support_agent</span>
                         <h3 class="text-xl font-bold text-gray-900 mb-2">Event Support</h3>
                         <p class="text-gray-500 text-sm leading-relaxed">From selecting the right rides to on-site management, our dedicated staff is there to assist you from start to finish.</p>
                     </div>
@@ -112,7 +117,7 @@
                 </div>
                 <div class="grid md:grid-cols-3 gap-8">
                     <div class="group relative rounded-[2.5rem] overflow-hidden h-[400px] shadow-2xl cursor-pointer">
-                        <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style="background-image: url('/assets/img/mech-bull.jpg');"></div>
+                        <img src="/assets/img/mech-bull.jpg" alt="Mechanical Bulls Hire" width="400" height="400" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80 group-hover:opacity-70 transition-opacity"></div>
                         <div class="absolute bottom-0 left-0 p-8 w-full">
                             <h3 class="text-2xl font-bold text-white mb-2">Mechanical Bulls</h3>
@@ -121,7 +126,7 @@
                         </div>
                     </div>
                     <div class="group relative rounded-[2.5rem] overflow-hidden h-[400px] shadow-2xl cursor-pointer md:-mt-8">
-                        <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style="background-image: url('/assets/img/jumpcastle.png');"></div>
+                        <img src="/assets/img/jumpcastle.png" alt="Jumping Castles & Inflatables" width="400" height="400" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80 group-hover:opacity-70 transition-opacity"></div>
                         <div class="absolute bottom-0 left-0 p-8 w-full">
                             <h3 class="text-2xl font-bold text-white mb-2">Jumping Castles</h3>
@@ -130,7 +135,7 @@
                         </div>
                     </div>
                     <div class="group relative rounded-[2.5rem] overflow-hidden h-[400px] shadow-2xl cursor-pointer">
-                        <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style="background-image: url('/assets/img/cash-cube.jpg');"></div>
+                        <img src="/assets/img/cash-cube.jpg" alt="Interactive Arcade Games" width="400" height="400" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80 group-hover:opacity-70 transition-opacity"></div>
                         <div class="absolute bottom-0 left-0 p-8 w-full">
                             <h3 class="text-2xl font-bold text-white mb-2">Interactive Games</h3>
@@ -151,21 +156,21 @@
                     <div class="hidden md:block absolute top-12 left-24 right-24 h-0.5 bg-gradient-to-r from-transparent via-[#9E6B73]/20 to-transparent z-0"></div>
                     <div class="relative z-10 text-center feature-card p-8 rounded-[2.5rem] bg-white">
                         <div class="w-24 h-24 mx-auto bg-white border-[6px] border-[#FDF2F4] rounded-full flex items-center justify-center mb-6 shadow-sm">
-                            <span class="material-symbols-rounded text-5xl text-[#9E6B73]">search</span>
+                            <span class="material-symbols-rounded text-5xl text-[#9E6B73]" aria-hidden="true">search</span>
                         </div>
                         <h3 class="text-xl font-bold text-gray-900 mb-3">1. Browse</h3>
                         <p class="text-sm text-gray-500 leading-relaxed">Explore our extensive catalog and find the perfect rides for your event.</p>
                     </div>
                     <div class="relative z-10 text-center feature-card p-8 rounded-[2.5rem] bg-white">
                         <div class="w-24 h-24 mx-auto bg-white border-[6px] border-[#FDF2F4] rounded-full flex items-center justify-center mb-6 shadow-sm">
-                            <span class="material-symbols-rounded text-5xl text-[#9E6B73]">calendar_month</span>
+                            <span class="material-symbols-rounded text-5xl text-[#9E6B73]" aria-hidden="true">calendar_month</span>
                         </div>
                         <h3 class="text-xl font-bold text-gray-900 mb-3">2. Book Instantly</h3>
                         <p class="text-sm text-gray-500 leading-relaxed">Check availability in real-time and secure your date online in minutes.</p>
                     </div>
                     <div class="relative z-10 text-center feature-card p-8 rounded-[2.5rem] bg-white">
                         <div class="w-24 h-24 mx-auto bg-white border-[6px] border-[#FDF2F4] rounded-full flex items-center justify-center mb-6 shadow-sm">
-                            <span class="material-symbols-rounded text-5xl text-[#9E6B73]">celebration</span>
+                            <span class="material-symbols-rounded text-5xl text-[#9E6B73]" aria-hidden="true">celebration</span>
                         </div>
                         <h3 class="text-xl font-bold text-gray-900 mb-3">3. We Deliver Fun</h3>
                         <p class="text-sm text-gray-500 leading-relaxed">Our professional team handles delivery, setup, and operation. You enjoy!</p>
@@ -184,11 +189,11 @@
                     <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between">
                         <div>
                             <div class="flex text-yellow-400 mb-4">
-                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
-                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
-                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
-                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
-                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1" aria-hidden="true">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1" aria-hidden="true">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1" aria-hidden="true">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1" aria-hidden="true">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1" aria-hidden="true">star</span>
                             </div>
                             <p class="text-gray-600 text-sm italic mb-6">"Absolutely fantastic service! The mechanical bull was the highlight of our corporate party. The staff was professional and made sure everyone was safe."</p>
                         </div>
@@ -203,11 +208,11 @@
                     <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between">
                         <div>
                             <div class="flex text-yellow-400 mb-4">
-                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
-                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
-                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
-                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
-                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1" aria-hidden="true">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1" aria-hidden="true">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1" aria-hidden="true">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1" aria-hidden="true">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1" aria-hidden="true">star</span>
                             </div>
                             <p class="text-gray-600 text-sm italic mb-6">"Hired a jumping castle for my son's birthday. The team arrived early, set up quickly, and the kids had a blast. Highly recommend BigFun!"</p>
                         </div>
@@ -222,11 +227,11 @@
                     <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between hidden lg:flex">
                         <div>
                             <div class="flex text-yellow-400 mb-4">
-                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
-                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
-                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
-                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
-                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1" aria-hidden="true">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1" aria-hidden="true">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1" aria-hidden="true">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1" aria-hidden="true">star</span>
+                                <span class="material-symbols-rounded" style="font-variation-settings: 'FILL' 1" aria-hidden="true">star</span>
                             </div>
                             <p class="text-gray-600 text-sm italic mb-6">"We've used them for three years in a row for our school fete. Reliable, clean equipment, and the best customer service in the industry."</p>
                         </div>

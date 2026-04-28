@@ -63,8 +63,11 @@ window.addEventListener('beforeunload', clearLiveSelectionOnExit);
 window.startLivePolling = function () {
     if (livePollingInterval) clearInterval(livePollingInterval);
     livePollingInterval = setInterval(() => {
-        if (typeof calLoad === 'function') calLoad();
-    }, 1000); // 1 second for absolute real-time
+        // Only poll if the tab is visible to save battery and network
+        if (document.visibilityState === 'visible') {
+            if (typeof calLoad === 'function') calLoad();
+        }
+    }, 15000); // 15 seconds is enough for conflict prevention without hammering the server
 };
 window.startLivePolling();
 

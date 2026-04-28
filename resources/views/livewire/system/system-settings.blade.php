@@ -198,9 +198,18 @@
                     </a>
                 </div>
             </div>
-            <button type="button" wire:click="lockSystem" class="shrink-0 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center gap-2 text-sm font-semibold cursor-pointer">
-                <span class="material-symbols-rounded text-lg">arrow_back</span>
-                Return to App
+            <button type="button" 
+                wire:click="lockSystem" 
+                wire:loading.attr="disabled"
+                wire:target="lockSystem"
+                class="shrink-0 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center gap-2 text-sm font-semibold cursor-pointer disabled:opacity-50">
+                <span wire:loading.remove wire:target="lockSystem" class="flex items-center gap-2">
+                    <span class="material-symbols-rounded text-lg">arrow_back</span>
+                    Return to App
+                </span>
+                <span wire:loading wire:target="lockSystem" class="flex items-center gap-2 italic">
+                    Returning...
+                </span>
             </button>
         </div>
 
@@ -821,16 +830,28 @@
                         </div>
                         <input type="password" 
                             wire:model="systemPassword"
-                            class="block w-full pl-12 pr-4 py-4 bg-slate-900/50 border border-slate-700 rounded-2xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-plum/50 focus:border-plum transition-all text-center tracking-[0.5em] font-bold" 
+                            wire:loading.attr="disabled"
+                            wire:target="unlockSystem"
+                            class="block w-full pl-12 pr-4 py-4 bg-slate-900/50 border border-slate-700 rounded-2xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-plum/50 focus:border-plum transition-all text-center tracking-[0.5em] font-bold disabled:opacity-50 disabled:cursor-wait" 
                             placeholder="••••••••" 
                             required>
                     </div>
                 </div>
 
                 <div class="flex flex-col gap-3">
-                    <button type="submit" class="w-full py-4 bg-plum hover:bg-plum-dark text-white font-black rounded-2xl transition-all shadow-xl shadow-plum/20 transform active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
-                        <span class="material-symbols-rounded text-base">verified_user</span>
-                        Authorize Access
+                    <button type="submit" 
+                        wire:loading.attr="disabled"
+                        wire:target="unlockSystem"
+                        class="w-full py-4 bg-plum hover:bg-plum-dark text-white font-black rounded-2xl transition-all shadow-xl shadow-plum/20 transform active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2 disabled:opacity-80 disabled:cursor-wait">
+                        
+                        <span wire:loading.remove wire:target="unlockSystem" class="flex items-center gap-2">
+                            <span class="material-symbols-rounded text-base">verified_user</span>
+                            Authorize Access
+                        </span>
+
+                        <span wire:loading wire:target="unlockSystem" class="flex items-center gap-2 animate-pulse">
+                            Processing Access...
+                        </span>
                     </button>
                     
                     <a href="/" wire:navigate class="w-full py-4 bg-slate-700/30 hover:bg-slate-700/50 text-slate-400 hover:text-white font-bold rounded-2xl transition-all text-center uppercase tracking-widest text-[10px]">

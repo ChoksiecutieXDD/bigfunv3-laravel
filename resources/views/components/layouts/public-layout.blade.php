@@ -4,13 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BigFun</title>
+    <meta name="description" content="BigFun - Australia's Premier Choice for premium amusement rides, giant inflatables, and arcade games. Perfect for corporate events and private parties.">
+    <title>BigFun | Australia's Premier Amusement Rides & Party Hire</title>
     <link rel="icon" type="image/png" href="/assets/icon/bfun.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
     @vite(['resources/css/app.css'])
 
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&display=block" />
 
     <style>
         /* Define the transition state */
@@ -41,7 +45,7 @@
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
             <div class="flex justify-between items-center">
                 <a href="/" class="flex-shrink-0 group">
-                    <img src="/assets/icon/bgfunlogo.png" alt="BigFun Logo" class="h-10 md:h-12 w-auto transition-transform duration-300 group-hover:scale-105">
+                    <img src="/assets/icon/bgfunlogo.png" alt="BigFun - Premium Amusement Rides" width="180" height="48" class="h-10 md:h-12 w-auto transition-transform duration-300 group-hover:scale-105">
                 </a>
                 <div class="flex items-center gap-8">
                     <a href="/login" class="text-sm font-bold text-gray-500 hover:text-[#9E6B73] transition-colors flex items-center gap-1">
@@ -75,7 +79,7 @@
 
             <div class="pt-12 flex flex-col md:flex-row justify-between items-center gap-8">
                 <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 opacity-80">
-                    <img src="/assets/icon/bgfunlogo.png" alt="Logo" class="h-8 w-auto brightness-0 invert">
+                    <img src="/assets/icon/bgfunlogo.png" alt="BigFun Logo Footer" width="120" height="32" class="h-8 w-auto brightness-0 invert">
                     <span class="hidden sm:block h-1 w-1 rounded-full bg-gray-600"></span>
                     <span class="text-sm font-bold text-gray-400">© 2026 BigFun. All rights reserved.</span>
                 </div>

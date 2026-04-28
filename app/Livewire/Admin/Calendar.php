@@ -14,13 +14,13 @@ use Carbon\Carbon;
 class Calendar extends Component
 {
     // 1. FIXED: Remove strict types (int, string, bool) to prevent Livewire crashes
-    public $currentMonth;
-    public $currentYear;
-    public $statusFilter = 'All';
-    public $showOnlyBooked = false;
-    public $showWholeYear = false;
+    public int $currentMonth;
+    public int $currentYear;
+    public string $statusFilter = 'All';
+    public bool $showOnlyBooked = false;
+    public bool $showWholeYear = false;
 
-    public $global_outstanding_balance = 0;
+    public float $global_outstanding_balance = 0;
 
     public function mount()
     {
@@ -62,8 +62,12 @@ class Calendar extends Component
         $searchMonth = (int) $this->currentMonth;
         $searchYear = (int) $this->currentYear;
 
-        // Fetch bookings with items and payments
-        $query = Booking::with(['items', 'payments'])
+        // Fetch bookings with items and pre-calculated payments sum
+        $query = Booking::with(['items' => function($q) {
+                $q->select('id', 'booking_id', 'item_name');
+            }])
+            ->withSum('payments as real_paid', 'amount')
+            ->select('id', 'event_date', 'start_time', 'end_time', 'customer_first_name', 'customer_last_name', 'status', 'total_amount', 'payment_type', 'lead_operator', 'lead_deliverer', 'address_line_1', 'custom_duration_text', 'duration_cost', 'terms_agreed', 'installation_plan', 'booked_by')
             ->whereYear('event_date', $searchYear)
             ->orderBy('event_date', 'asc')
             ->orderBy('start_time', 'asc');
@@ -95,7 +99,7 @@ class Calendar extends Component
         ];
 
         $processedBookings = $rawBookings->map(function ($booking) use (&$stats) {
-            $realPaid = $booking->payments->sum('amount');
+            $realPaid = (float) ($booking->real_paid ?? 0);
             $totalAmount = (float) $booking->total_amount;
             $balanceDue = $totalAmount - $realPaid;
 
@@ -152,7 +156,6 @@ class Calendar extends Component
                 'balance_due' => $balanceDue
             ];
             
-            $booking->real_paid = $realPaid;
             $booking->services_booked = $services;
 
             return $booking;
@@ -163,15 +166,24 @@ class Calendar extends Component
         // Saturday Baseline
         $stats['satCount'] = collect(range(1, Carbon::create($searchYear, $searchMonth)->daysInMonth))->filter(fn($d) => Carbon::create($searchYear, $searchMonth, $d)->isSaturday())->count();
 
-        // YTD Calculation
-        $ytd = Booking::whereYear('event_date', $searchYear)->whereNotIn('status', ['Cancelled', 'Draft'])->selectRaw('COUNT(*) as c, SUM(total_amount) as r')->first();
+        // YTD Calculation - Quick select instead of full model
+        $ytd = DB::table('bookings')
+            ->whereYear('event_date', $searchYear)
+            ->whereNotIn('status', ['Cancelled', 'Draft'])
+            ->selectRaw('COUNT(*) as c, SUM(total_amount) as r')
+            ->first();
         $stats['ytdCount'] = $ytd->c ?? 0;
         $stats['ytdRev'] = $ytd->r ?? 0;
 
-        // Global Financials
-        $globalRev = Booking::whereNotIn('status', ['Cancelled', 'Draft'])->sum('total_amount');
-        $globalPaid = DB::table('booking_payments')->whereIn('booking_id', fn($q) => $q->select('id')->from('bookings')->whereNotIn('status', ['Cancelled', 'Draft']))->sum('amount');
-        $this->global_outstanding_balance = $globalRev - $globalPaid;
+        // Global Financials - Caching for 10 minutes to save DB load
+        $this->global_outstanding_balance = \Illuminate\Support\Facades\Cache::remember('global_outstanding_balance', 600, function() {
+            $globalRev = DB::table('bookings')->whereNotIn('status', ['Cancelled', 'Draft'])->sum('total_amount');
+            $globalPaid = DB::table('booking_payments')
+                ->whereIn('booking_id', function($q) {
+                    $q->select('id')->from('bookings')->whereNotIn('status', ['Cancelled', 'Draft']);
+                })->sum('amount');
+            return $globalRev - $globalPaid;
+        });
 
         // Grouping Logic
         $grouped = $processedBookings->groupBy('event_date');

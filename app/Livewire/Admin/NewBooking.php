@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Computed;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -37,14 +38,6 @@ class NewBooking extends Component
     public mixed $temp_attachment_4 = null;
     public mixed $temp_attachment_5 = null;
 
-    // UI Data Arrays
-    public array $operators_list = [];
-    public array $past_customers = [];
-    public array $delivery_options = [];
-    public array $duration_options = [];
-    public array $categories = [];
-    public array $config = ['questions' => [], 'addons' => [], 'dropdowns' => []];
-
     public function mount()
     {
         $this->form_token = bin2hex(random_bytes(8));
@@ -57,7 +50,11 @@ class NewBooking extends Component
         $nextNum = ($lastInvoiceNum ?? 0) + 1;
         $this->invoice_number = "INV-" . $dateStr . "-" . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
 
-        $this->loadInitialData();
+        // Initialize simple data
+        $cats = DB::table('product_categories')->where('daily_limit', '>', 0)->get();
+        foreach ($cats as $c) {
+            $this->categoryLimits[$c->category_name] = (int)$c->daily_limit;
+        }
 
         $req_id = request()->query('edit_id');
         $req_invoice = request()->query('invoice');
@@ -78,22 +75,10 @@ class NewBooking extends Component
         $this->checkAvailability();
     }
 
-    private function loadInitialData()
+    #[Computed]
+    public function past_customers(): array
     {
-        // 1. Fetch Operators
-        $staff = DB::table('users')
-            ->whereIn('role', ['Staff', 'Operator', 'Supervisor'])
-            ->where('is_active', 1)
-            ->orderBy('first_name')
-            ->get();
-
-        foreach ($staff as $row) {
-            $this->operators_list[] = trim($row->first_name . ' ' . $row->last_name);
-        }
-        if (empty($this->operators_list)) $this->operators_list = ["No staff found"];
-
-        // 2. Fetch Past Customers (Group by Name/Email/Address to allow variations)
-        $this->past_customers = DB::table('bookings')
+        return DB::table('bookings')
             ->select(['customer_first_name', 'customer_last_name', 'customer_email', 'customer_phone', 'customer_organization', 'customer_abn', 'employer_name', 'customer_business_phone', 'address_line_1', 'business_address', 'suburb', 'state', 'postcode'])
             ->whereIn('id', function ($query) {
                 $query->select(DB::raw('MAX(id)'))
@@ -105,51 +90,76 @@ class NewBooking extends Component
             ->limit(200)
             ->get()
             ->toArray();
+    }
 
-        // 3. Fetch Delivery & Durations
-        $this->delivery_options = DB::table('delivery_zones')->orderBy('price', 'asc')->get()->toArray();
-        $this->duration_options = DB::table('duration_prices')->orderBy('hours', 'asc')->get()->toArray();
+    #[Computed]
+    public function delivery_options(): array
+    {
+        return DB::table('delivery_zones')->orderBy('price', 'asc')->get()->toArray();
+    }
 
-        // 4. Fetch Categories & Products
+    #[Computed]
+    public function duration_options(): array
+    {
+        return DB::table('duration_prices')->orderBy('hours', 'asc')->get()->toArray();
+    }
+
+    #[Computed]
+    public function categories(): array
+    {
+        $categories = [];
         $cats = DB::table('product_categories')->orderBy('sort_order', 'asc')->get();
         foreach ($cats as $c) {
-            $this->categories[$c->category_name] = ['limit' => (int)$c->daily_limit, 'products' => []];
-            if ($c->daily_limit > 0) {
-                $this->categoryLimits[$c->category_name] = (int)$c->daily_limit;
-            }
+            $categories[$c->category_name] = ['limit' => (int)$c->daily_limit, 'products' => []];
         }
 
         $prods = DB::table('products')->where('is_active', 1)->orderBy('category')->orderBy('name')->get();
         foreach ($prods as $p) {
-            if (isset($this->categories[$p->category])) {
-                $this->categories[$p->category]['products'][] = (array)$p;
+            if (isset($categories[$p->category])) {
+                $categories[$p->category]['products'][] = (array)$p;
             }
         }
-
-        $this->loadProductConfigurations();
+        return $categories;
     }
 
-    private function loadProductConfigurations()
+    #[Computed]
+    public function config(): array
     {
+        $config = ['questions' => [], 'addons' => [], 'dropdowns' => []];
         $questions = DB::table('product_extras')->orderBy('category_target', 'asc')->get();
         foreach ($questions as $q) {
-            $this->config['questions'][$q->category_target][] = (array)$q;
+            $config['questions'][$q->category_target][] = (array)$q;
         }
 
         $addons = DB::table('category_addons')->orderBy('category_target', 'asc')->get();
         foreach ($addons as $a) {
-            $this->config['addons'][$a->category_target][] = (array)$a;
+            $config['addons'][$a->category_target][] = (array)$a;
         }
 
         $dropdowns = DB::table('product_dropdowns')->orderBy('sort_order', 'asc')->get();
         foreach ($dropdowns as $d) {
             $opts = DB::table('dropdown_options')->where('dropdown_id', $d->id)->get()->toArray();
             $dArray = (array)$d;
-            $dArray['options'] = array_map(function ($o) {
-                return (array)$o;
-            }, $opts);
-            $this->config['dropdowns'][$d->category_target][] = $dArray;
+            $dArray['options'] = array_map(fn($o) => (array)$o, $opts);
+            $config['dropdowns'][$d->category_target][] = $dArray;
         }
+        return $config;
+    }
+
+    #[Computed]
+    public function operators_list(): array
+    {
+        $staff = DB::table('users')
+            ->whereIn('role', ['Staff', 'Operator', 'Supervisor'])
+            ->where('is_active', 1)
+            ->orderBy('first_name')
+            ->get();
+
+        $list = [];
+        foreach ($staff as $row) {
+            $list[] = trim($row->first_name . ' ' . $row->last_name);
+        }
+        return empty($list) ? ["No staff found"] : $list;
     }
 
     private function loadExistingBooking(mixed $booking)
@@ -178,7 +188,6 @@ class NewBooking extends Component
         }
     }
 
-    // Helper method to safely get values for the blade view
     public function getVal(string $key, string $default = '')
     {
         return isset($this->existing_data[$key]) && $this->existing_data[$key] !== ''
@@ -211,20 +220,16 @@ class NewBooking extends Component
 
     public function updateItemQty(string $name, int $change)
     {
-        // This is a placeholder for quantity-based logic if needed in the future
-        // For now, it ensures the frontend call doesn't 500
     }
 
     public function syncExtras(array $extras)
     {
         $this->saved_extras = $extras;
 
-        // Ensure extraPrices has keys for all extras
         foreach ($extras as $key => $val) {
             $isSelected = ($val && $val !== "0" && !str_ends_with($val, "|no"));
             
             if ($isSelected && (!isset($this->extraPrices[$key]) || $this->extraPrices[$key] == 0)) {
-                // Initialize default price if missing or zero
                 if (str_starts_with($key, 'add_')) {
                     $id = str_replace('add_', '', $key);
                     $addon = DB::table('category_addons')->where('id', $id)->first();
@@ -285,10 +290,8 @@ class NewBooking extends Component
             $stock = (int) $p->total_quantity;
             $used = $usage[$cleanName] ?? 0;
             
-            // Base availability is the physical stock minus what's already booked
             $left = max(0, $stock - $used);
 
-            // If there's a daily limit set (cap), further restrict availability
             if ($limit > 0) {
                 $limit_left = max(0, $limit - $used);
                 if ($limit_left < $left) $left = $limit_left;
@@ -311,14 +314,11 @@ class NewBooking extends Component
         if ($booking && !empty($booking->$column)) {
             $fileName = $booking->$column;
             
-            // Delete physical files
             @unlink(public_path('uploads/' . $fileName));
             @unlink(storage_path('app/public/uploads/' . $fileName));
 
-            // Clear from DB
             DB::table('bookings')->where('id', $this->booking_id)->update([$column => null]);
             
-            // Update local state
             $this->existing_data[$column] = null;
             
             $this->dispatch('attachment-removed');
@@ -334,12 +334,12 @@ class NewBooking extends Component
     {
         return view('livewire.admin.new-booking', [
             'title' => $this->is_edit_mode ? 'Edit Booking | BigFun Admin' : 'New Booking | BigFun Admin',
-            'config' => $this->config,
-            'categories' => $this->categories,
+            'config' => $this->config(),
+            'categories' => $this->categories(),
             'saved_extras' => $this->saved_extras,
-            'past_customers' => $this->past_customers,
-            'delivery_options' => $this->delivery_options,
-            'operators_list' => $this->operators_list,
+            'past_customers' => $this->past_customers(),
+            'delivery_options' => $this->delivery_options(),
+            'operators_list' => $this->operators_list(),
             'selected_products' => $this->selected_products
         ]);
     }
