@@ -14,16 +14,17 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2' # Match your Hostinger PHP version
+          php-version: '8.3' # Upgraded to match composer.lock requirements
           extensions: mbstring, xml, bcmath, curl, gd
+          coverage: none
 
       - name: Install Composer Dependencies
-        run: composer install --no-dev --optimize-autoloader
+        run: composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22' # Upgraded to latest LTS
 
       - name: Install NPM Dependencies & Build
         run: |
