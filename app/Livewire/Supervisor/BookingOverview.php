@@ -859,7 +859,7 @@ class BookingOverview extends Component
     {
         if ($this->previewSelectedItems !== null) {
             // Build virtual items collection from preview data
-            $items = collect($this->previewSelectedItems)->map(function($data, $name) {
+            $items = collect($this->previewSelectedItems)->map(function ($data, $name) {
                 $product = DB::table('products')->whereRaw('LOWER(TRIM(name)) = ?', [$name])->first();
                 return (object)[
                     'item_name' => $product ? $product->name : ucwords($name),
@@ -948,7 +948,7 @@ class BookingOverview extends Component
         $isCard = in_array($this->booking->payment_type, ['credit_card', 'Card Holder']);
         $baseAmount = $this->previewTotals['subtotal'] ?? $totalAmount;
         $surcharge = $this->previewTotals['surcharge'] ?? 0;
-        
+
         if ($this->previewTotals === null && $isCard && $totalAmount > 0) {
             $baseAmount = $totalAmount / 1.029;
             $surcharge = $totalAmount - $baseAmount;
@@ -972,7 +972,7 @@ class BookingOverview extends Component
             }
         }
         $activeCategories = array_unique($activeCategories);
-        
+
         // Create a lookup for prices from actual booking items to ensure consistency
         $itemPriceLookup = $items->pluck('unit_price', 'item_name')->mapWithKeys(fn($p, $n) => [strtolower(trim($n)) => $p])->toArray();
 
@@ -984,25 +984,25 @@ class BookingOverview extends Component
                     array_values($extrasList)
                 );
 
-                return $g->map(function($v) use ($extrasListLower, $itemPriceLookup) {
+                return $g->map(function ($v) use ($extrasListLower, $itemPriceLookup) {
                     $arr = (array)$v;
                     $label = strtolower(trim($arr['addon_label']));
                     $catLabel = strtolower(trim($arr['category_target'] . ': ' . $arr['addon_label']));
-                    
+
                     // Priority: 1. Actual Item Price (from BookingItem table), 2. Overridden Price (from JSON), 3. Default Price
                     if (isset($itemPriceLookup[$label])) $arr['addon_price'] = (float)$itemPriceLookup[$label];
                     elseif (isset($itemPriceLookup[$catLabel])) $arr['addon_price'] = (float)$itemPriceLookup[$catLabel];
                     elseif (isset($extrasListLower[$label])) $arr['addon_price'] = (float)$extrasListLower[$label];
                     elseif (isset($extrasListLower[$catLabel])) $arr['addon_price'] = (float)$extrasListLower[$catLabel];
-                    
+
                     return $arr;
                 })->toArray();
             })->toArray(),
             'questions' => DB::table('product_extras')->orderBy('category_target')->get()->groupBy('category_target')->map(function ($g) use ($extrasList, $itemPriceLookup) {
-                return $g->map(function($v) use ($extrasList, $itemPriceLookup) {
+                return $g->map(function ($v) use ($extrasList, $itemPriceLookup) {
                     $arr = (array)$v;
                     $qText = strtolower(trim($arr['question_text']));
-                    
+
                     // Priority: 1. Actual Item Price, 2. Overridden Price (from JSON), 3. Default Price
                     if (isset($itemPriceLookup[$qText])) {
                         $arr['yes_price'] = (float)$itemPriceLookup[$qText];
@@ -1114,7 +1114,7 @@ class BookingOverview extends Component
         ])->filter()->toArray();
 
         // --- FILTER DUPLICATES ---
-        $allAddonLabels = DB::table('category_addons')->select('addon_label', 'category_target')->get()->flatMap(function($a) {
+        $allAddonLabels = DB::table('category_addons')->select('addon_label', 'category_target')->get()->flatMap(function ($a) {
             return [strtolower(trim($a->addon_label)), strtolower(trim($a->category_target . ': ' . $a->addon_label))];
         })->toArray();
         $allQuestionLabels = DB::table('product_extras')->pluck('question_text')->map(fn($l) => strtolower(trim($l)))->toArray();
@@ -1122,13 +1122,13 @@ class BookingOverview extends Component
             ->join('product_dropdowns as pd', 'do.dropdown_id', '=', 'pd.id')
             ->select('do.option_label', 'pd.label as dd_label')
             ->get()
-            ->flatMap(function($o) {
+            ->flatMap(function ($o) {
                 return [strtolower(trim($o->option_label)), strtolower(trim($o->dd_label . ' - ' . $o->option_label))];
             })->toArray();
-            
+
         $allExtraLabels = array_unique(array_merge($allAddonLabels, $allQuestionLabels, $allDropdownOptions));
 
-        $items = $items->reject(function($item) use ($allExtraLabels) {
+        $items = $items->reject(function ($item) use ($allExtraLabels) {
             return in_array(strtolower(trim($item->item_name)), $allExtraLabels);
         });
 

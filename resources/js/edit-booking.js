@@ -925,7 +925,9 @@ window.triggerRecalculate = function () {
     const extPriceElements = document.querySelectorAll('.ext-price');
     const extraLabels = (window.bookingAppData && window.bookingAppData.config && window.bookingAppData.config.extraLabels) ? window.bookingAppData.config.extraLabels : {};
     const extraCategories = (window.bookingAppData && window.bookingAppData.config && window.bookingAppData.config.extraCategories) ? window.bookingAppData.config.extraCategories : {};
-    const activeCategories = (window.bookingAppData && window.bookingAppData.config && window.bookingAppData.config.activeCategories) ? window.bookingAppData.config.activeCategories : ['General Logistics'];
+    // Ensure activeCategories is always an array
+    let activeCategoriesRaw = (window.bookingAppData && window.bookingAppData.config && window.bookingAppData.config.activeCategories) ? window.bookingAppData.config.activeCategories : ['General Logistics'];
+    const activeCategories = Array.isArray(activeCategoriesRaw) ? activeCategoriesRaw : Object.values(activeCategoriesRaw);
     const selectedItems = (window.bookingAppData && window.bookingAppData.selectedItems) ? window.bookingAppData.selectedItems : {};
     
     if (extPriceElements.length > 0) {

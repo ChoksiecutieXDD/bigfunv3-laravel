@@ -218,7 +218,7 @@
                                 <div class="input-group">
                                     <label class="input-label text-slate-400 !ml-1">Payment Type</label>
                                     <div class="relative">
-                                        <select wire:model.live="form.payment_type" 
+                                        <select wire:model.live="form.payment_type"
                                             @change="paymentType = $event.target.value; updatePaymentMethods()"
                                             class="input-dark appearance-none cursor-pointer">
                                             <option value="EFT">EFT / Bank Transfer</option>
@@ -1556,12 +1556,12 @@
             </div>
         </div>
     </template>
-    
+
     <!-- INFORMATION MODAL -->
     <template x-teleport="body">
         <div x-show="modals.info" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10000]">
             <div x-show="modals.info" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.info = false"></div>
-            
+
             <div x-show="modals.info" x-transition.scale.origin.center class="relative w-full max-w-xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-enter">
                 <div class="bg-gradient-to-br from-[#9E6B73] to-[#86545C] p-8 text-white relative">
                     <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
@@ -1704,8 +1704,37 @@
         window.jsBridgeInitialized = true;
     };
 
-    document.addEventListener('livewire:navigated', window.initJSBridge);
+    document.addEventListener('livewire:navigated', () => {
+        window.initJSBridge();
+        // Force Alpine to re-initialize the bookingApp component after navigation
+        const appEl = document.querySelector('[x-data="bookingApp"]');
+        if (window.Alpine && appEl) {
+            if (appEl.__x) {
+                delete appEl.__x;
+            }
+            window.Alpine.initTree(appEl);
+        }
+    });
     document.addEventListener('livewire:initialized', window.initJSBridge);
+
+
+    // Sync Alpine state with window.bookingAppData
+    window.syncAlpineWithBookingAppData = function() {
+        const appEl = document.querySelector('[x-data="bookingApp"]');
+        if (appEl && appEl.__x) {
+            const data = window.bookingAppData;
+            if (data) {
+                // Only update known fields to avoid overwriting Alpine internals
+                if (data.form && appEl.__x.$data.paymentType !== undefined) {
+                    appEl.__x.$data.paymentType = data.form.payment_type || 'EFT';
+                }
+                if (appEl.__x.$data.paymentMethod !== undefined && data.form && data.form.eft_method) {
+                    appEl.__x.$data.paymentMethod = data.form.eft_method;
+                }
+                // Add more fields here if needed
+            }
+        }
+    };
 
     document.addEventListener('livewire:update', () => {
         if (typeof window.initBookingAppData === 'function') {
@@ -1713,6 +1742,15 @@
         }
         if (typeof updateDynamicExtras === 'function') {
             updateDynamicExtras();
+        }
+        // Force Alpine to re-initialize the bookingApp component
+        const appEl = document.querySelector('[x-data="bookingApp"]');
+        if (window.Alpine && appEl) {
+            // Remove Alpine's internal state and re-initialize
+            if (appEl.__x) {
+                delete appEl.__x;
+            }
+            window.Alpine.initTree(appEl);
         }
         if (typeof window.triggerRecalculate === 'function') {
             window.triggerRecalculate();
