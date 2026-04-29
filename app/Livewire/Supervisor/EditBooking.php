@@ -4,7 +4,6 @@ namespace App\Livewire\Supervisor;
 
 use Livewire\Component;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Computed;
 use Livewire\WithFileUploads;
 use App\Models\Booking;
 use App\Models\BookingItem;
@@ -52,8 +51,10 @@ class EditBooking extends Component
     public mixed $temp_attachment_4 = null;
     public mixed $temp_attachment_5 = null;
 
+    // --- MOVE LOGISTICS PROPERTIES ---
     public array $bookedAttractions = [];
     public array $dailyAttractions = [];
+    public array $categoryLimits = [];
     public array $dailyUsage = [];
     public array $bookingImpact = [];
     public array $modalConflicts = [];
@@ -63,8 +64,6 @@ class EditBooking extends Component
     public array $activeCapacityBreaches = [];
     public ?string $lastToastDate = null;
     public ?string $backUrl = null;
-    public array $categories = [];
-    public array $config = [];
 
     protected array $rules = [
         'temp_attachment_1' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
@@ -80,12 +79,16 @@ class EditBooking extends Component
         'selectedItems' => 'array'
     ];
 
+    public array $config = [];
+    public array $categories = [];
     public bool $isSupervisor = false;
     public float $durationCost = 0;
     public float $deliveryCost = 0;
     public float $attractionsCost = 0;
     public float $extrasCost = 0;
+    public array $staffList = [];
 
+    // Computed-like property for JS bridge
     public array $selectedItemsClean = [];
 
     public function mount(int|string $id)
@@ -99,6 +102,7 @@ class EditBooking extends Component
         if (empty($this->form['eft_method']) && $this->form['payment_type'] === 'EFT') $this->form['eft_method'] = 'Direct Deposit';
 
         $items = BookingItem::where('booking_id', $id)->get();
+        // Pre-fetch product prices for fallback if needed
         $productPrices = DB::table('products')->pluck('price', DB::raw('LOWER(TRIM(name))'))->toArray();
 
         foreach ($items as $item) {
@@ -110,6 +114,7 @@ class EditBooking extends Component
                 'price' => $storedPrice
             ];
 
+            // If the stored price differs from the default product price, mark it as a manual override
             $defaultPrice = (float) ($productPrices[$key] ?? 0);
             if (round($storedPrice, 2) !== round($defaultPrice, 2)) {
                 $mKey = 'ride_' . $key;
@@ -119,15 +124,29 @@ class EditBooking extends Component
             }
         }
 
+        $this->loadProductConfigurations();
+
+        // 4. Fetch Categories & Product Limits (Match NewBooking logic)
+        $cats = DB::table('product_categories')->orderBy('sort_order', 'asc')->get();
+        foreach ($cats as $c) {
+            $this->categories[$c->category_name] = ['limit' => (int)$c->daily_limit, 'products' => []];
+        }
+
+        // --- LOADING EXTRAS ---
         $this->saved_extras = json_decode($this->booking->extras_json ?? '[]', true) ?? [];
         $this->extraPrices = [];
 
+        // Load existing prices from general/specific_extra to extraPrices
         $genExt = json_decode($this->booking->general_extra ?? '[]', true) ?? [];
         $specExt = json_decode($this->booking->specific_extra ?? '[]', true) ?? [];
         $allExt = array_merge($genExt, $specExt);
 
+        // --- DATA RECOVERY & PARITY CHECK ---
+        // Even if extras_json is not empty, it might be incomplete if items were added via ride list
+        // that are also defined as addons (e.g. 
         $itemNames = array_map(fn($it) => strtolower(trim($it)), array_keys($this->selectedItems));
 
+        // 1. Recover Addons
         $addons = DB::table('category_addons')->get();
         foreach ($addons as $a) {
             $addonKey = 'add_' . $a->id;
@@ -137,12 +156,14 @@ class EditBooking extends Component
             $foundPrice = null;
             foreach ($allExt as $label => $price) {
                 $cleanLabel = strtolower(trim($label));
+                // Match simple label or "Category: Label"
                 if ($cleanLabel === $aLabel || $cleanLabel === $aTarget . ': ' . $aLabel || str_ends_with($cleanLabel, ': ' . $aLabel)) {
                     $foundPrice = (float)$price;
                     break;
                 }
             }
 
+            // Determine if selected: check extras_json first, then fallback to itemNames
             $isSelected = ($this->saved_extras[$addonKey] ?? '0') === '1';
             if (!$isSelected) {
                 foreach ($itemNames as $itName) {
@@ -155,6 +176,7 @@ class EditBooking extends Component
             }
 
             if ($isSelected) {
+                // Priority: 1. Item Name match in selectedItems (Source of Truth), 2. allExt (JSON), 3. addon_price (Default)
                 $price = $this->selectedItems[$aLabel]['price'] ?? ($foundPrice ?? (float)$a->addon_price);
                 $this->extraPrices[$addonKey] = (float)$price;
 
@@ -168,6 +190,7 @@ class EditBooking extends Component
             }
         }
 
+        // 2. Recover Questions
         $questions = DB::table('product_extras')->get();
         foreach ($questions as $q) {
             $qKey = 'q_' . $q->id;
@@ -204,6 +227,7 @@ class EditBooking extends Component
                 $isYes = $answer === 'yes' || (isset($this->saved_extras[$qKey]) && str_ends_with($this->saved_extras[$qKey], '|yes'));
                 $basePrice = $isYes ? (float)$q->yes_price : (float)$q->no_price;
 
+                // Priority: 1. Item Name match (if YES), 2. allExt (JSON), 3. basePrice (Default)
                 $price = ($isYes && isset($this->selectedItems[$qText])) ? $this->selectedItems[$qText]['price'] : ($foundPrice ?? $basePrice);
                 $this->extraPrices[$qKey] = (float)$price;
 
@@ -217,6 +241,7 @@ class EditBooking extends Component
             }
         }
 
+        // 3. Recover Dropdowns
         $dropdowns = DB::table('product_dropdowns')->get();
         $dropdownOptions = DB::table('dropdown_options')->get();
         foreach ($dropdowns as $dd) {
@@ -224,19 +249,36 @@ class EditBooking extends Component
             $ddLabel = strtolower(trim($dd->label));
             $ddTarget = strtolower(trim($dd->category_target));
 
+            // Find which option is selected
             $selectedOptId = $this->saved_extras[$ddKey] ?? null;
             $foundOpt = null;
 
             if ($selectedOptId) {
                 $foundOpt = $dropdownOptions->where('id', $selectedOptId)->first();
             } else {
+                // 1. Fallback to allExt (specific_extra) string matching
                 foreach ($dropdownOptions->where('dropdown_id', $dd->id) as $opt) {
                     $optLabel = strtolower(trim($opt->option_label));
-                    foreach ($itemNames as $itName) {
-                        if (str_contains($itName, $optLabel) && (str_contains($itName, $ddLabel) || str_contains($itName, $ddTarget))) {
+                    foreach ($allExt as $label => $price) {
+                        $cleanLabel = strtolower(trim($label));
+                        if (str_contains($cleanLabel, $optLabel) && (str_contains($cleanLabel, $ddLabel) || str_contains($cleanLabel, $ddTarget))) {
                             $this->saved_extras[$ddKey] = $opt->id;
                             $foundOpt = $opt;
                             break 2;
+                        }
+                    }
+                }
+
+                // 2. Fallback to itemNames string matching
+                if (!$foundOpt) {
+                    foreach ($dropdownOptions->where('dropdown_id', $dd->id) as $opt) {
+                        $optLabel = strtolower(trim($opt->option_label));
+                        foreach ($itemNames as $itName) {
+                            if (str_contains($itName, $optLabel) && (str_contains($itName, $ddLabel) || str_contains($itName, $ddTarget))) {
+                                $this->saved_extras[$ddKey] = $opt->id;
+                                $foundOpt = $opt;
+                                break 2;
+                            }
                         }
                     }
                 }
@@ -247,12 +289,14 @@ class EditBooking extends Component
                 $foundPrice = null;
                 foreach ($allExt as $label => $price) {
                     $cleanLabel = strtolower(trim($label));
+                    // Match "Dropdown - Option" or "Category: Dropdown - Option" or "Dropdown: Option"
                     if (str_contains($cleanLabel, $optLabel) && (str_contains($cleanLabel, $ddLabel) || str_contains($cleanLabel, $ddTarget))) {
                         $foundPrice = (float)$price;
                         break;
                     }
                 }
 
+                // Priority: 1. Item Name match (Source of Truth), 2. allExt (JSON), 3. option_price (Default)
                 $price = $this->selectedItems[$optLabel]['price'] ?? ($foundPrice ?? (float)$foundOpt->option_price);
                 $this->extraPrices[$ddKey] = (float)$price;
 
@@ -262,12 +306,14 @@ class EditBooking extends Component
                     $this->lockedOverrides[$ddKey] = true;
                 }
             } else {
+                // Not selected, set default price of first option or 0
                 $firstOpt = $dropdownOptions->where('dropdown_id', $dd->id)->first();
                 $this->extraPrices[$ddKey] = $firstOpt ? (float)$firstOpt->option_price : 0;
             }
         }
 
         if (empty($this->booking->extras_json) || $this->booking->extras_json === '[]') {
+            // --- FALLBACK: REVERSE MAP EXTRAS ---
             $allExtClean = array_combine(
                 array_map(fn($k) => strtolower(trim($k)), array_keys($allExt)),
                 array_values($allExt)
@@ -310,6 +356,8 @@ class EditBooking extends Component
         $this->tempSelectedDate = $this->form['event_date'];
 
         $durationLabels = DB::table('duration_prices')->pluck('label')->toArray();
+        // Duration Custom Check
+        $durationLabels = DB::table('duration_prices')->pluck('label')->toArray();
         if (!empty($this->form['duration']) && !in_array($this->form['duration'], $durationLabels)) {
             $this->form['custom_duration_text'] = $this->form['duration'];
             $this->form['duration'] = 'custom';
@@ -319,6 +367,7 @@ class EditBooking extends Component
             $this->form['custom_duration_text'] = '';
         }
 
+        // Initialize costs if they are zero but an area/duration is selected
         if ((float)($this->form['delivery_cost'] ?? 0) === 0.0 && !empty($this->form['delivery_area']) && $this->form['delivery_area'] !== 'custom') {
             $zone = DB::table('delivery_zones')->where('zone_name', $this->form['delivery_area'])->first();
             if ($zone) {
@@ -326,7 +375,21 @@ class EditBooking extends Component
             }
         }
 
+        // --- CONNECT INVENTORY LIMITS ---
+        $this->categoryLimits = DB::table('product_categories')
+            ->where('daily_limit', '>', 0)
+            ->pluck('daily_limit', 'category_name')
+            ->toArray();
+
+        foreach ($this->categoryLimits as $catName => $limit) {
+            if (isset($this->categories[$catName])) {
+                $this->categories[$catName]['limit'] = (int)$limit;
+            }
+        }
+
         $this->refreshBookingImpact();
+        $this->loadCalendar();
+
         if ((float)($this->form['duration_cost'] ?? 0) === 0.0 && !empty($this->form['duration']) && $this->form['duration'] !== 'custom') {
             $dur = DB::table('duration_prices')->where('label', $this->form['duration'])->first();
             if ($dur) {
@@ -335,64 +398,21 @@ class EditBooking extends Component
         }
 
         $this->totalPaid = DB::table('booking_payments')->where('booking_id', $this->booking->id)->sum('amount') ?: 0;
-        $this->loadCalendar();
-        $this->checkAvailability();
-        $this->calculateTotals();
-        $this->syncSelectedItemsClean();
-    }
 
-    #[Computed]
-    public function config(): array
-    {
-        $config = ['questions' => [], 'addons' => [], 'dropdowns' => []];
-        $questions = DB::table('product_extras')->orderBy('category_target', 'asc')->get();
-        foreach ($questions as $q) {
-            $config['questions'][$q->category_target][] = (array)$q;
-        }
-        $addons = DB::table('category_addons')->orderBy('category_target', 'asc')->get();
-        foreach ($addons as $a) {
-            $config['addons'][$a->category_target][] = (array)$a;
-        }
-        $dropdowns = DB::table('product_dropdowns')->orderBy('sort_order', 'asc')->get();
-        foreach ($dropdowns as $d) {
-            $opts = DB::table('dropdown_options')->where('dropdown_id', $d->id)->get()->toArray();
-            $dArray = (array)$d;
-            $dArray['options'] = array_map(fn($o) => (array)$o, $opts);
-            $config['dropdowns'][$d->category_target][] = $dArray;
-        }
-        return $config;
-    }
-
-    #[Computed]
-    public function categories(): array
-    {
-        $categories = [];
-        $cats = DB::table('product_categories')->orderBy('sort_order', 'asc')->get();
-        foreach ($cats as $c) {
-            $categories[$c->category_name] = ['limit' => (int)$c->daily_limit, 'products' => []];
-        }
-        return $categories;
-    }
-
-    #[Computed]
-    public function categoryLimits(): array
-    {
-        return DB::table('product_categories')
-            ->where('daily_limit', '>', 0)
-            ->pluck('daily_limit', 'category_name')
-            ->toArray();
-    }
-
-    #[Computed]
-    public function staffList(): array
-    {
-        $list = \App\Models\User::whereIn('role', ['Staff', 'Operator', 'Supervisor'])
+        // Fetch Staff/Operators (Match formatting in NewBooking.php)
+        $this->staffList = \App\Models\User::whereIn('role', ['Staff', 'Operator', 'Supervisor'])
             ->where('is_active', 1)
             ->orderBy('first_name')
             ->get()
             ->map(fn($u) => trim($u->first_name . ' ' . $u->last_name))
             ->toArray();
-        return empty($list) ? ["Team"] : $list;
+
+        if (empty($this->staffList)) $this->staffList = ["Team"];
+
+        $this->loadCalendar(); // Initialize calendar grid
+        $this->checkAvailability();
+        $this->calculateTotals();
+        $this->syncSelectedItemsClean();
     }
 
     private function syncSelectedItemsClean()
@@ -459,8 +479,54 @@ class EditBooking extends Component
         $this->calculateTotals();
     }
 
-    public function updatedManualPrices()
+    public function updatedManualPrices($value, $key)
     {
+        // Sync ride price to extra price if applicable
+        if (str_starts_with($key, 'ride_')) {
+            $name = str_replace('ride_', '', $key);
+            // Find corresponding extra
+            $addon = DB::table('category_addons')->whereRaw('LOWER(TRIM(addon_label)) = ?', [$name])->first();
+            if ($addon) {
+                $eKey = 'add_' . $addon->id;
+                $this->manualPrices[$eKey] = (float)$value;
+                $this->extraPrices[$eKey] = (float)$value;
+                $this->activeOverrides[$eKey] = true;
+            }
+            $q = DB::table('product_extras')->whereRaw('LOWER(TRIM(question_text)) = ?', [$name])->first();
+            if ($q) {
+                $eKey = 'q_' . $q->id;
+                $this->manualPrices[$eKey] = (float)$value;
+                $this->extraPrices[$eKey] = (float)$value;
+                $this->activeOverrides[$eKey] = true;
+            }
+            $opt = DB::table('dropdown_options')->whereRaw('LOWER(TRIM(option_label)) = ?', [$name])->first();
+            if ($opt) {
+                $eKey = 'dd_' . $opt->dropdown_id;
+                $this->manualPrices[$eKey] = (float)$value;
+                $this->extraPrices[$eKey] = (float)$value;
+                $this->activeOverrides[$eKey] = true;
+            }
+        } 
+        // Sync extra price to ride price if applicable
+        elseif (str_starts_with($key, 'add_') || str_starts_with($key, 'q_') || str_starts_with($key, 'dd_')) {
+            $label = $this->getExtraLabel($key);
+            if ($label) {
+                $rKey = 'ride_' . strtolower(trim($label));
+                // If the label contains suffix like " (Yes)", strip it for ride matching
+                $rKey = preg_replace('/ \(yes\)$/i', '', $rKey);
+                // If it's a dropdown with "Label: Option", we need to match the option part or the whole thing
+                if (str_contains($rKey, ': ')) {
+                    $parts = explode(': ', $rKey);
+                    $optPart = 'ride_' . strtolower(trim($parts[1]));
+                    $this->manualPrices[$optPart] = (float)$value;
+                    $this->activeOverrides[$optPart] = true;
+                }
+                
+                $this->manualPrices[$rKey] = (float)$value;
+                $this->activeOverrides[$rKey] = true;
+            }
+        }
+
         $this->calculateTotals();
     }
 
@@ -634,9 +700,27 @@ class EditBooking extends Component
         $this->activeOverrides[$key] = true;
         $this->lockedOverrides[$key] = true;
 
+        // Sync to ride price if exists
+        $label = $this->getExtraLabel($key);
+        if ($label) {
+            $rName = strtolower(trim($label));
+            $rName = preg_replace('/ \(yes\)$/i', '', $rName);
+            if (str_contains($rName, ': ')) {
+                $parts = explode(': ', $rName);
+                $rName = strtolower(trim($parts[1]));
+            }
+            $rKey = 'ride_' . $rName;
+            $this->manualPrices[$rKey] = (float)$price;
+            $this->activeOverrides[$rKey] = true;
+            $this->lockedOverrides[$rKey] = true;
+            
+            if (isset($this->selectedItems[$rName])) {
+                $this->selectedItems[$rName]['price'] = (float)$price;
+            }
+        }
+
         // Forcefully save to database registry
         $specExt = json_decode($this->booking->specific_extra ?? '[]', true) ?? [];
-        $label = $this->getExtraLabel($key);
         if ($label) {
             $specExt[$label] = (float)$price;
             $this->booking->specific_extra = json_encode($specExt);
@@ -884,10 +968,22 @@ class EditBooking extends Component
         $addons = DB::table('category_addons')->pluck('addon_price', 'id');
         $opts = DB::table('dropdown_options')->pluck('option_price', 'id');
 
-        // Pre-map addon/dropdown labels for double-counting check
+        // Pre-map labels for double-counting check
         $extraLabels = [];
-        foreach ($addons as $id => $p) $extraLabels['add_' . $id] = strtolower(trim(DB::table('category_addons')->where('id', $id)->value('addon_label') ?: ''));
-        foreach ($opts as $id => $p) $extraLabels['dd_' . DB::table('dropdown_options')->where('id', $id)->value('dropdown_id')] = strtolower(trim(DB::table('dropdown_options')->where('id', $id)->value('option_label') ?: ''));
+        $addonsRaw = DB::table('category_addons')->get();
+        foreach ($addonsRaw as $a) $extraLabels['add_' . $a->id] = strtolower(trim($a->addon_label));
+        
+        $dropdownsRaw = DB::table('product_dropdowns')->get();
+        $optionsRaw = DB::table('dropdown_options')->get()->groupBy('dropdown_id');
+        foreach ($dropdownsRaw as $d) {
+            $optsForDd = $optionsRaw->get($d->id) ?? collect([]);
+            foreach ($optsForDd as $o) {
+                // We map both the option label and the combined label to be safe
+                $extraLabels['dd_' . $d->id] = strtolower(trim($o->option_label));
+                // Note: Only the last one per dd_id is stored here, but we check against the selected one below
+            }
+        }
+        
         foreach (DB::table('product_extras')->get() as $q) $extraLabels['q_' . $q->id] = strtolower(trim($q->question_text));
 
         foreach ($this->saved_extras as $key => $val) {
@@ -903,6 +999,15 @@ class EditBooking extends Component
             if (is_array($val)) {
                 Log::warning("saved_extras contains an array for key '$key': " . json_encode($val));
                 continue;
+            }
+
+            // CRITICAL: Robust skip check for dropdowns
+            if (str_starts_with($key, 'dd_')) {
+                $opt = DB::table('dropdown_options')->where('id', $val)->first();
+                if ($opt && isset($this->selectedItems[strtolower(trim($opt->option_label))])) {
+                    Log::info("calculateTotals: Skipping price for dropdown extra '$key' because option '" . $opt->option_label . "' is already in selectedItems.");
+                    continue;
+                }
             }
 
             if (isset($this->manualPrices[$key])) {
@@ -966,6 +1071,7 @@ class EditBooking extends Component
             'booking-preview-updated',
             extras: $this->saved_extras,
             selectedItems: $this->selectedItems,
+            paymentType: $this->form['payment_type'] ?? 'EFT',
             totals: [
                 'subtotal' => $this->subtotal,
                 'total' => $this->totalAmount,
@@ -974,7 +1080,8 @@ class EditBooking extends Component
                 'duration' => $this->durationCost,
                 'delivery' => $this->deliveryCost,
                 'attractions' => $this->attractionsCost,
-                'extras' => $this->extrasCost
+                'extras' => $this->extrasCost,
+                'paid' => $this->totalPaid
             ]
         );
 
@@ -1349,7 +1456,7 @@ class EditBooking extends Component
     public function saveBooking(?array $extras = null)
     {
         $this->dispatch('notify', title: 'Processing...', message: 'Initiating save sequence...', type: 'info');
-        
+
         try {
             if ($extras && is_array($extras)) {
                 $this->saved_extras = array_merge($this->saved_extras, $extras);
@@ -1587,13 +1694,13 @@ class EditBooking extends Component
 
             // RE-CALCULATE AND UPDATE CACHED COLUMNS
             $this->calculateTotals();
-            $this->booking->save();
+            $this->booking->refresh(); 
             $this->booking->syncFinancials();
 
             // Re-fetch for GS sync
             $this->booking = $this->booking->fresh();
             Log::info("Triggering Google Sheet Sync for: " . $this->booking->invoice_number);
-            
+
             // Wrap in independent try-catch to ensure spreadsheet issues NEVER block the redirect
             try {
                 \App\Services\GoogleSheetService::sync($this->booking->id);
@@ -1604,16 +1711,15 @@ class EditBooking extends Component
             $this->dispatch('booking-updated');
             $this->dispatch('notify', title: 'Booking Updated', message: 'All changes have been successfully saved.', type: 'success');
 
-            $redirectUrl = $this->isSupervisor 
+            $redirectUrl = $this->isSupervisor
                 ? route('supervisor.bookings.overview', $this->booking->id)
                 : route('admin.bookings.overview', $this->booking->id);
 
             Log::info("Save successful. Forcefully redirecting to: " . $redirectUrl);
-            
+
             // EMERGENCY REDIRECT: If standard redirect fails, use JS
             $this->js("window.location.href = '$redirectUrl'");
             return redirect()->to($redirectUrl);
-
         } catch (\Throwable $e) {
             if ($e instanceof \Illuminate\Http\Exceptions\HttpResponseException) throw $e;
 
@@ -1622,7 +1728,7 @@ class EditBooking extends Component
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
             ]);
-            
+
             $this->dispatch('notify', title: 'Critical Save Error', message: $e->getMessage(), type: 'error');
             return;
         }
@@ -1741,7 +1847,23 @@ class EditBooking extends Component
             'questions' => DB::table('product_extras')->orderBy('category_target')->get()->groupBy('category_target')->map(function ($g) {
                 return $g->toArray();
             })->toArray(),
-            'dropdowns' => []
+            'dropdowns' => [],
+            'tempFileSizes' => [
+                'delivery_attachment' => ($this->temp_attachment_1 && method_exists($this->temp_attachment_1, 'getSize')) ? $this->temp_attachment_1->getSize() : 0,
+                'delivery_attachment_2' => ($this->temp_attachment_2 && method_exists($this->temp_attachment_2, 'getSize')) ? $this->temp_attachment_2->getSize() : 0,
+                'delivery_attachment_3' => ($this->temp_attachment_3 && method_exists($this->temp_attachment_3, 'getSize')) ? $this->temp_attachment_3->getSize() : 0,
+                'delivery_attachment_4' => ($this->temp_attachment_4 && method_exists($this->temp_attachment_4, 'getSize')) ? $this->temp_attachment_4->getSize() : 0,
+                'delivery_attachment_5' => ($this->temp_attachment_5 && method_exists($this->temp_attachment_5, 'getSize')) ? $this->temp_attachment_5->getSize() : 0,
+            ],
+            'extraLabels' => DB::table('category_addons')->get()->mapWithKeys(fn($a) => ['add_'.$a->id => strtolower(trim($a->addon_label))])
+                ->merge(DB::table('product_extras')->get()->mapWithKeys(fn($q) => ['q_'.$q->id => strtolower(trim($q->question_text))]))
+                ->merge(DB::table('product_dropdowns')->get()->mapWithKeys(fn($d) => ['dd_'.$d->id => strtolower(trim($d->label))]))
+                ->toArray(),
+            'activeCategories' => $activeCategories,
+            'extraCategories' => DB::table('category_addons')->get()->mapWithKeys(fn($a) => ['add_'.$a->id => $a->category_target])
+                ->merge(DB::table('product_extras')->get()->mapWithKeys(fn($q) => ['q_'.$q->id => $q->category_target]))
+                ->merge(DB::table('product_dropdowns')->get()->mapWithKeys(fn($d) => ['dd_'.$d->id => $d->category_target]))
+                ->toArray()
         ];
 
 
@@ -1766,15 +1888,7 @@ class EditBooking extends Component
             $this->modalNameConflicts = $analysis['nameConflicts'];
         }
 
-        $staffList = DB::table('users')
-            ->whereIn('role', ['Staff', 'Operator', 'Supervisor'])
-            ->where('is_active', 1)
-            ->orderBy('first_name')
-            ->get()
-            ->map(fn($u) => trim($u->first_name . ' ' . $u->last_name))
-            ->toArray();
-
         // Note: passing just other standard variables.
-        return view('livewire.supervisor.edit-booking', compact('deliveryOptions', 'durationOptions', 'activeCategories', 'selectedItemsClean', 'staffList'));
+        return view('livewire.supervisor.edit-booking', compact('deliveryOptions', 'durationOptions', 'activeCategories', 'selectedItemsClean'));
     }
 }

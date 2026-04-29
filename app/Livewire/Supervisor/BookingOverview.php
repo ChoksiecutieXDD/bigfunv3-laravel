@@ -972,33 +972,47 @@ class BookingOverview extends Component
             }
         }
         $activeCategories = array_unique($activeCategories);
+        
+        // Create a lookup for prices from actual booking items to ensure consistency
+        $itemPriceLookup = $items->pluck('unit_price', 'item_name')->mapWithKeys(fn($p, $n) => [strtolower(trim($n)) => $p])->toArray();
 
         $config = [
-            'addons' => DB::table('category_addons')->orderBy('category_target')->get()->groupBy('category_target')->map(function ($g) use ($extrasList) {
+            'addons' => DB::table('category_addons')->orderBy('category_target')->get()->groupBy('category_target')->map(function ($g) use ($extrasList, $itemPriceLookup) {
                 // Lowercase keys for case-insensitive lookup
                 $extrasListLower = array_combine(
                     array_map(fn($k) => strtolower(trim($k)), array_keys($extrasList)),
                     array_values($extrasList)
                 );
 
-                return $g->map(function($v) use ($extrasListLower) {
+                return $g->map(function($v) use ($extrasListLower, $itemPriceLookup) {
                     $arr = (array)$v;
                     $label = strtolower(trim($arr['addon_label']));
                     $catLabel = strtolower(trim($arr['category_target'] . ': ' . $arr['addon_label']));
-                    if (isset($extrasListLower[$label])) $arr['addon_price'] = (float)$extrasListLower[$label];
+                    
+                    // Priority: 1. Actual Item Price (from BookingItem table), 2. Overridden Price (from JSON), 3. Default Price
+                    if (isset($itemPriceLookup[$label])) $arr['addon_price'] = (float)$itemPriceLookup[$label];
+                    elseif (isset($itemPriceLookup[$catLabel])) $arr['addon_price'] = (float)$itemPriceLookup[$catLabel];
+                    elseif (isset($extrasListLower[$label])) $arr['addon_price'] = (float)$extrasListLower[$label];
                     elseif (isset($extrasListLower[$catLabel])) $arr['addon_price'] = (float)$extrasListLower[$catLabel];
+                    
                     return $arr;
                 })->toArray();
             })->toArray(),
-            'questions' => DB::table('product_extras')->orderBy('category_target')->get()->groupBy('category_target')->map(function ($g) use ($extrasList) {
-                return $g->map(function($v) use ($extrasList) {
+            'questions' => DB::table('product_extras')->orderBy('category_target')->get()->groupBy('category_target')->map(function ($g) use ($extrasList, $itemPriceLookup) {
+                return $g->map(function($v) use ($extrasList, $itemPriceLookup) {
                     $arr = (array)$v;
                     $qText = strtolower(trim($arr['question_text']));
-                    // Search in extrasList for any key containing the question text
-                    foreach ($extrasList as $label => $price) {
-                        if (str_contains(strtolower(trim($label)), $qText)) {
-                            $arr['yes_price'] = (float)$price;
-                            break;
+                    
+                    // Priority: 1. Actual Item Price, 2. Overridden Price (from JSON), 3. Default Price
+                    if (isset($itemPriceLookup[$qText])) {
+                        $arr['yes_price'] = (float)$itemPriceLookup[$qText];
+                    } else {
+                        // Search in extrasList for any key containing the question text
+                        foreach ($extrasList as $label => $price) {
+                            if (str_contains(strtolower(trim($label)), $qText)) {
+                                $arr['yes_price'] = (float)$price;
+                                break;
+                            }
                         }
                     }
                     return $arr;
@@ -1012,17 +1026,22 @@ class BookingOverview extends Component
         foreach ($rawDropdowns as $dd) {
             $ddArray = (array)$dd;
             $opts = $rawOpts->get($dd->id) ?? collect([]);
-            $ddArray['options'] = $opts->map(function ($o) use ($extrasList, $dd) {
+            $ddArray['options'] = $opts->map(function ($o) use ($extrasList, $dd, $itemPriceLookup) {
                 $arr = (array)$o;
                 $optLabel = strtolower(trim($arr['option_label']));
                 $ddLabel = strtolower(trim($dd->label));
                 $targetLabel = strtolower(trim($dd->category_target));
 
-                foreach ($extrasList as $label => $price) {
-                    $lowLabel = strtolower(trim($label));
-                    if (str_contains($lowLabel, $optLabel) && (str_contains($lowLabel, $ddLabel) || str_contains($lowLabel, $targetLabel))) {
-                        $arr['option_price'] = (float)$price;
-                        break;
+                // Priority: 1. Actual Item Price, 2. Overridden Price (from JSON), 3. Default Price
+                if (isset($itemPriceLookup[$optLabel])) {
+                    $arr['option_price'] = (float)$itemPriceLookup[$optLabel];
+                } else {
+                    foreach ($extrasList as $label => $price) {
+                        $lowLabel = strtolower(trim($label));
+                        if (str_contains($lowLabel, $optLabel) && (str_contains($lowLabel, $ddLabel) || str_contains($lowLabel, $targetLabel))) {
+                            $arr['option_price'] = (float)$price;
+                            break;
+                        }
                     }
                 }
                 return $arr;

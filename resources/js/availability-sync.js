@@ -714,7 +714,7 @@
             }
         });
 
-        if (ignoreSync) return;
+        if (ignoreSync) return window.bookingAppData.savedExtras;
 
         const bridge = document.getElementById('booking-data-bridge');
         if (bridge) {
@@ -726,6 +726,7 @@
                 }
             }
         }
+        return window.bookingAppData.savedExtras;
     };
 
     window.toggleOverrideState = function (key, isActive) {

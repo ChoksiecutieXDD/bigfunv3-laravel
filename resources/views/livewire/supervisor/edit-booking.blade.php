@@ -1,7 +1,5 @@
-@vite(['resources/js/availability-sync.js', 'resources/js/edit-booking.js'])
 <div x-data="bookingApp"
     x-init="
-        window.dayjs = window.dayjs || function() { return { format: () => '' } };
         window.lwBookingComponent = @this;
         window.bookingAppData = {
             savedExtras: @entangle('saved_extras'),
@@ -13,20 +11,14 @@
             activeOverrides: @entangle('activeOverrides'),
             manualPrices: @entangle('manualPrices'),
             lockedOverrides: @entangle('lockedOverrides'),
-            csrfToken: '{{ csrf_token() }}'
+            totalPaid: @js($totalPaid),
+            csrfToken: '{{ csrf_token() }}',
+            form: @js($form)
         };
 
         // Removal Modal State
         modals.removeConfirm = false;
         itemToRemove = '';
-
-        // Product Details State
-        productDetails = {
-            visible: false,
-            name: '',
-            spec: '',
-            price: 0
-        };
         pendingRemovalCheckbox = null;
         pendingRemovalCard = null;
 
@@ -115,7 +107,12 @@
                                 <span class="material-symbols-rounded text-2xl">arrow_back</span>
                             </a>
                             <div>
-                                <h1 class="text-3xl font-extrabold text-[#1E293B]">Edit Booking</h1>
+                                <div class="flex items-center gap-2">
+                                    <h1 class="text-3xl font-extrabold text-[#1E293B]">Edit Booking</h1>
+                                    <button type="button" @click="modals.info = true" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-[#9E6B73] hover:text-white transition-all duration-300 shadow-sm border border-slate-200/50">
+                                        <span class="material-symbols-rounded text-lg">info</span>
+                                    </button>
+                                </div>
                                 <p class="text-sm text-slate-500 font-medium mt-1 uppercase tracking-wide text-[10px]">Invoice: <span class="font-bold text-[#9D686E]">{{ $booking->invoice_number ?? $booking->id }}</span></p>
                             </div>
                         </div>
@@ -126,9 +123,6 @@
                             ? 'bg-red-100 text-red-400 cursor-not-allowed border-red-200 opacity-60'
                             : 'bg-[#9E6B73] text-white hover:bg-[#86545C] shadow-md shadow-[#9E6B73]/20';
                             @endphp
-                            <button type="button" @click="modals.history = true; filteredCustomers = previousCustomers; searchHistory = ''" class="btn-action bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 flex-1 sm:flex-none justify-center">
-                                <span class="material-symbols-rounded mr-2 text-lg">history</span> Past Customer
-                            </button>
                             <button
                                 @if(!$hasConflicts) @click="modals.saveConfirm = true" @endif
                                 type="button"
@@ -198,8 +192,8 @@
                             </div>
 
                             <div class="flex justify-between items-center text-sm mt-2">
-                                <span class="text-slate-400">Processing Fee ({{ in_array(($form['payment_type'] ?? ''), ['Card Holder', 'credit_card']) ? '2.9%' : '0%' }})</span>
-                                <span class="font-medium text-slate-300">${{ number_format($surchargeAmount, 2) }}</span>
+                                <span class="text-slate-400" id="surcharge_label">Processing Fee ({{ in_array(($form['payment_type'] ?? ''), ['Card Holder', 'credit_card']) ? '2.9%' : '0%' }})</span>
+                                <span class="font-medium text-slate-300" id="disp_surcharge">${{ number_format($surchargeAmount, 2) }}</span>
                             </div>
 
                             <div class="h-px bg-slate-700/50 my-4"></div>
@@ -224,7 +218,9 @@
                                 <div class="input-group">
                                     <label class="input-label text-slate-400 !ml-1">Payment Type</label>
                                     <div class="relative">
-                                        <select wire:model.live="form.payment_type" class="input-dark appearance-none cursor-pointer">
+                                        <select wire:model.live="form.payment_type" 
+                                            @change="paymentType = $event.target.value; updatePaymentMethods()"
+                                            class="input-dark appearance-none cursor-pointer">
                                             <option value="EFT">EFT / Bank Transfer</option>
                                             <option value="Card Holder">Card Holder</option>
                                             <option value="Cash">Cash</option>
@@ -293,7 +289,7 @@
 
                             <div class="flex items-center justify-between bg-[#9E6B73]/20 rounded-xl p-4 border border-[#9E6B73]/30 mt-4">
                                 <span class="text-slate-300 text-xs uppercase font-bold">Req. Deposit (50%)</span>
-                                <span class="text-white font-bold text-xl">${{ number_format($depositRequired, 2) }}</span>
+                                <span class="text-white font-bold text-xl" id="disp_deposit">${{ number_format($depositRequired, 2) }}</span>
                             </div>
                         </div>
                     </div>
@@ -508,13 +504,13 @@
                         <div class="mt-4 p-5 bg-slate-50 rounded-2xl border border-slate-200 animate-[fadeIn_0.2s_ease-in] grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="input-group">
                                 <label class="input-label">Custom Duration Label</label>
-                                <input type="text" wire:model.live.debounce.500ms="form.custom_duration_text" placeholder="e.g. 2 Days, Full Weekend" class="input-field bg-white">
+                                <input type="text" wire:model.live="form.custom_duration_text" placeholder="e.g. 2 Days, Full Weekend" class="input-field bg-white">
                             </div>
                             <div class="input-group">
                                 <label class="input-label text-[#9E6B73]">Manual Duration Cost</label>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
-                                    <input type="number" wire:model.live.debounce.500ms="form.duration_cost" oninput="if(window.triggerRecalculate) window.triggerRecalculate(true)" step="0.01" class="input-field bg-white pl-8" placeholder="0.00">
+                                    <input type="number" wire:model.live="form.duration_cost" oninput="if(window.triggerRecalculate) window.triggerRecalculate()" step="0.01" class="input-field bg-white pl-8" placeholder="0.00">
                                 </div>
                             </div>
                         </div>
@@ -651,7 +647,7 @@
                                         <label class="input-label text-[#9E6B73]">Manual Delivery Cost</label>
                                         <div class="relative">
                                             <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
-                                            <input type="number" wire:model.live.debounce.500ms="form.delivery_cost" oninput="if(window.triggerRecalculate) window.triggerRecalculate(true)" step="0.01" class="input-field input-with-icon" placeholder="0.00">
+                                            <input type="number" wire:model.live="form.delivery_cost" oninput="if(window.triggerRecalculate) window.triggerRecalculate()" step="0.01" class="input-field input-with-icon" placeholder="0.00">
                                         </div>
                                     </div>
                                 </div>
@@ -948,8 +944,8 @@
                                         <div class="relative">
                                             <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 text-[10px] font-bold">$</span>
                                             <input type="number"
-                                                wire:model.live.debounce.500ms="selectedItems.{{ $cleanName }}.price"
-                                                oninput="if(window.triggerRecalculate) window.triggerRecalculate(true)"
+                                                wire:model.live="selectedItems.{{ $cleanName }}.price"
+                                                oninput="if(window.triggerRecalculate) window.triggerRecalculate()"
                                                 step="0.01"
                                                 class="manual-ride-price w-full bg-white border border-slate-200 rounded-xl py-1.5 pl-5 pr-2 text-[11px] font-black text-slate-700 focus:ring-2 focus:ring-[#9E6B73]/20 focus:border-[#9E6B73] transition-all"
                                                 placeholder="{{ number_format($p['price'], 2) }}">
@@ -1560,6 +1556,80 @@
             </div>
         </div>
     </template>
+    
+    <!-- INFORMATION MODAL -->
+    <template x-teleport="body">
+        <div x-show="modals.info" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10000]">
+            <div x-show="modals.info" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.info = false"></div>
+            
+            <div x-show="modals.info" x-transition.scale.origin.center class="relative w-full max-w-xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-enter">
+                <div class="bg-gradient-to-br from-[#9E6B73] to-[#86545C] p-8 text-white relative">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                    <div class="flex justify-between items-center relative z-10">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
+                                <span class="material-symbols-rounded text-2xl">info</span>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-black uppercase tracking-tight">Booking Editor</h3>
+                                <p class="text-white/70 text-xs font-bold uppercase tracking-widest">Management Guide</p>
+                            </div>
+                        </div>
+                        <button @click="modals.info = false" class="w-10 h-10 rounded-xl bg-black/10 flex items-center justify-center hover:bg-black/20 transition-colors">
+                            <span class="material-symbols-rounded">close</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-8 space-y-6">
+                    <div class="grid grid-cols-1 gap-6">
+                        <div class="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 transition-hover hover:bg-white hover:shadow-md group">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                                <span class="material-symbols-rounded">event_available</span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">Real-time Availability</h4>
+                                <p class="text-xs text-slate-500 mt-1">Date changes and attraction selections are validated instantly against current inventory and daily capacity limits.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 transition-hover hover:bg-white hover:shadow-md group">
+                            <div class="w-10 h-10 rounded-xl bg-[#9E6B73]/10 text-[#9E6B73] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                                <span class="material-symbols-rounded">payments</span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">Financial Control</h4>
+                                <p class="text-xs text-slate-500 mt-1">Automatic calculation of duration, delivery, and attraction costs. You can override individual item prices or subtotal manually.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 transition-hover hover:bg-white hover:shadow-md group">
+                            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                                <span class="material-symbols-rounded">shield_person</span>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">Data Integrity</h4>
+                                <p class="text-xs text-slate-500 mt-1">Duplicate detection prevents double-bookings for the same customer on the same date. Attachments are capped at 5MB total.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex gap-4 items-center">
+                        <span class="material-symbols-rounded text-blue-500">lightbulb</span>
+                        <p class="text-[11px] font-bold text-blue-700 leading-relaxed uppercase tracking-wide">
+                            TIP: Use the "Save Changes" button only when the validation banner is green.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                    <button @click="modals.info = false" class="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95">
+                        Understood
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
 
     <div id="booking-data-bridge"
         class="hidden"
@@ -1581,14 +1651,16 @@
     </div>
 </div>
 
+@vite(['resources/js/availability-sync.js', 'resources/js/edit-booking.js'])
+
 @script
 <script>
     // CLEANED UP BRIDGE LOGIC
     window.initJSBridge = function() {
         if (window.jsBridgeInitialized) return;
-        
+
         console.log("Initializing Booking JS Bridge...");
-        
+
         if (typeof window.initBookingAppData === 'function') {
             window.initBookingAppData();
         }
@@ -1615,6 +1687,7 @@
             window.saveCurrentExtrasState._isWrapped = true;
         }
 
+        // One-time wrapper for toggleItemUI
         if (typeof window.toggleItemUI === 'function' && !window.toggleItemUI._isWrapped) {
             const originalToggleItemUI = window.toggleItemUI;
             window.toggleItemUI = function(checkbox, card) {

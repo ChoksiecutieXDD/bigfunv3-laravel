@@ -1,66 +1,3 @@
-// edit-booking.js - Core logic for editing bookings
-(function() {
-    function registerBookingApp() {
-        if (window.bookingAppRegistered) return;
-        if (!window.Alpine) return;
-
-        Alpine.data('bookingApp', () => ({
-            totalSizeMB: '0.00',
-            modals: {
-                review: false,
-                history: false,
-                exit: false,
-                reset: false,
-                limitExceeded: false,
-                saveConfirm: false,
-                calendar: false,
-                fullCapacityWarning: false,
-                changeExtrasConfirm: false,
-                fileSizeAlert: false,
-                costIncrease: false,
-                costDecrease: false,
-                negativeBalance: false,
-                costDelta: 0,
-                saveDuplicateConfirm: false,
-                removeConfirm: false,
-                systemInfo: false,
-                imagePreview: '',
-                imagePreviewVisible: false,
-            },
-            itemToRemove: '',
-            productDetails: {
-                visible: false,
-                name: '',
-                spec: '',
-                price: 0
-            },
-            calculateTotalSize() {
-                let total = 0;
-                const slots = document.querySelectorAll('.attachment-slot');
-                slots.forEach(slot => {
-                    const input = slot.querySelector('input[type=\'file\']');
-                    const isDeleted = slot.dataset.isDeleted === 'true';
-                    let existingSize = parseInt(slot.dataset.existingSize || '0', 10);
-                    
-                    if (input && input.files && input.files[0]) {
-                        total += input.files[0].size;
-                    } else if (!isDeleted && existingSize > 0) {
-                        total += existingSize;
-                    }
-                });
-                this.totalSizeMB = (total / (1024 * 1024)).toFixed(2);
-            }
-        }));
-        window.bookingAppRegistered = true;
-    }
-
-    if (window.Alpine) {
-        registerBookingApp();
-    } else {
-        document.addEventListener('alpine:init', registerBookingApp);
-    }
-})();
-
 window.initBookingAppData = function () {
     const bridge = document.getElementById('booking-data-bridge');
     if (bridge) {
@@ -79,33 +16,21 @@ window.initBookingAppData = function () {
             pastCustomers: bridge.dataset.customers ? JSON.parse(bridge.dataset.customers) : [],
         };
 
-        // Only set these if they don't exist yet, to preserve entanglement
-        if (!window.bookingAppData.savedExtras) {
-            newData.savedExtras = (bridge.dataset.extras && bridge.dataset.extras !== '[]') ? JSON.parse(bridge.dataset.extras) : {};
-        }
-        if (!window.bookingAppData.selectedItems) {
-            newData.selectedItems = (bridge.dataset.selected && bridge.dataset.selected !== '[]' && bridge.dataset.selected !== 'null') ? JSON.parse(bridge.dataset.selected) : {};
-        }
-        if (!window.bookingAppData.extraPrices) {
-            newData.extraPrices = (bridge.dataset.extraPrices && bridge.dataset.extraPrices !== '[]' && bridge.dataset.extraPrices !== 'null') 
-                ? JSON.parse(bridge.dataset.extraPrices) 
-                : (bridge.dataset.extra_prices ? JSON.parse(bridge.dataset.extra_prices) : {});
-        }
-        if (!window.bookingAppData.activeOverrides) {
-            newData.activeOverrides = (bridge.dataset.activeOverrides && bridge.dataset.activeOverrides !== '[]' && bridge.dataset.activeOverrides !== 'null') 
-                ? JSON.parse(bridge.dataset.activeOverrides) 
-                : (bridge.dataset.active_overrides ? JSON.parse(bridge.dataset.active_overrides) : {});
-        }
-        if (!window.bookingAppData.lockedOverrides) {
-            newData.lockedOverrides = (bridge.dataset.lockedOverrides && bridge.dataset.lockedOverrides !== '[]' && bridge.dataset.lockedOverrides !== 'null') 
-                ? JSON.parse(bridge.dataset.lockedOverrides) 
-                : {};
-        }
-        if (!window.bookingAppData.manualPrices) {
-            newData.manualPrices = (bridge.dataset.manualPrices && bridge.dataset.manualPrices !== '[]' && bridge.dataset.manualPrices !== 'null') 
-                ? JSON.parse(bridge.dataset.manualPrices) 
-                : (bridge.dataset.manual_prices ? JSON.parse(bridge.dataset.manual_prices) : {});
-        }
+        // Update these from bridge data
+        newData.savedExtras = (bridge.dataset.extras && bridge.dataset.extras !== '[]') ? JSON.parse(bridge.dataset.extras) : (window.bookingAppData.savedExtras || {});
+        newData.selectedItems = (bridge.dataset.selected && bridge.dataset.selected !== '[]' && bridge.dataset.selected !== 'null') ? JSON.parse(bridge.dataset.selected) : (window.bookingAppData.selectedItems || {});
+        newData.extraPrices = (bridge.dataset.extraPrices && bridge.dataset.extraPrices !== '[]' && bridge.dataset.extraPrices !== 'null')
+            ? JSON.parse(bridge.dataset.extraPrices)
+            : (bridge.dataset.extra_prices ? JSON.parse(bridge.dataset.extra_prices) : (window.bookingAppData.extraPrices || {}));
+        newData.activeOverrides = (bridge.dataset.activeOverrides && bridge.dataset.activeOverrides !== '[]' && bridge.dataset.activeOverrides !== 'null')
+            ? JSON.parse(bridge.dataset.activeOverrides)
+            : (bridge.dataset.active_overrides ? JSON.parse(bridge.dataset.active_overrides) : (window.bookingAppData.activeOverrides || {}));
+        newData.lockedOverrides = (bridge.dataset.lockedOverrides && bridge.dataset.lockedOverrides !== '[]' && bridge.dataset.lockedOverrides !== 'null')
+            ? JSON.parse(bridge.dataset.lockedOverrides)
+            : (window.bookingAppData.lockedOverrides || {});
+        newData.manualPrices = (bridge.dataset.manualPrices && bridge.dataset.manualPrices !== '[]' && bridge.dataset.manualPrices !== 'null')
+            ? JSON.parse(bridge.dataset.manualPrices)
+            : (bridge.dataset.manual_prices ? JSON.parse(bridge.dataset.manual_prices) : (window.bookingAppData.manualPrices || {}));
 
         Object.assign(window.bookingAppData, newData);
 
@@ -122,7 +47,7 @@ window.initBookingAppData = function () {
                     window.bookingAppData.totalPaid = total - balance;
                 }
             }
-            
+
             // Set lastPriceToastTotal to whatever is currently in the DOM to avoid "Cost Updated" on first run
             if (window.lastPriceToastTotal === undefined) {
                 const dispTotal = document.getElementById('disp_total');
@@ -160,7 +85,7 @@ setTimeout(() => { window.isInitialLoading = false; }, 3000);
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('bookingApp', () => ({
-        paymentType: 'EFT',
+        paymentType: window.bookingAppData?.form?.payment_type || 'EFT',
         paymentMethods: ['Direct Deposit', 'Bank Transfer', 'Osko', 'PayID'],
         paymentMethod: 'Direct Deposit',
         paymentStatus: 'Pending',
@@ -183,6 +108,7 @@ document.addEventListener('alpine:init', () => {
             saveDuplicateConfirm: false,
             removeConfirm: false,
             calendarModal: false,
+            info: false,
         },
         itemToRemove: '',
         limitExceededCategory: '',
@@ -206,6 +132,31 @@ document.addEventListener('alpine:init', () => {
             name: '',
             spec: '',
             price: 0
+        },
+        totalSizeMB: '0.00',
+        calculateTotalSize() {
+            let total = 0;
+            const slots = document.querySelectorAll('.attachment-slot');
+            slots.forEach(slot => {
+                const input = slot.querySelector('input[type=\'file\']');
+                const slotName = slot.dataset.slotName;
+                const isDeleted = slot.dataset.isDeleted === 'true';
+                let existingSize = parseInt(slot.dataset.existingSize || '0', 10);
+                
+                // 1. Check if user just selected a file in the input
+                if (input && input.files && input.files[0]) {
+                    total += input.files[0].size;
+                } 
+                // 2. Check if there's a pending temporary upload on the server for this slot
+                else if (!isDeleted && window.bookingAppData && window.bookingAppData.config && window.bookingAppData.config.tempFileSizes && window.bookingAppData.config.tempFileSizes[slotName] > 0) {
+                    total += window.bookingAppData.tempFileSizes[slotName];
+                }
+                // 3. Check for existing file in DB
+                else if (!isDeleted && existingSize > 0) {
+                    total += existingSize;
+                }
+            });
+            this.totalSizeMB = (total / (1024 * 1024)).toFixed(2);
         },
 
         openProductDetails(card) {
@@ -250,9 +201,17 @@ document.addEventListener('alpine:init', () => {
             // Initialize from bridge data if available
             if (window.bookingAppData) {
                 this.previousCustomers = window.bookingAppData.pastCustomers || [];
+                
+                // CRITICAL: Sync payment type immediately from bridge to prevent JS overwrite with default 'EFT'
+                if (window.bookingAppData.form && window.bookingAppData.form.payment_type) {
+                    this.paymentType = window.bookingAppData.form.payment_type;
+                    this.updatePaymentMethods();
+                }
+
                 // If it's edit mode, we might want to pre-load some things
                 setTimeout(() => {
                     if (typeof checkRealTimeAvailability === 'function') checkRealTimeAvailability();
+                    this.calculateTotalSize();
                 }, 100);
             }
         },
@@ -540,16 +499,7 @@ window.dateChanged = function () {
 
 window.handleSelection = function (checkbox) {
     const card = checkbox.closest('.product-card');
-    const dateInput = document.getElementById('event_date');
-    let dateVal = dateInput ? dateInput.value : '';
-
-    // Fallback to Livewire state if DOM is somehow out of sync
-    if (!dateVal && window.lwBookingComponent) {
-        // In EditBooking, it's form.event_date
-        const formData = window.lwBookingComponent.get('form');
-        dateVal = formData ? formData.event_date : '';
-        if (dateVal && dateInput) dateInput.value = dateVal;
-    }
+    const dateVal = document.getElementById('event_date')?.value;
 
     if (!dateVal) {
         checkbox.checked = false;
@@ -674,17 +624,6 @@ function processSelection(checkbox, card) {
                 }
             }
         }
-
-        // Trigger real-time sync to update other products and calendar
-        if (typeof window.syncLiveSelectionsToServer === 'function') {
-            window.syncLiveSelectionsToServer();
-        }
-
-        // Force a refresh of badges to show updated "Left" counts across all cards
-        setTimeout(() => {
-            if (typeof checkRealTimeAvailability === 'function') checkRealTimeAvailability(true);
-        }, 500);
-
     } catch (error) {
         console.error("Selection sync error:", error);
         showToast("Sync Issue", "Could not fully update selection. Please refresh.", "error");
@@ -728,7 +667,7 @@ window.handleExtraSelection = function (element) {
         }
 
         if (limitCategory && catLimit > 0) {
-            let currentUsage = (window.globalCategoryBooked ? (window.globalCategoryBooked[limitCategory] || 0) : 0);
+            let currentUsage = (globalCategoryBooked[limitCategory] || 0);
 
             document.querySelectorAll('.ride-checkbox:checked').forEach(cb => {
                 const cbCat = (cb.closest('.product-card').dataset.countsAgainst || '').trim().toLowerCase();
@@ -739,13 +678,13 @@ window.handleExtraSelection = function (element) {
 
             document.querySelectorAll('.ext-price[data-counts-against]').forEach(el => {
                 const elCat = (el.dataset.countsAgainst || '').trim().toLowerCase();
-                if (elCat === limitCategory) {
+                if (el !== element && elCat === limitCategory) {
                     if (el.type === 'checkbox' && el.checked) currentUsage++;
                     else if (el.tagName === 'SELECT' && el.value !== '' && el.value !== '0' && !el.value.includes('|no')) currentUsage++;
                 }
             });
 
-            if (currentUsage > catLimit) {
+            if (currentUsage + 1 > catLimit) {
                 const appEl = document.querySelector('[x-data="bookingApp"]');
                 const alpine = appEl ? (appEl._x_dataStack ? appEl._x_dataStack[0] : (appEl.__x ? appEl.__x.$data : null)) : null;
                 if (alpine) {
@@ -807,14 +746,18 @@ window.checkTotalAttachmentSize = function (currentInput) {
 
     slots.forEach(slot => {
         const input = slot.querySelector('input[type="file"]');
+        const slotName = slot.dataset.slotName;
         const isDeleted = slot.dataset.isDeleted === 'true';
         let existingSize = parseInt(slot.dataset.existingSize || "0", 10);
 
         if (input && input.files && input.files[0]) {
             // Priority 1: New file selected for this slot overrides existing
             total += input.files[0].size;
+        } else if (!isDeleted && window.bookingAppData && window.bookingAppData.config && window.bookingAppData.config.tempFileSizes && window.bookingAppData.config.tempFileSizes[slotName] > 0) {
+            // Priority 2: Pending temp file on server
+            total += window.bookingAppData.config.tempFileSizes[slotName];
         } else if (!isDeleted && existingSize > 0) {
-            // Priority 2: Existing file in this slot that wasn't deleted
+            // Priority 3: Existing file in this slot that wasn't deleted
             total += existingSize;
         }
     });
@@ -941,19 +884,19 @@ window.updateDeliveryCost = function (sel) {
     triggerRecalculate();
 };
 
-window.triggerRecalculate = function (priceOnly = false) {
+window.triggerRecalculate = function () {
     // Determine source of costs (Livewire inputs or hidden fields)
     const manualDurInput = document.querySelector('input[wire\\:model\\.live="form.duration_cost"]');
     const durCostHidden = document.getElementById('duration_cost');
     let durCost = manualDurInput ? (parseFloat(manualDurInput.value) || 0) : (durCostHidden ? (parseFloat(durCostHidden.value) || 0) : 0);
-    
+
     const breakDur = document.getElementById('breakdown_dur');
     if (breakDur) breakDur.innerText = '$' + durCost.toFixed(2);
 
     const manualDelInput = document.querySelector('input[wire\\:model\\.live="form.delivery_cost"]');
     const delCostHidden = document.getElementById('delivery_cost');
     let delCost = manualDelInput ? (parseFloat(manualDelInput.value) || 0) : (delCostHidden ? (parseFloat(delCostHidden.value) || 0) : 0);
-    
+
     const breakDel = document.getElementById('breakdown_del');
     if (breakDel) breakDel.innerText = '$' + delCost.toFixed(2);
 
@@ -962,16 +905,16 @@ window.triggerRecalculate = function (priceOnly = false) {
         const card = cb.closest('.product-card');
         if (card) {
             // In Edit Mode, we might have a quantity input that is NOT readonly or different selector
-            const qtyInput = card.querySelector('input[readonly].w-8') || card.querySelector('.ride-qty-input'); 
+            const qtyInput = card.querySelector('input[readonly].w-8') || card.querySelector('.ride-qty-input');
             const q = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
-            
+
             // Prioritize override price if available in the card UI
             const manualPriceInput = card.querySelector('.manual-ride-price');
             let p = parseFloat(card.dataset.price || 0);
             if (manualPriceInput && manualPriceInput.value.trim() !== "") {
                 p = parseFloat(manualPriceInput.value);
             }
-            
+
             attractionsCost += (p * q);
         }
     });
@@ -979,29 +922,66 @@ window.triggerRecalculate = function (priceOnly = false) {
     if (breakAttractions) breakAttractions.innerText = '$' + attractionsCost.toFixed(2);
 
     let extCost = 0;
-    document.querySelectorAll('.ext-price').forEach(el => {
-        const key = el.name;
-        const isSelected = (el.tagName === 'SELECT' ? (el.value !== '' && el.value !== '0' && !el.value.includes('|no')) : el.checked);
-        
-        if (isSelected) {
-            // Priority 1: Check for manual override in bookingAppData
-            if (window.bookingAppData && window.bookingAppData.extraPrices && window.bookingAppData.extraPrices[key] !== undefined) {
-                extCost += parseFloat(window.bookingAppData.extraPrices[key] || 0);
-            } else {
-                // Priority 2: Fallback to DOM values if no override recorded yet
-                if (el.tagName === 'SELECT') {
-                    let val = el.value;
-                    if (val.includes('|')) {
-                        extCost += parseFloat(val.split('|')[0] || 0);
-                    } else {
-                        extCost += parseFloat(el.options[el.selectedIndex].dataset.price || 0);
+    const extPriceElements = document.querySelectorAll('.ext-price');
+    const extraLabels = (window.bookingAppData && window.bookingAppData.config && window.bookingAppData.config.extraLabels) ? window.bookingAppData.config.extraLabels : {};
+    const extraCategories = (window.bookingAppData && window.bookingAppData.config && window.bookingAppData.config.extraCategories) ? window.bookingAppData.config.extraCategories : {};
+    const activeCategories = (window.bookingAppData && window.bookingAppData.config && window.bookingAppData.config.activeCategories) ? window.bookingAppData.config.activeCategories : ['General Logistics'];
+    const selectedItems = (window.bookingAppData && window.bookingAppData.selectedItems) ? window.bookingAppData.selectedItems : {};
+    
+    if (extPriceElements.length > 0) {
+        extPriceElements.forEach(el => {
+            const key = el.name;
+            
+            // 1. Skip if the category for this extra is not active
+            const cat = extraCategories[key];
+            if (cat && !activeCategories.includes(cat)) return;
+
+            // 2. Skip if this extra is already counted in attractionsCost (rides)
+            const label = extraLabels[key];
+            if (label && selectedItems[label]) return;
+
+            const isSelected = (el.tagName === 'SELECT' ? (el.value !== '' && el.value !== '0' && !el.value.includes('|no')) : el.checked);
+
+            if (isSelected) {
+                // Priority 1: Check for manual override in bookingAppData
+                if (window.bookingAppData && window.bookingAppData.extraPrices && window.bookingAppData.extraPrices[key] !== undefined) {
+                    extCost += parseFloat(window.bookingAppData.extraPrices[key] || 0);
+                } else {
+                    // Priority 2: Fallback to DOM values if no override recorded yet
+                    if (el.tagName === 'SELECT') {
+                        let val = el.value;
+                        if (val.includes('|')) {
+                            extCost += parseFloat(val.split('|')[0] || 0);
+                        } else {
+                            extCost += parseFloat(el.options[el.selectedIndex].dataset.price || 0);
+                        }
+                    } else if (el.tagName === 'INPUT' && el.checked) {
+                        extCost += parseFloat(el.dataset.price || 0);
                     }
-                } else if (el.tagName === 'INPUT' && el.checked) {
-                    extCost += parseFloat(el.dataset.price || 0);
+                }
+            }
+        });
+    } else if (window.bookingAppData && window.bookingAppData.savedExtras) {
+        // Source of Truth Fallback: If DOM isn't rendered yet (initial load), use bridge data
+        for (let key in window.bookingAppData.savedExtras) {
+            let val = window.bookingAppData.savedExtras[key];
+            
+            // 1. Skip if the category for this extra is not active
+            const cat = extraCategories[key];
+            if (cat && !activeCategories.includes(cat)) continue;
+
+            // 2. Skip if this extra is already counted in attractionsCost (rides)
+            const label = extraLabels[key];
+            if (label && selectedItems[label]) continue;
+
+            // Check if extra is selected (not "0" and not ending in "|no")
+            if (val && val !== "0" && !String(val).endsWith('|no')) {
+                if (window.bookingAppData.extraPrices && window.bookingAppData.extraPrices[key] !== undefined) {
+                    extCost += parseFloat(window.bookingAppData.extraPrices[key] || 0);
                 }
             }
         }
-    });
+    }
     const breakExt = document.getElementById('breakdown_ext');
     if (breakExt) breakExt.innerText = '$' + extCost.toFixed(2);
 
@@ -1012,19 +992,21 @@ window.triggerRecalculate = function (priceOnly = false) {
     // Call total calculation regardless of Edit Mode for dynamic feedback
     calculateFinalTotals();
 
-    if (!priceOnly && typeof updateCategoryLimitsUI === 'function') {
-        updateCategoryLimitsUI();
-    }
+    updateCategoryLimitsUI();
 };
 
 window.calculateFinalTotals = function () {
     const calcSubInput = document.getElementById('calc_subtotal');
     let sub = calcSubInput ? (parseFloat(calcSubInput.value) || 0) : 0;
 
-    // Extract from Alpine
+    // Extract from Alpine or direct DOM if Alpine state is stale/default
     const el = document.querySelector('[x-data="bookingApp"]');
     let alpine = el && el._x_dataStack ? el._x_dataStack[0] : null;
-    let type = alpine ? alpine.paymentType : (document.querySelector('select[wire\\:model="form.payment_type"]')?.value || 'EFT');
+    
+    // Check DOM directly as source of truth for payment type if alpine is at default
+    let type = (alpine && alpine.paymentType !== 'EFT') 
+        ? alpine.paymentType 
+        : (document.querySelector('select[wire\\:model\\.live="form.payment_type"], select[wire\\:model="form.payment_type"]')?.value || 'EFT');
 
     let rate = (type === 'Card Holder' || type === 'credit_card') ? 0.029 : 0;
     let sur = sub * rate;
@@ -1051,11 +1033,11 @@ window.calculateFinalTotals = function () {
         document.getElementById('disp_balance'),
         document.getElementById('disp_balance_footer')
     ];
-    
+
     if (window.bookingAppData && window.bookingAppData.totalPaid !== undefined) {
         const balance = tot - window.bookingAppData.totalPaid;
         const balanceStr = '$' + balance.toFixed(2);
-        
+
         balanceElements.forEach(el => {
             if (el) {
                 el.innerText = balanceStr;
@@ -1452,6 +1434,74 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const dateInput = document.getElementById('event_date');
     calCursor = new Date(dateInput && dateInput.value ? dateInput.value : Date.now());
+
+    // Listen for backend recalculations to keep Alpine/UI in sync
+    window.addEventListener('booking-preview-updated', (e) => {
+        const appEl = document.querySelector('[x-data="bookingApp"]');
+        if (!appEl) return;
+        
+        let app = null;
+        if (appEl.__x) app = appEl.__x.$data;
+        else if (appEl._x_dataStack) app = appEl._x_dataStack[0];
+        
+        if (!app) return;
+
+        const detail = e.detail || {};
+        const totals = detail.totals || {};
+
+        // 1. Sync Payment Type if it changed on backend
+        if (detail.paymentType && app.paymentType !== detail.paymentType) {
+            app.paymentType = detail.paymentType;
+        }
+
+        // 2. Update breakdown elements directly for instant feedback
+        if (document.getElementById('breakdown_dur')) document.getElementById('breakdown_dur').textContent = '$' + Number(totals.duration || 0).toFixed(2);
+        if (document.getElementById('breakdown_del')) document.getElementById('breakdown_del').textContent = '$' + Number(totals.delivery || 0).toFixed(2);
+        if (document.getElementById('breakdown_attractions')) document.getElementById('breakdown_attractions').textContent = '$' + Number(totals.attractions || 0).toFixed(2);
+        if (document.getElementById('breakdown_ext')) document.getElementById('breakdown_ext').textContent = '$' + Number(totals.extras || 0).toFixed(2);
+        if (document.getElementById('calc_subtotal')) document.getElementById('calc_subtotal').value = Number(totals.subtotal || 0).toFixed(2);
+        if (document.getElementById('disp_surcharge')) document.getElementById('disp_surcharge').textContent = '$' + Number(totals.surcharge || 0).toFixed(2);
+        
+        // 3. Update main totals
+        const totalStr = '$' + Number(totals.total || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        if (document.getElementById('disp_total')) document.getElementById('disp_total').textContent = totalStr;
+        
+        const balanceStr = '$' + Number(totals.balance || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        if (document.getElementById('disp_balance')) document.getElementById('disp_balance').textContent = balanceStr;
+        if (document.getElementById('disp_balance_footer')) document.getElementById('disp_balance_footer').textContent = balanceStr;
+        if (document.getElementById('disp_total_paid')) document.getElementById('disp_total_paid').textContent = '-$' + Number(totals.paid || 0).toFixed(2);
+        if (document.getElementById('disp_deposit')) document.getElementById('disp_deposit').textContent = '$' + (Number(totals.total || 0) / 2).toFixed(2);
+
+        // 4. Update balance icon and color
+        const balance = Number(totals.balance || 0);
+        const iconBal = document.getElementById('icon_balance');
+        const dispBal = document.getElementById('disp_balance');
+        const dispBalFooter = document.getElementById('disp_balance_footer');
+
+        [dispBal, dispBalFooter].forEach(el => {
+            if (el) {
+                if (balance > 0.01) {
+                    el.classList.remove('text-emerald-400', 'text-emerald-500');
+                    el.classList.add('text-rose-400');
+                } else {
+                    el.classList.remove('text-rose-400');
+                    el.classList.add('text-emerald-400');
+                }
+            }
+        });
+
+        if (iconBal) {
+            if (balance > 0.01) {
+                iconBal.innerText = 'pending';
+                iconBal.classList.remove('text-emerald-500');
+                iconBal.classList.add('text-rose-500');
+            } else {
+                iconBal.innerText = 'check_circle';
+                iconBal.classList.remove('text-rose-500');
+                iconBal.classList.add('text-emerald-500');
+            }
+        }
+    });
 
     // Initial triggers
     setTimeout(async () => {

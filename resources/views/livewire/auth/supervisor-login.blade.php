@@ -65,6 +65,14 @@
                     class="w-full py-4 bg-[#9E6B73] text-white font-bold rounded-2xl text-lg hover:bg-[#86545C] hover:shadow-lg hover:shadow-[#9E6B73]/30 hover:-translate-y-1 transition-all duration-300 flex justify-center items-center gap-3 disabled:opacity-75 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none">
                     Login as Supervisor
                 </button>
+
+                <div class="pt-2">
+                    <a href="/login" 
+                        class="w-full py-4 bg-gray-100 text-gray-600 font-bold rounded-2xl text-lg hover:bg-gray-200 hover:text-gray-800 transition-all duration-300 flex justify-center items-center gap-2 group">
+                        <span class="material-symbols-rounded group-hover:-translate-x-1 transition-transform">arrow_back</span>
+                        Admin & Staff Login
+                    </a>
+                </div>
             </form>
 
             <p class="mt-8 text-center text-xs text-gray-400 animate-enter delay-300 pb-4">

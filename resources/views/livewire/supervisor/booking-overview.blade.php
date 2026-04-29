@@ -280,7 +280,7 @@
 
             <!-- Right Side: Totals -->
             <div class="bg-[#9D686E]/10 rounded-xl p-4 sm:p-5 space-y-3 border border-[#9D686E]/20 flex flex-col justify-center">
-                <div class="space-y-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                <div class="space-y-2 pr-2">
                     @foreach($items as $item)
                     @if($item->unit_price >= 0)
                     <div class="flex justify-between items-start text-[11px] border-b border-[#9D686E]/5 pb-1 last:border-0 mb-1">
@@ -595,9 +595,14 @@
                             $catQuestions = $config['questions'][$cat] ?? [];
                             @endphp
 
+                            @php $itemNamesLower = $items->map(fn($it) => strtolower(trim($it->item_name)))->toArray(); @endphp
+
                             @foreach($catAddons as $addon)
-                            @php $isSelected = ($selectedExtras['add_'.$addon['id']] ?? '0') !== '0'; @endphp
-                            @if($isSelected && $addon['addon_price'] > 0)
+                            @php 
+                                $isSelected = ($selectedExtras['add_'.$addon['id']] ?? '0') !== '0';
+                                $isAlreadyInRides = in_array(strtolower(trim($addon['addon_label'])), $itemNamesLower);
+                            @endphp
+                            @if($isSelected && !$isAlreadyInRides)
                             <tr class="hover:bg-gray-50 transition border-b border-gray-50 last:border-0 bg-slate-50/30">
                                 <td class="p-2 font-bold text-slate-600 py-4">
                                     <div class="flex items-center gap-2">
@@ -624,7 +629,10 @@
                             $isYes = ($answer === 'yes');
                             }
                             @endphp
-                            @if($isYes && $price >= 0)
+                            @php
+                            $isAlreadyInRides = in_array(strtolower(trim($q['question_text'])), $itemNamesLower);
+                            @endphp
+                            @if($isYes && !$isAlreadyInRides)
                             <tr class="hover:bg-gray-50 transition border-b border-gray-50 last:border-0 bg-slate-50/30">
                                 <td class="p-2 font-bold text-slate-600 py-4">
                                     <div class="flex items-center gap-2">

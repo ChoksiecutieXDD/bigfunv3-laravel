@@ -4,6 +4,7 @@ namespace App\Livewire\Supervisor;
 
 use Livewire\Component;
 use Livewire\Attributes\Layout;
+use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Livewire\Attributes\Computed;
@@ -11,6 +12,8 @@ use Livewire\Attributes\Computed;
 #[Layout('components.layouts.plain')]
 class NewBooking extends Component
 {
+    use WithFileUploads;
+
     public string $invoice_number = '';
     public string $booking_id = '';
     public bool $is_edit_mode = false;
@@ -31,11 +34,11 @@ class NewBooking extends Component
     public ?int $calYear = null;
 
     // File Upload Temporary Properties
-    public $temp_attachment_1;
-    public $temp_attachment_2;
-    public $temp_attachment_3;
-    public $temp_attachment_4;
-    public $temp_attachment_5;
+    public mixed $temp_attachment_1 = null;
+    public mixed $temp_attachment_2 = null;
+    public mixed $temp_attachment_3 = null;
+    public mixed $temp_attachment_4 = null;
+    public mixed $temp_attachment_5 = null;
 
     // UI Data removed from public state
 
