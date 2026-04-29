@@ -359,10 +359,11 @@ class NewBooking extends Component
             'categories' => $this->categories,
             'saved_extras' => $this->saved_extras,
             'past_customers' => $this->past_customers,
-            'delivery_options' => $this->delivery_options,
             'duration_options' => $this->duration_options,
+            'delivery_options' => $this->delivery_options,
             'operators_list' => $this->operators_list,
-            'selected_products' => $this->selected_products
+            'selected_products' => $this->selected_products,
+            'availability' => $this->availability
         ]);
     }
 }

@@ -44,11 +44,11 @@
                             <div class="img-card absolute top-0 right-0 w-80 h-[400px] z-20 overflow-hidden">
                                 <img src="/assets/img/mechanical-surf.jpg" alt="Mechanical Surfboard Ride" width="320" height="400" class="w-full h-full object-cover" fetchpriority="high">
                             </div>
-                            <div class="img-card absolute bottom-10 right-52 w-64 h-64 z-30">
+                            <div class="img-card absolute bottom-10 right-52 w-64 h-64 z-30 overflow-visible">
                                 <div class="w-full h-full overflow-hidden rounded-[20px]">
                                     <img src="/assets/img/splash.jpg" alt="Splash Game Hire" width="256" height="256" class="w-full h-full object-cover">
                                 </div>
-                                <div class="absolute -top-5 -left-5 bg-white px-5 py-2.5 rounded-2xl shadow-lg flex items-center gap-2 z-40">
+                                <div class="absolute -top-6 -left-6 bg-white px-5 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 z-40 border border-[#9E6B73]/10">
                                     <span class="material-symbols-rounded text-[#9E6B73] text-xl" aria-hidden="true">star</span>
                                     <span class="text-sm font-bold text-gray-800">Fan Favorite</span>
                                 </div>

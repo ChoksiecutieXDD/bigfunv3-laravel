@@ -1889,6 +1889,14 @@ class EditBooking extends Component
         }
 
         // Note: passing just other standard variables.
-        return view('livewire.supervisor.edit-booking', compact('deliveryOptions', 'durationOptions', 'activeCategories', 'selectedItemsClean'));
+        return view('livewire.supervisor.edit-booking', compact(
+            'deliveryOptions', 
+            'durationOptions', 
+            'activeCategories', 
+            'selectedItemsClean'
+        ))->with([
+            'duration_options' => $durationOptions,
+            'delivery_options' => $deliveryOptions
+        ]);
     }
 }

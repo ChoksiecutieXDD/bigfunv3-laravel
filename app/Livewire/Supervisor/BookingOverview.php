@@ -976,6 +976,9 @@ class BookingOverview extends Component
         // Create a lookup for prices from actual booking items to ensure consistency
         $itemPriceLookup = $items->pluck('unit_price', 'item_name')->mapWithKeys(fn($p, $n) => [strtolower(trim($n)) => $p])->toArray();
 
+        $duration_options = DB::table('duration_prices')->orderBy('hours', 'asc')->get();
+        $delivery_options = DB::table('delivery_zones')->orderBy('price', 'asc')->get();
+
         $config = [
             'addons' => DB::table('category_addons')->orderBy('category_target')->get()->groupBy('category_target')->map(function ($g) use ($extrasList, $itemPriceLookup) {
                 // Lowercase keys for case-insensitive lookup
@@ -986,14 +989,21 @@ class BookingOverview extends Component
 
                 return $g->map(function ($v) use ($extrasListLower, $itemPriceLookup) {
                     $arr = (array)$v;
-                    $label = strtolower(trim($arr['addon_label']));
-                    $catLabel = strtolower(trim($arr['category_target'] . ': ' . $arr['addon_label']));
+                    $label = strtolower(trim($arr['addon_label'] ?? ''));
+                    $catLabel = strtolower(trim(($arr['category_target'] ?? '') . ': ' . ($arr['addon_label'] ?? '')));
 
                     // Priority: 1. Actual Item Price (from BookingItem table), 2. Overridden Price (from JSON), 3. Default Price
-                    if (isset($itemPriceLookup[$label])) $arr['addon_price'] = (float)$itemPriceLookup[$label];
-                    elseif (isset($itemPriceLookup[$catLabel])) $arr['addon_price'] = (float)$itemPriceLookup[$catLabel];
-                    elseif (isset($extrasListLower[$label])) $arr['addon_price'] = (float)$extrasListLower[$label];
-                    elseif (isset($extrasListLower[$catLabel])) $arr['addon_price'] = (float)$extrasListLower[$catLabel];
+                    $finalPrice = (float)($arr['addon_price'] ?? 0);
+                    if (isset($itemPriceLookup[$label])) {
+                        $finalPrice = (float)$itemPriceLookup[$label];
+                    } elseif (isset($itemPriceLookup[$catLabel])) {
+                        $finalPrice = (float)$itemPriceLookup[$catLabel];
+                    } elseif (isset($extrasListLower[$label])) {
+                        $finalPrice = (float)$extrasListLower[$label];
+                    } elseif (isset($extrasListLower[$catLabel])) {
+                        $finalPrice = (float)$extrasListLower[$catLabel];
+                    }
+                    $arr['addon_price'] = $finalPrice;
 
                     return $arr;
                 })->toArray();
@@ -1154,7 +1164,10 @@ class BookingOverview extends Component
             'selectedExtras',
             'modalConflicts',
             'modalCapacityBreaches',
-            'isDebt'
+            'isDebt',
+            'itemPriceLookup',
+            'duration_options',
+            'delivery_options'
         ));
     }
 }
