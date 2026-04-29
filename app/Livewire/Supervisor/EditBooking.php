@@ -387,8 +387,8 @@ class EditBooking extends Component
             }
         }
 
-        $this->refreshBookingImpact();
         $this->loadCalendar();
+        $this->refreshBookingImpact();
 
         if ((float)($this->form['duration_cost'] ?? 0) === 0.0 && !empty($this->form['duration']) && $this->form['duration'] !== 'custom') {
             $dur = DB::table('duration_prices')->where('label', $this->form['duration'])->first();
@@ -424,6 +424,8 @@ class EditBooking extends Component
     {
         if ($key === 'event_date') {
             $this->checkAvailability();
+            $this->refreshBookingImpact();
+            $this->loadCalendar();
         }
 
         if ($key === 'payment_type') {
@@ -470,8 +472,8 @@ class EditBooking extends Component
         $this->calculateTotals();
         $this->syncSelectedItemsClean();
         $this->checkAvailability();
-        $this->refreshBookingImpact();
         $this->loadCalendar();
+        $this->refreshBookingImpact();
     }
 
     public function updatedExtraPrices()
