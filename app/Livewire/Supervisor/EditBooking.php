@@ -451,8 +451,9 @@ class EditBooking extends Component
                 $this->form['duration_cost'] = $dur ? (float)$dur->price : 0;
             } else {
                 $this->form['is_custom_duration'] = true;
-                $this->form['start_time'] = '00:00:00';
-                $this->form['end_time'] = '23:59:59';
+                $this->form['start_time'] = '';
+                $this->form['end_time'] = '';
+                $this->form['duration_cost'] = 0;
             }
             $this->calculateTotals();
         }
@@ -1479,7 +1480,7 @@ class EditBooking extends Component
             unset($saveData['custom_duration_text']);
 
             if (!empty($this->form['is_custom_duration'])) {
-                $saveData['duration'] = $this->form['custom_duration_text'];
+                $saveData['duration'] = !empty($this->form['custom_duration_text']) ? $this->form['custom_duration_text'] : 'N/A';
             }
 
             // --- SANITIZE TIME FIELDS ---
