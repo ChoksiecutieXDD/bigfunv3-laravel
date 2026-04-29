@@ -747,7 +747,7 @@
                             <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col relative group transition-all hover:bg-white hover:shadow-md attachment-slot"
                                 data-slot-name="{{ $dbCol }}"
                                 data-existing-size="{{ $existingSize }}"
-                                data-is-deleted="false"
+                                data-is-deleted="{{ in_array($dbCol, $deletedAttachments) ? 'true' : 'false' }}"
                                 x-data="{ 
                                         fileName: '{{ $existingFile }}', 
                                         fileExt: '{{ $existingExt }}',
@@ -1649,7 +1649,7 @@
         data-total-paid="{{ $totalPaid }}"
         data-invoice="{{ $this->booking->invoice_number }}">
     </div>
-</div>
+
 
 @vite(['resources/js/availability-sync.js', 'resources/js/edit-booking.js'])
 

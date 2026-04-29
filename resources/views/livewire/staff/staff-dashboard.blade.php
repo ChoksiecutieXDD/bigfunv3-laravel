@@ -181,7 +181,7 @@
                             @endphp
 
                             @if(!empty($job->duration) && ($isFullDay || !in_array($job->duration, ['4 Hours', '7 Hours'])))
-                                {{ $job->duration }} @if(($job->duration_cost ?? 0) > 0) (${{ number_format($job->duration_cost, 2) }}) @endif
+                                {{ $job->duration }}
                             @else
                                 {{ \Carbon\Carbon::parse($job->start_time)->format('g:i A') }}
                             @endif
