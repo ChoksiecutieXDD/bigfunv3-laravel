@@ -766,8 +766,8 @@ window.checkTotalAttachmentSize = function (currentInput) {
         const currentMB = (total / (1024 * 1024)).toFixed(2);
 
         // ONLY trigger the modal alert if this was called from a file input change (currentInput exists)
-        // This prevents the popup from appearing erroneously during price/attraction recalculations
-        if (currentInput) {
+        // AND we are not in the initial loading phase.
+        if (currentInput && !window.isInitialLoading) {
             if (typeof showToast !== 'undefined') {
                 showToast("Storage Limit", "Total size of all attachments must not exceed 5MB. Current: " + currentMB + "MB", "error");
             }

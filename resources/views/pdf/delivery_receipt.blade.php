@@ -24,12 +24,18 @@
     $stdDurations = ['1 Hour','2 Hours','3 Hours','4 Hours','5 Hours','6 Hours','7 Hours','8 Hours','9 Hours','10 Hours','11 Hours','12 Hours','Overnight'];
     $isCustomDuration = false;
     $durationPrice = 0;
+    
+    // Initialize $timeRange to prevent undefined variable error
+    $timeRange = $booking->duration;
+    if (empty($timeRange) || $timeRange === '-') {
+        $timeRange = ($start !== '-' && !empty($end)) ? "$start - $end" : $start;
+    }
+
     if (!empty($booking->duration) && !in_array($booking->duration, $stdDurations)) {
-        $timeRange = $booking->duration;
         $isCustomDuration = true;
         
         // Fetch price if exists
-        $durObj = DB::table('duration_prices')->where('label', $booking->duration)->first();
+        $durObj = \DB::table('duration_prices')->where('label', $booking->duration)->first();
         if ($durObj && (float)$durObj->price > 0) {
             $durationPrice = (float)$durObj->price;
         }
