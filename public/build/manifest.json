@@ -1,0 +1,35 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-BEptqzF1.css",
+    "src": "resources/css/app.css",
+    "isEntry": true,
+    "name": "app",
+    "names": [
+      "app.css"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-BuG9aa18.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/availability-sync.js": {
+    "file": "assets/availability-sync-gDJV8tAt.js",
+    "name": "availability-sync",
+    "src": "resources/js/availability-sync.js",
+    "isEntry": true
+  },
+  "resources/js/edit-booking.js": {
+    "file": "assets/edit-booking-DIewZcvq.js",
+    "name": "edit-booking",
+    "src": "resources/js/edit-booking.js",
+    "isEntry": true
+  },
+  "resources/js/new-booking.js": {
+    "file": "assets/new-booking-DQUAx_sX.js",
+    "name": "new-booking",
+    "src": "resources/js/new-booking.js",
+    "isEntry": true
+  }
+}
