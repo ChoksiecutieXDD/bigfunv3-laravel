@@ -717,7 +717,248 @@
             </form>
         </main>
 
-    <div x-show="productDetails.visible" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[9999]">
+
+    <!-- Review Details Modal -->
+    <div x-show="modals.review" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[9999]">
+        <div x-show="modals.review" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.review = false"></div>
+        <div x-show="modals.review" x-transition class="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b border-gray-100 flex items-center gap-4 bg-slate-800 text-white rounded-t-3xl">
+                <span class="material-symbols-rounded text-3xl text-[#9E6B73]">fact_check</span>
+                <div>
+                    <h3 class="text-xl font-bold">Review Booking Details</h3>
+                    <p class="text-xs text-slate-300">Confirm everything looks correct before saving.</p>
+                </div>
+                <button type="button" @click="modals.review = false" class="ml-auto text-slate-300 hover:text-white transition"><span class="material-symbols-rounded">close</span></button>
+            </div>
+
+            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-6 bg-slate-50">
+                <div id="rev_missing_warning" class="hidden mb-2 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <div class="flex items-center gap-2 mb-2 text-amber-700">
+                        <span class="material-symbols-rounded">warning</span>
+                        <h4 class="font-bold text-sm">Missing Information</h4>
+                    </div>
+                    <p class="text-xs text-amber-800 mb-2">You are proceeding without the following details:</p>
+                    <ul id="rev_missing_list" class="text-xs text-amber-700 list-disc list-inside font-medium"></ul>
+                </div>
+
+                <!-- TBC Pricing Warning Banner -->
+                <div id="rev_tbc_warning" class="hidden mb-4 bg-amber-50 border border-amber-200 border-l-4 border-l-amber-500 rounded-xl p-4">
+                    <div class="flex items-start gap-4">
+                        <span class="material-symbols-rounded text-amber-500 text-3xl">warning</span>
+                        <div class="flex-1">
+                            <h3 class="text-sm font-bold text-amber-800 mb-1">Manual Pricing Required</h3>
+                            <p class="text-xs text-amber-700 leading-relaxed">This booking uses <strong class="text-amber-900">Custom Duration Pricing</strong> which is currently set to <strong>TBC</strong>. Please ensure you update the manual cost before finalizing to prevent incorrect billing.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Duplicate Alert Banner in Review Modal -->
+                <div id="rev_duplicate_warning" class="hidden mb-2 bg-red-50 border border-red-200 rounded-xl p-4">
+                    <div class="flex items-center gap-2 mb-2 text-red-700">
+                        <span class="material-symbols-rounded">warning</span>
+                        <h4 class="font-bold text-sm text-red-800">Potential Duplicate Detected</h4>
+                    </div>
+                    <div id="rev_duplicate_list" class="text-xs text-red-700 space-y-1 mb-2"></div>
+                    <p class="text-[10px] font-bold text-red-600">Please verify if this is a double booking before proceeding.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <h4 class="text-xs font-bold text-[#9E6B73] uppercase mb-3 border-b pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">person</span> Customer Info</h4>
+                        <div class="space-y-2 text-sm text-slate-600">
+                            <p class="flex justify-between"><span class="font-bold">Name:</span> <span id="rev_name"></span></p>
+                            <p class="flex justify-between"><span class="font-bold">Email:</span> <span id="rev_email"></span></p>
+                            <p class="flex justify-between"><span class="font-bold">Phone:</span> <span id="rev_phone"></span></p>
+                            <p class="flex justify-between"><span class="font-bold">Company:</span> <span id="rev_org"></span></p>
+                            <p class="flex justify-between"><span class="font-bold">ABN:</span> <span id="rev_abn"></span></p>
+                            <p class="flex justify-between"><span class="font-bold">Employer:</span> <span id="rev_employer"></span></p>
+                            <p class="flex justify-between"><span class="font-bold">Biz Phone:</span> <span id="rev_biz_phone"></span></p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <h4 class="text-xs font-bold text-[#9E6B73] uppercase mb-3 border-b pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">event</span> Event & Venue Info</h4>
+                        <div class="space-y-2 text-sm text-slate-600">
+                            <p class="flex justify-between"><span class="font-bold">Date:</span> <span id="rev_date" class="text-[#9E6B73] font-bold"></span></p>
+                            <p class="flex justify-between"><span class="font-bold">Op. Hours:</span> <span id="rev_op_hours"></span></p>
+                            <p class="flex justify-between"><span class="font-bold">Time:</span> <span id="rev_time"></span></p>
+                            <p class="flex justify-between"><span class="font-bold">Event Type:</span> <span id="rev_event_type"></span></p>
+                            <p class="flex justify-between"><span class="font-bold">Expected People:</span> <span id="rev_people"></span></p>
+                            <div class="border-t border-slate-100 my-2 pt-2"></div>
+                            <p class="flex flex-col"><span class="font-bold mb-1">Event Address:</span> <span id="rev_address" class="text-right leading-snug"></span></p>
+                            <p class="flex flex-col mt-2"><span class="font-bold mb-1">Business Address:</span> <span id="rev_biz_address" class="text-right leading-snug"></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm h-full">
+                        <h4 class="text-xs font-bold text-[#9E6B73] uppercase mb-3 border-b pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">celebration</span> Selected Attractions & Staff</h4>
+                        <ul id="rev_attractions" class="space-y-2 text-sm font-bold text-slate-700 mb-4"></ul>
+
+                        <div class="border-t border-slate-100 pt-3">
+                            <p class="flex justify-between text-sm text-slate-600"><span class="font-bold">Lead Operator:</span> <span id="rev_operator"></span></p>
+                            <p class="flex justify-between text-sm text-slate-600 mt-1"><span class="font-bold">Lead Deliverer:</span> <span id="rev_deliverer"></span></p>
+                        </div>
+
+                        <div class="border-t border-slate-100 pt-3 mt-3">
+                            <h5 class="text-[10px] font-bold text-slate-400 uppercase mb-2">Attachments</h5>
+                            <ul id="rev_attachments" class="text-xs text-slate-600 list-disc pl-4 space-y-1"></ul>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800 text-white p-5 rounded-2xl border border-slate-700 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <h4 class="text-xs font-bold text-[#9E6B73] uppercase mb-3 border-b border-slate-600 pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">payments</span> Financials</h4>
+                            <div class="space-y-2 text-sm text-slate-300">
+                                <p class="flex justify-between"><span>Duration:</span> <span id="rev_dur_cost" class="font-bold text-white"></span></p>
+                                <p class="flex justify-between"><span>Delivery:</span> <span id="rev_del_cost" class="font-bold text-white"></span></p>
+                                <p class="flex justify-between"><span>Attractions:</span> <span id="rev_attractions_cost" class="font-bold text-white"></span></p>
+                                <p class="flex justify-between"><span>Extras:</span> <span id="rev_ext_cost" class="font-bold text-white"></span></p>
+                                <p class="flex justify-between"><span>Processing Fee:</span> <span id="rev_sur_cost" class="font-bold text-white"></span></p>
+                                <div class="border-t border-slate-600 pt-2 mt-2"></div>
+                                <p class="flex justify-between text-xs text-slate-400"><span>Grand Total:</span> <span id="rev_total" class="font-bold text-white text-lg"></span></p>
+                                <div x-show="paymentType === 'Card Holder'" class="mt-2 p-3 bg-slate-900/50 rounded-xl border border-slate-700 space-y-1">
+                                    <div class="flex justify-between text-[10px]"><span class="text-slate-500 uppercase">Card:</span> <span class="font-mono text-white" id="rev_card_masked">**** **** **** ****</span></div>
+                                    <div class="flex justify-between text-[10px]"><span class="text-slate-500 uppercase">Exp/CVV:</span> <span class="font-mono text-white">** / ** | ***</span></div>
+                                </div>
+                                <p class="flex justify-between text-xs text-emerald-400"><span>Deposit Paid:</span> <span id="rev_deposit_paid" class="font-bold"></span></p>
+                                <p class="flex justify-between font-bold items-center border-t border-slate-600 pt-3 mt-2"><span class="text-[#9E6B73] uppercase text-xs tracking-wider">Balance Due:</span> <span id="rev_balance_due" class="text-2xl text-white"></span></p>
+
+                                <div id="rev_receipt_wrapper" class="hidden bg-slate-900 rounded-lg p-3 mt-3 border border-slate-700">
+                                    <p class="flex justify-between text-[10px] items-center text-slate-400 uppercase font-bold tracking-tight"><span>Receipt Ref:</span> <span id="rev_receipt_id" class="text-white"></span></p>
+                                </div>
+
+                                <div class="bg-slate-900 rounded-lg p-3 mt-1 border border-slate-700">
+                                    <p class="flex justify-between text-xs items-center"><span>Deposit Status:</span> <span id="rev_status" class="font-bold uppercase px-2 py-1 rounded"></span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <h4 class="text-xs font-bold text-[#9E6B73] uppercase mb-3 border-b pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">notes</span> Notes</h4>
+                    <p class="flex flex-col text-sm text-slate-600"><span class="font-bold mb-1">Delivery Notes:</span> <span id="rev_del_notes" class="leading-relaxed bg-slate-50 p-2 rounded-lg text-xs"></span></p>
+                    <p class="flex flex-col text-sm text-slate-600 mt-3"><span class="font-bold mb-1">Customer Notes:</span> <span id="rev_cust_notes" class="leading-relaxed bg-slate-50 p-2 rounded-lg text-xs"></span></p>
+                </div>
+            </div>
+
+            <div class="p-5 border-t border-gray-100 flex gap-4 bg-white rounded-b-3xl">
+                <button type="button" @click="modals.review = false" class="flex-1 py-4 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition">Go Back & Edit</button>
+                <button type="button" @click="finalizeBooking()" id="btnSaveFinal" class="flex-1 py-4 bg-[#9E6B73] text-white font-bold rounded-xl hover:bg-[#86545C] shadow-lg shadow-[#9E6B73]/20 transition flex items-center justify-center gap-2 text-lg">
+                    <span class="material-symbols-rounded">check_circle</span> Confirm & Save Booking
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="modals.history" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[9999]">
+        <div x-show="modals.history" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.history = false"></div>
+        <div x-show="modals.history" x-transition class="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
+            <div class="p-6 border-b border-gray-100 flex flex-col gap-4 bg-green-600 text-white rounded-t-2xl">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-bold">Existing Customers</h3>
+                    <button type="button" @click="modals.history = false" class="text-white/70 hover:text-white p-2 rounded-full hover:bg-white/20 transition"><span class="material-symbols-rounded">close</span></button>
+                </div>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-200"><span class="material-symbols-rounded text-lg">search</span></span>
+                    <input type="text" x-model="searchHistory" @input="filterCustomers()" placeholder="Search name or email..." class="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/20 text-white placeholder-white/70 focus:bg-white focus:text-slate-800 outline-none transition border border-transparent focus:border-white">
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-slate-50 min-h-[400px]">
+                <template x-for="c in paginatedCustomers">
+                    <div class="p-3 bg-white border border-gray-100 rounded-xl hover:border-green-300 hover:bg-green-50 cursor-pointer flex justify-between items-center transition group" @click="fillCustomerDetails(c)">
+                        <div>
+                            <p class="font-bold text-slate-800" x-text="(c.customer_first_name + ' ' + (c.customer_last_name || '')).trim()"></p>
+                            <p class="text-[10px] font-black text-[#9E6B73] uppercase tracking-tighter" x-show="c.suburb" x-text="c.suburb + (c.state ? ', ' + c.state : '')"></p>
+                            <p class="text-xs text-gray-400 mt-0.5" x-text="(c.customer_organization || 'Private') + ' • ' + (c.customer_email || c.customer_phone || '')"></p>
+                        </div>
+                        <span class="text-xs font-bold text-green-600 opacity-0 group-hover:opacity-100 transition">Select</span>
+                    </div>
+                </template>
+                <div x-show="filteredCustomers.length === 0" class="text-center p-4 text-gray-400">No customers found.</div>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="p-4 border-t border-gray-100 bg-white flex items-center justify-between rounded-b-2xl" x-show="filteredCustomers.length > 0">
+                <span class="text-xs text-gray-500 font-bold">Page <span x-text="customerPage"></span> of <span x-text="totalCustomerPages"></span></span>
+                <div class="flex gap-2">
+                    <button type="button" @click="if(customerPage > 1) customerPage--" :disabled="customerPage === 1" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition">Previous</button>
+                    <button type="button" @click="if(customerPage < totalCustomerPages) customerPage++" :disabled="customerPage === totalCustomerPages" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="modals.reset" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10001]">
+        <div x-show="modals.reset" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.reset = false"></div>
+        <div x-show="modals.reset" x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center">
+            <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                <span class="material-symbols-rounded text-3xl">restart_alt</span>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Reset Entire Form?</h3>
+            <p class="text-sm text-slate-600 mb-6">This will clear all details, attractions, and financials.</p>
+            <div class="flex gap-3">
+                <button @click="modals.reset = false" class="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition">Cancel</button>
+                <button @click="performReset()" class="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition">Yes, Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SYSTEM INFO MODAL -->
+    <div x-show="modals.systemInfo" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10005]">
+        <div x-show="modals.systemInfo" x-transition.opacity.duration.300ms class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="modals.systemInfo = false"></div>
+        <div x-show="modals.systemInfo" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="opacity-0 scale-90 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+            class="relative w-full max-w-lg bg-white rounded-[24px] shadow-2xl overflow-hidden z-10 border-t-8 border-[#9E6B73]">
+            
+            <div class="p-8 pb-4 text-left">
+                <div class="w-16 h-16 bg-[#9E6B73]/10 rounded-2xl flex items-center justify-center mb-6 text-[#9E6B73]">
+                    <span class="material-symbols-rounded text-3xl font-bold">help_center</span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 mb-2 tracking-tight">System Concurrency & Guidelines</h3>
+                <p class="text-[13px] font-medium text-slate-500 mb-8 leading-relaxed">To ensure data integrity and prevent double-bookings, the system implements the following real-time guards:</p>
+
+                <div class="space-y-6">
+                    <div class="flex gap-4 text-left">
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded text-xl">sync_alt</span>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-800 mb-1 uppercase tracking-wider text-[11px]">Real-Time Sync</h4>
+                            <p class="text-[12px] text-slate-500 leading-relaxed font-medium">When another staff member selects an attraction, a badge with their name appears instantly. Available slots decrease in real-time to prevent overbooking.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 text-left">
+                        <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded text-xl">timer</span>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-800 mb-1 uppercase tracking-wider text-[11px]">Draft Expiration</h4>
+                            <p class="text-[12px] text-slate-500 leading-relaxed font-medium">New bookings are held as "Drafts" for 20 minutes. If not saved within this time, held slots are automatically released for other staff members.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 text-left">
+                        <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded text-xl">lock</span>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-800 mb-1 uppercase tracking-wider text-[11px]">Category Limits</h4>
+                            <p class="text-[12px] text-slate-500 leading-relaxed font-medium">Certain categories (like Mechanical Rides) have shared limits. Selecting any item in these categories counts against the limit shown in header badges.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-8 pt-4">
+                <button @click="modals.systemInfo = false" class="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition shadow-lg uppercase tracking-widest text-[10px]">I Understand</button>
+            </div>
+        </div>
+    </div>
+
         <div x-show="productDetails.visible" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="productDetails.visible = false"></div>
         <div x-show="productDetails.visible" x-transition class="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
             <div class="p-6 border-b border-gray-100 flex items-center justify-between bg-slate-800 text-white">

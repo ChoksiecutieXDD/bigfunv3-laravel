@@ -192,6 +192,7 @@
 
             <td width="30%" class="text-right">
                 <br>
+                <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">Invoice #: {{ !empty($booking->invoice_number) ? $booking->invoice_number : $booking->id }}</div>
                 <h2 class="uppercase" style="margin:0; color: #333;">DELIVERY RECEIPT</h2>
             </td>
         </tr>

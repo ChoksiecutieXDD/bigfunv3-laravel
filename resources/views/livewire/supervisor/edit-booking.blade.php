@@ -51,6 +51,12 @@
                 window.triggerRecalculate();
             }
         });
+
+        // Finalize initialization by triggering calculation
+        $nextTick(() => {
+            if (typeof window.initBookingAppData === 'function') window.initBookingAppData();
+            if (typeof window.triggerRecalculate === 'function') window.triggerRecalculate();
+        });
     "
     @notify.window="addToast($event.detail.title, $event.detail.message, $event.detail.type || 'success')"
     @show-toast.window="addToast($event.detail.title, $event.detail.message, $event.detail.type || 'success')"
@@ -107,9 +113,20 @@
                                 <span class="material-symbols-rounded text-2xl">arrow_back</span>
                             </a>
                             <div>
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-3">
                                     <h1 class="text-3xl font-extrabold text-[#1E293B]">Edit Booking</h1>
-                                    <button type="button" @click="modals.info = true" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-[#9E6B73] hover:text-white transition-all duration-300 shadow-sm border border-slate-200/50">
+                                    
+                                    <!-- Sync Status Labels -->
+                                    <div x-show="isInitialLoading" x-cloak class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-amber-100 shadow-sm shadow-amber-900/5">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                        Synchronizing Data...
+                                    </div>
+                                    <div x-show="!isInitialLoading" x-cloak x-transition class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-100 shadow-sm shadow-emerald-900/5">
+                                        <span class="material-symbols-rounded text-[14px]">check_circle</span>
+                                        Edit Now
+                                    </div>
+
+                                    <button type="button" @click="modals.info = true" class="w-9 h-9 flex items-center justify-center rounded-xl bg-white text-slate-400 hover:bg-[#9E6B73] hover:text-white transition-all duration-300 shadow-sm border border-slate-200 hover:border-[#9E6B73]/30">
                                         <span class="material-symbols-rounded text-lg">info</span>
                                     </button>
                                 </div>
@@ -1657,9 +1674,7 @@
 <script>
     // CLEANED UP BRIDGE LOGIC
     window.initJSBridge = function() {
-        if (window.jsBridgeInitialized) return;
-
-        console.log("Initializing Booking JS Bridge...");
+        console.log("Initializing/Syncing Booking JS Bridge...");
 
         if (typeof window.initBookingAppData === 'function') {
             window.initBookingAppData();
@@ -1706,14 +1721,6 @@
 
     document.addEventListener('livewire:navigated', () => {
         window.initJSBridge();
-        // Force Alpine to re-initialize the bookingApp component after navigation
-        const appEl = document.querySelector('[x-data="bookingApp"]');
-        if (window.Alpine && appEl) {
-            if (appEl.__x) {
-                delete appEl.__x;
-            }
-            window.Alpine.initTree(appEl);
-        }
     });
     document.addEventListener('livewire:initialized', window.initJSBridge);
 
@@ -1742,15 +1749,6 @@
         }
         if (typeof updateDynamicExtras === 'function') {
             updateDynamicExtras();
-        }
-        // Force Alpine to re-initialize the bookingApp component
-        const appEl = document.querySelector('[x-data="bookingApp"]');
-        if (window.Alpine && appEl) {
-            // Remove Alpine's internal state and re-initialize
-            if (appEl.__x) {
-                delete appEl.__x;
-            }
-            window.Alpine.initTree(appEl);
         }
         if (typeof window.triggerRecalculate === 'function') {
             window.triggerRecalculate();

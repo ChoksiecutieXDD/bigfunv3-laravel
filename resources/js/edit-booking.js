@@ -33,6 +33,8 @@ window.initBookingAppData = function () {
             : (bridge.dataset.manual_prices ? JSON.parse(bridge.dataset.manual_prices) : (window.bookingAppData.manualPrices || {}));
 
         Object.assign(window.bookingAppData, newData);
+        window.isInitialLoading = true;
+        setTimeout(() => { window.isInitialLoading = false; }, 2000);
 
         // Capture Amount Paid for dynamic balance calculation
         if (window.bookingAppData.bookingId) {
@@ -83,12 +85,16 @@ window.hasBookingDuplicates = false;
 window.isInitialLoading = true;
 setTimeout(() => { window.isInitialLoading = false; }, 3000);
 
-document.addEventListener('alpine:init', () => {
+function registerBookingApp() {
+    if (window.bookingAppRegistered) return;
+    window.bookingAppRegistered = true;
+
     Alpine.data('bookingApp', () => ({
         paymentType: window.bookingAppData?.form?.payment_type || 'EFT',
         paymentMethods: ['Direct Deposit', 'Bank Transfer', 'Osko', 'PayID'],
         paymentMethod: 'Direct Deposit',
         paymentStatus: 'Pending',
+        isInitialLoading: true,
         deliveryZone: '',
         modals: {
             review: false,
@@ -212,7 +218,10 @@ document.addEventListener('alpine:init', () => {
                 setTimeout(() => {
                     if (typeof checkRealTimeAvailability === 'function') checkRealTimeAvailability();
                     this.calculateTotalSize();
-                }, 100);
+                    this.triggerRecalculate();
+                    this.isInitialLoading = false;
+                    window.isInitialLoading = false; // Sync with global for toasts
+                }, 1500);
             }
         },
 
@@ -375,7 +384,13 @@ document.addEventListener('alpine:init', () => {
             }, 4000);
         }
     }));
-});
+}
+
+if (window.Alpine) {
+    registerBookingApp();
+} else {
+    document.addEventListener('alpine:init', registerBookingApp);
+}
 
 // Bridge Global Vanilla JS to Alpine Toast
 window.showToast = function (title, message, type = 'success') {

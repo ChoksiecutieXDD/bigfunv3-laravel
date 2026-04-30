@@ -252,6 +252,7 @@
         </div>
 
         <div class="invoice-title">
+            <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">Invoice #: {{ $invNo }}</div>
             <h1>Official Receipt</h1>
             <span style="font-size: 12px; color: #555;">Receipt #: {{ $receiptNo }}</span><br>
             <span style="font-size: 12px; color: #555;">Date: {{ date('F d, Y') }}</span>

@@ -341,6 +341,7 @@
 
             <td width="30%" class="text-right">
                 <br>
+                <div style="font-size: 14px; font-weight: bold; margin-bottom: 2px;">Invoice #: {{ $displayInvoiceNo }}</div>
                 <h2 class="{{ $warning_color }} uppercase" style="margin:0;">{{ $header_warning }}</h2>
             </td>
         </tr>

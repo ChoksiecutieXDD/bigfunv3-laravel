@@ -745,6 +745,17 @@
                     <ul id="rev_missing_list" class="text-xs text-amber-700 list-disc list-inside font-medium"></ul>
                 </div>
 
+                <!-- TBC Pricing Warning Banner -->
+                <div id="rev_tbc_warning" class="hidden mb-4 bg-amber-50 border border-amber-200 border-l-4 border-l-amber-500 rounded-xl p-4">
+                    <div class="flex items-start gap-4">
+                        <span class="material-symbols-rounded text-amber-500 text-3xl">warning</span>
+                        <div class="flex-1">
+                            <h3 class="text-sm font-bold text-amber-800 mb-1">Manual Pricing Required</h3>
+                            <p class="text-xs text-amber-700 leading-relaxed">This booking uses <strong class="text-amber-900">Custom Duration Pricing</strong> which is currently set to <strong>TBC</strong>. Please ensure you update the manual cost before finalizing to prevent incorrect billing.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Duplicate Alert Banner in Review Modal -->
                 <div id="rev_duplicate_warning" class="hidden mb-2 bg-red-50 border border-red-200 rounded-xl p-4">
                     <div class="flex items-center gap-2 mb-2 text-red-700">
@@ -1085,19 +1096,6 @@
         </div>
     </div>
 
-    <div id="booking-data-bridge"
-        class="hidden"
-        data-config='@json($this->config)'
-        data-categories='@json($this->categories)'
-        data-extras='@json($saved_extras ?? (object)[])'
-        data-selected='@json($selected_products ?? [])'
-        data-customers='@json($past_customers ?? [])'
-        data-csrf="{{ csrf_token() }}"
-        data-id="{{ $booking_id }}"
-        data-invoice="{{ $invoice_number }}"
-        data-token="{{ $form_token }}"
-        data-extra-prices='@json($extraPrices)'>
-    </div>
     <!-- Product Details Modal -->
     <div x-show="productDetails.visible" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[20000]">
         <div x-show="productDetails.visible" x-transition.opacity class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="productDetails.visible = false"></div>

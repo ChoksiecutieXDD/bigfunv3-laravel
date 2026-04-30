@@ -242,6 +242,7 @@
 
             <td width="35%" class="text-right">
                 <br>
+                <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">Booking #: {{ $booking->id }}</div>
                 <h2 style="margin:0; font-size: 18px;">PURCHASE ORDER</h2>
             </td>
         </tr>

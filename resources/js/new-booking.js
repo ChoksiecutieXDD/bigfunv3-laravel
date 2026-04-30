@@ -974,8 +974,20 @@ window.selectDurationCard = function (labelEl) {
         if (sEl) sEl.value = "";
         if (eEl) eEl.value = "";
 
-        if (durCostInput && manualCost && manualCost.value !== "") {
-            durCostInput.value = manualCost.value;
+        // Set label to TBC by default if empty
+        const customDurLabelInput = document.getElementById('custom_duration_text');
+        if (customDurLabelInput && customDurLabelInput.value === "") {
+            customDurLabelInput.value = "TBC";
+        }
+
+        // Set to 0 (TBC) if no manual cost is entered yet
+        if (durCostInput) {
+            if (manualCost && manualCost.value !== "") {
+                durCostInput.value = manualCost.value;
+            } else {
+                durCostInput.value = 0;
+                if (manualCost) manualCost.value = "";
+            }
         }
     } else {
         if (wrapper) wrapper.classList.add('hidden');
@@ -1021,10 +1033,21 @@ window.updateDeliveryCost = function (sel) {
 window.triggerRecalculate = function (priceOnly = false) {
     // Force calculation even in edit mode to satisfy wire:ignore breakdown panels
 
+    const appEl = document.querySelector('[x-data="bookingApp"]');
+    const app = appEl && appEl._x_dataStack ? appEl._x_dataStack[0] : null;
+
     const durCostInput = document.getElementById('duration_cost');
     let durCost = durCostInput ? (parseFloat(durCostInput.value) || 0) : 0;
     const breakDur = document.getElementById('breakdown_dur');
-    if (breakDur) breakDur.innerText = '$' + durCost.toFixed(2);
+    if (breakDur) {
+        if (app && app.isDurationCustom && durCost === 0) {
+            breakDur.innerText = 'TBC';
+            breakDur.classList.add('text-amber-500', 'font-black');
+        } else {
+            breakDur.innerText = '$' + durCost.toFixed(2);
+            breakDur.classList.remove('text-amber-500', 'font-black');
+        }
+    }
 
     const delCostInput = document.getElementById('delivery_cost');
     let delCost = delCostInput ? (parseFloat(delCostInput.value) || 0) : 0;
@@ -1244,7 +1267,28 @@ window.openReviewModal = async function () {
             }
         }
     }
-    document.getElementById('rev_dur_cost').innerText = durLabel ? (durLabel + " (" + durPrice + ")") : durPrice;
+    const durCostInput = document.getElementById('duration_cost');
+    const actualDurCost = durCostInput ? (parseFloat(durCostInput.value) || 0) : 0;
+    const revDurCost = document.getElementById('rev_dur_cost');
+    
+    if (revDurCost) {
+        if (isCustom && actualDurCost === 0) {
+            revDurCost.innerText = durLabel ? (durLabel + " (TBC)") : "TBC";
+            revDurCost.classList.add('text-amber-400');
+        } else {
+            revDurCost.innerText = durLabel ? (durLabel + " (" + durPrice + ")") : durPrice;
+            revDurCost.classList.remove('text-amber-400');
+        }
+    }
+
+    const tbcWarning = document.getElementById('rev_tbc_warning');
+    if (tbcWarning) {
+        if (isCustom && actualDurCost === 0) {
+            tbcWarning.classList.remove('hidden');
+        } else {
+            tbcWarning.classList.add('hidden');
+        }
+    }
 
     // Time string adjustment for custom
     let timeStr = "TBD - TBD";
