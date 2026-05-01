@@ -22,6 +22,11 @@
         overflow-x: hidden;
         overflow-y: auto;
     }
+
+    /* Resolve warning: vertical-align ignored on block elements */
+    img, svg, video, canvas, audio, iframe, embed, object {
+        vertical-align: unset;
+    }
 }
 
 /* 3. Your Custom Component Classes */
@@ -103,17 +108,26 @@
         background-position: center;
         box-shadow: 0 20px 40px -10px rgba(158, 107, 115, 0.2);
         border: 4px solid white;
-        transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.6s ease;
+        /* Parallax & Rotation Support */
+        --y: 0px;
+        --r: 0deg;
+        transform: translate3d(0, var(--y), 0) rotate(var(--r));
+        will-change: transform;
     }
 
     .img-card:hover {
-        transform: scale(1.05) translateY(-15px);
+        transform: translate3d(0, var(--y), 0) rotate(var(--r)) scale(1.05) translateY(-15px);
         box-shadow: 0 40px 80px -20px rgba(158, 107, 115, 0.3);
         z-index: 40;
     }
 
+    .bull-card {
+        --r: -8deg;
+    }
+
     .bull-card:hover {
-        transform: scale(1.08) translateY(-25px) rotate(-12deg) !important;
+        transform: translate3d(0, var(--y), 0) scale(1.08) translateY(-25px) rotate(-12deg) !important;
     }
 
     .feature-card {
@@ -752,6 +766,14 @@
         background: #E2E8F0;
         color: #1E293B;
     }
+
+    /* Standard line-clamp for compatibility */
+    .line-clamp-1 { line-clamp: 1; }
+    .line-clamp-2 { line-clamp: 2; }
+    .line-clamp-3 { line-clamp: 3; }
+    .line-clamp-4 { line-clamp: 4; }
+    .line-clamp-5 { line-clamp: 5; }
+    .line-clamp-6 { line-clamp: 6; }
 }
 
 [x-cloak] {

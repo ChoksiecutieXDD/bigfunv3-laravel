@@ -54,7 +54,7 @@
                                     <span class="text-sm font-bold text-gray-800">Fan Favorite</span>
                                 </div>
                             </div>
-                            <div class="img-card bull-card absolute top-20 left-10 w-60 h-72 z-10 opacity-90 overflow-hidden" style="transform: rotate(-8deg);">
+                            <div class="img-card bull-card absolute top-20 left-10 w-60 h-72 z-10 opacity-90 overflow-hidden">
                                 <img src="/assets/img/premiumbull.jpg" alt="Premium Mechanical Bull" width="240" height="288" class="w-full h-full object-cover">
                             </div>
                         </div>

@@ -162,6 +162,21 @@
     </div>
 
     <x-ui.toast />
+    <script>
+        // Global Shield: Ensure bookingApp is ALWAYS defined to prevent SPA navigation crashes
+        document.addEventListener('alpine:init', () => {
+            if (!Alpine.data('bookingApp')) {
+                Alpine.data('bookingApp', () => ({
+                    customerPage: 1,
+                    totalCustomerPages: 1,
+                    modals: { info: false },
+                    filteredCustomers: [],
+                    paginatedCustomers: [],
+                    init() { /* Safe empty init */ }
+                }));
+            }
+        });
+    </script>
     @livewireScripts
 </body>
 

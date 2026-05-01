@@ -85,87 +85,83 @@ window.hasBookingDuplicates = false;
 window.isInitialLoading = true;
 setTimeout(() => { window.isInitialLoading = false; }, 3000);
 
-function registerBookingApp() {
-    if (window.bookingAppRegistered) return;
-    window.bookingAppRegistered = true;
+// Define the data factory globally with safe defaults
+const bookingAppDataFactory = () => ({
+    // Safe Defaults to prevent ReferenceErrors on other pages during SPA navigation
+    paymentType: 'EFT',
+    paymentMethods: ['Direct Deposit', 'Bank Transfer', 'Osko', 'PayID'],
+    paymentMethod: 'Direct Deposit',
+    paymentStatus: 'Pending',
+    isInitialLoading: true,
+    deliveryZone: '',
+    modals: {
+        review: false,
+        history: false,
+        exit: false,
+        reset: false,
+        limitExceeded: false,
+        saveConfirm: false,
+        calendar: false,
+        fullCapacityWarning: false,
+        changeExtrasConfirm: false,
+        fileSizeAlert: false,
+        costIncrease: false,
+        costDecrease: false,
+        negativeBalance: false,
+        costDelta: 0,
+        saveDuplicateConfirm: false,
+        removeConfirm: false,
+        calendarModal: false,
+        info: false,
+        saveSuccess: false,
+    },
+    itemToRemove: '',
+    limitExceededCategory: '',
+    limitExceededLimit: 0,
+    previousCustomers: [],
+    filteredCustomers: [],
+    searchHistory: '',
+    customerPage: 1,
+    customerPageSize: 5,
+    get paginatedCustomers() {
+        if (!this.filteredCustomers) return [];
+        let start = (this.customerPage - 1) * this.customerPageSize;
+        let end = start + this.customerPageSize;
+        return this.filteredCustomers.slice(start, end);
+    },
+    get totalCustomerPages() {
+        if (!this.filteredCustomers || this.filteredCustomers.length === 0) return 1;
+        return Math.ceil(this.filteredCustomers.length / this.customerPageSize) || 1;
+    },
+    cardNetwork: 'Visa',
+    productDetails: {
+        visible: false,
+        name: '',
+        spec: '',
+        price: 0
+    },
+    totalSizeMB: '0.00',
+    calculateTotalSize() {
+        let total = 0;
+        const slots = document.querySelectorAll('.attachment-slot');
+        slots.forEach(slot => {
+            const input = slot.querySelector('input[type=\'file\']');
+            const slotName = slot.dataset.slotName;
+            const isDeleted = slot.dataset.isDeleted === 'true';
+            let existingSize = parseInt(slot.dataset.existingSize || '0', 10);
+            
+            if (input && input.files && input.files[0]) {
+                total += input.files[0].size;
+            } else if (!isDeleted && window.bookingAppData && window.bookingAppData.config && window.bookingAppData.config.tempFileSizes && window.bookingAppData.config.tempFileSizes[slotName] > 0) {
+                total += window.bookingAppData.config.tempFileSizes[slotName];
+            } else if (!isDeleted && existingSize > 0) {
+                total += existingSize;
+            }
+        });
+        this.totalSizeMB = (total / (1024 * 1024)).toFixed(2);
+    },
 
-    Alpine.data('bookingApp', () => ({
-        paymentType: window.bookingAppData?.form?.payment_type || 'EFT',
-        paymentMethods: ['Direct Deposit', 'Bank Transfer', 'Osko', 'PayID'],
-        paymentMethod: 'Direct Deposit',
-        paymentStatus: 'Pending',
-        isInitialLoading: true,
-        deliveryZone: '',
-        modals: {
-            review: false,
-            history: false,
-            exit: false,
-            reset: false,
-            limitExceeded: false,
-            saveConfirm: false,
-            calendar: false,
-            fullCapacityWarning: false,
-            changeExtrasConfirm: false,
-            fileSizeAlert: false,
-            costIncrease: false,
-            costDecrease: false,
-            negativeBalance: false,
-            costDelta: 0,
-            saveDuplicateConfirm: false,
-            removeConfirm: false,
-            calendarModal: false,
-            info: false,
-        },
-        itemToRemove: '',
-        limitExceededCategory: '',
-        limitExceededLimit: 0,
-        previousCustomers: [],
-        filteredCustomers: [],
-        searchHistory: '',
-        customerPage: 1,
-        customerPageSize: 5,
-        get paginatedCustomers() {
-            let start = (this.customerPage - 1) * this.customerPageSize;
-            let end = start + this.customerPageSize;
-            return this.filteredCustomers.slice(start, end);
-        },
-        get totalCustomerPages() {
-            return Math.ceil(this.filteredCustomers.length / this.customerPageSize) || 1;
-        },
-        cardNetwork: 'Visa',
-        productDetails: {
-            visible: false,
-            name: '',
-            spec: '',
-            price: 0
-        },
-        totalSizeMB: '0.00',
-        calculateTotalSize() {
-            let total = 0;
-            const slots = document.querySelectorAll('.attachment-slot');
-            slots.forEach(slot => {
-                const input = slot.querySelector('input[type=\'file\']');
-                const slotName = slot.dataset.slotName;
-                const isDeleted = slot.dataset.isDeleted === 'true';
-                let existingSize = parseInt(slot.dataset.existingSize || '0', 10);
-                
-                // 1. Check if user just selected a file in the input
-                if (input && input.files && input.files[0]) {
-                    total += input.files[0].size;
-                } 
-                // 2. Check if there's a pending temporary upload on the server for this slot
-                else if (!isDeleted && window.bookingAppData && window.bookingAppData.config && window.bookingAppData.config.tempFileSizes && window.bookingAppData.config.tempFileSizes[slotName] > 0) {
-                    total += window.bookingAppData.config.tempFileSizes[slotName];
-                }
-                // 3. Check for existing file in DB
-                else if (!isDeleted && existingSize > 0) {
-                    total += existingSize;
-                }
-            });
-            this.totalSizeMB = (total / (1024 * 1024)).toFixed(2);
-        },
-
-        openProductDetails(card) {
+    openProductDetails(card) {
             this.productDetails.name = card.dataset.name;
             this.productDetails.spec = card.dataset.specification || '';
             this.productDetails.price = parseFloat(card.dataset.price || 0);
@@ -382,15 +378,24 @@ function registerBookingApp() {
             setTimeout(() => {
                 this.toasts = this.toasts.filter(t => t.id !== id);
             }, 4000);
-        }
-    }));
+    }
+});
+
+// Registration Logic
+if (window.Alpine) {
+    Alpine.data('bookingApp', bookingAppDataFactory);
+} else {
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('bookingApp', bookingAppDataFactory);
+    });
 }
 
-if (window.Alpine) {
-    registerBookingApp();
-} else {
-    document.addEventListener('alpine:init', registerBookingApp);
-}
+// Fallback: Catch any edge cases where Alpine initializes before the script finishes
+setTimeout(() => {
+    if (window.Alpine && !window.Alpine.data('bookingApp')) {
+        window.Alpine.data('bookingApp', bookingAppDataFactory);
+    }
+}, 500);
 
 // Bridge Global Vanilla JS to Alpine Toast
 window.showToast = function (title, message, type = 'success') {

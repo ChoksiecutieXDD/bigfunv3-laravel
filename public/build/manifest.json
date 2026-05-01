@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-BEptqzF1.css",
+    "file": "assets/app-Bx1hlx1u.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -21,13 +21,13 @@
     "isEntry": true
   },
   "resources/js/edit-booking.js": {
-    "file": "assets/edit-booking-DIewZcvq.js",
+    "file": "assets/edit-booking-BkbiJoNG.js",
     "name": "edit-booking",
     "src": "resources/js/edit-booking.js",
     "isEntry": true
   },
   "resources/js/new-booking.js": {
-    "file": "assets/new-booking-DQUAx_sX.js",
+    "file": "assets/new-booking-BFP2Ug58.js",
     "name": "new-booking",
     "src": "resources/js/new-booking.js",
     "isEntry": true

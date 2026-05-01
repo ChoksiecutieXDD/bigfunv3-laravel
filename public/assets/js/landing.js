@@ -38,32 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 3. Refined Parallax effect for hero images (avoids layout shifts)
-    const heroImages = document.querySelectorAll('.img-card');
-    const initialTransforms = new Map();
-    
-    heroImages.forEach(img => {
-        initialTransforms.set(img, getComputedStyle(img).transform === 'none' ? '' : getComputedStyle(img).transform);
-    });
-
-    window.addEventListener('scroll', () => {
-        const scrolled = window.scrollY;
-        
-        heroImages.forEach((img, index) => {
-            if (scrolled > 600) return; // Stop after hero section
-            const speed = (index + 1) * 0.1;
-            const yPos = scrolled * speed;
-            
-            // Apply parallax while preserving initial rotation/state
-            // If it's the bull card, we manually preserve the rotation to be safe
-            let rotation = '';
-            if (img.classList.contains('bull-card')) {
-                rotation = 'rotate(-8deg)';
-            }
-            
-            img.style.transform = `translate3d(0, ${yPos}px, 0) ${rotation}`;
-        });
-    }, { passive: true });
+    // 3. Hero images are now stationary (handled via CSS)
 
     console.log('Landing JS initialized successfully.');
 });

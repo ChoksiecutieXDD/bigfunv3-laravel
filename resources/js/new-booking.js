@@ -71,7 +71,9 @@ window.startLivePolling = function () {
 };
 window.startLivePolling();
 
-document.addEventListener('alpine:init', () => {
+function registerBookingApp() {
+    if (!window.Alpine) return;
+
     Alpine.data('bookingApp', () => ({
         paymentType: 'EFT',
         paymentMethods: ['Direct Deposit', 'Bank Transfer', 'Osko', 'PayID'],
@@ -304,7 +306,20 @@ document.addEventListener('alpine:init', () => {
         },
 
     }));
-});
+}
+
+if (window.Alpine) {
+    registerBookingApp();
+} else {
+    document.addEventListener('alpine:init', registerBookingApp);
+}
+
+// Fallback
+setTimeout(() => {
+    if (window.Alpine && !window.Alpine.data('bookingApp')) {
+        registerBookingApp();
+    }
+}, 500);
 
 // Bridge Global Vanilla JS to Alpine Toast
 window.showToast = function (title, message, type = 'success') {

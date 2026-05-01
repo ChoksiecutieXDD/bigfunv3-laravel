@@ -1927,4 +1927,24 @@
             if (modalToOpen === 'futureCompleteModal') futureCompleteModal = true;
             if (modalToOpen === 'restrictedStatusModal') restrictedStatusModal = true;
         "></div>
+    <div id="booking-data-bridge" style="display: none;" data-page-type="overview" data-booking-id="{{ $booking->id }}"></div>
+    <script>
+        (function() {
+            // Enable the full bridge for Overview page
+            window.isOverviewPage = false; 
+            
+            const logInit = () => {
+                console.log("%c [Overview] System Ready ", "background: #2D3748; color: white; font-weight: bold; padding: 2px 4px; border-radius: 4px;");
+                // Force check availability on load
+                if (typeof checkRealTimeAvailability === 'function') checkRealTimeAvailability();
+            };
+            
+            if (document.readyState === "complete") logInit();
+            else window.addEventListener("load", logInit);
+
+            document.addEventListener("livewire:navigated", () => {
+                if (typeof checkRealTimeAvailability === 'function') checkRealTimeAvailability();
+            });
+        })();
+    </script>
 </div>
