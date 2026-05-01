@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-Bx1hlx1u.css",
+    "file": "assets/app-CRp_jzbZ.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -15,7 +15,7 @@
     "isEntry": true
   },
   "resources/js/availability-sync.js": {
-    "file": "assets/availability-sync-CQTzrPdg.js",
+    "file": "assets/availability-sync-gDJV8tAt.js",
     "name": "availability-sync",
     "src": "resources/js/availability-sync.js",
     "isEntry": true

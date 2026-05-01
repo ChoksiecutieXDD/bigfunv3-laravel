@@ -40,12 +40,12 @@
                         </div>
                     </div>
 
-                    <div class="relative h-[550px] hidden lg:block">
-                        <div class="w-full h-full relative">
-                            <div class="img-card absolute top-0 right-0 w-80 h-[400px] z-20 overflow-hidden">
+                    <div class="relative h-[550px] hidden lg:block overflow-visible">
+                        <div class="w-full h-full relative isolate">
+                            <div class="img-card absolute top-0 right-0 w-80 h-[400px] z-20 overflow-hidden pointer-events-none">
                                 <img src="/assets/img/mechanical-surf.jpg" alt="Mechanical Surfboard Ride" width="320" height="400" class="w-full h-full object-cover" fetchpriority="high">
                             </div>
-                            <div class="img-card absolute bottom-10 right-52 w-64 h-64 z-30 overflow-visible">
+                            <div class="img-card absolute bottom-10 right-52 w-64 h-64 z-30 overflow-visible pointer-events-none">
                                 <div class="w-full h-full overflow-hidden rounded-[20px]">
                                     <img src="/assets/img/splash.jpg" alt="Splash Game Hire" width="256" height="256" class="w-full h-full object-cover">
                                 </div>
@@ -54,7 +54,7 @@
                                     <span class="text-sm font-bold text-gray-800">Fan Favorite</span>
                                 </div>
                             </div>
-                            <div class="img-card bull-card absolute top-20 left-10 w-60 h-72 z-10 opacity-90 overflow-hidden">
+                            <div class="img-card bull-card absolute top-20 left-10 w-60 h-72 z-10 opacity-90 overflow-hidden pointer-events-none">
                                 <img src="/assets/img/premiumbull.jpg" alt="Premium Mechanical Bull" width="240" height="288" class="w-full h-full object-cover">
                             </div>
                         </div>
