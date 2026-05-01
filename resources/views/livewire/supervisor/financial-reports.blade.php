@@ -147,7 +147,9 @@
 
     <script>
         document.addEventListener('alpine:init', () => {
-            Alpine.store('activeStatus', null);
+            if (!Alpine.store('activeStatus')) {
+                Alpine.store('activeStatus', '');
+            }
         });
     </script>
 
@@ -167,10 +169,10 @@
                  if (!revCanvas || !catCanvas || !window.Chart) return;
 
                  // Ensure we have arrays even if null was passed
-                 l1 = l1 || @js($chartLabels) || [];
-                 d1 = d1 || @js($chartData) || [];
-                 l2 = l2 || @js($catLabels) || [];
-                 d2 = d2 || @js($catData) || [];
+                 l1 = (l1 && l1.length > 0) ? l1 : (@js($chartLabels) || []);
+                 d1 = (d1 && d1.length > 0) ? d1 : (@js($chartData) || []);
+                 l2 = (l2 && l2.length > 0) ? l2 : (@js($catLabels) || []);
+                 d2 = (d2 && d2.length > 0) ? d2 : (@js($catData) || []);
 
                  // Destroy existing instances using Alpine state to avoid leaks
                  if (this.revChart) this.revChart.destroy();
@@ -237,6 +239,114 @@
                 <canvas id="categoryChart"></canvas>
             </div>
             <div class="mt-4 text-center text-xs text-gray-400 font-medium">Based on bookings count</div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden"
+        x-data="{ 
+            page: 1, 
+            perPage: 5, 
+            statusFilter: '', 
+            rawItems: @js($transactionList),
+            get filteredItems() {
+                return this.statusFilter 
+                    ? this.rawItems.filter(i => i.status === this.statusFilter)
+                    : this.rawItems;
+            }
+        }"
+        @status-filter.window="
+            statusFilter = (statusFilter === $event.detail ? '' : $event.detail); 
+            $store.activeStatus = statusFilter; 
+            page = 1;
+            if (statusFilter) {
+                window.dispatchEvent(new CustomEvent('notify', { 
+                    detail: { 
+                        title: 'Filter Applied', 
+                        type: 'info', 
+                        icon: 'filter_list', 
+                        message: 'Showing only ' + statusFilter + ' transactions.' 
+                    } 
+                }));
+            } else {
+                window.dispatchEvent(new CustomEvent('notify', { 
+                    detail: { 
+                        title: 'Default View', 
+                        type: 'success', 
+                        icon: 'restart_alt', 
+                        message: 'Resetting to show all transactions.' 
+                    } 
+                }));
+            }
+        ">
+        <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <h3 class="font-bold text-[#2D3748] flex items-center gap-2">
+                <span class="material-symbols-rounded text-gray-400">receipt_long</span> 
+                All Transactions
+                <template x-if="statusFilter">
+                    <span class="px-2 py-0.5 bg-gray-200 text-gray-600 rounded-full text-[10px] font-bold uppercase tracking-tight" x-text="'Filter: ' + statusFilter"></span>
+                </template>
+            </h3>
+            <div class="flex gap-2">
+                <button @click="page > 1 ? page-- : null" :disabled="page === 1" class="px-3 py-1 text-xs rounded-md bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-50">Previous</button>
+                <span class="text-xs font-bold text-gray-400 flex items-center" x-text="page + ' / ' + Math.ceil(filteredItems.length / perPage)"></span>
+                <button @click="page < Math.ceil(filteredItems.length / perPage) ? page++ : null" :disabled="page >= Math.ceil(filteredItems.length / perPage) || filteredItems.length === 0" class="px-3 py-1 text-xs rounded-md bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-50">Next</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto max-h-96">
+            <table class="w-full text-left">
+                <thead class="text-xs font-bold text-gray-400 uppercase bg-gray-50/30 sticky top-0">
+                    <tr>
+                        <th class="px-6 py-4">Date</th>
+                        <th class="px-6 py-4">Customer</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4">Method/Ref</th>
+                        <th class="px-6 py-4">Type</th>
+                        <th class="px-6 py-4 text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm divide-y divide-gray-50">
+                    <template x-for="t in filteredItems.slice((page - 1) * perPage, page * perPage)" :key="t.id">
+                        <tr class="hover:bg-gray-50/50 transition">
+                            <td class="px-6 py-4 text-gray-500" x-text="t.event_date"></td>
+                            <td class="px-6 py-4 font-bold text-gray-700" x-text="t.name"></td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 rounded text-[10px] font-bold uppercase"
+                                    :class="{
+                                        'bg-amber-100 text-amber-600': t.status === 'Pending',
+                                        'bg-blue-100 text-blue-600': t.status === 'Confirmed',
+                                        'bg-green-100 text-green-600': t.status === 'Completed',
+                                        'bg-red-100 text-red-600': t.status === 'Cancelled',
+                                        'bg-slate-100 text-slate-600': t.status === 'Draft'
+                                    }"
+                                    x-text="t.status">
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <template x-if="t.payment_type === 'Card Holder'">
+                                        <div class="flex items-center gap-1.5">
+                                             <i class="fa-brands fa-cc-visa text-blue-600" x-show="(t.card_network?.toLowerCase() || '').includes('visa')"></i>
+                                            <i class="fa-brands fa-cc-mastercard text-orange-500" x-show="(t.card_network?.toLowerCase() || '').includes('mastercard')"></i>
+                                            <i class="fa-brands fa-cc-amex text-blue-400" x-show="(t.card_network?.toLowerCase() || '').includes('amex') || (t.card_network?.toLowerCase() || '').includes('american express')"></i>
+                                            <i class="fa-brands fa-cc-discover text-orange-400" x-show="(t.card_network?.toLowerCase() || '').includes('discover')"></i>
+                                            <i class="fa-solid fa-credit-card text-gray-400" x-show="!(t.card_network?.toLowerCase() || '').includes('visa') && !(t.card_network?.toLowerCase() || '').includes('mastercard') && !(t.card_network?.toLowerCase() || '').includes('amex') && !(t.card_network?.toLowerCase() || '').includes('american express') && !(t.card_network?.toLowerCase() || '').includes('discover')"></i>
+                                            <span class="text-[10px] font-bold text-gray-600 uppercase">Card</span>
+                                        </div>
+                                    </template>
+                                    <template x-if="t.payment_type !== 'Card Holder'">
+                                        <span class="text-[10px] font-bold text-gray-400 uppercase" x-text="t.payment_type || 'N/A'"></span>
+                                    </template>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4"><span class="px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs font-bold" x-text="t.event_type"></span></td>
+                            <td class="px-6 py-4 text-right font-bold text-green-600" x-text="'+$' + (t.total_amount || 0).toFixed(2)"></td>
+                        </tr>
+                    </template>
+                    <tr x-show="filteredItems.length === 0">
+                        <td colspan="6" class="px-6 py-8 text-center text-gray-400 italic" x-text="statusFilter ? 'No ' + statusFilter + ' bookings found.' : 'No transactions found.'"></td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -350,91 +460,6 @@
                     </template>
                     <tr x-show="items.length === 0">
                         <td colspan="6" class="px-6 py-8 text-center text-gray-400 italic">No paid bookings found.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden"
-        x-data="{ 
-            page: 1, 
-            perPage: 5, 
-            statusFilter: '', 
-            rawItems: @js($transactionList),
-            get filteredItems() {
-                return this.statusFilter 
-                    ? this.rawItems.filter(i => i.status === this.statusFilter)
-                    : this.rawItems;
-            }
-        }"
-        @status-filter.window="statusFilter = (statusFilter === $event.detail ? '' : $event.detail); $store.activeStatus = statusFilter; page = 1">
-        <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-            <h3 class="font-bold text-[#2D3748] flex items-center gap-2">
-                <span class="material-symbols-rounded text-gray-400">receipt_long</span> 
-                All Transactions
-                <template x-if="statusFilter">
-                    <span class="px-2 py-0.5 bg-gray-200 text-gray-600 rounded-full text-[10px] font-bold uppercase tracking-tight" x-text="'Filter: ' + statusFilter"></span>
-                </template>
-            </h3>
-            <div class="flex gap-2">
-                <button @click="page > 1 ? page-- : null" :disabled="page === 1" class="px-3 py-1 text-xs rounded-md bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-50">Previous</button>
-                <span class="text-xs font-bold text-gray-400 flex items-center" x-text="page + ' / ' + Math.ceil(filteredItems.length / perPage)"></span>
-                <button @click="page < Math.ceil(filteredItems.length / perPage) ? page++ : null" :disabled="page >= Math.ceil(filteredItems.length / perPage) || filteredItems.length === 0" class="px-3 py-1 text-xs rounded-md bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-50">Next</button>
-            </div>
-        </div>
-        <div class="overflow-x-auto max-h-96">
-            <table class="w-full text-left">
-                <thead class="text-xs font-bold text-gray-400 uppercase bg-gray-50/30 sticky top-0">
-                    <tr>
-                        <th class="px-6 py-4">Date</th>
-                        <th class="px-6 py-4">Customer</th>
-                        <th class="px-6 py-4">Status</th>
-                        <th class="px-6 py-4">Method/Ref</th>
-                        <th class="px-6 py-4">Type</th>
-                        <th class="px-6 py-4 text-right">Amount</th>
-                    </tr>
-                </thead>
-                <tbody class="text-sm divide-y divide-gray-50">
-                    <template x-for="t in filteredItems.slice((page - 1) * perPage, page * perPage)" :key="t.id">
-                        <tr class="hover:bg-gray-50/50 transition">
-                            <td class="px-6 py-4 text-gray-500" x-text="t.event_date"></td>
-                            <td class="px-6 py-4 font-bold text-gray-700" x-text="t.name"></td>
-                            <td class="px-6 py-4">
-                                <span class="px-2 py-1 rounded text-[10px] font-bold uppercase"
-                                    :class="{
-                                        'bg-amber-100 text-amber-600': t.status === 'Pending',
-                                        'bg-blue-100 text-blue-600': t.status === 'Confirmed',
-                                        'bg-green-100 text-green-600': t.status === 'Completed',
-                                        'bg-red-100 text-red-600': t.status === 'Cancelled',
-                                        'bg-slate-100 text-slate-600': t.status === 'Draft'
-                                    }"
-                                    x-text="t.status">
-                                </span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-2">
-                                    <template x-if="t.payment_type === 'Card Holder'">
-                                        <div class="flex items-center gap-1.5">
-                                             <i class="fa-brands fa-cc-visa text-blue-600" x-show="(t.card_network?.toLowerCase() || '').includes('visa')"></i>
-                                            <i class="fa-brands fa-cc-mastercard text-orange-500" x-show="(t.card_network?.toLowerCase() || '').includes('mastercard')"></i>
-                                            <i class="fa-brands fa-cc-amex text-blue-400" x-show="(t.card_network?.toLowerCase() || '').includes('amex') || (t.card_network?.toLowerCase() || '').includes('american express')"></i>
-                                            <i class="fa-brands fa-cc-discover text-orange-400" x-show="(t.card_network?.toLowerCase() || '').includes('discover')"></i>
-                                            <i class="fa-solid fa-credit-card text-gray-400" x-show="!(t.card_network?.toLowerCase() || '').includes('visa') && !(t.card_network?.toLowerCase() || '').includes('mastercard') && !(t.card_network?.toLowerCase() || '').includes('amex') && !(t.card_network?.toLowerCase() || '').includes('american express') && !(t.card_network?.toLowerCase() || '').includes('discover')"></i>
-                                            <span class="text-[10px] font-bold text-gray-600 uppercase">Card</span>
-                                        </div>
-                                    </template>
-                                    <template x-if="t.payment_type !== 'Card Holder'">
-                                        <span class="text-[10px] font-bold text-gray-400 uppercase" x-text="t.payment_type || 'N/A'"></span>
-                                    </template>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4"><span class="px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs font-bold" x-text="t.event_type"></span></td>
-                            <td class="px-6 py-4 text-right font-bold text-green-600" x-text="'+$' + (t.total_amount || 0).toFixed(2)"></td>
-                        </tr>
-                    </template>
-                    <tr x-show="filteredItems.length === 0">
-                        <td colspan="6" class="px-6 py-8 text-center text-gray-400 italic" x-text="statusFilter ? 'No ' + statusFilter + ' bookings found.' : 'No transactions found.'"></td>
                     </tr>
                 </tbody>
             </table>

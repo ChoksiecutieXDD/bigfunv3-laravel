@@ -25,10 +25,11 @@
                         </p>
 
                         <div class="pt-4 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                            <a href="https://bigfun.com.au/" aria-label="Check ride availability on our main website" class="btn-plum text-base font-bold py-4 px-10 rounded-full flex items-center justify-center gap-2 group shadow-xl">
+                            <a href="https://bigfun.com.au/" aria-label="Check ride availability on our main website" class="btn-plum text-base font-bold py-4 px-10 rounded-full flex items-center justify-center gap-2 group shadow-xl whitespace-nowrap">
                                 Check Availability
+                                <span class="material-symbols-rounded text-xl group-hover:translate-x-1 transition-transform">arrow_forward</span>
                             </a>
-                            <a href="https://bigfun.com.au/" aria-label="Browse our full catalogue of rides and games" class="btn-white text-base font-bold py-4 px-10 rounded-full flex items-center justify-center gap-2 group shadow-sm">
+                            <a href="https://bigfun.com.au/" aria-label="Browse our full catalogue of rides and games" class="btn-white text-base font-bold py-4 px-10 rounded-full flex items-center justify-center gap-2 group shadow-sm whitespace-nowrap">
                                 Browse Catalogue
                             </a>
                         </div>

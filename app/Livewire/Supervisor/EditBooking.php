@@ -482,7 +482,7 @@ class EditBooking extends Component
         $this->calculateTotals();
     }
 
-    public function updatedManualPrices($value, $key)
+    public function updatedManualPrices(mixed $value, string $key)
     {
         // Sync ride price to extra price if applicable
         if (str_starts_with($key, 'ride_')) {

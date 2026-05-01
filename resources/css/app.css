@@ -128,6 +128,21 @@
         transform: translateY(-5px);
     }
 
+    /* --- REVEAL ANIMATIONS --- */
+    .reveal-hidden {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .reveal-active {
+        opacity: 1 !important;
+    }
+
+    .reveal-active:not(.img-card) {
+        transform: translateY(0);
+    }
+
     /* --- SIDEBAR STYLES (NEWLY MERGED) --- */
     #sidebar {
         will-change: width, transform;

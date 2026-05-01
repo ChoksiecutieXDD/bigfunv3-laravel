@@ -23,7 +23,7 @@ class BookingOverview extends Component
     public ?string $newDate = null;
 
     // Payment Logic
-    public $payAmount;
+    public int|float|string|null $payAmount = null;
     public string $payType = '';
     public string $payMethod = '';
     public string $eftMethod = 'Standard EFT';
@@ -75,16 +75,16 @@ class BookingOverview extends Component
     public ?array $previewTotals = null;
 
     // Edit Payment
-    public $selectedPayment = null;
+    public ?BookingPayment $selectedPayment = null;
     public bool $is_editing_payment = false;
-    public $edit_payment_amount;
+    public int|float|string|null $edit_payment_amount = null;
     public string $edit_payment_method = '';
     public string $edit_payment_date = '';
     public string $edit_payment_ref = '';
     public string $edit_payment_notes = '';
-    public $selectedLogToDelete = null;
+    public int|string|null $selectedLogToDelete = null;
 
-    public $deleteConfirmId = null;
+    public int|string|null $deleteConfirmId = null;
     public string $backUrl = '';
 
     public function mount(int|string $id)
@@ -1124,13 +1124,13 @@ class BookingOverview extends Component
         ])->filter()->toArray();
 
         // --- FILTER DUPLICATES ---
-        $allAddonLabels = DB::table('category_addons')->select('addon_label', 'category_target')->get()->flatMap(function ($a) {
+        $allAddonLabels = DB::table('category_addons')->select(['addon_label', 'category_target'])->get()->flatMap(function ($a) {
             return [strtolower(trim($a->addon_label)), strtolower(trim($a->category_target . ': ' . $a->addon_label))];
         })->toArray();
         $allQuestionLabels = DB::table('product_extras')->pluck('question_text')->map(fn($l) => strtolower(trim($l)))->toArray();
         $allDropdownOptions = DB::table('dropdown_options as do')
             ->join('product_dropdowns as pd', 'do.dropdown_id', '=', 'pd.id')
-            ->select('do.option_label', 'pd.label as dd_label')
+            ->select(['do.option_label', 'pd.label as dd_label'])
             ->get()
             ->flatMap(function ($o) {
                 return [strtolower(trim($o->option_label)), strtolower(trim($o->dd_label . ' - ' . $o->option_label))];

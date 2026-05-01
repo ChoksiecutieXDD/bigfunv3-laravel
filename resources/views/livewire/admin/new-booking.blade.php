@@ -959,9 +959,11 @@
         </div>
     </div>
 
-        <div x-show="productDetails.visible" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="productDetails.visible = false"></div>
-        <div x-show="productDetails.visible" x-transition class="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
-            <div class="p-6 border-b border-gray-100 flex items-center justify-between bg-slate-800 text-white">
+    <!-- Product Details Modal -->
+    <div x-show="productDetails.visible" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[20000]">
+        <div x-show="productDetails.visible" x-transition.opacity class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="productDetails.visible = false"></div>
+        <div x-show="productDetails.visible" x-transition class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="p-6 bg-slate-800 text-white flex justify-between items-center">
                 <div class="flex items-center gap-3">
                     <span class="material-symbols-rounded text-[#9E6B73] text-2xl">info</span>
                     <h3 class="text-xl font-bold" x-text="productDetails.name">Product Specification</h3>
@@ -970,7 +972,7 @@
                     <span class="material-symbols-rounded">close</span>
                 </button>
             </div>
-            <div class="p-8 space-y-6 overflow-y-auto">
+            <div class="p-8 space-y-6 overflow-y-auto max-h-[70vh]">
                 <div>
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Costing Overview</span>
                     <div class="flex items-baseline gap-1">

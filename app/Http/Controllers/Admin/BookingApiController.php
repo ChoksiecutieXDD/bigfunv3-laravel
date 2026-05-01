@@ -920,15 +920,18 @@ class BookingApiController extends Controller
      */
     private function generateNextInvoiceNumber()
     {
-        $dateStr = date('Ymd');
         $lastInvoiceNum = DB::table('bookings')
             ->where('invoice_number', 'like', 'INV-%')
-            // Using MAX on a derived number from both active and soft-deleted records
-            ->selectRaw("MAX(CAST(SUBSTRING_INDEX(invoice_number, '-', -1) AS UNSIGNED)) as max_num")
+            ->orWhere('invoice_number', 'like', 'Inv no. %')
+            ->selectRaw("MAX(CAST(REGEXP_REPLACE(invoice_number, '[^0-9]', '') AS UNSIGNED)) as max_num")
             ->value('max_num');
 
+        if ($lastInvoiceNum > 999999) {
+            $lastInvoiceNum = $lastInvoiceNum % 10000;
+        }
+
         $nextNum = ($lastInvoiceNum ?? 0) + 1;
-        return "INV-" . $dateStr . "-" . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+        return "INV-" . str_pad($nextNum, 5, '0', STR_PAD_LEFT);
     }
 
     /**

@@ -67,36 +67,41 @@
         <div class="absolute top-0 right-0 w-[800px] h-[800px] bg-[#9E6B73] rounded-full blur-[200px] opacity-15 pointer-events-none"></div>
 
         <div class="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
-            <div class="flex flex-col md:flex-row justify-between items-center pb-20 border-b border-gray-700">
-                <div class="text-center md:text-left mb-10 md:mb-0 max-w-2xl">
-                    <h2 class="text-4xl lg:text-5xl font-black mb-4 tracking-tight">Ready to make memories?</h2>
+            <!-- CTA Section -->
+            <div class="flex flex-col lg:flex-row justify-between items-center pb-16 border-b border-gray-700/50">
+                <div class="text-center lg:text-left mb-10 lg:mb-0 max-w-2xl">
+                    <h2 class="text-4xl lg:text-5xl font-black mb-4 tracking-tight leading-tight">Ready to make memories?</h2>
                     <p class="text-xl text-gray-400 font-medium">Get a personalized quote for your event in under 2 minutes.</p>
                 </div>
-                <a href="https://bigfun.com.au/" class="btn-plum text-xl font-bold py-5 px-14 rounded-full hover:scale-105 transition-transform shadow-xl flex-shrink-0">
+                <a href="https://bigfun.com.au/" class="btn-plum text-xl font-bold py-5 px-14 rounded-full hover:scale-105 transition-all shadow-2xl flex-shrink-0">
                     Start Now
                 </a>
             </div>
 
-            <div class="pt-12 flex flex-col md:flex-row justify-between items-center gap-8">
-                <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 opacity-80">
-                    <img src="/assets/icon/bgfunlogo.png" alt="BigFun Logo Footer" width="120" height="32" class="h-8 w-auto brightness-0 invert">
-                    <span class="hidden sm:block h-1 w-1 rounded-full bg-gray-600"></span>
-                    <span class="text-sm font-bold text-gray-400">© 2026 BigFun. All rights reserved.</span>
+            <!-- Bottom Navigation & Copyright -->
+            <div class="pt-12 grid grid-cols-1 md:grid-cols-3 items-center gap-10">
+                <!-- Brand -->
+                <div class="flex flex-col items-center md:items-start gap-4 order-2 md:order-1">
+                    <img src="/assets/icon/bgfunlogo.png" alt="BigFun Logo Footer" width="140" height="38" class="h-9 w-auto brightness-0 invert opacity-90">
+                    <p class="text-xs font-semibold text-gray-500 tracking-wider uppercase">© 2026 BigFun. All rights reserved.</p>
                 </div>
 
-                <div class="flex flex-wrap justify-center md:justify-end items-center gap-6 sm:gap-8 text-sm font-bold text-gray-400">
-                    <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
-                    <a href="#" class="hover:text-white transition-colors">Terms & Conditions</a>
-                    <a href="https://bigfun.com.au/contact/" class="hover:text-white transition-colors">Contact Us</a>
+                <!-- Links -->
+                <div class="flex justify-center gap-8 text-sm font-bold text-gray-400 order-1 md:order-2">
+                    <a href="#" class="hover:text-white transition-colors">Privacy</a>
+                    <a href="#" class="hover:text-white transition-colors">Terms</a>
+                    <a href="https://bigfun.com.au/contact/" class="hover:text-white transition-colors">Contact</a>
+                </div>
 
-                    <div class="flex items-center gap-2">
-                        <a href="/login" class="hover:text-white text-gray-300 transition-colors flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800/50 hover:bg-gray-700 border border-gray-700 hover:border-gray-600">
-                            <span class="material-symbols-rounded text-base">lock</span> Staff Portal
-                        </a>
-                        <a href="/supervisor/login" class="opacity-5 hover:opacity-100 transition-opacity duration-500 text-[#9E6B73] p-2 rounded-full hover:bg-white/5" title="Supervisor Access">
-                            <span class="material-symbols-rounded text-xl block">admin_panel_settings</span>
-                        </a>
-                    </div>
+                <!-- Actions -->
+                <div class="flex justify-center md:justify-end items-center gap-4 order-3">
+                    <a href="/login" class="group hover:text-white text-gray-300 transition-all flex items-center gap-2.5 px-6 py-3 rounded-full bg-gray-800/80 hover:bg-[#9E6B73] border border-gray-700 hover:border-[#9E6B73] shadow-lg">
+                        <span class="material-symbols-rounded text-lg group-hover:rotate-12 transition-transform">lock</span> 
+                        <span class="text-sm font-bold">Staff Portal</span>
+                    </a>
+                    <a href="/supervisor/login" class="opacity-10 hover:opacity-100 transition-all duration-500 text-[#9E6B73] p-2.5 rounded-full hover:bg-white/5" title="Supervisor Access">
+                        <span class="material-symbols-rounded text-2xl">admin_panel_settings</span>
+                    </a>
                 </div>
             </div>
         </div>

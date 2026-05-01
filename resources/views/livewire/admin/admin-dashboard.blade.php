@@ -69,6 +69,7 @@
 
             <!-- Inline Alpine for Line Chart -->
             <div class="relative flex-1 min-h-[300px] w-full"
+                wire:ignore
                 x-data="{
                     chartInstance: null,
                     init() {
@@ -133,9 +134,8 @@
                     }
                 }"
                 @update-booking-chart.window="
-                    const canvas = document.getElementById('bookingChart');
-                    const chart = Chart.getChart(canvas);
-                    if (chart) {
+                    const chart = Chart.getChart(document.getElementById('bookingChart'));
+                    if (chart && chart.ctx) {
                         chart.data.labels = $event.detail.labels;
                         chart.data.datasets[0].data = $event.detail.data;
                         chart.update();
@@ -155,51 +155,61 @@
             </div>
 
             <!-- Inline Alpine for Pie Chart -->
-            <div class="relative flex-1 min-h-[220px] flex items-center justify-center"
-                wire:ignore
-                x-data="{
-                    chartInstance: null,
-                    init() {
-                        const canvas = document.getElementById('paymentChart');
-                        if (!canvas) return;
+            <div class="relative flex-1 min-h-[220px] flex items-center justify-center">
+                @if(($payment_breakdown['Paid'] ?? 0) + ($payment_breakdown['Partial'] ?? 0) > 0)
+                    <div class="w-full h-full"
+                        wire:ignore
+                        x-data="{
+                            chartInstance: null,
+                            init() {
+                                const canvas = document.getElementById('paymentChart');
+                                if (!canvas) return;
 
-                        if (Chart.getChart(canvas)) Chart.getChart(canvas).destroy();
+                                if (Chart.getChart(canvas)) Chart.getChart(canvas).destroy();
 
-                        const ctx = canvas.getContext('2d');
-                        this.chartInstance = new Chart(ctx, {
-                            type: 'doughnut',
-                            data: {
-                                labels: ['Fully Paid', 'Partial'],
-                                datasets: [{
-                                    data: [{{ $payment_breakdown['Paid'] }}, {{ $payment_breakdown['Partial'] }}],
-                                    backgroundColor: ['#22c55e', '#3b82f6'],
-                                    borderWidth: 0,
-                                    hoverOffset: 10
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: { 
-                                    legend: { display: false },
-                                    tooltip: {
-                                        backgroundColor: '#1e293b',
-                                        padding: 10,
-                                        cornerRadius: 8
+                                const ctx = canvas.getContext('2d');
+                                this.chartInstance = new Chart(ctx, {
+                                    type: 'doughnut',
+                                    data: {
+                                        labels: ['Fully Paid', 'Partial'],
+                                        datasets: [{
+                                            data: [{{ $payment_breakdown['Paid'] }}, {{ $payment_breakdown['Partial'] }}],
+                                            backgroundColor: ['#22c55e', '#3b82f6'],
+                                            borderWidth: 0,
+                                            hoverOffset: 10
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: { 
+                                            legend: { display: false },
+                                            tooltip: {
+                                                backgroundColor: '#1e293b',
+                                                padding: 10,
+                                                cornerRadius: 8
+                                            }
+                                        },
+                                        cutout: '75%'
                                     }
-                                },
-                                cutout: '75%'
+                                });
                             }
-                        });
-                    }
-                 }"
-                 @update-payment-chart.window="
-                    if (chartInstance) {
-                        chartInstance.data.datasets[0].data = [$event.detail.paid, $event.detail.partial];
-                        chartInstance.update();
-                    }
-                 ">
-                <canvas id="paymentChart"></canvas>
+                        }"
+                        @update-payment-chart.window="
+                            const chart = Chart.getChart(document.getElementById('paymentChart'));
+                            if (chart && chart.ctx) {
+                                chart.data.datasets[0].data = [$event.detail.paid, $event.detail.partial];
+                                chart.update();
+                            }
+                        ">
+                        <canvas id="paymentChart"></canvas>
+                    </div>
+                @else
+                    <div class="flex flex-col items-center justify-center text-center p-6 bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-100 w-full h-full">
+                        <span class="material-symbols-rounded text-4xl text-gray-200 mb-2">query_stats</span>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">No records found</p>
+                    </div>
+                @endif
             </div>
 
             <div class="mt-8 space-y-4">
@@ -233,11 +243,11 @@
                 $stClass = $act->status == 'Confirmed' ? 'bg-green-100 text-green-600' : ($act->status == 'Pending' ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600');
                 $icon = $act->status == 'Confirmed' ? 'check' : ($act->status == 'Pending' ? 'hourglass_empty' : 'close');
                 @endphp
-                <div class="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer group">
+                <a href="{{ route('admin.bookings.overview', $act->id) }}" wire:navigate class="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer group no-underline">
                     <div class="w-10 h-10 rounded-full {{ $stClass }} flex items-center justify-center shrink-0">
                         <span class="material-symbols-rounded text-lg">{{ $icon }}</span>
                     </div>
-                    <div class="flex-1 min-w-0">
+                    <div class="flex-1 min-w-0 text-left">
                         <p class="text-sm font-bold text-gray-800 truncate">{{ $act->customer_first_name }} {{ $act->customer_last_name }}</p>
                         <p class="text-xs text-gray-400">
                             {{ \Carbon\Carbon::parse($act->event_date)->format('M d, Y') }} • #{{ $act->id }}
@@ -245,7 +255,7 @@
                         </p>
                     </div>
                     <span class="text-[10px] font-bold px-2 py-1 rounded-lg {{ $stClass }}">{{ $act->status }}</span>
-                </div>
+                </a>
                 @empty
                 <p class="text-gray-400 text-sm text-center py-4">No recent activity.</p>
                 @endforelse
