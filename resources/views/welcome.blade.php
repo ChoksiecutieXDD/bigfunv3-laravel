@@ -40,22 +40,27 @@
                         </div>
                     </div>
 
-                    <div class="relative h-[550px] hidden lg:block overflow-visible">
+                    <div class="relative h-[600px] hidden lg:block overflow-visible pr-12">
                         <div class="w-full h-full relative isolate">
-                            <div class="img-card absolute top-0 right-0 w-80 h-[400px] z-20 overflow-hidden pointer-events-none">
+                            <!-- Top Right Image -->
+                            <div class="img-card absolute top-0 right-[-20px] w-80 h-[400px] z-20 overflow-hidden pointer-events-none shadow-2xl rounded-[2.5rem]">
                                 <img src="/assets/img/mechanical-surf.jpg" alt="Mechanical Surfboard Ride" width="320" height="400" class="w-full h-full object-cover" fetchpriority="high">
                             </div>
-                            <div class="img-card absolute bottom-10 right-52 w-64 h-64 z-30 overflow-visible pointer-events-none">
-                                <div class="w-full h-full overflow-hidden rounded-[20px]">
+                            
+                            <!-- Middle Splash Image -->
+                            <div class="img-card absolute top-[180px] right-[120px] w-64 h-64 z-40 overflow-visible pointer-events-none">
+                                <div class="w-full h-full overflow-hidden rounded-[2.5rem] shadow-2xl border-4 border-white">
                                     <img src="/assets/img/splash.jpg" alt="Splash Game Hire" width="256" height="256" class="w-full h-full object-cover">
                                 </div>
-                                <div class="absolute -top-6 -left-6 bg-white px-5 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 z-40 border border-[#9E6B73]/10">
+                                <div class="absolute -top-6 -left-6 bg-white px-5 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 z-50 border border-[#9E6B73]/10">
                                     <span class="material-symbols-rounded text-[#9E6B73] text-xl" aria-hidden="true">star</span>
                                     <span class="text-sm font-bold text-gray-800">Fan Favorite</span>
                                 </div>
                             </div>
-                            <div class="img-card bull-card absolute top-20 left-10 w-60 h-72 z-10 opacity-90 overflow-hidden pointer-events-none">
-                                <img src="/assets/img/premiumbull.jpg" alt="Premium Mechanical Bull" width="240" height="288" class="w-full h-full object-cover">
+
+                            <!-- Back Bull Image -->
+                            <div class="img-card bull-card absolute top-10 left-[40px] w-64 h-80 z-10 opacity-90 overflow-hidden pointer-events-none shadow-xl rounded-[2.5rem]">
+                                <img src="/assets/img/premiumbull.jpg" alt="Premium Mechanical Bull" width="256" height="320" class="w-full h-full object-cover">
                             </div>
                         </div>
                     </div>
