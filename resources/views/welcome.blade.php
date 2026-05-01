@@ -40,27 +40,33 @@
                         </div>
                     </div>
 
-                    <div class="relative h-[600px] hidden lg:block overflow-visible pr-12">
-                        <div class="w-full h-full relative isolate">
+                    <!-- Zero-Cache Fix: Inlined styles to bypass Hostinger caching -->
+                    <div class="relative h-[650px] hidden lg:block overflow-visible" style="padding-right: 50px;">
+                        <div class="w-full h-full relative isolate" style="perspective: 1000px;">
+                            
                             <!-- Top Right Image -->
-                            <div class="img-card absolute top-0 right-[-20px] w-80 h-[400px] z-20 overflow-hidden pointer-events-none shadow-2xl rounded-[2.5rem]">
-                                <img src="/assets/img/mechanical-surf.jpg" alt="Mechanical Surfboard Ride" width="320" height="400" class="w-full h-full object-cover" fetchpriority="high">
+                            <div class="img-card absolute overflow-hidden pointer-events-none shadow-2xl" 
+                                 style="top: 0; right: -40px; width: 340px; height: 420px; z-index: 20; border-radius: 2.5rem; transform: rotate(2deg);">
+                                <img src="/assets/img/mechanical-surf.jpg" alt="Mechanical Surfboard Ride" class="w-full h-full object-cover" fetchpriority="high">
                             </div>
                             
-                            <!-- Middle Splash Image -->
-                            <div class="img-card absolute top-[180px] right-[120px] w-64 h-64 z-40 overflow-visible pointer-events-none">
-                                <div class="w-full h-full overflow-hidden rounded-[2.5rem] shadow-2xl border-4 border-white">
-                                    <img src="/assets/img/splash.jpg" alt="Splash Game Hire" width="256" height="256" class="w-full h-full object-cover">
+                            <!-- Middle Splash Image (The Floating One) -->
+                            <div class="img-card absolute overflow-visible pointer-events-none" 
+                                 style="top: 220px; right: 140px; width: 260px; height: 260px; z-index: 40;">
+                                <div class="w-full h-full overflow-hidden shadow-2xl" style="border-radius: 2.5rem; border: 6px solid white;">
+                                    <img src="/assets/img/splash.jpg" alt="Splash Game Hire" class="w-full h-full object-cover">
                                 </div>
-                                <div class="absolute -top-6 -left-6 bg-white px-5 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 z-50 border border-[#9E6B73]/10">
-                                    <span class="material-symbols-rounded text-[#9E6B73] text-xl" aria-hidden="true">star</span>
+                                <div class="absolute bg-white px-5 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 z-50 border border-[#9E6B73]/10"
+                                     style="top: -24px; left: -24px;">
+                                    <span class="material-symbols-rounded text-[#9E6B73] text-xl">star</span>
                                     <span class="text-sm font-bold text-gray-800">Fan Favorite</span>
                                 </div>
                             </div>
 
                             <!-- Back Bull Image -->
-                            <div class="img-card bull-card absolute top-10 left-[40px] w-64 h-80 z-10 opacity-90 overflow-hidden pointer-events-none shadow-xl rounded-[2.5rem]">
-                                <img src="/assets/img/premiumbull.jpg" alt="Premium Mechanical Bull" width="256" height="320" class="w-full h-full object-cover">
+                            <div class="img-card bull-card absolute opacity-90 overflow-hidden pointer-events-none shadow-xl" 
+                                 style="top: 40px; left: 20px; width: 280px; height: 350px; z-index: 10; border-radius: 2.5rem; transform: rotate(-3deg);">
+                                <img src="/assets/img/premiumbull.jpg" alt="Premium Mechanical Bull" class="w-full h-full object-cover">
                             </div>
                         </div>
                     </div>
