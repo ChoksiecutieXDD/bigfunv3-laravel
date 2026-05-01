@@ -787,10 +787,17 @@
     };
 
     /**
-     * Master Synchronization Hooks
-     * These listeners ensure that ANY update to the booking date (from JS or Livewire)
-     * triggers an immediate refresh of the availability badges.
+     * SPA Watchdog: Ensure sync runs on every Livewire navigation
      */
+    document.addEventListener('livewire:navigated', () => {
+        console.log("SPA Watchdog: Navigated detected. Initializing sync...");
+        if (typeof window.checkRealTimeAvailability === 'function') {
+            // Delay slightly to ensure bridge data is ready
+            setTimeout(() => window.checkRealTimeAvailability(true), 500);
+        }
+    });
+
+    // Master Synchronization Hooks
     document.addEventListener('date-selected', (e) => {
         console.log("Master Sync: date-selected caught. Refreshing badges...");
         if (typeof window.checkRealTimeAvailability === 'function') {
