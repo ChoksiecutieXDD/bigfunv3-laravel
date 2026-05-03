@@ -1931,7 +1931,7 @@
     <script>
         (function() {
             // Enable the full bridge for Overview page
-            window.isOverviewPage = false; 
+            window.isOverviewPage = true; 
             
             const logInit = () => {
                 console.log("%c [Overview] System Ready ", "background: #2D3748; color: white; font-weight: bold; padding: 2px 4px; border-radius: 4px;");

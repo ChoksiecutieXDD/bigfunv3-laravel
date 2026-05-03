@@ -40,21 +40,21 @@
                         </div>
                     </div>
 
-                    <!-- Zero-Cache Fix: Inlined styles to bypass Hostinger caching -->
+                    <!-- Zero-Cache Fix: Inlined styles to bypass Hostinger caching [Last Updated: 2026-05-03] -->
                     <div class="relative h-[650px] hidden lg:block overflow-visible" style="padding-right: 50px;">
                         <div class="w-full h-full relative isolate" style="perspective: 1000px;">
                             
                             <!-- Top Right Image -->
                             <div class="img-card absolute overflow-hidden pointer-events-none shadow-2xl" 
                                  style="top: 0; right: -40px; width: 340px; height: 420px; z-index: 20; border-radius: 2.5rem; transform: rotate(2deg);">
-                                <img src="/assets/img/mechanical-surf.jpg" alt="Mechanical Surfboard Ride" class="w-full h-full object-cover" fetchpriority="high">
+                                <img src="/assets/img/mechanical-surf.jpg?v=1.0.1" alt="Mechanical Surfboard Ride" class="w-full h-full object-cover" fetchpriority="high">
                             </div>
                             
                             <!-- Middle Splash Image (The Floating One) -->
                             <div class="img-card absolute overflow-visible pointer-events-none" 
                                  style="top: 220px; right: 140px; width: 260px; height: 260px; z-index: 40;">
                                 <div class="w-full h-full overflow-hidden shadow-2xl" style="border-radius: 2.5rem; border: 6px solid white;">
-                                    <img src="/assets/img/splash.jpg" alt="Splash Game Hire" class="w-full h-full object-cover">
+                                    <img src="/assets/img/splash.jpg?v=1.0.1" alt="Splash Game Hire" class="w-full h-full object-cover">
                                 </div>
                                 <div class="absolute bg-white px-5 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 z-50 border border-[#9E6B73]/10"
                                      style="top: -24px; left: -24px;">
@@ -66,7 +66,7 @@
                             <!-- Back Bull Image -->
                             <div class="img-card bull-card absolute opacity-90 overflow-hidden pointer-events-none shadow-xl" 
                                  style="top: 40px; left: 20px; width: 280px; height: 350px; z-index: 10; border-radius: 2.5rem; transform: rotate(-3deg);">
-                                <img src="/assets/img/premiumbull.jpg" alt="Premium Mechanical Bull" class="w-full h-full object-cover">
+                                <img src="/assets/img/premiumbull.jpg?v=1.0.1" alt="Premium Mechanical Bull" class="w-full h-full object-cover">
                             </div>
                         </div>
                     </div>
@@ -264,7 +264,7 @@
     </div>
 
     <x-slot:scripts>
-        <script src="/assets/js/landing.js"></script>
+        <script src="/assets/js/landing.js?v=1.0.1"></script>
         </x-slot>
 
 </x-layouts.public-layout>
