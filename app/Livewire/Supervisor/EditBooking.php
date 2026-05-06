@@ -358,8 +358,8 @@ class EditBooking extends Component
         $durationLabels = DB::table('duration_prices')->pluck('label')->toArray();
         // Duration Custom Check
         $durationLabels = DB::table('duration_prices')->pluck('label')->toArray();
-        if (!empty($this->form['duration']) && !in_array($this->form['duration'], $durationLabels)) {
-            $this->form['custom_duration_text'] = $this->form['duration'];
+        if ((!empty($this->form['duration']) && !in_array($this->form['duration'], $durationLabels)) || empty($this->form['duration'])) {
+            $this->form['custom_duration_text'] = !empty($this->form['duration']) ? $this->form['duration'] : '';
             $this->form['duration'] = 'custom';
             $this->form['is_custom_duration'] = true;
         } else {
@@ -1480,13 +1480,15 @@ class EditBooking extends Component
             unset($saveData['custom_duration_text']);
 
             if (!empty($this->form['is_custom_duration'])) {
-                $saveData['duration'] = !empty($this->form['custom_duration_text']) ? $this->form['custom_duration_text'] : 'N/A';
+                $saveData['duration'] = !empty($this->form['custom_duration_text']) ? $this->form['custom_duration_text'] : 'TBC';
             }
 
             // --- SANITIZE TIME FIELDS ---
             // Ensure empty strings are treated as DEFAULTS to avoid SQL syntax errors on TIME columns
-            $saveData['start_time'] = !empty($this->form['start_time']) ? $this->form['start_time'] : '00:00:00';
-            $saveData['end_time'] = !empty($this->form['end_time']) ? $this->form['end_time'] : '23:59:59';
+            // For custom durations, we now use NULL (enabled by migration) to prevent "ghost" records in Google Sheets.
+            $isCustom = !empty($this->form['is_custom_duration']);
+            $saveData['start_time'] = !empty($this->form['start_time']) ? $this->form['start_time'] : ($isCustom ? null : '00:00:00');
+            $saveData['end_time'] = !empty($this->form['end_time']) ? $this->form['end_time'] : ($isCustom ? null : '23:59:59');
 
             // --- MANAGE ORIGINAL DATE TIMELINE ---
             // If this is the first time the date is being moved, preserve the original date

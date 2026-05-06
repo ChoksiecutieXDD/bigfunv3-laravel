@@ -292,14 +292,14 @@
                             $isSelected = ($current_dur == $dur->label);
                             $activeClass = $isSelected ? 'duration-active' : '';
                             @endphp
-                            <label class="duration-card flex flex-col items-center justify-center p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-[#9E6B73]/50 transition text-center {{ $activeClass }}" @click="selectDurationCard($event.currentTarget)">
+                            <label class="duration-card flex flex-col items-center justify-center p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-[#9E6B73]/50 transition text-center {{ $activeClass }}" @click="selectDurationCard($event.currentTarget); isDurationCustom = false">
                                 <input type="radio" name="duration" value="{{ $dur->label }}" data-price="{{ $dur->price }}" data-hours="{{ $dur->hours }}" {{ $isSelected ? 'checked' : '' }} class="hidden" @change="updateDurationCost($event.target)">
                                 <span class="font-bold text-slate-700 text-xs">{{ $dur->label }}</span>
                                 <span class="text-[#9E6B73] text-sm font-extrabold mt-1">${{ number_format($dur->price, 2) }}</span>
                             </label>
                             @endforeach
 
-                            <label class="duration-card flex flex-col items-center justify-center p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-[#9E6B73]/50 transition text-center" id="dur_card_custom" @click="selectDurationCard($event.currentTarget)">
+                            <label class="duration-card flex flex-col items-center justify-center p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-[#9E6B73]/50 transition text-center" id="dur_card_custom" @click="selectDurationCard($event.currentTarget); isDurationCustom = true">
                                 <input type="radio" name="duration" value="custom" data-price="0" data-hours="0" class="hidden">
                                 <span class="font-bold text-slate-700 text-xs uppercase tracking-wide">Custom</span>
                                 <span class="text-[#9E6B73] text-[10px] font-extrabold mt-1">Manual Quote</span>

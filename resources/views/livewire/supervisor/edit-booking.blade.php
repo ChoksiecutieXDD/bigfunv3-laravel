@@ -487,11 +487,11 @@
                         </div>
                         <div class="input-group" x-show="$wire.form.duration !== 'custom'">
                             <label class="input-label">Start Time</label>
-                            <input type="time" wire:model="form.start_time" class="input-field">
+                            <input type="time" id="start_time" name="start_time" wire:model="form.start_time" class="input-field">
                         </div>
                         <div class="input-group" x-show="$wire.form.duration !== 'custom'">
                             <label class="input-label">End Time</label>
-                            <input type="time" wire:model="form.end_time" class="input-field">
+                            <input type="time" id="end_time" name="end_time" wire:model="form.end_time" class="input-field">
                         </div>
                     </div>
 
@@ -504,14 +504,14 @@
                             $activeClass = $isSelected ? 'duration-active border-[#9E6B73] bg-pink-50' : 'border-slate-200 hover:bg-slate-50';
                             @endphp
                             <label class="duration-card flex flex-col items-center justify-center p-3 border rounded-xl cursor-pointer transition text-center {{ $activeClass }}">
-                                <input type="radio" wire:model.live="form.duration" value="{{ $dur->label }}" class="hidden">
+                                <input type="radio" wire:model.live="form.duration" value="{{ $dur->label }}" class="hidden" @change="isDurationCustom = false">
                                 <span class="font-bold text-slate-700 text-xs">{{ $dur->label }}</span>
                                 <span class="text-[#9E6B73] text-sm font-extrabold mt-1">${{ number_format($dur->price, 2) }}</span>
                             </label>
                             @endforeach
 
                             <label class="duration-card flex flex-col items-center justify-center p-3 border {{ ($form['duration'] ?? '') === 'custom' ? 'border-[#9E6B73] bg-pink-50 duration-active' : 'border-slate-200 hover:bg-slate-50' }} rounded-xl cursor-pointer transition text-center">
-                                <input type="radio" wire:model.live="form.duration" value="custom" class="hidden">
+                                <input type="radio" wire:model.live="form.duration" value="custom" class="hidden" @change="isDurationCustom = true">
                                 <span class="font-bold text-slate-700 text-xs uppercase tracking-wide">Custom</span>
                                 <span class="text-[#9E6B73] text-[10px] font-extrabold mt-1">Manual Quote</span>
                             </label>

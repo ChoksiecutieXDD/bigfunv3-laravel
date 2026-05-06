@@ -93,6 +93,7 @@ const bookingAppDataFactory = () => ({
     paymentMethod: 'Direct Deposit',
     paymentStatus: 'Pending',
     isInitialLoading: true,
+    isDurationCustom: false,
     deliveryZone: '',
     modals: {
         review: false,
@@ -204,10 +205,14 @@ const bookingAppDataFactory = () => ({
             if (window.bookingAppData) {
                 this.previousCustomers = window.bookingAppData.pastCustomers || [];
                 
-                // CRITICAL: Sync payment type immediately from bridge to prevent JS overwrite with default 'EFT'
-                if (window.bookingAppData.form && window.bookingAppData.form.payment_type) {
+                if (window.bookingAppData.form) {
+                    // CRITICAL: Sync payment type immediately from bridge to prevent JS overwrite with default 'EFT'
                     this.paymentType = window.bookingAppData.form.payment_type;
                     this.updatePaymentMethods();
+                }
+
+                if (window.bookingAppData.form && window.bookingAppData.form.duration === 'custom') {
+                    this.isDurationCustom = true;
                 }
 
                 // If it's edit mode, we might want to pre-load some things
@@ -871,9 +876,30 @@ window.selectDurationCard = function (labelEl) {
 
     if (input.value === 'custom') {
         if (wrapper) wrapper.classList.remove('hidden');
+        
+        const el = document.querySelector('[x-data="bookingApp"]');
+        const app = el && el._x_dataStack ? el._x_dataStack[0] : null;
+        if (app) app.isDurationCustom = true;
+
+        // Reset times when custom is selected
+        const sEl = document.getElementById('start_time');
+        const eEl = document.getElementById('end_time');
+        if (sEl) sEl.value = "";
+        if (eEl) eEl.value = "";
+
+        // Set label to TBC by default if empty
+        const customDurLabelInput = document.getElementById('custom_duration_text');
+        if (customDurLabelInput && customDurLabelInput.value === "") {
+            customDurLabelInput.value = "TBC";
+        }
+
         const manualCost = document.getElementById('manual_duration_cost');
-        if (durCostInput) durCostInput.value = manualCost ? (manualCost.value || 0) : 0;
+        if (durCostInput) durCostInput.value = (manualCost && manualCost.value !== "") ? manualCost.value : 0;
     } else {
+        const el = document.querySelector('[x-data="bookingApp"]');
+        const app = el && el._x_dataStack ? el._x_dataStack[0] : null;
+        if (app) app.isDurationCustom = false;
+
         if (wrapper) wrapper.classList.add('hidden');
         if (durCostInput) durCostInput.value = input.dataset.price;
     }
