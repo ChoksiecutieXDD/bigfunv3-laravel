@@ -28,18 +28,13 @@
     
     // Fetch Items with Specs and Prices
     $items_with_details = \App\Models\BookingItem::where('booking_id', $booking->id)
-            ->leftJoin('products', function($join) {
-                $join->on('booking_items.item_name', '=', 'products.name')
-                     ->where('booking_items.is_custom', '=', 0);
-            })
+            ->leftJoin('products', \DB::raw('LOWER(booking_items.item_name)'), '=', \DB::raw('LOWER(products.name)'))
             ->selectRaw('booking_items.item_name, booking_items.is_custom, booking_items.qty, products.specification, products.price as unit_price')
             ->get();
 
     $attraction_subtotal = 0;
     foreach($items_with_details as $det) {
-        if (!$det->is_custom) {
-            $attraction_subtotal += ($det->qty * ($det->unit_price ?? 0));
-        }
+        $attraction_subtotal += ($det->qty * ($det->unit_price ?? 0));
     }
 
     if (!$include_attraction_cost) {
@@ -318,7 +313,7 @@
                 {{ date('F d, Y') }}<br><br>
                 <strong>Employer:</strong><br>
                 @if(!empty($booking->employer_name))
-                    {{ $booking->employer_name }}<br>
+                    {{ ucwords($booking->employer_name) }}<br>
                 @endif
                 @if(!empty($booking->customer_organization))
                     {{ $booking->customer_organization }}<br>
@@ -370,20 +365,20 @@
                             <td class="bold">Venue:</td>
                             <td>
                                 {{ $booking->address_line_1 ?? '' }},
-                                {{ $booking->suburb ?? '' }}
+                                {{ ucwords($booking->suburb ?? '') }}
                                 {{ $booking->postcode ?? '' }}
                             </td>
                         </tr>
                         @if(!empty($booking->region))
                             <tr>
                                 <td class="bold">Region:</td>
-                                <td>{{ $booking->region }}</td>
+                                <td>{{ ucwords($booking->region) }}</td>
                             </tr>
                         @endif
                         <tr>
                             <td class="bold">Contact:</td>
                             <td>
-                                {{ $booking->customer_first_name ?? '' }},
+                                {{ ucwords($booking->customer_first_name ?? '') }},
                                 {{ $booking->customer_phone ?? '' }}
                             </td>
                         </tr>
@@ -481,7 +476,7 @@
                 @foreach($items_with_details as $item)
                     @php
                         $qty = (int)($item->qty ?? 1);
-                        $name = $item->item_name ?? '';
+                        $name = ucwords($item->item_name ?? '');
                     @endphp
                     <tr>
                         <td>
@@ -506,7 +501,7 @@
                         <td class="text-center">{{ $qty }}</td>
                         @if($include_attraction_cost)
                         <td class="text-right">
-                            @if(!$item->is_custom && $item->unit_price > 0)
+                            @if($item->unit_price > 0)
                                 {{ money($item->unit_price * $qty) }}
                             @else
                                 -
@@ -546,7 +541,7 @@
                     @if(!empty($booking->logistics_surfaces))
                         <tr style="border-bottom: 1px dashed #ddd;">
                             <td colspan="2" style="padding: 5px 5px 5px 15px; font-size: 10px;">
-                                &bull; Logistics Surface: {{ $booking->logistics_surfaces }}
+                                &bull; Logistics Surface: {{ ucwords($booking->logistics_surfaces) }}
                             </td>
                             <td class="text-center" style="padding: 5px; font-size: 10px;">1</td>
                             @if($include_attraction_cost)
@@ -558,7 +553,7 @@
                         @foreach($general_extras as $label => $cost)
                             <tr style="border-bottom: 1px dashed #ddd;">
                                 <td colspan="2" style="padding: 5px 5px 5px 15px; font-size: 10px;">
-                                    &bull; {{ $label }}
+                                    &bull; {{ ucwords($label) }}
                                 </td>
                                 <td class="text-center" style="padding: 5px; font-size: 10px;">1</td>
                                 @if($include_attraction_cost)
@@ -599,7 +594,7 @@
                     @foreach($specific_extras as $label => $cost)
                         <tr style="border-bottom: 1px dashed #ddd;">
                             <td colspan="2" style="padding: 5px 5px 5px 15px; font-size: 10px;">
-                                &bull; {{ $label }}
+                                &bull; {{ ucwords($label) }}
                             </td>
                             <td class="text-center" style="padding: 5px; font-size: 10px;">1</td>
                             @if($include_attraction_cost)

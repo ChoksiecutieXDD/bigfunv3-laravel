@@ -224,9 +224,9 @@ class BookingOverview extends Component
         $isFullDay = ($rawStartTime === '00:00:00' && ($rawEndTime === '23:59:59' || $rawEndTime === '23:59:00' || $rawEndTime === '23:30:00'));
 
         if (empty($rawStartTime) && empty($rawEndTime)) {
-            $timeString = !empty($this->booking->duration) ? 'Full Day (Duration Selected)' : 'TBC';
+            $timeString = !empty($this->booking->duration) ? 'Duration Selected' : 'TBC';
         } elseif ($isFullDay && !empty($this->booking->duration) && !in_array($this->booking->duration, ['4 Hours', '7 Hours'])) {
-            $timeString = 'Full Day (Duration Selected)';
+            $timeString = 'Duration Selected';
         } else {
             $startTime = Carbon::parse($rawStartTime);
             $timeString = $startTime->format('g:i A');

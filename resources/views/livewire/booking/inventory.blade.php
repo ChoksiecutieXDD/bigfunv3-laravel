@@ -187,7 +187,14 @@
                         <input type="checkbox" wire:model="is_active" id="prod_active" class="w-5 h-5 rounded text-red-500 border-slate-300 focus:ring-red-500 shadow-sm cursor-pointer transition-colors">
                         <label class="text-[15px] font-bold text-text-main cursor-pointer select-none" for="prod_active">Active</label>
                     </div>
-                    <button type="submit" class="btn-plum py-3 px-8 rounded-xl font-bold text-[15px] shadow-sm">
+                    <button type="button" 
+                        @click="$dispatch('open-modal', { 
+                            title: 'Confirm Product Details?', 
+                            message: 'The costing will be updated, and bookings may be affected. Double check first before saving.', 
+                            type: 'info', 
+                            event: 'execute-save-product' 
+                        })"
+                        class="btn-plum py-3 px-8 rounded-xl font-bold text-[15px] shadow-sm">
                         Save Product
                     </button>
                 </div>
@@ -282,7 +289,7 @@
                                 <button type="button"
                                     @click="$dispatch('open-modal', { 
                                         title: 'Delete Product?', 
-                                        message: 'Are you sure you want to delete \'{{ addslashes($prod->name) }}\'?', 
+                                        message: 'Are you sure you want to delete \'{{ addslashes($prod->name) }}\'? The costing will be changed, and bookings may be affected. Double check first.', 
                                         type: 'danger', 
                                         event: 'execute-delete-product', 
                                         params: {{ $prod->id }} 
@@ -313,7 +320,7 @@
                     @endif
                 </div>
                 <div class="p-6">
-                    <form wire:submit.prevent="saveAddons">
+                    <form wire:submit.prevent>
                         <div class="space-y-4 mb-2">
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Target Category</label>
@@ -357,7 +364,14 @@
                         @else
                         <div class="mt-6"></div>
                         @endif
-                        <button type="submit" class="w-full btn-plum py-3 rounded-xl font-bold text-[15px]">{{ $addon_id ? 'Update Item' : 'Save Items' }}</button>
+                        <button type="button" 
+                            @click="$dispatch('open-modal', { 
+                                title: 'Confirm Add-on Details?', 
+                                message: 'The costing will be updated, and bookings may be affected. Double check first before saving.', 
+                                type: 'info', 
+                                event: 'execute-save-addon' 
+                            })"
+                            class="w-full btn-plum py-3 rounded-xl font-bold text-[15px]">{{ $addon_id ? 'Update Item' : 'Save Items' }}</button>
                     </form>
                 </div>
             </div>
@@ -399,7 +413,7 @@
                                         <button type="button"
                                             @click="$dispatch('open-modal', { 
                                                 title: 'Delete Add-on?', 
-                                                message: 'Remove \'{{ addslashes($addon->addon_label) }}\'?', 
+                                                message: 'Remove \'{{ addslashes($addon->addon_label) }}\'? The costing will be changed, and bookings may be affected. Double check first.', 
                                                 type: 'danger', 
                                                 event: 'execute-delete-addon', 
                                                 params: {{ $addon->id }} 
@@ -426,7 +440,7 @@
                     @endif
                 </div>
                 <div class="p-6">
-                    <form wire:submit.prevent="saveDropdown">
+                    <form wire:submit.prevent>
                         <div class="space-y-4 mb-2">
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Target Category</label>
@@ -470,7 +484,14 @@
                             @endforeach
                         </div>
                         <button type="button" wire:click="addDropdownRow" class="text-plum text-[12px] font-bold flex items-center gap-1 mb-6 mt-4 hover:text-plum-dark transition-colors tracking-wide">+ Add Option</button>
-                        <button type="submit" class="w-full btn-plum py-3 rounded-xl font-bold text-[15px]">{{ $dd_id ? 'Update Dropdown' : 'Save Dropdown' }}</button>
+                        <button type="button" 
+                            @click="$dispatch('open-modal', { 
+                                title: 'Confirm Dropdown Details?', 
+                                message: 'The costing will be updated, and bookings may be affected. Double check first before saving.', 
+                                type: 'info', 
+                                event: 'execute-save-dropdown' 
+                            })"
+                            class="w-full btn-plum py-3 rounded-xl font-bold text-[15px]">{{ $dd_id ? 'Update Dropdown' : 'Save Dropdown' }}</button>
                     </form>
                 </div>
             </div>
@@ -516,7 +537,7 @@
                                         <button type="button"
                                             @click="$dispatch('open-modal', { 
                                                 title: 'Delete Dropdown?', 
-                                                message: 'Remove the \'{{ addslashes($dd->label) }}\' dropdown?', 
+                                                message: 'Remove the \'{{ addslashes($dd->label) }}\' dropdown? The costing will be changed, and bookings may be affected. Double check first.', 
                                                 type: 'danger', 
                                                 event: 'execute-delete-dropdown', 
                                                 params: {{ $dd->id }} 
@@ -545,7 +566,14 @@
                 <form wire:submit="saveDelivery" class="space-y-4">
                     <input type="text" wire:model="zone_name" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum transition-colors" placeholder="Zone Name" required>
                     <input type="number" step="0.01" wire:model="del_price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum transition-colors" placeholder="Price" required>
-                    <button type="submit" class="w-full btn-plum py-3 mt-4 rounded-xl font-bold text-[15px]">Save</button>
+                    <button type="button" 
+                        @click="$dispatch('open-modal', { 
+                            title: 'Confirm Delivery Zone?', 
+                            message: 'The costing will be updated, and bookings may be affected. Double check first before saving.', 
+                            type: 'info', 
+                            event: 'execute-save-delivery' 
+                        })"
+                        class="w-full btn-plum py-3 mt-4 rounded-xl font-bold text-[15px]">Save</button>
                 </form>
             </div>
         </div>
@@ -573,7 +601,7 @@
                                     <button type="button"
                                         @click="$dispatch('open-modal', { 
                                             title: 'Delete Delivery Zone?', 
-                                            message: 'Remove zone \'{{ addslashes($del->zone_name) }}\'?', 
+                                            message: 'Remove zone \'{{ addslashes($del->zone_name) }}\'? The costing will be changed, and bookings may be affected. Double check first.', 
                                             type: 'danger', 
                                             event: 'execute-delete-delivery', 
                                             params: {{ $del->id }} 
@@ -602,7 +630,14 @@
                     <input type="text" wire:model="dur_label" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum transition-colors" placeholder="Label (e.g. 4 Hours)" required>
                     <input type="number" step="0.5" wire:model="dur_hours" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum transition-colors" placeholder="Hours (4.0)" required>
                     <input type="number" step="0.01" wire:model="dur_price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum transition-colors" placeholder="Price" required>
-                    <button type="submit" class="w-full btn-plum py-3 mt-4 rounded-xl font-bold text-[15px]">Save</button>
+                    <button type="button" 
+                        @click="$dispatch('open-modal', { 
+                            title: 'Confirm Duration Pricing?', 
+                            message: 'The costing will be updated, and bookings may be affected. Double check first before saving.', 
+                            type: 'info', 
+                            event: 'execute-save-duration' 
+                        })"
+                        class="w-full btn-plum py-3 mt-4 rounded-xl font-bold text-[15px]">Save</button>
                 </form>
             </div>
         </div>
@@ -630,7 +665,7 @@
                                     <button type="button"
                                         @click="$dispatch('open-modal', { 
                                             title: 'Delete Duration?', 
-                                            message: 'Remove duration \'{{ addslashes($dur->label) }}\'?', 
+                                            message: 'Remove duration \'{{ addslashes($dur->label) }}\'? The costing will be changed, and bookings may be affected. Double check first.', 
                                             type: 'danger', 
                                             event: 'execute-delete-duration', 
                                             params: {{ $dur->id }} 

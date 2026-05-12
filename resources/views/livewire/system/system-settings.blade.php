@@ -330,13 +330,13 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     @forelse($activeUsers as $user)
-                        <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-700 flex items-center justify-between group hover:border-plum transition-all">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-lg">
+                        <div class="p-4 rounded-2xl bg-slate-900/50 border border-slate-700 flex items-center justify-between group hover:border-plum transition-all gap-4">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-lg shrink-0">
                                     {{ substr($user->first_name, 0, 1) }}{{ substr($user->last_name, 0, 1) }}
                                 </div>
-                                <div class="flex flex-col">
-                                    <span class="text-sm font-bold text-white">{{ $user->first_name }} {{ $user->last_name }}</span>
+                                <div class="flex flex-col min-w-0">
+                                    <span class="text-sm font-bold text-white truncate">{{ $user->first_name }} {{ $user->last_name }}</span>
                                     <div class="flex items-center gap-1.5 mt-0.5">
                                         @php
                                             $roleColor = match(strtolower($user->role)) {
@@ -346,16 +346,16 @@
                                                 default => 'bg-slate-500/10 text-slate-400 border-slate-500/20'
                                             };
                                         @endphp
-                                        <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter border {{ $roleColor }}">
+                                        <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter border {{ $roleColor }} shrink-0">
                                             {{ $user->role }}
                                         </span>
-                                        <span class="text-[10px] text-slate-500 font-medium">{{ $user->ip_address }}</span>
+                                        <span class="text-[10px] text-slate-500 font-medium truncate" title="{{ $user->ip_address }}">{{ $user->ip_address }}</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="text-right">
-                                <span class="text-[10px] font-bold text-slate-500 block uppercase">Active</span>
-                                <span class="text-[11px] font-semibold text-emerald-400">{{ \Carbon\Carbon::createFromTimestamp($user->last_activity)->diffForHumans() }}</span>
+                            <div class="text-right shrink-0">
+                                <span class="text-[10px] font-bold text-slate-500 block uppercase tracking-wider">Active</span>
+                                <span class="text-[11px] font-semibold text-emerald-400 whitespace-nowrap">{{ \Carbon\Carbon::createFromTimestamp($user->last_activity)->diffForHumans() }}</span>
                             </div>
                         </div>
                     @empty

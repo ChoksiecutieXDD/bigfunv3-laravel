@@ -168,6 +168,7 @@ class Inventory extends Component
     // ==========================================
     // 2. PRODUCTS
     // ==========================================
+    #[On('execute-save-product')]
     public function saveProduct()
     {
         $this->validate([
@@ -283,6 +284,7 @@ class Inventory extends Component
         $this->addonRows = array_values($this->addonRows);
     }
 
+    #[On('execute-save-addon')]
     public function saveAddons()
     {
         if ($this->addon_id) {
@@ -352,6 +354,7 @@ class Inventory extends Component
         $this->dropdownRows = array_values($this->dropdownRows);
     }
 
+    #[On('execute-save-dropdown')]
     public function saveDropdown()
     {
         $this->validate([
@@ -422,6 +425,7 @@ class Inventory extends Component
     // ==========================================
     // 5. DELIVERY ZONES
     // ==========================================
+    #[On('execute-save-delivery')]
     public function saveDelivery()
     {
         $this->validate(['zone_name' => 'required|string', 'del_price' => 'required|numeric']);
@@ -455,6 +459,7 @@ class Inventory extends Component
     // ==========================================
     // 6. DURATION PRICING
     // ==========================================
+    #[On('execute-save-duration')]
     public function saveDuration()
     {
         $this->validate([
