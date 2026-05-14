@@ -120,7 +120,8 @@
         });
     </script>
 
-    {{ $scripts ?? '' }}
+    <x-session-monitor />
+    @livewireScripts
 </body>
 
 </html>

@@ -177,6 +177,7 @@
             }
         });
     </script>
+    <x-session-monitor />
     @livewireScripts
 </body>
 

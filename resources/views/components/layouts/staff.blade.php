@@ -151,6 +151,7 @@
         </div>
     </div>
 
+    <x-session-monitor />
     @livewireScripts
 </body>
 

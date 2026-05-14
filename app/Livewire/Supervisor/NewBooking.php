@@ -46,17 +46,14 @@ class NewBooking extends Component
     {
         $this->form_token = bin2hex(random_bytes(8));
         $lastInvoiceNum = DB::table('bookings')
-            ->where('invoice_number', 'like', 'INV-%')
+            ->where('invoice_number', 'like', 'INV%')
             ->orWhere('invoice_number', 'like', 'Inv no. %')
             ->selectRaw("MAX(CAST(REGEXP_REPLACE(invoice_number, '[^0-9]', '') AS UNSIGNED)) as max_num")
             ->value('max_num');
 
-        if ($lastInvoiceNum > 999999) {
-            $lastInvoiceNum = $lastInvoiceNum % 10000;
-        }
-
-        $nextNum = ($lastInvoiceNum ?? 0) + 1;
-        $this->invoice_number = "INV-" . str_pad($nextNum, 5, '0', STR_PAD_LEFT);
+        $startNum = 15261;
+        $nextNum = max($startNum, ($lastInvoiceNum ?? 0) + 1);
+        $this->invoice_number = "INV - " . str_pad($nextNum, 5, '0', STR_PAD_LEFT);
 
         $req_id = request()->query('edit_id');
         $req_invoice = request()->query('invoice');

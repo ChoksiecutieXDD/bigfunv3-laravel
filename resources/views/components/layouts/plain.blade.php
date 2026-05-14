@@ -35,6 +35,7 @@
         {{ $slot }}
     </main>
 
+    <x-session-monitor />
     @livewireScripts
     <x-ui.toast />
 </body>

@@ -20,6 +20,7 @@
         {{ $slot }}
     </main>
 
+    <x-session-monitor />
     @livewireScripts
 </body>
 
