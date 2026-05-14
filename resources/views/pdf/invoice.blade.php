@@ -353,12 +353,6 @@
                             <td class="bold">Time:</td>
                             <td>
                                 {{ $timeRange }}
-                                @if(!empty($durationLabel))
-                                    ({{ $durationLabel }})
-                                @endif
-                                @if($durationPrice > 0)
-                                    - {{ money($durationPrice) }}
-                                @endif
                             </td>
                         </tr>
                         <tr>
