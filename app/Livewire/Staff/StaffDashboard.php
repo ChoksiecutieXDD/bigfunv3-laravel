@@ -55,7 +55,7 @@ class StaffDashboard extends Component
         // 1. Upcoming Schedule (Status != Cancelled)
         // Notice we assign unique page names so the tables don't paginate at the same time
         $upcoming_tasks = (clone $query)
-            ->where('status', '!=', 'Cancelled')
+            ->whereNotIn('status', ['Cancelled', 'Deleted'])
             ->orderBy('event_date', 'asc')
             ->orderBy('start_time', 'asc')
             ->paginate(6, ['*'], 'up_page');
@@ -76,7 +76,7 @@ class StaffDashboard extends Component
 
         // 4. Header Stats
         $upcoming_count = DB::table('bookings')
-            ->where('status', '!=', 'Cancelled')
+            ->whereNotIn('status', ['Cancelled', 'Deleted'])
             ->whereDate('event_date', '>=', $today)
             ->count();
 

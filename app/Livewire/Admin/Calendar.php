@@ -134,7 +134,7 @@ class Calendar extends Component
             }
 
             // Stats Incrementing (Excluding Cancelled/Draft)
-            if (!in_array($booking->status, ['Cancelled', 'Draft'])) {
+            if (!in_array($booking->status, ['Cancelled', 'Deleted', 'Draft'])) {
                 $stats['mCount']++;
                 $stats['mRev'] += $totalAmount;
                 $stats['mPaid'] += $realPaid;
@@ -169,7 +169,7 @@ class Calendar extends Component
         // YTD Calculation - Quick select instead of full model
         $ytd = DB::table('bookings')
             ->whereYear('event_date', $searchYear)
-            ->whereNotIn('status', ['Cancelled', 'Draft'])
+            ->whereNotIn('status', ['Cancelled', 'Deleted', 'Draft'])
             ->selectRaw('COUNT(*) as c, SUM(total_amount) as r')
             ->first();
         $stats['ytdCount'] = $ytd->c ?? 0;
@@ -177,10 +177,10 @@ class Calendar extends Component
 
         // Global Financials - Caching for 10 minutes to save DB load
         $this->global_outstanding_balance = \Illuminate\Support\Facades\Cache::remember('global_outstanding_balance', 600, function() {
-            $globalRev = DB::table('bookings')->whereNotIn('status', ['Cancelled', 'Draft'])->sum('total_amount');
+            $globalRev = DB::table('bookings')->whereNotIn('status', ['Cancelled', 'Deleted', 'Draft'])->sum('total_amount');
             $globalPaid = DB::table('booking_payments')
                 ->whereIn('booking_id', function($q) {
-                    $q->select('id')->from('bookings')->whereNotIn('status', ['Cancelled', 'Draft']);
+                    $q->select('id')->from('bookings')->whereNotIn('status', ['Cancelled', 'Deleted', 'Draft']);
                 })->sum('amount');
             return $globalRev - $globalPaid;
         });

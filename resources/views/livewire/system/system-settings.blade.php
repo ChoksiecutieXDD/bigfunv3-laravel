@@ -712,6 +712,19 @@
                             <p class="text-xs text-slate-400">Real-time service status</p>
                         </div>
                     </div>
+
+                    <div class="flex items-center gap-4 bg-slate-900/50 border border-slate-700/50 px-4 py-2 rounded-2xl">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Spreadsheet Sync</span>
+                            <span class="text-[11px] font-bold {{ $googleSyncEnabled ? 'text-emerald-400' : 'text-amber-400' }}">
+                                {{ $googleSyncEnabled ? 'ENABLED' : 'DISABLED' }}
+                            </span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" wire:model.live="googleSyncEnabled" wire:change="toggleGoogleSync" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4 mb-8">

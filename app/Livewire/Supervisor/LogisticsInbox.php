@@ -34,9 +34,9 @@ class LogisticsInbox extends Component
 
     // --- Modal Forms ---
     // Payment Processing
-    public $saving_type_id = null;
-    public $pay_booking_id;
-    public $pay_amount;
+    public int|string|null $saving_type_id = null;
+    public int|string|null $pay_booking_id = null;
+    public float|int|string|null $pay_amount = null;
     public string $pay_type = 'Final Settlement';
     public string $pay_method = 'EFT';
     public string $pay_date = '';
@@ -52,7 +52,7 @@ class LogisticsInbox extends Component
     public array $pay_context = [];
 
     // Edit Card
-    public $card_booking_id;
+    public int|string|null $card_booking_id = null;
     public ?string $edit_card_holder = null;
     public ?string $edit_card_category = null;
     public ?string $edit_card_type = null;
@@ -61,11 +61,11 @@ class LogisticsInbox extends Component
     public ?string $edit_card_cvv = null;
 
     // Edit EFT
-    public $eft_booking_id;
+    public int|string|null $eft_booking_id = null;
     public ?string $edit_eft_method = null;
 
     // Email
-    public $email_booking_id;
+    public int|string|null $email_booking_id = null;
     public string $email_type = 'invoice';
     public string $email_to = '';
     public string $email_cc = '';
@@ -77,9 +77,9 @@ class LogisticsInbox extends Component
 
 
     // View Details (from model directly)
-    public $view_payment_details = null;
+    public ?\App\Models\BookingPayment $view_payment_details = null;
     public bool $is_editing_payment = false;
-    public $edit_payment_amount;
+    public float|int|string|null $edit_payment_amount = null;
     public string $edit_payment_method = '';
     public string $edit_payment_date = '';
     public string $edit_payment_ref = '';
@@ -408,7 +408,7 @@ class LogisticsInbox extends Component
     public string $confirmEmailTitle = '';
     public string $confirmEmailMessage = '';
     public string $pendingEmailType = '';
-    public $pendingBookingId = null;
+    public int|string|null $pendingBookingId = null;
     public string $quotaWarningTitle = '';
     public string $quotaWarningMessage = '';
     public string $quotaLimitTitle = '';
@@ -662,7 +662,7 @@ class LogisticsInbox extends Component
         }
         $fullyPaidBookings = $fullyPaidQuery->orderBy('event_date', $this->sort_full)->paginate(5, ['*'], 'page_full');
 
-        $invoicesQuery = Booking::where('invoice_emailed', 0)->where('status', '!=', 'Cancelled');
+        $invoicesQuery = Booking::where('invoice_emailed', 0)->whereNotIn('status', ['Cancelled', 'Deleted']);
         if ($this->search_inv) {
             $invoicesQuery->where(function ($q) {
                 $q->where('id', 'like', "%{$this->search_inv}%")

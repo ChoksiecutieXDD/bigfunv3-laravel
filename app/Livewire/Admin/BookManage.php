@@ -32,7 +32,7 @@ class BookManage extends Component
         // 1. UPCOMING SCHEDULE (Status != Cancelled, Future Dates)
         $upQuery = DB::table('bookings')
             ->where('event_date', '>=', $today)
-            ->where('status', '!=', 'Cancelled');
+            ->whereNotIn('status', ['Cancelled', 'Deleted']);
 
         if (!empty($this->search_up)) {
             $term = '%' . $this->search_up . '%';

@@ -79,7 +79,7 @@ function registerBookingApp() {
         paymentMethods: ['Direct Deposit', 'Bank Transfer', 'Osko', 'PayID'],
         paymentMethod: 'Direct Deposit',
         paymentStatus: 'Pending',
-        deliveryZone: '',
+        deliveryStatus: 'Pending',
         modals: {
             review: false,
             history: false,
@@ -118,7 +118,7 @@ function registerBookingApp() {
             return Math.ceil(this.filteredCustomers.length / this.customerPageSize) || 1;
         },
         cardNetwork: 'Visa',
-        isDurationCustom: false,
+
         productDetails: {
             visible: false,
             name: '',
@@ -168,6 +168,9 @@ function registerBookingApp() {
             // Initialize from bridge data if available
             if (window.bookingAppData) {
                 this.previousCustomers = window.bookingAppData.pastCustomers || [];
+                
+
+
                 // If it's edit mode, we might want to pre-load some things
                 setTimeout(() => {
                     if (typeof checkRealTimeAvailability === 'function') checkRealTimeAvailability();
@@ -924,7 +927,8 @@ window.filterRides = function () {
 window.calcDuration = function () {
     const sEl = document.getElementById('start_time');
     const eEl = document.getElementById('end_time');
-    if (!sEl || !eEl) return;
+    const durEl = document.getElementById('duration');
+    if (!sEl || !eEl || !durEl) return;
 
     const s = sEl.value;
     const e = eEl.value;
@@ -937,113 +941,15 @@ window.calcDuration = function () {
     if (diff < 0) diff += 24;
 
     if (diff > 0) {
-        const radios = document.querySelectorAll('input[name="duration"]');
-        let best = null;
-        let minDiff = Infinity;
-
-        radios.forEach(r => {
-            const h = parseFloat(r.getAttribute('data-hours'));
-            if (!isNaN(h)) {
-                const delta = Math.abs(diff - h);
-                if (delta < minDiff) {
-                    minDiff = delta;
-                    best = r;
-                }
-            }
-        });
-
-        const customCard = document.getElementById('dur_card_custom');
-        // If "Custom/Manual" is already active, don't let auto-calculation override it
-        if (customCard && customCard.classList.contains('duration-active')) return;
-
-        if (best && minDiff < 1.5) {
-            best.checked = true;
-            selectDurationCard(best.closest('.duration-card'));
-        }
+        // Format nicely: "4 Hours" or "4.5 Hours"
+        const hoursStr = diff === 1 ? "1 Hour" : (Number.isInteger(diff) ? diff : diff.toFixed(1)) + " Hours";
+        durEl.value = hoursStr;
     }
 };
 
-window.selectDurationCard = function (labelEl) {
-    if (!labelEl) return;
-    document.querySelectorAll('.duration-card').forEach(r => r.classList.remove('duration-active'));
-    labelEl.classList.add('duration-active');
 
-    const input = labelEl.querySelector('input');
-    if (!input) return;
-    input.checked = true;
 
-    const wrapper = document.getElementById('customDurationWrapper');
-    const durCostInput = document.getElementById('duration_cost');
-    const manualCost = document.getElementById('manual_duration_cost');
 
-    const el = document.querySelector('[x-data="bookingApp"]');
-    const app = el && el._x_dataStack ? el._x_dataStack[0] : null;
-
-    if (input.value === 'custom') {
-        if (wrapper) wrapper.classList.remove('hidden');
-        if (app) app.isDurationCustom = true;
-
-        // Reset times when custom is selected
-        const sEl = document.getElementById('start_time');
-        const eEl = document.getElementById('end_time');
-        if (sEl) sEl.value = "";
-        if (eEl) eEl.value = "";
-
-        // Set label to TBC by default if empty
-        const customDurLabelInput = document.getElementById('custom_duration_text');
-        if (customDurLabelInput && customDurLabelInput.value === "") {
-            customDurLabelInput.value = "TBC";
-        }
-
-        // Set to 0 (TBC) if no manual cost is entered yet
-        if (durCostInput) {
-            if (manualCost && manualCost.value !== "") {
-                durCostInput.value = manualCost.value;
-            } else {
-                durCostInput.value = 0;
-                if (manualCost) manualCost.value = "";
-            }
-        }
-    } else {
-        if (wrapper) wrapper.classList.add('hidden');
-        if (app) app.isDurationCustom = false;
-        if (durCostInput) durCostInput.value = input.dataset.price || 0;
-    }
-    triggerRecalculate();
-};
-
-window.updateDurationCost = function (radio) {
-    if (radio.checked) {
-        const durCostInput = document.getElementById('duration_cost');
-        if (durCostInput) durCostInput.value = radio.dataset.price;
-        selectDurationCard(radio.closest('.duration-card'));
-    }
-};
-
-window.updateDeliveryCost = function (sel) {
-    const manual = document.getElementById('delivery_area_manual');
-    const delCostInput = document.getElementById('delivery_cost');
-    if (!delCostInput) return;
-
-    if (sel.value === 'custom') {
-        // If manual input has a value, use it, otherwise keep current OR fallback to 0
-        if (manual && manual.value !== "") {
-            delCostInput.value = manual.value;
-        } else {
-            // Only set to 0 if it was truly empty
-            if (delCostInput.value === "") delCostInput.value = 0;
-        }
-    } else {
-        if (sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) {
-            const price = sel.options[sel.selectedIndex].getAttribute('data-price');
-            if (price !== null) delCostInput.value = price;
-        } else {
-            // Don't reset to 0 if we already have a value and the selection is just "loading"
-            if (sel.value === "" && delCostInput.value == 0) delCostInput.value = 0;
-        }
-    }
-    triggerRecalculate();
-};
 
 window.triggerRecalculate = function (priceOnly = false) {
     // Force calculation even in edit mode to satisfy wire:ignore breakdown panels
@@ -1078,8 +984,7 @@ window.triggerRecalculate = function (priceOnly = false) {
 
             // Check for manual price override
             const manualPriceInput = card.querySelector('.manual-ride-price');
-            const defaultPrice = parseFloat(card.dataset.price || 0);
-            const price = (manualPriceInput && manualPriceInput.value !== '') ? parseFloat(manualPriceInput.value) : defaultPrice;
+            const price = (manualPriceInput && manualPriceInput.value !== '') ? parseFloat(manualPriceInput.value) : 0;
 
             attractionsCost += (price * q);
         }
@@ -1121,6 +1026,8 @@ window.triggerRecalculate = function (priceOnly = false) {
 
             if (useOverride && window.bookingAppData && window.bookingAppData.extraPrices && window.bookingAppData.extraPrices[key] !== undefined && window.bookingAppData.extraPrices[key] !== '') {
                 price = parseFloat(window.bookingAppData.extraPrices[key]);
+            } else {
+                price = 0; // Default to manual only
             }
             extCost += price;
         }
@@ -1191,6 +1098,12 @@ window.openReviewModal = async function () {
     const emailEl = document.getElementById('customer_email_address');
     const phoneEl = document.getElementById('customer_phone_mobile');
     const addrEl = document.getElementById('addr_line_1');
+    const opHoursEl = document.getElementById('operational_hours');
+    const durationEl = document.getElementById('duration');
+    const delAreaEl = document.getElementById('delivery_area');
+
+    const appEl = document.querySelector('[x-data="bookingApp"]');
+    const alpine = appEl && appEl._x_dataStack ? appEl._x_dataStack[0] : { deliveryZone: '', modals: { review: false } };
 
     const date = dateEl ? dateEl.value : '';
     const startTime = startEl ? startEl.value : '';
@@ -1200,14 +1113,35 @@ window.openReviewModal = async function () {
     const phone = phoneEl ? phoneEl.value : '';
     const addr = addrEl ? addrEl.value : '';
 
-    const el = document.querySelector('[x-data="bookingApp"]');
-    const alpine = el && el._x_dataStack ? el._x_dataStack[0] : { deliveryZone: '', modals: { review: false } };
-    const delZone = alpine.deliveryZone;
+    // Fix: Read delivery zone from DOM instead of undefined Alpine property
+    const delZone = delAreaEl ? delAreaEl.value.trim() : '';
+
+    // Mandatory Field Validation (Operational Hours, Duration, Delivery Zone)
+    let validationErrors = false;
+    const mandatoryFields = [
+        { el: opHoursEl, label: 'Operational Hours' },
+        { el: durationEl, label: 'Duration (hours or custom)' },
+        { el: delAreaEl, label: 'Delivery Zone' }
+    ];
+
+    mandatoryFields.forEach(field => {
+        if (field.el) {
+            if (!field.el.value.trim()) {
+                field.el.classList.add('!border-red-500', 'ring-2', 'ring-red-500/20');
+                validationErrors = true;
+            } else {
+                field.el.classList.remove('!border-red-500', 'ring-2', 'ring-red-500/20');
+            }
+        }
+    });
+
+    if (validationErrors) {
+        showToast("Missing Required Info", "Please fill in the highlighted fields (Operational Hours, Duration, Delivery Zone) before reviewing.", "error");
+        return;
+    }
 
     let missing = [];
-    const appEl = document.querySelector('[x-data="bookingApp"]');
-    const app = appEl && appEl._x_dataStack ? appEl._x_dataStack[0] : null;
-    const isCustom = app ? app.isDurationCustom : false;
+    const isCustom = alpine ? alpine.isDurationCustom : false;
 
     if (!date) missing.push("Event Date");
     if (!isCustom) {
@@ -1218,7 +1152,6 @@ window.openReviewModal = async function () {
     if (!email) missing.push("Email");
     if (!phone) missing.push("Mobile");
     if (!addr) missing.push("Address");
-    if (delZone === "") missing.push("Delivery Zone");
 
     if (missing.length > 0) {
         const warningBox = document.getElementById('rev_missing_warning');
@@ -1271,16 +1204,11 @@ window.openReviewModal = async function () {
     // Duration Label & Cost
     let durPrice = document.getElementById('breakdown_dur').innerText;
     let durLabel = "";
-    const activeDurCard = document.querySelector('.duration-card.duration-active');
-    if (activeDurCard) {
-        const rad = activeDurCard.querySelector('input[name="duration"]');
-        if (rad) {
-            if (rad.value === 'custom') {
-                durLabel = (document.getElementById('custom_duration_text') || {}).value || "Custom Duration";
-            } else {
-                durLabel = rad.value;
-            }
-        }
+    
+    if (isCustom) {
+        durLabel = (document.getElementById('custom_duration_text') || {}).value || "Custom Duration";
+    } else {
+        durLabel = (document.getElementById('duration') || {}).value || "Not Set";
     }
     const durCostInput = document.getElementById('duration_cost');
     const actualDurCost = durCostInput ? (parseFloat(durCostInput.value) || 0) : 0;
@@ -1315,7 +1243,7 @@ window.openReviewModal = async function () {
     document.getElementById('rev_time').innerText = timeStr;
 
     let displayDelZone = document.getElementById('breakdown_del').innerText;
-    if (delZone === "custom") {
+    if (delZone.toLowerCase() === "custom") {
         displayDelZone += " (Custom Quote)";
     } else if (delZone !== "") {
         displayDelZone += " (" + delZone + ")";
@@ -1502,6 +1430,19 @@ window.finalizeBooking = async function () {
 
         const fd = new FormData(form);
 
+        // Handle Manual Duration/Custom Logic
+        const appEl = document.querySelector('[x-data="bookingApp"]');
+        const app = appEl && appEl._x_dataStack ? appEl._x_dataStack[0] : null;
+        if (app && app.isDurationCustom) {
+            const calculatedDuration = fd.get('duration');
+            const customText = fd.get('custom_duration_text');
+            let combined = (calculatedDuration && calculatedDuration !== 'custom' ? calculatedDuration + ', ' : '') + (customText || '');
+            combined = combined.trim().replace(/,\s*$/, ''); // Remove trailing comma if any
+            
+            fd.set('duration', 'custom');
+            fd.set('custom_duration_text', combined);
+        }
+
         // CRITICAL FIX: Explicitly append all selected products to ensure they aren't lost 
         // in the JS-to-Livewire sync race during the final save.
         if (window.bookingAppData && window.bookingAppData.selectedItems) {
@@ -1649,12 +1590,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (typeof checkRealTimeAvailability === 'function') await checkRealTimeAvailability(false); // First load is NOT silent
-        const delSelect = document.getElementById('delivery_area_select');
-        if (delSelect && typeof updateDeliveryCost === 'function') updateDeliveryCost(delSelect);
+
 
         // Sync initial duration custom state
-        const checkedDur = document.querySelector('input[name="duration"]:checked');
-        if (checkedDur && checkedDur.value === 'custom') {
+        const customText = document.getElementById('custom_duration_text');
+        if (customText && customText.value !== "") {
             const appEl = document.querySelector('[x-data="bookingApp"]');
             const app = appEl && appEl._x_dataStack ? appEl._x_dataStack[0] : null;
             if (app) app.isDurationCustom = true;

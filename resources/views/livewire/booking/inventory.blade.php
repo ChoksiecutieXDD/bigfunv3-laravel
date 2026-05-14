@@ -23,16 +23,7 @@
             class="px-6 py-3.5 text-[15px] rounded-t-lg transition-all whitespace-nowrap">
             Extras (General & Cat)
         </button>
-        <button @click="tab = 'delivery'"
-            :class="tab === 'delivery' ? 'bg-white text-plum border-t-4 border-plum font-semibold shadow-sm' : 'text-slate-500 hover:text-slate-700 font-medium border-t-4 border-transparent'"
-            class="px-6 py-3.5 text-[15px] rounded-t-lg transition-all whitespace-nowrap">
-            Delivery Zones
-        </button>
-        <button @click="tab = 'duration'"
-            :class="tab === 'duration' ? 'bg-white text-plum border-t-4 border-plum font-semibold shadow-sm' : 'text-slate-500 hover:text-slate-700 font-medium border-t-4 border-transparent'"
-            class="px-6 py-3.5 text-[15px] rounded-t-lg transition-all whitespace-nowrap">
-            Duration Pricing
-        </button>
+
     </div>
 
     <div x-show="tab === 'categories'" wire:key="tab-container-categories" class="flex flex-col gap-6">
@@ -171,10 +162,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Price ($)</label>
-                        <input type="number" step="0.01" wire:model="prod_price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum focus:border-plum px-4 py-3 transition-colors" placeholder="100.00">
-                    </div>
+
                 </div>
 
                 <div class="mb-6">
@@ -254,9 +242,7 @@
                                 @endif
                             </div>
                         </td>
-                        <td class="py-5 font-bold text-slate-800 text-[15px] w-[15%]">
-                            ${{ number_format($prod->price, 2) }}
-                        </td>
+
                         <td class="py-5 w-[20%] text-text-main font-medium">
                             <div class="flex flex-col border border-slate-200 rounded-lg text-[11px] w-[130px] overflow-hidden shadow-sm">
                                 <div class="flex justify-between items-center py-2 border-b border-slate-50 px-2 bg-slate-50/50">
@@ -352,10 +338,7 @@
                                     <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Item Name</label>
                                     <input type="text" wire:model="addonRows.{{ $index }}.label" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum px-4 py-3 transition-colors" placeholder="e.g. Generator" required>
                                 </div>
-                                <div class="mt-4">
-                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Price <span class="text-slate-400 normal-case tracking-normal font-normal">(Leave empty for free)</span></label>
-                                    <input type="number" step="0.01" wire:model="addonRows.{{ $index }}.price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum px-4 py-3 transition-colors" placeholder="Free">
-                                </div>
+
                             </div>
                             @endforeach
                         </div>
@@ -386,7 +369,6 @@
                             <tr>
                                 <th class="py-4 pl-6 text-[11px] font-bold text-slate-500 uppercase tracking-widest w-[20%]">Category</th>
                                 <th class="py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest w-[50%]">Item Name</th>
-                                <th class="py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest w-[15%]">Price</th>
                                 <th class="py-4 pr-6 text-right text-[11px] font-bold text-slate-500 uppercase tracking-widest w-[15%]">Action</th>
                             </tr>
                         </thead>
@@ -404,9 +386,7 @@
                                     @endif
                                 </td>
                                 <td class="py-5 text-[15px] font-medium text-text-main">{{ $addon->addon_label }}</td>
-                                <td class="py-5 font-bold text-text-main">
-                                    @if($addon->addon_price > 0) ${{ number_format($addon->addon_price, 2) }} @else <span class="text-emerald-600 uppercase text-[11px]">Free</span> @endif
-                                </td>
+
                                 <td class="py-5 pr-6 text-right">
                                     <div class="flex justify-end gap-2">
                                         <button wire:click="editAddon({{ $addon->id }})" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors"><span class="material-symbols-rounded text-[18px]">edit</span></button>
@@ -476,10 +456,7 @@
                                     <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Option Name</label>
                                     <input type="text" wire:model="dropdownRows.{{ $index }}.label" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum px-4 py-3 transition-colors" placeholder="e.g. Standard Hire" required>
                                 </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Price <span class="text-slate-400 normal-case tracking-normal font-normal">(Leave empty for free)</span></label>
-                                    <input type="number" step="0.01" wire:model="dropdownRows.{{ $index }}.price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium focus:ring-plum px-4 py-3 transition-colors" placeholder="Free">
-                                </div>
+
                             </div>
                             @endforeach
                         </div>
@@ -527,7 +504,6 @@
                                     @foreach($dd->options as $opt)
                                     <div class="text-[13px] text-slate-500 flex items-center gap-2 mb-1 pl-2 font-medium">
                                         {{ $opt->option_label }}
-                                        <span class="text-text-main font-bold ml-1">(@if($opt->option_price > 0) ${{ number_format($opt->option_price, 2) }} @else <span class="text-emerald-600 uppercase text-[10px]">Free</span> @endif)</span>
                                     </div>
                                     @endforeach
                                 </td>
@@ -554,130 +530,5 @@
         </div>
     </div>
 
-    <div x-show="tab === 'delivery'" wire:key="tab-container-delivery" class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
-        <div class="lg:col-span-1">
-            <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="font-bold text-text-main text-[15px]">{{ $del_id ? 'Edit Zone' : 'Add Zone' }}</h3>
-                    @if($del_id)
-                    <button type="button" wire:click="$set('del_id', null); $set('zone_name', ''); $set('del_price', '');" class="text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors">Cancel</button>
-                    @endif
-                </div>
-                <form wire:submit="saveDelivery" class="space-y-4">
-                    <input type="text" wire:model="zone_name" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum transition-colors" placeholder="Zone Name" required>
-                    <input type="number" step="0.01" wire:model="del_price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum transition-colors" placeholder="Price" required>
-                    <button type="button" 
-                        @click="$dispatch('open-modal', { 
-                            title: 'Confirm Delivery Zone?', 
-                            message: 'The costing will be updated, and bookings may be affected. Double check first before saving.', 
-                            type: 'info', 
-                            event: 'execute-save-delivery' 
-                        })"
-                        class="w-full btn-plum py-3 mt-4 rounded-xl font-bold text-[15px]">Save</button>
-                </form>
-            </div>
-        </div>
-
-        <div class="lg:col-span-2">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <table class="w-full text-left border-collapse">
-                    <thead class="border-b border-slate-100 bg-slate-50/50">
-                        <tr>
-                            <th class="py-4 pl-8 text-[11px] font-bold text-slate-500 uppercase tracking-widest w-1/2">Zone Name</th>
-                            <th class="py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest w-1/4">Price</th>
-                            <th class="py-4 pr-8 text-right text-[11px] font-bold text-slate-500 uppercase tracking-widest w-1/4">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-50">
-                        @foreach ($deliveries as $del)
-                        <tr class="hover:bg-slate-50/50 transition-colors">
-                            <td class="py-4 pl-8 font-semibold text-text-main text-[15px] flex items-center gap-3">
-                                <span class="material-symbols-rounded text-slate-300 text-xl">location_on</span> {{ $del->zone_name }}
-                            </td>
-                            <td class="py-4 font-bold text-slate-700">${{ number_format($del->price, 2) }}</td>
-                            <td class="py-4 pr-8 text-right">
-                                <div class="flex justify-end gap-2">
-                                    <button wire:click="editDelivery({{ $del->id }})" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors"><span class="material-symbols-rounded text-[18px]">edit</span></button>
-                                    <button type="button"
-                                        @click="$dispatch('open-modal', { 
-                                            title: 'Delete Delivery Zone?', 
-                                            message: 'Remove zone \'{{ addslashes($del->zone_name) }}\'? The costing will be changed, and bookings may be affected. Double check first.', 
-                                            type: 'danger', 
-                                            event: 'execute-delete-delivery', 
-                                            params: {{ $del->id }} 
-                                        })"
-                                        class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors"><span class="material-symbols-rounded text-[18px]">delete</span></button>
-                                </div>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div x-show="tab === 'duration'" wire:key="tab-container-duration" class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
-        <div class="lg:col-span-1">
-            <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="font-bold text-text-main text-[15px]">{{ $dur_id ? 'Edit Duration' : 'Add Duration' }}</h3>
-                    @if($dur_id)
-                    <button type="button" wire:click="$set('dur_id', null); $set('dur_label', ''); $set('dur_hours', ''); $set('dur_price', '');" class="text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors">Cancel</button>
-                    @endif
-                </div>
-                <form wire:submit="saveDuration" class="space-y-4">
-                    <input type="text" wire:model="dur_label" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum transition-colors" placeholder="Label (e.g. 4 Hours)" required>
-                    <input type="number" step="0.5" wire:model="dur_hours" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum transition-colors" placeholder="Hours (4.0)" required>
-                    <input type="number" step="0.01" wire:model="dur_price" class="w-full rounded-xl border border-slate-200 text-text-main font-medium px-4 py-3 focus:ring-plum transition-colors" placeholder="Price" required>
-                    <button type="button" 
-                        @click="$dispatch('open-modal', { 
-                            title: 'Confirm Duration Pricing?', 
-                            message: 'The costing will be updated, and bookings may be affected. Double check first before saving.', 
-                            type: 'info', 
-                            event: 'execute-save-duration' 
-                        })"
-                        class="w-full btn-plum py-3 mt-4 rounded-xl font-bold text-[15px]">Save</button>
-                </form>
-            </div>
-        </div>
-
-        <div class="lg:col-span-2">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <table class="w-full text-left border-collapse">
-                    <thead class="border-b border-slate-100 bg-slate-50/50">
-                        <tr>
-                            <th class="py-4 pl-8 text-[11px] font-bold text-slate-500 uppercase tracking-widest w-1/3">Label</th>
-                            <th class="py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest w-1/4">Hours</th>
-                            <th class="py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest w-1/4">Price</th>
-                            <th class="py-4 pr-8 text-right text-[11px] font-bold text-slate-500 uppercase tracking-widest w-1/6">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-50">
-                        @foreach ($durations as $dur)
-                        <tr class="hover:bg-slate-50/50 transition-colors">
-                            <td class="py-4 pl-8 font-semibold text-text-main text-[15px]">{{ $dur->label }}</td>
-                            <td class="py-4 text-[14px] font-medium text-slate-600">{{ $dur->hours }} hrs</td>
-                            <td class="py-4 font-bold text-slate-700">${{ number_format($dur->price, 2) }}</td>
-                            <td class="py-4 pr-8 text-right">
-                                <div class="flex justify-end gap-2">
-                                    <button wire:click="editDuration({{ $dur->id }})" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors"><span class="material-symbols-rounded text-[18px]">edit</span></button>
-                                    <button type="button"
-                                        @click="$dispatch('open-modal', { 
-                                            title: 'Delete Duration?', 
-                                            message: 'Remove duration \'{{ addslashes($dur->label) }}\'? The costing will be changed, and bookings may be affected. Double check first.', 
-                                            type: 'danger', 
-                                            event: 'execute-delete-duration', 
-                                            params: {{ $dur->id }} 
-                                        })"
-                                        class="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors"><span class="material-symbols-rounded text-[18px]">delete</span></button>
-                                </div>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+</div>
 </div>

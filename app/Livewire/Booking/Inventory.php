@@ -12,8 +12,7 @@ use App\Models\Product;
 use App\Models\CategoryAddon;
 use App\Models\ProductDropdown;
 use App\Models\DropdownOption;
-use App\Models\DeliveryZone;
-use App\Models\DurationPrice;
+
 
 #[Layout('components.layouts.booking-layout')]
 class Inventory extends Component
@@ -23,12 +22,12 @@ class Inventory extends Component
     public string $searchProduct = '';
 
     // --- Category State ---
-    public $cat_id;
+    public ?int $cat_id = null;
     public ?string $category_name = null;
     public int $cat_daily_limit = 0;
 
     // --- Product State ---
-    public $prod_id;
+    public ?int $prod_id = null;
     public ?string $prod_name = null;
     public ?string $prod_category = null;
     public ?string $counts_against = null;
@@ -39,28 +38,19 @@ class Inventory extends Component
     public bool $is_active = true;
 
     // --- Add-on State ---
-    public $addon_id;
+    public ?int $addon_id = null;
     public string $addon_category = 'General Logistics';
     public ?string $addon_counts_against = null;
     public array $addonRows = [['label' => '', 'price' => '']];
 
     // --- Dropdown State ---
-    public $dd_id;
+    public ?int $dd_id = null;
     public string $dd_category = 'General Logistics';
     public ?string $dd_label = null;
     public ?string $dd_counts_against = null;
     public array $dropdownRows = [['label' => '', 'price' => '']];
 
-    // --- Delivery State ---
-    public $del_id;
-    public ?string $zone_name = null;
-    public float|int|null $del_price = null;
 
-    // --- Duration State ---
-    public $dur_id;
-    public ?string $dur_label = null;
-    public float|int|null $dur_hours = null;
-    public float|int|null $dur_price = null;
 
     public function mount()
     {
@@ -172,9 +162,7 @@ class Inventory extends Component
     public function saveProduct()
     {
         $this->validate([
-            'prod_name' => ['required', 'string', 'max:255', Rule::unique('products', 'name')->ignore($this->prod_id)],
             'prod_category' => 'required|string',
-            'prod_price' => 'nullable|numeric'
         ]);
 
         if (!$this->prod_id) {
@@ -191,7 +179,7 @@ class Inventory extends Component
                 'category' => $this->prod_category,
                 'counts_against' => $this->counts_against ?: $this->prod_category,
                 'specification' => $this->prod_specification,
-                'price' => $this->prod_price ?: 0,
+                'price' => 0,
                 'total_quantity' => (int)($this->prod_quantity ?? 0),
                 'daily_limit' => 0, // Product-level daily limit is now redundant; using stock as primary constraint.
                 'sort_order' => $sortOrder,
@@ -211,9 +199,7 @@ class Inventory extends Component
         $this->prod_category = $prod->category;
         $this->counts_against = $prod->counts_against;
         $this->prod_specification = $prod->specification;
-        $this->prod_price = $prod->price;
         $this->prod_quantity = $prod->total_quantity;
-        $this->prod_limit = $prod->daily_limit;
         $this->is_active = $prod->is_active;
         $this->dispatchToast("Editing '{$prod->name}' product.");
     }
@@ -264,8 +250,7 @@ class Inventory extends Component
 
     public function resetProductForm()
     {
-        $this->reset(['prod_id', 'prod_name', 'prod_category', 'counts_against', 'prod_specification', 'prod_price', 'prod_quantity', 'prod_limit']);
-        $this->prod_price = 100;
+        $this->reset(['prod_id', 'prod_name', 'prod_category', 'counts_against', 'prod_specification', 'prod_quantity', 'prod_limit']);
         $this->prod_quantity = 999;
         $this->is_active = true;
     }
@@ -275,7 +260,7 @@ class Inventory extends Component
     // ==========================================
     public function addAddonRow()
     {
-        $this->addonRows[] = ['label' => '', 'price' => ''];
+        $this->addonRows[] = ['label' => ''];
     }
 
     public function removeAddonRow(int|string $index)
@@ -293,7 +278,7 @@ class Inventory extends Component
                 CategoryAddon::where('id', $this->addon_id)->update([
                     'category_target' => $this->addon_category,
                     'addon_label' => $row['label'],
-                    'addon_price' => floatval($row['price']) ?: 0,
+                    'addon_price' => 0,
                     'counts_against' => $this->addon_counts_against ?: $this->addon_category
                 ]);
             }
@@ -304,7 +289,7 @@ class Inventory extends Component
                     CategoryAddon::create([
                         'category_target' => $this->addon_category,
                         'addon_label' => $row['label'],
-                        'addon_price' => floatval($row['price']) ?: 0,
+                        'addon_price' => 0,
                         'counts_against' => $this->addon_counts_against ?: $this->addon_category
                     ]);
                 }
@@ -322,7 +307,7 @@ class Inventory extends Component
         $this->addon_id = $addon->id;
         $this->addon_category = $addon->category_target;
         $this->addon_counts_against = $addon->counts_against;
-        $this->addonRows = [['label' => $addon->addon_label, 'price' => $addon->addon_price]];
+        $this->addonRows = [['label' => $addon->addon_label]];
         $this->dispatchToast("Editing '{$addon->addon_label}' add-on.");
     }
 
@@ -337,7 +322,7 @@ class Inventory extends Component
     public function resetAddonForm()
     {
         $this->reset(['addon_id', 'addon_counts_against']);
-        $this->addonRows = [['label' => '', 'price' => '']];
+        $this->addonRows = [['label' => '']];
     }
 
     // ==========================================
@@ -345,7 +330,7 @@ class Inventory extends Component
     // ==========================================
     public function addDropdownRow()
     {
-        $this->dropdownRows[] = ['label' => '', 'price' => ''];
+        $this->dropdownRows[] = ['label' => ''];
     }
 
     public function removeDropdownRow(int|string $index)
@@ -380,7 +365,7 @@ class Inventory extends Component
                 DropdownOption::create([
                     'dropdown_id' => $dropdown->id,
                     'option_label' => $row['label'],
-                    'option_price' => floatval($row['price']) ?: 0
+                    'option_price' => 0
                 ]);
             }
         }
@@ -399,7 +384,7 @@ class Inventory extends Component
 
         $this->dropdownRows = [];
         foreach ($dd->options as $opt) {
-            $this->dropdownRows[] = ['label' => $opt->option_label, 'price' => $opt->option_price];
+            $this->dropdownRows[] = ['label' => $opt->option_label];
         }
 
         if (empty($this->dropdownRows)) {
@@ -419,81 +404,10 @@ class Inventory extends Component
     public function resetDropdownForm()
     {
         $this->reset(['dd_id', 'dd_label', 'dd_counts_against']);
-        $this->dropdownRows = [['label' => '', 'price' => '']];
+        $this->dropdownRows = [['label' => '']];
     }
 
-    // ==========================================
-    // 5. DELIVERY ZONES
-    // ==========================================
-    #[On('execute-save-delivery')]
-    public function saveDelivery()
-    {
-        $this->validate(['zone_name' => 'required|string', 'del_price' => 'required|numeric']);
 
-        DeliveryZone::updateOrCreate(
-            ['id' => $this->del_id],
-            ['zone_name' => $this->zone_name, 'price' => $this->del_price]
-        );
-
-        $this->reset(['del_id', 'zone_name', 'del_price']);
-        $this->dispatchToast('Delivery zone saved.');
-    }
-
-    public function editDelivery(int|string $id)
-    {
-        $zone = DeliveryZone::findOrFail($id);
-        $this->del_id = $zone->id;
-        $this->zone_name = $zone->zone_name;
-        $this->del_price = $zone->price;
-        $this->dispatchToast("Editing '{$zone->zone_name}' delivery zone.");
-    }
-
-    #[On('execute-delete-delivery')]
-    public function deleteDelivery(int|string|array $id)
-    {
-        $id = is_array($id) ? ($id['id'] ?? $id[0]) : $id;
-        DeliveryZone::destroy($id);
-        $this->dispatchToast('Delivery zone deleted.');
-    }
-
-    // ==========================================
-    // 6. DURATION PRICING
-    // ==========================================
-    #[On('execute-save-duration')]
-    public function saveDuration()
-    {
-        $this->validate([
-            'dur_label' => 'required|string',
-            'dur_hours' => 'required|numeric',
-            'dur_price' => 'required|numeric'
-        ]);
-
-        DurationPrice::updateOrCreate(
-            ['id' => $this->dur_id],
-            ['label' => $this->dur_label, 'hours' => $this->dur_hours, 'price' => $this->dur_price]
-        );
-
-        $this->reset(['dur_id', 'dur_label', 'dur_hours', 'dur_price']);
-        $this->dispatchToast('Duration saved successfully.');
-    }
-
-    public function editDuration(int|string $id)
-    {
-        $dur = DurationPrice::findOrFail($id);
-        $this->dur_id = $dur->id;
-        $this->dur_label = $dur->label;
-        $this->dur_hours = $dur->hours;
-        $this->dur_price = $dur->price;
-        $this->dispatchToast("Editing '{$dur->label}' duration.");
-    }
-
-    #[On('execute-delete-duration')]
-    public function deleteDuration(int|string|array $id)
-    {
-        $id = is_array($id) ? ($id['id'] ?? $id[0]) : $id;
-        DurationPrice::destroy($id);
-        $this->dispatchToast('Duration deleted.');
-    }
 
     // ==========================================
     // HELPER & RENDER
@@ -511,8 +425,6 @@ class Inventory extends Component
                 ->orderBy('category')->orderBy('sort_order')->orderBy('name')->get(),
             'extras_addons' => CategoryAddon::orderBy('category_target')->orderBy('addon_label')->get(),
             'dropdowns' => ProductDropdown::with('options')->orderBy('category_target')->get(),
-            'deliveries' => DeliveryZone::orderBy('price')->get(),
-            'durations' => DurationPrice::orderBy('hours')->get(),
         ]);
     }
 }

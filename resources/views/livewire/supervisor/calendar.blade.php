@@ -177,11 +177,10 @@
                                     $hasDuration = !empty($booking->duration) && !in_array($booking->duration, ['4 Hours', '7 Hours']);
                                 @endphp
 
-                                @if(($hasDuration || $isFullDay) && !empty($booking->duration))
-                                    {{ $booking->duration }} @if(($booking->duration_cost ?? 0) > 0) (${{ number_format($booking->duration_cost, 2) }}) @endif
-                                @else
                                     {{ \Carbon\Carbon::parse($booking->start_time)->format('g:i A') }} - {{ $booking->end_time ? \Carbon\Carbon::parse($booking->end_time)->format('g:i A') : 'TBD' }}
-                                @endif
+                                    @if(!empty($booking->duration))
+                                        ({{ $booking->duration }})
+                                    @endif
                             </span>
                             <span class="text-xs font-bold mt-1 text-{{ $booking->color_code }}-600 flex items-center gap-1">
                                 <span class="legend-dot dot-{{ $booking->color_code }}"></span> {{ $booking->status_label }}
@@ -391,10 +390,9 @@
                                     $endTime = $event->end_time;
                                     $isFullDay = ($startTime === '00:00:00' && ($endTime === '23:59:59' || $endTime === '23:59:00' || $endTime === '23:30:00'));
                                 @endphp
-                                @if(!empty($event->duration) && ($isFullDay || !in_array($event->duration, ['4 Hours', '7 Hours'])))
-                                    {{ $event->duration }} @if(($event->duration_cost ?? 0) > 0) (${{ number_format($event->duration_cost, 2) }}) @endif
-                                @else
-                                    {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }}
+                                {{ \Carbon\Carbon::parse($event->start_time)->format('g:i A') }} - {{ $event->end_time ? \Carbon\Carbon::parse($event->end_time)->format('g:i A') : 'TBD' }}
+                                @if(!empty($event->duration))
+                                    ({{ $event->duration }})
                                 @endif
                             </span>
                         </div>

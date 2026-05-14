@@ -59,8 +59,8 @@
                     <input :type="showPassword ? 'text' : 'password'" wire:model="password" placeholder="Password" required class="modern-input w-full py-4 pl-14 pr-12 bg-gray-50 rounded-2xl text-gray-800 shadow-sm outline-none placeholder-gray-400 font-medium border border-gray-100 focus:bg-white">
                     <span class="material-symbols-rounded input-icon">lock</span>
 
-                    <button type="button" @click="showPassword = !showPassword" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#9E6B73] transition-colors z-20 focus:outline-none">
-                        <span class="material-symbols-rounded text-xl" x-text="showPassword ? 'visibility_off' : 'visibility'">visibility</span>
+                    <button type="button" @click="showPassword = !showPassword" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#9E6B73] transition-colors z-20 focus:outline-none flex items-center justify-center">
+                        <span class="material-symbols-rounded text-xl leading-none" x-text="showPassword ? 'visibility_off' : 'visibility'">visibility</span>
                     </button>
                 </div>
 

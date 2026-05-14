@@ -27,7 +27,7 @@
             <span class="material-symbols-rounded">history_edu</span>
             <span class="text-sm font-bold uppercase tracking-wide">Booking Origin & Timeline</span>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-xs">
             <div>
                 <span class="block font-bold text-gray-400 uppercase text-[10px]">Created On</span>
                 <span class="font-semibold text-gray-700 text-sm">{{ \Carbon\Carbon::parse($booking->created_at)->format('d M Y, h:i A') }}</span>
@@ -35,6 +35,10 @@
             <div>
                 <span class="block font-bold text-amber-600 uppercase text-[10px]">Event Date</span>
                 <span class="font-bold text-gray-800 text-sm italic">{{ \Carbon\Carbon::parse($booking->event_date)->format('d M Y') }}</span>
+            </div>
+            <div>
+                <span class="block font-bold text-gray-400 uppercase text-[10px]">Event Type</span>
+                <span class="font-bold text-gray-700 text-sm italic">{{ $booking->event_type ?: 'N/A' }}</span>
             </div>
             <div>
                 <span class="block font-bold text-gray-400 uppercase text-[10px]">Current Status</span>

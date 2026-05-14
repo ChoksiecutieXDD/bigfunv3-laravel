@@ -18,6 +18,7 @@ class SystemSettings extends Component
     public string $currentEnv = '';
     public bool $showLogViewer = false;
     public string $logs = '';
+    public bool $googleSyncEnabled = true;
     
     // Password protection
     public string $systemPassword = '';
@@ -37,6 +38,7 @@ class SystemSettings extends Component
         $this->currentEnv = config('app.env');
         $m = (string) config('mail.default');
         $this->defaultMailer = in_array($m, ['smtp', 'google'], true) ? $m : '';
+        $this->googleSyncEnabled = config('services.google.sync_enabled', true);
     }
 
     public function unlockSystem()
@@ -204,6 +206,33 @@ class SystemSettings extends Component
         } catch (\Exception $e) {
             $this->isMaintenance = app()->isDownForMaintenance();
             $this->dispatch('show-alert', message: 'Connection error changing maintenance status.', type: 'error');
+        }
+    }
+
+    public function toggleGoogleSync()
+    {
+        try {
+            $path = base_path('.env');
+            if (file_exists($path)) {
+                $envContent = file_get_contents($path);
+                $newValue = $this->googleSyncEnabled ? 'true' : 'false';
+
+                if (preg_match("/^GOOGLE_SHEETS_SYNC=.*/m", $envContent)) {
+                    $envContent = preg_replace("/^GOOGLE_SHEETS_SYNC=.*/m", "GOOGLE_SHEETS_SYNC={$newValue}", $envContent);
+                } else {
+                    $envContent .= "\nGOOGLE_SHEETS_SYNC={$newValue}\n";
+                }
+
+                file_put_contents($path, $envContent);
+                Artisan::call('config:clear');
+
+                $status = $this->googleSyncEnabled ? 'ENABLED' : 'DISABLED';
+                $this->dispatch('show-alert', message: "Google Sheets Sync is now {$status}.", type: $this->googleSyncEnabled ? 'success' : 'info');
+            } else {
+                $this->dispatch('show-toast', message: 'Cannot find .env file.', type: 'error');
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('show-toast', message: 'Failed to update sync setting: ' . $e->getMessage(), type: 'error');
         }
     }
 

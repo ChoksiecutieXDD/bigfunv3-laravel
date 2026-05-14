@@ -37,6 +37,7 @@ return [
 
     'google' => [
         'sheet_webhook' => env('GOOGLE_SHEET_WEBHOOK_URL'),
+        'sync_enabled' => env('GOOGLE_SHEETS_SYNC', true),
     ],
 
 ];

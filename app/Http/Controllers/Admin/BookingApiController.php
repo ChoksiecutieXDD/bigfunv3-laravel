@@ -692,8 +692,9 @@ class BookingApiController extends Controller
 
                     $data = [
                         'event_date' => $request->input('event_date'),
-                        'start_time' => !empty($request->input('start_time')) ? $request->input('start_time') : (($request->input('duration') === 'custom') ? null : '00:00:00'),
-                        'end_time'   => !empty($request->input('end_time'))   ? $request->input('end_time')   : (($request->input('duration') === 'custom') ? null : '23:59:59'),
+                        'start_time' => !empty($request->input('start_time')) ? $request->input('start_time') : '00:00:00',
+                        'end_time'   => !empty($request->input('end_time'))   ? $request->input('end_time')   : '23:59:59',
+
                         'event_type' => $request->input('event_type', 'Private'),
                         'hire_type'  => $request->input('hire_type')   ?? 'Standard',
                         'is_null_booking' => $request->has('is_null_booking') ? 1 : 0,
@@ -715,7 +716,8 @@ class BookingApiController extends Controller
                         'postcode' => $request->input('postcode'),
                         'delivery_area' => $request->input('delivery_area'),
                         'delivery_cost' => (float)$request->input('delivery_cost', 0),
-                        'duration' => ($request->input('duration') === 'custom') ? $request->input('custom_duration_text') : $request->input('duration'),
+                        'duration' => $request->input('duration'),
+
                         'duration_cost' => (float)$request->input('duration_cost', 0),
                         'notes_customer' => $request->input('notes_customer'),
                         'notes_delivery' => $request->input('notes_delivery'),

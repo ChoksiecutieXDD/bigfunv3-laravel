@@ -68,8 +68,8 @@
             <form id="combinedBookingForm" onsubmit="return false;" class="form-layout-wrapper">
                 <input type="hidden" name="booking_id" id="booking_id" value="{{ $booking->id }}">
                 <input type="hidden" name="invoice_number" id="invoice_number" value="{{ $booking->invoice_number }}">
-                <input type="hidden" id="duration_cost" value="{{ $durationCost }}">
-                <input type="hidden" id="delivery_cost" value="{{ $deliveryCost }}">
+                <input type="hidden" id="hidden_duration_cost" value="{{ $durationCost }}">
+                <input type="hidden" id="hidden_delivery_cost" value="{{ $deliveryCost }}">
 
                 <div class="flex flex-col gap-6 mb-8">
                     <!-- Conflict Banner -->
@@ -476,62 +476,39 @@
                     </div>
                     @endif
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-10 mt-10 border-t border-slate-100">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
                         <div class="input-group">
-                            <label class="input-label">Event Date</label>
-                            <input type="date" id="event_date" name="event_date" wire:model.live="form.event_date" value="{{ $form['event_date'] }}" class="input-field" @change="dateChanged()">
+                            <label class="input-label">Selected Date</label>
+                            <input type="date" id="event_date" name="event_date" wire:model.live="form.event_date" class="input-field" @change="dateChanged()">
                         </div>
                         <div class="input-group">
                             <label class="input-label">Operational Hours</label>
-                            <input type="text" wire:model="form.operational_hours" placeholder="e.g. 9am to 5pm or TBC" class="input-field">
-                        </div>
-                        <div class="input-group" x-show="$wire.form.duration !== 'custom'">
-                            <label class="input-label">Start Time</label>
-                            <input type="time" id="start_time" name="start_time" wire:model="form.start_time" class="input-field">
-                        </div>
-                        <div class="input-group" x-show="$wire.form.duration !== 'custom'">
-                            <label class="input-label">End Time</label>
-                            <input type="time" id="end_time" name="end_time" wire:model="form.end_time" class="input-field">
+                            <input type="text" id="operational_hours" name="operational_hours" wire:model="form.operational_hours" class="input-field" placeholder="e.g. 9am to 5pm or TBC">
                         </div>
                     </div>
 
                     <div class="pt-6 border-t border-gray-100 mt-6">
-                        <label class="input-label mb-3">Duration Pricing</label>
-                        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                            @foreach($durationOptions as $dur)
-                            @php
-                            $isSelected = (($form['duration'] ?? '') === $dur->label);
-                            $activeClass = $isSelected ? 'duration-active border-[#9E6B73] bg-pink-50' : 'border-slate-200 hover:bg-slate-50';
-                            @endphp
-                            <label class="duration-card flex flex-col items-center justify-center p-3 border rounded-xl cursor-pointer transition text-center {{ $activeClass }}">
-                                <input type="radio" wire:model.live="form.duration" value="{{ $dur->label }}" class="hidden" @change="isDurationCustom = false">
-                                <span class="font-bold text-slate-700 text-xs">{{ $dur->label }}</span>
-                                <span class="text-[#9E6B73] text-sm font-extrabold mt-1">${{ number_format($dur->price, 2) }}</span>
-                            </label>
-                            @endforeach
-
-                            <label class="duration-card flex flex-col items-center justify-center p-3 border {{ ($form['duration'] ?? '') === 'custom' ? 'border-[#9E6B73] bg-pink-50 duration-active' : 'border-slate-200 hover:bg-slate-50' }} rounded-xl cursor-pointer transition text-center">
-                                <input type="radio" wire:model.live="form.duration" value="custom" class="hidden" @change="isDurationCustom = true">
-                                <span class="font-bold text-slate-700 text-xs uppercase tracking-wide">Custom</span>
-                                <span class="text-[#9E6B73] text-[10px] font-extrabold mt-1">Manual Quote</span>
-                            </label>
-                        </div>
-
-                        @if(($form['duration'] ?? '') === 'custom')
-                        <div class="mt-4 p-5 bg-slate-50 rounded-2xl border border-slate-200 animate-[fadeIn_0.2s_ease-in] grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                             <div class="input-group">
-                                <label class="input-label">Custom Duration Label</label>
-                                <input type="text" wire:model.live="form.custom_duration_text" placeholder="e.g. 2 Days, Full Weekend" class="input-field bg-white">
+                                <label class="input-label">Start Time</label>
+                                <input type="time" id="start_time" name="start_time" wire:model="form.start_time" step="60" class="input-field" @change="calcDuration()">
                             </div>
                             <div class="input-group">
-                                <label class="input-label text-[#9E6B73]">Manual Duration Cost</label>
+                                <label class="input-label">End Time</label>
+                                <input type="time" id="end_time" name="end_time" wire:model="form.end_time" step="60" class="input-field" @change="calcDuration()">
+                            </div>
+                            <div class="input-group lg:col-span-2">
+                                <label class="input-label">Duration (hours or custom)</label>
+                                <input type="text" id="duration" name="duration" wire:model="form.duration" class="input-field" placeholder="e.g. 4 hours or 2 days" @input="triggerRecalculate(true)">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label text-[#9E6B73]">Duration Cost</label>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
-                                    <input type="number" wire:model.live="form.duration_cost" oninput="if(window.triggerRecalculate) window.triggerRecalculate()" step="0.01" class="input-field bg-white pl-8" placeholder="0.00">
+                                    <input type="number" id="duration_cost" name="duration_cost" wire:model="form.duration_cost" step="0.01" class="input-field pl-8" placeholder="0.00" @input="triggerRecalculate(true)">
                                 </div>
                             </div>
                         </div>
-                        @endif
                     </div>
                 </div>
 
@@ -644,27 +621,17 @@
                                 </div>
                             </div>
 
-                            <div class="pt-4 border-t border-gray-100">
-                                <div class="input-group">
-                                    <label class="input-label">Delivery Zone</label>
-                                    <div class="relative">
-                                        <select wire:model.live="form.delivery_area" class="input-field appearance-none cursor-pointer">
-                                            <option value="">-- Select Zone --</option>
-                                            @foreach($deliveryOptions as $del)
-                                            <option value="{{ $del->zone_name }}">{{ $del->zone_name }} (+${{ number_format($del->price, 2) }})</option>
-                                            @endforeach
-                                            <option value="custom">Custom / Manual Quote</option>
-                                        </select>
-                                        <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-rounded">expand_more</span></span>
-                                    </div>
-                                </div>
-
-                                <div x-show="$wire.form.is_custom_duration || $wire.form.delivery_area === 'custom' || ($wire.form.delivery_area !== '' && !@js($deliveryOptions->pluck('zone_name')->contains($form['delivery_area'] ?? '')))" x-collapse class="mt-4">
+                            <div class="pt-6 border-t border-gray-100 mt-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div class="input-group">
-                                        <label class="input-label text-[#9E6B73]">Manual Delivery Cost</label>
+                                        <label class="input-label">Delivery Zone</label>
+                                        <input type="text" id="delivery_area" name="delivery_area" wire:model="form.delivery_area" class="input-field" placeholder="e.g. Zone 1, Sydney Metro">
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="input-label text-[#9E6B73]">Delivery Cost</label>
                                         <div class="relative">
                                             <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
-                                            <input type="number" wire:model.live="form.delivery_cost" oninput="if(window.triggerRecalculate) window.triggerRecalculate()" step="0.01" class="input-field input-with-icon" placeholder="0.00">
+                                            <input type="number" id="delivery_cost" name="delivery_cost" wire:model.live="form.delivery_cost" step="0.01" class="input-field pl-8" placeholder="0.00" @input="triggerRecalculate()">
                                         </div>
                                     </div>
                                 </div>
@@ -944,9 +911,6 @@
                                                     }
                                                     @endphp
                                                     <span class="status-badge {{ $badgeClass }}">{{ $isSoldOut ? 'SOLD OUT' : $left . ' AVAILABLE' }}</span>
-                                                    <span class="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100 uppercase tracking-tighter">
-                                                        ${{ number_format($p['price'], 2) }}
-                                                    </span>
                                             </div>
                                         </div>
                                         <div class="custom-checkbox flex-shrink-0"></div>
@@ -965,7 +929,7 @@
                                                 oninput="if(window.triggerRecalculate) window.triggerRecalculate()"
                                                 step="0.01"
                                                 class="manual-ride-price w-full bg-white border border-slate-200 rounded-xl py-1.5 pl-5 pr-2 text-[11px] font-black text-slate-700 focus:ring-2 focus:ring-[#9E6B73]/20 focus:border-[#9E6B73] transition-all"
-                                                placeholder="{{ number_format($p['price'], 2) }}">
+                                                placeholder="0.00">
                                         </div>
                                     </div>
                                     <div class="text-[10px] text-slate-400 font-medium action-text mt-auto">
@@ -1033,7 +997,7 @@
                     <div class="flex flex-col gap-3">
                         <button
                             wire:click="saveBooking"
-                            @click="if(typeof saveCurrentExtrasState === 'function') saveCurrentExtrasState(false); if(typeof triggerRecalculate === 'function') triggerRecalculate();"
+                            @click="if(typeof finalizeBooking === 'function') finalizeBooking(); if(typeof saveCurrentExtrasState === 'function') saveCurrentExtrasState(false); if(typeof triggerRecalculate === 'function') triggerRecalculate();"
                             wire:loading.attr="disabled"
                             class="w-full py-4 bg-[#9D686E] text-white hover:bg-[#7C4E54] font-black text-[13px] rounded-2xl transition-all active:scale-95 uppercase tracking-widest flex items-center justify-center gap-2.5 disabled:opacity-75 disabled:cursor-wait shadow-none">
                             <span wire:loading.remove wire:target="saveBooking" class="flex items-center gap-2.5">

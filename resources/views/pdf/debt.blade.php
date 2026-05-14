@@ -49,10 +49,20 @@
     $general_extras = !empty($booking->general_extra) ? (is_string($booking->general_extra) ? json_decode($booking->general_extra, true) : $booking->general_extra) : [];
     $specific_extras = !empty($booking->specific_extra) ? (is_string($booking->specific_extra) ? json_decode($booking->specific_extra, true) : $booking->specific_extra) : [];
 
-    // Time Range
-    $start = !empty($booking->start_time) ? date('h:i A', strtotime($booking->start_time)) : '-';
-    $end   = (!empty($booking->end_time) && $booking->end_time !== '00:00:00') ? date('h:i A', strtotime($booking->end_time)) : '';
-    $timeRange = $end ? ($start . ' - ' . $end) : $start;
+    // Time & Duration Logic
+    $startTimeFormatted = !empty($booking->start_time) ? date('h:i A', strtotime($booking->start_time)) : '-';
+    $endTimeFormatted   = (!empty($booking->end_time) && $booking->end_time !== '00:00:00') ? date('h:i A', strtotime($booking->end_time)) : '';
+    $timeRange = $endTimeFormatted ? ($startTimeFormatted . ' - ' . $endTimeFormatted) : $startTimeFormatted;
+
+    $durationLabel = $booking->duration ?: '';
+    $durationPrice = 0;
+    
+    if (!empty($durationLabel)) {
+        $durObj = DB::table('duration_prices')->where('label', $durationLabel)->first();
+        if ($durObj && (float)$durObj->price > 0) {
+            $durationPrice = (float)$durObj->price;
+        }
+    }
 
     // --- Attraction Costing Logic ---
     $include_attraction_cost = $booking->include_attraction_cost ?? true;
@@ -288,6 +298,12 @@
             Booking #{{ $booking->id ?? '' }}<br>
             Event Date: {{ $eventDate }}<br>
             Time: {{ $timeRange }}
+            @if(!empty($durationLabel))
+                ({{ $durationLabel }})
+            @endif
+            @if($durationPrice > 0)
+                - {{ money($durationPrice) }}
+            @endif
         </div>
         <div class="clear"></div>
     </div>

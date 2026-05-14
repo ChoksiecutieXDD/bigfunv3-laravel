@@ -41,7 +41,7 @@ class StaffDeliveries extends Component
 
         // Base query for deliveries: Upcoming only
         $baseQuery = DB::table('bookings')
-            ->whereNotIn('status', ['Cancelled', 'Draft'])
+            ->whereNotIn('status', ['Cancelled', 'Deleted', 'Draft'])
             ->whereDate('event_date', '>=', $today);
 
         // Apply Search

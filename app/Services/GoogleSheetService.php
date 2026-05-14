@@ -25,6 +25,12 @@ class GoogleSheetService
     public static function sync(int|string $bookingId, bool $isNew = false)
     {
         try {
+            // Check if sync is enabled in settings
+            if (!config('services.google.sync_enabled', true)) {
+                Log::info("Google Sheet Sync is disabled in system settings.");
+                return;
+            }
+
             $webhookUrl = config('services.google.sheet_webhook');
             if (empty($webhookUrl)) return;
 

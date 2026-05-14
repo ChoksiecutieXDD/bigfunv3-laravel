@@ -16,30 +16,30 @@ class BookingOverview extends Component
     public Booking $booking;
 
     // --- General Properties (Restored for View Compatibility) ---
-    public $newStatus;
-    public $newDate;
+    public string $newStatus;
+    public string $newDate;
 
     // --- Email Properties ---
     public $emailType = 'invoice';
-    public $emailTo;
-    public $emailCc;
+    public ?string $emailTo = null;
+    public ?string $emailCc = null;
     public $emailBcc = 'hire.enquiries@bigfunqld.com.au';
-    public $emailSubject;
-    public $emailBody;
-    public $emailAttachment;
+    public ?string $emailSubject = null;
+    public ?string $emailBody = null;
+    public ?string $emailAttachment = null;
     public $emailFrom = 'bigfun.qld.au@gmail.com';
     public $isSentSuccessfully = false;
 
     // --- Calendar Modals Properties (Restored for View Compatibility) ---
-    public $calMonth;
-    public $calYear;
-    public $tempSelectedDate;
+    public int $calMonth;
+    public int $calYear;
+    public ?string $tempSelectedDate = null;
 
     // --- Detail Selection ---
-    public $selectedPayment;
-    public $from_url;
+    public ?BookingPayment $selectedPayment = null;
+    public ?string $from_url = null;
 
-    public function mount($id)
+    public function mount(int|string $id)
     {
         $this->from_url = request()->query('back');
         $this->booking = Booking::findOrFail($id);
@@ -62,14 +62,14 @@ class BookingOverview extends Component
     public function calNext() { /* Read Only */ }
     public function applySelectedDate() { /* Read Only */ }
 
-    public function selectPayment($id)
+    public function selectPayment(int|string $id)
     {
         $this->selectedPayment = BookingPayment::find($id);
         $this->dispatch('open-modal', 'paymentDetailsModal');
     }
 
     // --- Email Logic ---
-    public function openEmailModal($type)
+    public function openEmailModal(string $type)
     {
         $this->emailType = $type;
         $this->emailTo = $this->booking->customer_email;

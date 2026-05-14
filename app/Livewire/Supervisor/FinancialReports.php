@@ -140,10 +140,10 @@ class FinancialReports extends Component
 
         // 1. Revenue & Growth
         $revenueCurrent = Booking::whereBetween('event_date', [$startDateString, $endDateString])
-            ->where('status', '!=', 'Cancelled')->sum('total_amount');
+            ->whereNotIn('status', ['Cancelled', 'Deleted'])->sum('total_amount');
 
         $revenueLast = Booking::whereBetween('event_date', [$prevStartDateString, $startDateString])
-            ->where('status', '!=', 'Cancelled')->sum('total_amount');
+            ->whereNotIn('status', ['Cancelled', 'Deleted'])->sum('total_amount');
 
         $growth = $revenueLast > 0 ? (($revenueCurrent - $revenueLast) / $revenueLast) * 100 : ($revenueCurrent > 0 ? 100 : 0);
         $expenses = $revenueCurrent * 0.30;
@@ -170,8 +170,8 @@ class FinancialReports extends Component
                 ];
             });
 
-        $unpaidList = $bookings->where('status', '!=', 'Cancelled')->where('balance', '>', 0.01)->values()->toArray();
-        $paidList = $bookings->where('status', '!=', 'Cancelled')->where('balance', '<=', 0.01)->values()->toArray();
+        $unpaidList = $bookings->whereNotIn('status', ['Cancelled', 'Deleted'])->where('balance', '>', 0.01)->values()->toArray();
+        $paidList = $bookings->whereNotIn('status', ['Cancelled', 'Deleted'])->where('balance', '<=', 0.01)->values()->toArray();
         $transactionList = $bookings->toArray();
         $totalUnpaidAmount = collect($unpaidList)->sum('balance');
 
@@ -187,7 +187,7 @@ class FinancialReports extends Component
                 $dataMap[$date->toDateString()] = 0;
             }
             $daily = Booking::whereBetween('event_date', [$startDateString, $endDateString])
-                ->where('status', '!=', 'Cancelled')
+                ->whereNotIn('status', ['Cancelled', 'Deleted'])
                 ->selectRaw('DATE(event_date) as date_val, SUM(total_amount) as total')
                 ->groupBy('date_val')->pluck('total', 'date_val');
 
@@ -202,7 +202,7 @@ class FinancialReports extends Component
                 $dataMap[$date->format('Y-m')] = 0;
             }
             $monthly = Booking::whereBetween('event_date', [$startDateString, $endDateString])
-                ->where('status', '!=', 'Cancelled')
+                ->whereNotIn('status', ['Cancelled', 'Deleted'])
                 ->selectRaw('DATE_FORMAT(event_date, "%Y-%m") as month_key, SUM(total_amount) as total')
                 ->groupBy('month_key')->pluck('total', 'month_key');
 
@@ -214,7 +214,7 @@ class FinancialReports extends Component
 
         // 4. Category Pie Chart
         $catQuery = Booking::whereBetween('event_date', [$startDateString, $endDateString])
-            ->where('status', '!=', 'Cancelled')
+            ->whereNotIn('status', ['Cancelled', 'Deleted'])
             ->selectRaw('event_type, COUNT(*) as count')
             ->groupBy('event_type')
             ->orderByDesc('count')

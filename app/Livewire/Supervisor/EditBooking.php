@@ -98,6 +98,14 @@ class EditBooking extends Component
         $this->booking = Booking::findOrFail($id);
         $this->form = $this->booking->toArray();
 
+        if (!empty($this->form['start_time'])) {
+            $this->form['start_time'] = Carbon::parse($this->form['start_time'])->format('H:i');
+        }
+        if (!empty($this->form['end_time'])) {
+            $this->form['end_time'] = Carbon::parse($this->form['end_time'])->format('H:i');
+        }
+
+
         if (empty($this->form['payment_type'])) $this->form['payment_type'] = 'EFT';
         if (empty($this->form['eft_method']) && $this->form['payment_type'] === 'EFT') $this->form['eft_method'] = 'Direct Deposit';
 
@@ -358,14 +366,13 @@ class EditBooking extends Component
         $durationLabels = DB::table('duration_prices')->pluck('label')->toArray();
         // Duration Custom Check
         $durationLabels = DB::table('duration_prices')->pluck('label')->toArray();
-        if ((!empty($this->form['duration']) && !in_array($this->form['duration'], $durationLabels)) || empty($this->form['duration'])) {
-            $this->form['custom_duration_text'] = !empty($this->form['duration']) ? $this->form['duration'] : '';
-            $this->form['duration'] = 'custom';
-            $this->form['is_custom_duration'] = true;
-        } else {
-            $this->form['is_custom_duration'] = false;
-            $this->form['custom_duration_text'] = '';
-        }
+        // Duration Initialization
+        $this->form['duration'] = $this->form['duration'] ?? '';
+        $this->form['custom_duration_text'] = '';
+        $this->form['is_custom_duration'] = false;
+
+
+
 
         // Initialize costs if they are zero but an area/duration is selected
         if ((float)($this->form['delivery_cost'] ?? 0) === 0.0 && !empty($this->form['delivery_area']) && $this->form['delivery_area'] !== 'custom') {
@@ -1479,9 +1486,7 @@ class EditBooking extends Component
             unset($saveData['is_custom_duration']);
             unset($saveData['custom_duration_text']);
 
-            if (!empty($this->form['is_custom_duration'])) {
-                $saveData['duration'] = !empty($this->form['custom_duration_text']) ? $this->form['custom_duration_text'] : 'TBC';
-            }
+
 
             // --- SANITIZE TIME FIELDS ---
             // Ensure empty strings are treated as DEFAULTS to avoid SQL syntax errors on TIME columns

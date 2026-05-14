@@ -552,7 +552,7 @@
                     const dashMatch = `${ddLabel} - ${optLabel}`;
                     const isSelectedByRide = selectedRideNames.has(optLabel) || selectedRideNames.has(fullMatch) || selectedRideNames.has(dashMatch);
                     
-                    return `<option value="${o.id}" data-price="${o.option_price}" ${(val == o.id || isSelectedByRide) ? 'selected' : ''}>${o.option_label} (+$${o.option_price})</option>`;
+                    return `<option value="${o.id}" data-price="${o.option_price}" ${(val == o.id || isSelectedByRide) ? 'selected' : ''}>${o.option_label}</option>`;
                 }).join('');
                 
                 let selectedId = val;
@@ -585,7 +585,7 @@
                                 <div class="relative flex items-center group">
                                     <span class="absolute left-3.5 text-slate-400 text-[11px] font-black group-focus-within:text-[#9E6B73] transition-colors">$</span>
                                     <input type="number" step="0.01" class="w-full bg-white border border-slate-200 rounded-xl py-3 pl-8 pr-3 text-[11px] font-black text-slate-700 focus:border-[#9E6B73] transition shadow-sm outline-none" 
-                                            value="${currentPrice}" oninput="window.updateExtraPrice('${key}', this.value)" placeholder="${defaultPrice}">
+                                            value="${currentPrice}" oninput="window.updateExtraPrice('${key}', this.value)" placeholder="0.00">
                                 </div>
                             </div>
                         </div>
@@ -620,8 +620,8 @@
                             <div class="flex-1">
                                 <select name="${key}" data-counts-against="${countsAgainst}" data-original-value="${val}" class="input-field !py-3 text-sm ext-price bg-white cursor-pointer w-full border-slate-200 focus:border-[#9E6B73] transition shadow-sm" onchange="window.handleExtraSelection(this)">
                                     <option value="" data-price="0" ${placeholderSel}>-- Select Choice --</option>
-                                    <option value="${q.yes_price}|yes" data-price="${q.yes_price}" ${yesSel}>${q.yes_label} (+$${q.yes_price})</option>
-                                    <option value="${q.no_price}|no" data-price="${q.no_price}" ${noSel}>${q.no_label} (+$${q.no_price})</option>
+                                    <option value="${q.yes_price}|yes" data-price="${q.yes_price}" ${yesSel}>${q.yes_label}</option>
+                                    <option value="${q.no_price}|no" data-price="${q.no_price}" ${noSel}>${q.no_label}</option>
                                 </select>
                             </div>
                             
@@ -630,7 +630,7 @@
                                 <div class="relative flex items-center group">
                                     <span class="absolute left-3.5 text-slate-400 text-[11px] font-black group-focus-within:text-[#9E6B73] transition-colors">$</span>
                                     <input type="number" step="0.01" class="w-full bg-white border border-slate-200 rounded-xl py-3 pl-8 pr-3 text-[11px] font-black text-slate-700 focus:border-[#9E6B73] transition shadow-sm outline-none" 
-                                           value="${currentPrice}" oninput="window.updateExtraPrice('${key}', this.value)" placeholder="${defaultPrice}">
+                                           value="${currentPrice}" oninput="window.updateExtraPrice('${key}', this.value)" placeholder="0.00">
                                 </div>
                             </div>
                         </div>
@@ -662,7 +662,6 @@
                                 <input type="checkbox" name="${key}" value="1" class="ext-price w-5 h-5 text-[#9E6B73] border-slate-300 rounded focus:ring-[#9E6B73] transition-all" data-price="${addon.addon_price}" data-counts-against="${countsAgainst}" data-original-checked="${isChecked}" ${isChecked ? 'checked' : ''} onchange="window.handleExtraSelection(this)">
                                 <span class="text-sm font-extrabold text-slate-700 flex-1">${addon.addon_label}</span>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] font-black text-[#9E6B73] bg-[#9E6B73]/10 px-3 py-1.5 rounded-xl border border-[#9E6B73]/20 shadow-sm transition-all group-hover:scale-105">+$${Number(addon.addon_price).toFixed(2)}</span>
                                 </div>
                             </label>
                             
@@ -674,7 +673,7 @@
                                 <div class="relative flex-1 flex items-center group">
                                     <span class="absolute left-3.5 text-slate-400 text-[11px] font-black group-focus-within:text-[#9E6B73] transition-colors">$</span>
                                     <input type="number" step="0.01" class="w-full bg-white border border-slate-200 rounded-xl py-3 pl-8 pr-3 text-[11px] font-black text-slate-700 focus:border-[#9E6B73] transition shadow-sm outline-none" 
-                                           value="${currentPrice}" oninput="window.updateExtraPrice('${key}', this.value)" placeholder="${addon.addon_price}">
+                                           value="${currentPrice}" oninput="window.updateExtraPrice('${key}', this.value)" placeholder="0.00">
                                 </div>
                             </div>
                         </div>

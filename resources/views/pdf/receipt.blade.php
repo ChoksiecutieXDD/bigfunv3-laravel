@@ -74,10 +74,20 @@
     // Event date
     $eventDate = !empty($booking->event_date) ? date('d/m/Y', strtotime($booking->event_date)) : '-';
 
-    // FIXED: TIME RANGE (Replaced special dash to fix "???")
-    $start = !empty($booking->start_time) ? date('h:i A', strtotime($booking->start_time)) : '-';
-    $end   = (!empty($booking->end_time) && $booking->end_time !== '00:00:00') ? date('h:i A', strtotime($booking->end_time)) : '';
-    $timeRange = $end ? ($start . ' - ' . $end) : $start;
+    // Time & Duration Logic
+    $startTimeFormatted = !empty($booking->start_time) ? date('h:i A', strtotime($booking->start_time)) : '-';
+    $endTimeFormatted   = (!empty($booking->end_time) && $booking->end_time !== '00:00:00') ? date('h:i A', strtotime($booking->end_time)) : '';
+    $timeRange = $endTimeFormatted ? ($startTimeFormatted . ' - ' . $endTimeFormatted) : $startTimeFormatted;
+
+    $durationLabel = $booking->duration ?: '';
+    $durationPrice = 0;
+    
+    if (!empty($durationLabel)) {
+        $durObj = DB::table('duration_prices')->where('label', $durationLabel)->first();
+        if ($durObj && (float)$durObj->price > 0) {
+            $durationPrice = (float)$durObj->price;
+        }
+    }
     $col_span = $include_attraction_cost ? 4 : 3;
 @endphp
 <!DOCTYPE html>
@@ -272,6 +282,10 @@
             <span style="font-size: 10px; color: #777; text-transform: uppercase; font-weight: bold;">Payment For:</span><br>
             Booking #{{ $booking->id ?? '' }}<br>
             Event Date: {{ $eventDate }}<br>
+            Time: {{ $timeRange }}
+            @if(!empty($durationLabel))
+                ({{ $durationLabel }})
+            @endif
 
             <div class="note" style="text-align:right;">
                 <strong>Method:</strong> {{ $paymentMethodLabel }}

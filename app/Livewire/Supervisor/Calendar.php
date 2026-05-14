@@ -100,7 +100,7 @@ class Calendar extends Component
 
             $services = $booking->items->pluck('item_name')->unique()->implode(', ');
 
-            if (!in_array($booking->status, ['Cancelled', 'Draft'])) {
+            if (!in_array($booking->status, ['Cancelled', 'Deleted', 'Draft'])) {
                 $stats['monthBookings']++;
                 $stats['monthRevenue'] += $totalAmount;
                 $stats['monthCollected'] += $realPaid;
@@ -173,30 +173,30 @@ class Calendar extends Component
         })->count();
 
         $ytdData = Booking::whereYear('event_date', $searchYear)
-            ->whereNotIn('status', ['Cancelled', 'Draft'])
+            ->whereNotIn('status', ['Cancelled', 'Deleted', 'Draft'])
             ->selectRaw('COUNT(*) as count, SUM(total_amount) as revenue')
             ->first();
 
         $stats['ytdBookings'] = $ytdData->count ?? 0;
         $stats['ytdRevenue'] = $ytdData->revenue ?? 0;
 
-        $globalRevenue = Booking::whereNotIn('status', ['Cancelled', 'Draft'])->sum('total_amount');
+        $globalRevenue = Booking::whereNotIn('status', ['Cancelled', 'Deleted', 'Draft'])->sum('total_amount');
         $globalCollected = DB::table('booking_payments')
             ->whereIn('booking_id', function ($q) {
-                $q->select('id')->from('bookings')->whereNotIn('status', ['Cancelled', 'Draft']);
+                $q->select('id')->from('bookings')->whereNotIn('status', ['Cancelled', 'Deleted', 'Draft']);
             })->sum('amount');
 
         $globalOutstandingBalance = $globalRevenue - $globalCollected;
 
         $upcomingEvents3Days = Booking::with('payments')->where('event_date', '>=', now()->toDateString())
             ->where('event_date', '<=', now()->addDays(3)->toDateString())
-            ->whereNotIn('status', ['Cancelled', 'Draft'])
+            ->whereNotIn('status', ['Cancelled', 'Deleted', 'Draft'])
             ->orderBy('event_date', 'asc')
             ->get();
 
         $upcomingEvents7Days = Booking::with('payments')->where('event_date', '>=', now()->addDays(4)->toDateString())
             ->where('event_date', '<=', now()->addDays(7)->toDateString())
-            ->whereNotIn('status', ['Cancelled', 'Draft'])
+            ->whereNotIn('status', ['Cancelled', 'Deleted', 'Draft'])
             ->orderBy('event_date', 'asc')
             ->get();
 
@@ -228,7 +228,7 @@ class Calendar extends Component
         }
 
         $rawDebtAlerts = Booking::with('payments')
-            ->whereNotIn('status', ['Cancelled', 'Draft'])
+            ->whereNotIn('status', ['Cancelled', 'Deleted', 'Draft'])
             ->where('event_date', '<', now()->toDateString())
             ->get();
             

@@ -86,32 +86,29 @@
     $manual_terms     = trim((string)($booking->manual_install_terms ?? ''));
 
     // Time safety
-    $start = !empty($booking->start_time) ? date('h:i A', strtotime($booking->start_time)) : '-';
-    $end   = (!empty($booking->end_time) && $booking->end_time !== '00:00:00') ? date('h:i A', strtotime($booking->end_time)) : '';
-    $timeRange = $end ? ($start . ' - ' . $end) : $start;
+    // Time & Duration Logic
+    $startTimeFormatted = !empty($booking->start_time) ? date('h:i A', strtotime($booking->start_time)) : '-';
+    $endTimeFormatted   = (!empty($booking->end_time) && $booking->end_time !== '00:00:00') ? date('h:i A', strtotime($booking->end_time)) : '';
+    $timeRange = $endTimeFormatted ? ($startTimeFormatted . ' - ' . $endTimeFormatted) : $startTimeFormatted;
 
-    $stdDurations = ['1 Hour','2 Hours','3 Hours','4 Hours','5 Hours','6 Hours','7 Hours','8 Hours','9 Hours','10 Hours','11 Hours','12 Hours','Overnight'];
-    $isCustomDuration = false;
+    $durationLabel = $booking->duration ?: '';
     $durationPrice = 0;
-    if (!empty($booking->duration) && !in_array($booking->duration, $stdDurations)) {
-        $timeRange = $booking->duration;
-        $isCustomDuration = true;
-        
-        // Fetch price if exists
-        $durObj = DB::table('duration_prices')->where('label', $booking->duration)->first();
+    
+    if (!empty($durationLabel)) {
+        $durObj = DB::table('duration_prices')->where('label', $durationLabel)->first();
         if ($durObj && (float)$durObj->price > 0) {
             $durationPrice = (float)$durObj->price;
         }
     }
 
-    // Special instructions
-    $specialInstructions = '';
-    if (!empty($booking->notes_delivery)) {
-        $specialInstructions = $booking->notes_delivery;
-    } elseif (!empty($booking->note_delivery)) {
-        $specialInstructions = $booking->note_delivery;
+    // Important Reminders
+    $importantReminders = '';
+    if (!empty($booking->notes_customer)) {
+        $importantReminders = $booking->notes_customer;
+    } elseif (!empty($booking->note_customer)) {
+        $importantReminders = $booking->note_customer;
     } else {
-        $specialInstructions = '-';
+        $importantReminders = '-';
     }
 
     // Invoice Number Logic
@@ -353,11 +350,14 @@
                             <td>{{ !empty($booking->event_date) ? date('l d F Y', strtotime($booking->event_date)) : '' }}</td>
                         </tr>
                         <tr>
-                            <td class="bold">{{ $isCustomDuration ? 'Duration:' : 'Time:' }}</td>
+                            <td class="bold">Time:</td>
                             <td>
                                 {{ $timeRange }}
-                                @if($isCustomDuration && $durationPrice > 0)
-                                    ({{ money($durationPrice) }})
+                                @if(!empty($durationLabel))
+                                    ({{ $durationLabel }})
+                                @endif
+                                @if($durationPrice > 0)
+                                    - {{ money($durationPrice) }}
                                 @endif
                             </td>
                         </tr>
@@ -609,8 +609,8 @@
 
             <tr>
                 <td colspan="{{ $col_span }}" style="border-top: 2px solid #000; padding: 5px;">
-                    <span class="bold">Special Instructions:</span><br>
-                    {!! nl2br(e($specialInstructions)) !!}
+                    <span class="bold">Important Reminders:</span><br>
+                    {!! nl2br(e($importantReminders)) !!}
                 </td>
             </tr>
         </tbody>

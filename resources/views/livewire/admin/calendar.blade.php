@@ -23,7 +23,7 @@
         @media (min-width: 1024px) {
             .booking-card {
                 display: grid;
-                grid-template-columns: 1.2fr 1.2fr 1fr 1.6fr 1fr;
+                grid-template-columns: 1.2fr 1.2fr 1fr 1.6fr;
                 gap: 1rem;
                 align-items: center;
                 flex-direction: row;
@@ -320,10 +320,9 @@
                                 $hasDuration = !empty($b->duration) && !in_array($b->duration, ['4 Hours', '7 Hours']);
                             @endphp
 
-                            @if(($hasDuration || $isFullDay) && !empty($b->duration))
-                                {{ $b->duration }} @if(($b->duration_cost ?? 0) > 0) (${{ number_format($b->duration_cost, 2) }}) @endif
-                            @else
-                                {{ \Carbon\Carbon::parse($b->start_time)->format('g:i A') }} - {{ $b->end_time ? \Carbon\Carbon::parse($b->end_time)->format('g:i A') : 'TBD' }}
+                            {{ \Carbon\Carbon::parse($b->start_time)->format('g:i A') }} - {{ $b->end_time ? \Carbon\Carbon::parse($b->end_time)->format('g:i A') : 'TBD' }}
+                            @if(!empty($b->duration))
+                                ({{ $b->duration }})
                             @endif
                         </div>
                         <div class="text-xs text-gray-500 truncate mt-0.5 w-full" title="{{ $b->address_line_1 }}">{{ $b->address_line_1 }}</div>
@@ -345,22 +344,7 @@
                         <div class="booking-value truncate text-xs mb-1 w-full" title="{{ $b->services_booked ?? 'None' }}">{{ $b->services_booked ?? 'None' }}</div>
                         <span class="pill pill-install">{{ $b->installation_plan ?? 'Standard' }}</span>
                     </div>
-                    <div class="w-full min-w-0 text-left">
-                        <span class="booking-label uppercase">{{ $v['label'] }}</span>
-                        <div class="booking-value text-[#1e293b] text-base font-bold mt-0.5">${{ number_format($b->total_amount, 2) }}</div>
-                        <div class="text-xs flex flex-col gap-0.5 mt-1">
-                            <span class="text-[#9ca3af]">Paid: ${{ number_format($b->real_paid, 2) }}</span>
-                        </div>
-                        <div class="text-[10px] text-gray-400 mt-2 flex items-center justify-start gap-1">
-                            <span class="material-symbols-rounded text-[12px]">{{ $v['pay_icon'] }}</span> {{ $v['pay_label'] }}
-                        </div>
-                        @if($b->booked_by)
-                        <div class="text-[10px] font-bold text-[#9E6B73]/60 mt-2 flex items-center gap-1">
-                            <span class="material-symbols-rounded text-xs">person_add</span>
-                            By: {{ $b->booked_by }}
-                        </div>
-                        @endif
-                    </div>
+
                 </a>
                 @empty
                 <div class="p-3 text-center text-gray-300 italic bg-white border border-gray-100 rounded-b-xl text-sm">No bookings.</div>

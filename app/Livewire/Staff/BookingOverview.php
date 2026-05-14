@@ -13,9 +13,9 @@ use Carbon\Carbon;
 class BookingOverview extends Component
 {
     public Booking $booking;
-    public $from_url;
+    public ?string $from_url = null;
 
-    public function mount($id)
+    public function mount(int|string $id)
     {
         $this->from_url = request()->query('back');
         $this->booking = Booking::findOrFail($id);

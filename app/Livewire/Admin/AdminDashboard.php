@@ -44,6 +44,7 @@ class AdminDashboard extends Component
         $this->total_bookings = DB::table('bookings')
             ->whereMonth('event_date', $today->month)
             ->whereYear('event_date', $today->year)
+            ->whereNotIn('status', ['Cancelled', 'Deleted'])
             ->count();
 
         $this->pending_bookings = DB::table('bookings')
@@ -64,6 +65,7 @@ class AdminDashboard extends Component
     {
         $this->recent_activities = DB::table('bookings')
             ->select('id', 'customer_first_name', 'customer_last_name', 'status', 'event_date', 'booked_by')
+            ->whereNotIn('status', ['Cancelled', 'Deleted'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get()
@@ -75,7 +77,7 @@ class AdminDashboard extends Component
         $payments = DB::table('bookings as b')
             ->leftJoin('booking_payments as p', 'b.id', '=', 'p.booking_id')
             ->select('b.id', 'b.total_amount', DB::raw('COALESCE(SUM(p.amount), 0) as paid'))
-            ->where('b.status', '!=', 'Cancelled');
+            ->whereNotIn('b.status', ['Cancelled', 'Deleted']);
 
         // Optional: Filter by period if you want the pie chart to be relative to the dropdown
         // For now, let's keep it global but refresh it properly
@@ -106,14 +108,14 @@ class AdminDashboard extends Component
     }
 
     // Livewire automatically calls this when the dropdown changes
-    public function updatedChartPeriod($value)
+    public function updatedChartPeriod(string $value)
     {
         $this->fetchChartData($value);
         $this->loadPaymentBreakdown(); // Refresh the pie chart too
     }
 
     // A standard public method that Alpine CAN call directly to load the initial chart
-    public function fetchChartData($value)
+    public function fetchChartData(string $value)
     {
         $labels = [];
         $data = [];
@@ -124,7 +126,7 @@ class AdminDashboard extends Component
                 $labels[] = $date->format('D');
                 $data[] = DB::table('bookings')
                     ->whereDate('event_date', $date->toDateString())
-                    ->where('status', '!=', 'Cancelled')
+                    ->whereNotIn('status', ['Cancelled', 'Deleted'])
                     ->count();
             }
         } elseif ($value === 'This Month') {
@@ -135,7 +137,7 @@ class AdminDashboard extends Component
                 ->select(DB::raw('DAY(event_date) as day'), DB::raw('COUNT(*) as count'))
                 ->whereMonth('event_date', Carbon::now()->month)
                 ->whereYear('event_date', Carbon::now()->year)
-                ->where('status', '!=', 'Cancelled')
+                ->whereNotIn('status', ['Cancelled', 'Deleted'])
                 ->groupBy('day')
                 ->get();
 
@@ -151,7 +153,7 @@ class AdminDashboard extends Component
             $bookings = DB::table('bookings')
                 ->select(DB::raw('MONTH(event_date) as m'), DB::raw('COUNT(*) as count'))
                 ->whereYear('event_date', Carbon::now()->year)
-                ->where('status', '!=', 'Cancelled')
+                ->whereNotIn('status', ['Cancelled', 'Deleted'])
                 ->groupBy('m')
                 ->get();
 

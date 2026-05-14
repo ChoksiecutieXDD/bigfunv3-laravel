@@ -21,8 +21,8 @@
                     class="modern-input w-full py-4 pl-14 pr-12 bg-gray-50 rounded-2xl border border-gray-100 focus:outline-none transition-all text-gray-800 font-medium focus:bg-white">
                 <span class="material-symbols-rounded absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#9E6B73]">lock</span>
 
-                <button type="button" @click="show = !show" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#9E6B73] transition p-2">
-                    <span class="material-symbols-rounded text-xl" x-text="show ? 'visibility_off' : 'visibility'">visibility</span>
+                <button type="button" @click="show = !show" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#9E6B73] transition flex items-center justify-center focus:outline-none">
+                    <span class="material-symbols-rounded text-xl leading-none" x-text="show ? 'visibility_off' : 'visibility'">visibility</span>
                 </button>
             </div>
 
@@ -31,8 +31,8 @@
                     class="modern-input w-full py-4 pl-14 pr-12 bg-gray-50 rounded-2xl border border-gray-100 focus:outline-none transition-all text-gray-800 font-medium focus:bg-white">
                 <span class="material-symbols-rounded absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#9E6B73]">lock_reset</span>
 
-                <button type="button" @click="show = !show" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#9E6B73] transition p-2">
-                    <span class="material-symbols-rounded text-xl" x-text="show ? 'visibility_off' : 'visibility'">visibility</span>
+                <button type="button" @click="show = !show" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#9E6B73] transition flex items-center justify-center focus:outline-none">
+                    <span class="material-symbols-rounded text-xl leading-none" x-text="show ? 'visibility_off' : 'visibility'">visibility</span>
                 </button>
             </div>
 

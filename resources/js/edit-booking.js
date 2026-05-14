@@ -93,7 +93,6 @@ const bookingAppDataFactory = () => ({
     paymentMethod: 'Direct Deposit',
     paymentStatus: 'Pending',
     isInitialLoading: true,
-    isDurationCustom: false,
     deliveryZone: '',
     modals: {
         review: false,
@@ -211,9 +210,8 @@ const bookingAppDataFactory = () => ({
                     this.updatePaymentMethods();
                 }
 
-                if (window.bookingAppData.form && window.bookingAppData.form.duration === 'custom') {
-                    this.isDurationCustom = true;
-                }
+
+
 
                 // If it's edit mode, we might want to pre-load some things
                 setTimeout(() => {
@@ -827,7 +825,8 @@ window.filterRides = function () {
 window.calcDuration = function () {
     const sEl = document.getElementById('start_time');
     const eEl = document.getElementById('end_time');
-    if (!sEl || !eEl) return;
+    const dEl = document.getElementById('duration');
+    if (!sEl || !eEl || !dEl) return;
 
     const s = sEl.value;
     const e = eEl.value;
@@ -840,24 +839,38 @@ window.calcDuration = function () {
     if (diff < 0) diff += 24;
 
     if (diff > 0) {
-        const radios = document.querySelectorAll('input[name="duration"]');
-        let best = null;
-        let minDiff = Infinity;
+        // Round to 1 decimal place
+        const hours = Math.round(diff * 10) / 10;
+        const label = hours + (hours === 1 ? " hour" : " hours");
+        dEl.value = label;
+        
+        if (window.lwBookingComponent) {
+            window.lwBookingComponent.set('form.duration', label);
+        }
+        
+        // Trigger recalculate
+        if (typeof window.triggerRecalculate === 'function') {
+            window.triggerRecalculate();
+        }
+    }
+};
 
-        radios.forEach(r => {
-            const h = parseFloat(r.getAttribute('data-hours'));
-            if (!isNaN(h)) {
-                const delta = Math.abs(diff - h);
-                if (delta < minDiff) {
-                    minDiff = delta;
-                    best = r;
-                }
+window.finalizeBooking = function () {
+    const dEl = document.getElementById('duration');
+    const cEl = document.getElementById('custom_duration_text');
+    const appEl = document.querySelector('[x-data="bookingApp"]');
+    const app = appEl && appEl.__x ? appEl.__x.$data : (appEl && appEl._x_dataStack ? appEl._x_dataStack[0] : null);
+
+    if (app && app.isDurationCustom && dEl && cEl) {
+        let combined = dEl.value.trim();
+        if (cEl.value.trim()) {
+            combined = combined ? combined + ", " + cEl.value.trim() : cEl.value.trim();
+        }
+        if (combined) {
+            dEl.value = combined;
+            if (window.lwBookingComponent) {
+                window.lwBookingComponent.set('form.duration', combined);
             }
-        });
-
-        if (best && minDiff < 1.5) {
-            best.checked = true;
-            selectDurationCard(best.closest('.duration-card'));
         }
     }
 };
@@ -934,15 +947,15 @@ window.updateDeliveryCost = function (sel) {
 
 window.triggerRecalculate = function () {
     // Determine source of costs (Livewire inputs or hidden fields)
-    const manualDurInput = document.querySelector('input[wire\\:model\\.live="form.duration_cost"]');
-    const durCostHidden = document.getElementById('duration_cost');
+    const manualDurInput = document.querySelector('input[wire\\:model\\.live="form.duration_cost"], input[wire\\:model="form.duration_cost"]');
+    const durCostHidden = document.getElementById('duration_cost') || document.getElementById('hidden_duration_cost');
     let durCost = manualDurInput ? (parseFloat(manualDurInput.value) || 0) : (durCostHidden ? (parseFloat(durCostHidden.value) || 0) : 0);
 
     const breakDur = document.getElementById('breakdown_dur');
     if (breakDur) breakDur.innerText = '$' + durCost.toFixed(2);
 
-    const manualDelInput = document.querySelector('input[wire\\:model\\.live="form.delivery_cost"]');
-    const delCostHidden = document.getElementById('delivery_cost');
+    const manualDelInput = document.querySelector('input[wire\\:model\\.live="form.delivery_cost"], input[wire\\:model="form.delivery_cost"]');
+    const delCostHidden = document.getElementById('delivery_cost') || document.getElementById('hidden_delivery_cost');
     let delCost = manualDelInput ? (parseFloat(manualDelInput.value) || 0) : (delCostHidden ? (parseFloat(delCostHidden.value) || 0) : 0);
 
     const breakDel = document.getElementById('breakdown_del');
