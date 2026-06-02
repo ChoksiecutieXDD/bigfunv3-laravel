@@ -428,7 +428,7 @@
                                     <div class="flex flex-wrap gap-2">
                                         @php $dayItems = $dailyAttractions[$tempSelectedDate] ?? []; @endphp
                                         @forelse($dayItems as $itemName)
-                                        @php $isConflict = in_array($itemName, $bookedAttractions); @endphp
+                                        @php $isConflict = in_array(strtolower(trim($itemName)), array_map('strtolower', array_map('trim', $modalConflicts))); @endphp
                                         <span class="px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all {{ $isConflict ? 'bg-red-50 text-red-600 border-red-200 shadow-sm shadow-red-500/10' : 'bg-white text-slate-600 border-slate-200' }}">
                                             {{ strtoupper($itemName ?? '') }}
                                         </span>

@@ -1263,6 +1263,11 @@ class EditBooking extends Component
         $start = Carbon::create($this->calYear, $this->calMonth, 1);
         $end = $start->copy()->endOfMonth();
 
+        $products = DB::table('products')
+            ->where('is_active', 1)
+            ->get()
+            ->keyBy(fn($p) => strtolower(trim($p->name)));
+
         // 1. Get Daily Booking Counts (Exclude current to see baseline)
         $counts = Booking::whereBetween('event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
             ->whereNotIn('status', ['Cancelled'])
@@ -1281,6 +1286,19 @@ class EditBooking extends Component
             ->get()
             ->groupBy('event_date')
             ->map(fn($items) => $items->pluck('name')->unique()->toArray())
+            ->toArray();
+
+        // Daily Attraction Quantities (Baseline excluding current) for slot availability
+        $dailyQuantities = DB::table('booking_items')
+            ->join('bookings', 'booking_items.booking_id', '=', 'bookings.id')
+            ->whereBetween('bookings.event_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+            ->whereNotIn('bookings.status', ['Cancelled'])
+            ->where('bookings.id', '!=', $this->booking->id)
+            ->selectRaw('bookings.event_date, LOWER(TRIM(booking_items.item_name)) as name, SUM(booking_items.qty) as total')
+            ->groupBy('bookings.event_date', 'name')
+            ->get()
+            ->groupBy('event_date')
+            ->map(fn($day) => $day->pluck('total', 'name')->toArray())
             ->toArray();
 
         // 3. Get Daily Category Usage (Baseline excluding current)
@@ -1362,9 +1380,36 @@ class EditBooking extends Component
                 }
             }
 
-            // Check for attraction conflicts on this day
-            $dayAttractions = $this->dailyAttractions[$dateStr] ?? [];
-            $hasConflict = !empty(array_intersect($this->bookedAttractions, $dayAttractions));
+            // Check for attraction conflicts on this day (Slot-Aware Validation)
+            $hasConflict = false;
+            $dayQuantities = $dailyQuantities[$dateStr] ?? [];
+            foreach ($this->bookedAttractions as $att) {
+                $attClean = strtolower(trim($att));
+                $qtyRequested = $this->selectedItems[$attClean]['qty'] ?? 1;
+
+                if (isset($products[$attClean])) {
+                    $p = $products[$attClean];
+                    $limit = (int)$p->daily_limit;
+                    $stock = (int)$p->total_quantity;
+                    $used = $dayQuantities[$attClean] ?? 0;
+
+                    $left = $stock - $used;
+                    if ($limit > 0) {
+                        $left = min($left, $limit - $used);
+                    }
+
+                    if ($left < $qtyRequested) {
+                        $hasConflict = true;
+                        break;
+                    }
+                } else {
+                    $used = $dayQuantities[$attClean] ?? 0;
+                    if ($used > 0) {
+                        $hasConflict = true;
+                        break;
+                    }
+                }
+            }
 
             // Check for name duplicates
             $hasDuplicate = in_array($dateStr, $duplicateDates);
@@ -1411,12 +1456,45 @@ class EditBooking extends Component
         $conflicts = [];
         $capacityBreaches = [];
 
-        // 1. Attraction Conflicts
-        $dayAttractions = $this->dailyAttractions[$dateStr] ?? [];
+        // 1. Attraction Conflicts (Slot-Aware Validation)
+        $products = DB::table('products')
+            ->where('is_active', 1)
+            ->get()
+            ->keyBy(fn($p) => strtolower(trim($p->name)));
+
+        $otherBookingsUsage = DB::table('booking_items')
+            ->join('bookings', 'booking_items.booking_id', '=', 'bookings.id')
+            ->where('bookings.event_date', $dateStr)
+            ->where('bookings.id', '!=', $this->booking->id)
+            ->whereNotIn('bookings.status', ['Cancelled'])
+            ->selectRaw('LOWER(TRIM(booking_items.item_name)) as name, SUM(booking_items.qty) as total')
+            ->groupBy('name')
+            ->pluck('total', 'name')
+            ->toArray();
+
         foreach ($this->bookedAttractions as $att) {
             $attClean = strtolower(trim($att));
-            if (in_array($attClean, $dayAttractions)) {
-                $conflicts[] = $att;
+            $qtyRequested = $this->selectedItems[$attClean]['qty'] ?? 1;
+
+            if (isset($products[$attClean])) {
+                $p = $products[$attClean];
+                $limit = (int)$p->daily_limit;
+                $stock = (int)$p->total_quantity;
+                $used = $otherBookingsUsage[$attClean] ?? 0;
+
+                $left = $stock - $used;
+                if ($limit > 0) {
+                    $left = min($left, $limit - $used);
+                }
+
+                if ($left < $qtyRequested) {
+                    $conflicts[] = $att;
+                }
+            } else {
+                $used = $otherBookingsUsage[$attClean] ?? 0;
+                if ($used > 0) {
+                    $conflicts[] = $att;
+                }
             }
         }
 
