@@ -73,7 +73,7 @@
         <!-- Top Overview & Stats -->
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-8 mt-4">
             <div class="w-full lg:w-auto">
-                <h1 class="text-2xl md:text-4xl font-extrabold text-white drop-shadow-md">Hello, {{ $firstNameOnly }}! ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ¢â‚¬Â¹</h1>
+                <h1 class="text-2xl md:text-4xl font-extrabold text-white drop-shadow-md">Hello, {{ $firstNameOnly }}! 👋</h1>
                 <p class="text-white/90 font-medium mt-1 text-sm md:text-base">Here is your operational overview.</p>
             </div>
 

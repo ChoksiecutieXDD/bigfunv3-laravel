@@ -191,7 +191,7 @@
                 </h1>
                 <div class="flex items-center gap-3 mt-1.5">
                     <p class="text-slate-400 text-sm">Manage core settings and health.</p>
-                    <span class="text-slate-600">Ã¢â‚¬Â¢</span>
+                    <span class="text-slate-600">•</span>
                     <a href="https://bigfunbooking.online/" target="_blank" class="text-plum hover:text-plum-dark text-xs font-bold flex items-center gap-1 transition">
                         <span class="material-symbols-rounded text-sm">language</span>
                         bigfunbooking.online
@@ -402,7 +402,7 @@
                         </div>
                         <div>
                             <h2 id="default-mailer-heading" class="text-lg font-bold text-white">Default outbound mailer</h2>
-                            <p class="text-xs text-slate-400">Pick one option. LaravelÃ¢â‚¬â„¢s <code class="text-slate-500">MAIL_MAILER</code> in <code class="text-slate-500">.env</code> is updated to <code class="text-slate-500">smtp</code> (Brevo) or <code class="text-slate-500">google</code> (Gmail).</p>
+                            <p class="text-xs text-slate-400">Pick one option. Laravel's <code class="text-slate-500">MAIL_MAILER</code> in <code class="text-slate-500">.env</code> is updated to <code class="text-slate-500">smtp</code> (Brevo) or <code class="text-slate-500">google</code> (Gmail).</p>
                         </div>
                     </div>
                     @php $activeMail = (string) config('mail.default'); @endphp
@@ -433,8 +433,8 @@
                                 :checked="'{{ $defaultMailer }}' === 'smtp'"
                                 class="mt-1 size-5 shrink-0 cursor-pointer rounded-full border-2 border-slate-600 bg-slate-900 text-emerald-500 accent-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
                             <span class="min-w-0 flex-1">
-                                <span class="block text-sm font-bold text-slate-100">Primary Ã¢â‚¬â€ Brevo</span>
-                                <span class="mt-0.5 block text-xs text-slate-400">Config mailer: <span class="font-mono text-slate-500">smtp</span> Ã‚Â· host <span class="font-mono text-slate-500">smtp-relay.brevo.com</span></span>
+                                <span class="block text-sm font-bold text-slate-100">Primary — Brevo</span>
+                                <span class="mt-0.5 block text-xs text-slate-400">Config mailer: <span class="font-mono text-slate-500">smtp</span> · host <span class="font-mono text-slate-500">smtp-relay.brevo.com</span></span>
                             </span>
                         </label>
                         <label class="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-all border-slate-700 bg-slate-900/40 hover:border-slate-600 has-[:checked]:border-blue-500/60 has-[:checked]:bg-blue-500/10 has-[:checked]:ring-1 has-[:checked]:ring-blue-500/35">
@@ -453,8 +453,8 @@
                                 :checked="'{{ $defaultMailer }}' === 'google'"
                                 class="mt-1 size-5 shrink-0 cursor-pointer rounded-full border-2 border-slate-600 bg-slate-900 text-blue-500 accent-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
                             <span class="min-w-0 flex-1">
-                                <span class="block text-sm font-bold text-slate-100">Secondary Ã¢â‚¬â€ Gmail</span>
-                                <span class="mt-0.5 block text-xs text-slate-400">Config mailer: <span class="font-mono text-slate-500">google</span> Ã‚Â· typical host <span class="font-mono text-slate-500">smtp.gmail.com</span></span>
+                                <span class="block text-sm font-bold text-slate-100">Secondary — Gmail</span>
+                                <span class="mt-0.5 block text-xs text-slate-400">Config mailer: <span class="font-mono text-slate-500">google</span> · typical host <span class="font-mono text-slate-500">smtp.gmail.com</span></span>
                             </span>
                         </label>
                     </fieldset>
@@ -846,7 +846,7 @@
                             wire:loading.attr="disabled"
                             wire:target="unlockSystem"
                             class="block w-full pl-12 pr-4 py-4 bg-slate-900/50 border border-slate-700 rounded-2xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-plum/50 focus:border-plum transition-all text-center tracking-[0.5em] font-bold disabled:opacity-50 disabled:cursor-wait" 
-                            placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢" 
+                            placeholder="••••••••" 
                             required>
                     </div>
                 </div>
@@ -874,7 +874,7 @@
             </form>
         </div>
 
-        <p class="mt-8 text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em]">BigFun Entertainment Ã‚Â· System v3.0</p>
+        <p class="mt-8 text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em]">BigFun Entertainment · System v3.0</p>
     </div>
     @endif
 </div>

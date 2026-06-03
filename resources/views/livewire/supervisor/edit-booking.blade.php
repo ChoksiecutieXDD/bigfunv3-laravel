@@ -81,10 +81,10 @@
                                 <h3 class="text-base font-bold text-red-800 mb-1 leading-none uppercase tracking-wide">Validation Blocked</h3>
                                 <div class="text-sm text-red-700 space-y-1 mt-2">
                                     @foreach($activeConflicts as $conf)
-                                    <p class="flex items-center gap-2 font-medium">ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ <span class="font-bold">{{ $conf }}</span> is already booked on this date.</p>
+                                    <p class="flex items-center gap-2 font-medium">• <span class="font-bold">{{ $conf }}</span> is already booked on this date.</p>
                                     @endforeach
                                     @foreach($activeCapacityBreaches as $cat => $data)
-                                    <p class="flex items-center gap-2 font-medium">ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ <span class="font-bold">{{ $cat }}</span> capacity exceeded ({{ $data['current'] + $data['added'] }} / {{ $data['limit'] }}).</p>
+                                    <p class="flex items-center gap-2 font-medium">• <span class="font-bold">{{ $cat }}</span> capacity exceeded ({{ $data['current'] + $data['added'] }} / {{ $data['limit'] }}).</p>
                                     @endforeach
                                 </div>
                                 <p class="text-[11px] font-black text-red-600 mt-3 uppercase tracking-widest">Please change the date or remove items to enable saving</p>
@@ -1518,7 +1518,7 @@
                             <div>
                                 <p class="font-bold text-slate-800" x-text="(c.customer_first_name + ' ' + (c.customer_last_name || '')).trim()"></p>
                                 <p class="text-[10px] font-black text-plum uppercase tracking-tighter" x-show="c.suburb" x-text="c.suburb + (c.state ? ', ' + c.state : '')"></p>
-                                <p class="text-xs text-gray-400 mt-0.5" x-text="(c.customer_organization || 'Private') + ' ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ ' + (c.customer_email || c.customer_phone || '')"></p>
+                                <p class="text-xs text-gray-400 mt-0.5" x-text="(c.customer_organization || 'Private') + ' • ' + (c.customer_email || c.customer_phone || '')"></p>
                             </div>
                             <span class="text-xs font-bold text-green-600 opacity-0 group-hover:opacity-100 transition">Select</span>
                         </div>

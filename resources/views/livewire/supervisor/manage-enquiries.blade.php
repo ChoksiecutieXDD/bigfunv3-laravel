@@ -200,7 +200,7 @@
                             <div class="input-group">
                                 <div class="flex items-center justify-between mb-3">
                                     <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest">Supporting Assets</label>
-                                    <span class="text-[10px] text-slate-300 font-bold uppercase tracking-widest">Optional ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· Max 5MB Limit</span>
+                                    <span class="text-[10px] text-slate-300 font-bold uppercase tracking-widest">Optional · Max 5MB Limit</span>
                                 </div>
                                 <div class="flex flex-col gap-4">
                                     <input type="file" wire:model="attachments" id="reply_attachments" multiple class="hidden">

@@ -36,7 +36,7 @@
                             <div class="bg-gray-50/50 rounded-3xl p-5 border border-gray-100 text-center">
                                 <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Since</p>
                                 <p class="text-base font-black text-gray-900 mt-1">
-                                    {{ auth()->user()->created_at ? auth()->user()->created_at->format('M Y') : 'Ã¢â‚¬â€' }}
+                                    {{ auth()->user()->created_at ? auth()->user()->created_at->format('M Y') : '—' }}
                                 </p>
                             </div>
                             <div class="bg-gray-50/50 rounded-3xl p-5 border border-gray-100 text-center">
@@ -237,7 +237,7 @@
         <div class="mt-20 flex flex-col items-center gap-6">
             <div class="h-px w-20 bg-gray-200"></div>
             <p class="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">
-                BigFun Entertainment Ã¢â‚¬Â¢ Account Security Hub
+                BigFun Entertainment • Account Security Hub
             </p>
         </div>
     </div>

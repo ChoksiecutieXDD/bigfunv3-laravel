@@ -159,7 +159,7 @@
             <p class="text-white/80 mt-1 text-sm font-medium">Overview of appointments and financials.</p>
         </div>
 
-        <!-- ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ New Booking Href Attached Here -->
+        <!-- ✅ New Booking Href Attached Here -->
         <a href="{{ route('admin.bookings.create') }}" wire:navigate class="hidden md:flex bg-plum hover:bg-plum-dark text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-pink-900/20 items-center gap-2 transition transform hover:scale-105 active:scale-95 text-sm">
             <span class="material-symbols-rounded text-lg">add</span> New Booking
         </a>
@@ -308,7 +308,7 @@
                 $termsBadge = $b->terms_agreed == 1 ? '<span class="ml-2 text-[10px] font-bold text-green-600 flex items-center gap-1 border border-green-200 px-1.5 py-0.5 rounded bg-white"><span class="material-symbols-rounded text-sm">check_circle</span> Terms Signed</span>' : '<span class="ml-2 text-[10px] font-bold text-gray-400 flex items-center gap-1 border border-gray-200 px-1.5 py-0.5 rounded bg-white"><span class="material-symbols-rounded text-sm">pending</span> Terms Pending</span>';
                 @endphp
 
-                <!-- ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Updated to role-specific route -->
+                <!-- ✅ Updated to role-specific route -->
                 <a href="{{ route('admin.bookings.overview', $b->id) }}" wire:navigate class="booking-card rounded-xl card-{{ $v['color'] }} mb-3">
                     <div class="w-full min-w-0">
                         <span class="booking-label">Time & Duration</span>

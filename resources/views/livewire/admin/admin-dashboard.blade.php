@@ -250,8 +250,8 @@
                     <div class="flex-1 min-w-0 text-left">
                         <p class="text-sm font-bold text-gray-800 truncate">{{ $act->customer_first_name }} {{ $act->customer_last_name }}</p>
                         <p class="text-xs text-gray-400">
-                            {{ \Carbon\Carbon::parse($act->event_date)->format('M d, Y') }} Ã¢â‚¬Â¢ #{{ $act->id }}
-                            @if($act->booked_by) Ã¢â‚¬Â¢ <span class="text-plum font-bold">By: {{ $act->booked_by }}</span> @endif
+                            {{ \Carbon\Carbon::parse($act->event_date)->format('M d, Y') }} • #{{ $act->id }}
+                            @if($act->booked_by) • <span class="text-plum font-bold">By: {{ $act->booked_by }}</span> @endif
                         </p>
                     </div>
                     <span class="text-[10px] font-bold px-2 py-1 rounded-lg {{ $stClass }}">{{ $act->status }}</span>
