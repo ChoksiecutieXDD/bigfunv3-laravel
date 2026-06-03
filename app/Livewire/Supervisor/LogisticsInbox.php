@@ -645,7 +645,7 @@ class LogisticsInbox extends Component
                     ->orWhere('customer_organization', 'like', "%{$this->search_pay}%");
             });
         }
-        $pendingPayments = $paymentsQuery->orderBy('event_date', $this->sort_pay)->paginate(5, ['*'], 'page_pay');
+        $pendingPayments = $paymentsQuery->orderBy('id', $this->sort_pay)->paginate(5, ['*'], 'page_pay');
 
         // 2. Fully Paid Bookings (All settled bookings, including completed)
         $fullyPaidQuery = Booking::with('payments')
