@@ -368,7 +368,7 @@
                                 <div class="flex flex-col items-start gap-1">
                                     <div class="font-bold text-gray-800 text-sm">{{ $row->customer_first_name }} {{ $row->customer_last_name }}</div>
                                     <div class="flex items-center gap-2">
-                                        <span class="text-[10px] font-bold text-gray-400 tracking-tight">ID: #{{ $row->id }}</span>
+                                        <span class="text-[10px] font-bold text-gray-400 tracking-tight">{{ $row->invoice_number ?: 'ID: #' . $row->id }}</span>
                                         <span class="text-[10px] font-black uppercase bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded border border-emerald-100">{{ \Carbon\Carbon::parse($row->event_date)->format('d M Y') }}</span>
                                     </div>
                                 </div>

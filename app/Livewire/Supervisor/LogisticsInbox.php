@@ -662,7 +662,7 @@ class LogisticsInbox extends Component
                     ->orWhere('customer_organization', 'like', "%{$this->search_full}%");
             });
         }
-        $fullyPaidBookings = $fullyPaidQuery->orderBy('event_date', $this->sort_full)->paginate(5, ['*'], 'page_full');
+        $fullyPaidBookings = $fullyPaidQuery->orderBy('id', $this->sort_full)->paginate(5, ['*'], 'page_full');
 
         $invoicesQuery = Booking::where('invoice_emailed', 0)->whereNotIn('status', ['Cancelled', 'Deleted']);
         if ($this->search_inv) {
