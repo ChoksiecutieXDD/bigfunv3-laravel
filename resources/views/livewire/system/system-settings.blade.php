@@ -14,12 +14,12 @@
     @execute-test-smtp.window="$wire.testSmtp()"
     @execute-test-google-smtp.window="$wire.testGoogleSmtp()"
     @execute-force-logout.window="$wire.forceLogout()">
-    <div class="fixed top-[-20%] left-[-10%] w-[500px] h-[500px] bg-plum rounded-full blur-[150px] opacity-20 pointer-events-none z-0"></div>
-    <div class="fixed bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-900 rounded-full blur-[150px] opacity-20 pointer-events-none z-0"></div>
+    <div class="fixed top-[-20%] left-[-10%] w-125 h-125 bg-plum rounded-full blur-[150px] opacity-20 pointer-events-none z-0"></div>
+    <div class="fixed bottom-[-20%] right-[-10%] w-150 h-150 bg-blue-900 rounded-full blur-[150px] opacity-20 pointer-events-none z-0"></div>
 
     @if($isUnlocked)
     {{-- Log Viewer Modal --}}
-    <div x-show="showLogViewer" x-cloak class="fixed inset-0 z-[150] flex items-center justify-center p-4">
+    <div x-show="showLogViewer" x-cloak class="fixed inset-0 z-150 flex items-center justify-center p-4">
         <div x-show="showLogViewer"
             x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0"
@@ -37,7 +37,7 @@
             x-transition:leave="transition ease-in duration-200"
             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
             x-transition:leave-end="opacity-0 scale-95 translate-y-8"
-            class="relative w-full max-w-5xl h-[80vh] rounded-[32px] bg-slate-900 border border-slate-700/50 flex flex-col shadow-2xl overflow-hidden z-[151]">
+            class="relative w-full max-w-5xl h-[80vh] rounded-4xl bg-slate-900 border border-slate-700/50 flex flex-col shadow-2xl overflow-hidden z-151">
             
             <div class="shrink-0 p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
                 <div class="flex items-center gap-3">
@@ -54,7 +54,7 @@
                 </button>
             </div>
 
-            <div class="flex-grow overflow-auto p-6 bg-slate-950 font-mono text-[11px] leading-relaxed custom-scrollbar">
+            <div class="grow overflow-auto p-6 bg-slate-950 font-mono text-[11px] leading-relaxed custom-scrollbar">
                 <pre class="whitespace-pre-wrap text-slate-400">@php
                     $formattedLogs = collect(explode("\n", $logs))->map(function($line) {
                         if (str_contains($line, '.ERROR:')) return '<span class="text-red-400 font-bold">'.$line.'</span>';
@@ -74,7 +74,7 @@
     </div>
 
     {{-- Quota Informational Modals --}}
-    <div x-show="showBrevoQuotaInfo" x-cloak class="fixed inset-0 z-[80] flex items-center justify-center p-4">
+    <div x-show="showBrevoQuotaInfo" x-cloak class="fixed inset-0 z-80 flex items-center justify-center p-4">
         <div x-show="showBrevoQuotaInfo"
             x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0"
@@ -92,7 +92,7 @@
             x-transition:leave="transition ease-in duration-200"
             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
             x-transition:leave-end="opacity-0 scale-95 translate-y-4"
-            class="relative w-full max-w-lg rounded-[24px] bg-slate-800 border border-slate-700 p-8 text-slate-300 shadow-2xl z-[81]">
+            class="relative w-full max-w-lg rounded-3xl bg-slate-800 border border-slate-700 p-8 text-slate-300 shadow-2xl z-81">
             <h3 class="text-xl font-bold text-white mb-4">Brevo Quota Information</h3>
             <div class="space-y-4 text-sm text-slate-400 leading-relaxed">
                 <p>
@@ -128,7 +128,7 @@
         </div>
     </div>
 
-    <div x-show="showGoogleQuotaInfo" x-cloak class="fixed inset-0 z-[80] flex items-center justify-center p-4">
+    <div x-show="showGoogleQuotaInfo" x-cloak class="fixed inset-0 z-80 flex items-center justify-center p-4">
         <div x-show="showGoogleQuotaInfo"
             x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0"
@@ -146,7 +146,7 @@
             x-transition:leave="transition ease-in duration-200"
             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
             x-transition:leave-end="opacity-0 scale-95 translate-y-4"
-            class="relative w-full max-w-lg rounded-[24px] bg-slate-800 border border-slate-700 p-8 text-slate-300 shadow-2xl z-[81]">
+            class="relative w-full max-w-lg rounded-3xl bg-slate-800 border border-slate-700 p-8 text-slate-300 shadow-2xl z-81">
             <h3 class="text-xl font-bold text-white mb-4">Gmail Quota Information</h3>
             <div class="space-y-4 text-sm text-slate-400 leading-relaxed">
                 <p>
@@ -191,7 +191,7 @@
                 </h1>
                 <div class="flex items-center gap-3 mt-1.5">
                     <p class="text-slate-400 text-sm">Manage core settings and health.</p>
-                    <span class="text-slate-600">•</span>
+                    <span class="text-slate-600">Ã¢â‚¬Â¢</span>
                     <a href="https://bigfunbooking.online/" target="_blank" class="text-plum hover:text-plum-dark text-xs font-bold flex items-center gap-1 transition">
                         <span class="material-symbols-rounded text-sm">language</span>
                         bigfunbooking.online
@@ -237,8 +237,8 @@
                     </div>
                 </div>
 
-                <div class="space-y-4 flex-grow">
-                    <a href="/system/db-view" wire:navigate class="w-full min-h-[76px] flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-plum hover:bg-slate-800 transition-all group cursor-pointer">
+                <div class="space-y-4 grow">
+                    <a href="/system/db-view" wire:navigate class="w-full min-h-19 flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-plum hover:bg-slate-800 transition-all group cursor-pointer">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-rounded text-slate-400 group-hover:text-plum transition-colors">table_view</span>
                             <span class="font-medium text-slate-200">Database Viewer</span>
@@ -246,7 +246,7 @@
                         <span class="material-symbols-rounded text-slate-500 group-hover:text-white">chevron_right</span>
                     </a>
 
-                    <button wire:click="exportDb" class="w-full min-h-[76px] flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-emerald-500/50 hover:bg-slate-800 transition-all group disabled:opacity-50 cursor-pointer">
+                    <button wire:click="exportDb" class="w-full min-h-19 flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-emerald-500/50 hover:bg-slate-800 transition-all group disabled:opacity-50 cursor-pointer">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-rounded text-slate-400 group-hover:text-emerald-400 transition-colors">download</span>
                             <span class="font-medium text-slate-200" wire:loading.remove wire:target="exportDb">Export Full Backup (.sql)</span>
@@ -268,7 +268,7 @@
                     </div>
                 </div>
 
-                <div class="space-y-4 flex-grow">
+                <div class="space-y-4 grow">
                     <button type="button"
                         x-data
                         @click="$dispatch('open-modal', { 
@@ -277,7 +277,7 @@
                             type: 'warning', 
                             event: 'execute-clear-cache' 
                         })"
-                        class="w-full min-h-[76px] flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-plum hover:bg-slate-800 transition-all group disabled:opacity-50 cursor-pointer">
+                        class="w-full min-h-19 flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700 hover:border-plum hover:bg-slate-800 transition-all group disabled:opacity-50 cursor-pointer">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-rounded text-slate-400 group-hover:text-plum transition-colors">cleaning_services</span>
                             <div class="text-left">
@@ -288,7 +288,7 @@
                         </div>
                     </button>
 
-                    <div class="w-full min-h-[76px] flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700">
+                    <div class="w-full min-h-19 flex items-center justify-between p-4 rounded-2xl bg-slate-900/50 border border-slate-700">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-rounded text-slate-400">construction</span>
                             <div class="text-left">
@@ -304,7 +304,7 @@
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer shrink-0">
                             <input type="checkbox" wire:change="toggleMaintenance" class="sr-only peer" {{ $isMaintenance ? 'checked' : '' }}>
-                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                         </label>
                     </div>
                 </div>
@@ -402,7 +402,7 @@
                         </div>
                         <div>
                             <h2 id="default-mailer-heading" class="text-lg font-bold text-white">Default outbound mailer</h2>
-                            <p class="text-xs text-slate-400">Pick one option. Laravel’s <code class="text-slate-500">MAIL_MAILER</code> in <code class="text-slate-500">.env</code> is updated to <code class="text-slate-500">smtp</code> (Brevo) or <code class="text-slate-500">google</code> (Gmail).</p>
+                            <p class="text-xs text-slate-400">Pick one option. LaravelÃ¢â‚¬â„¢s <code class="text-slate-500">MAIL_MAILER</code> in <code class="text-slate-500">.env</code> is updated to <code class="text-slate-500">smtp</code> (Brevo) or <code class="text-slate-500">google</code> (Gmail).</p>
                         </div>
                     </div>
                     @php $activeMail = (string) config('mail.default'); @endphp
@@ -433,8 +433,8 @@
                                 :checked="'{{ $defaultMailer }}' === 'smtp'"
                                 class="mt-1 size-5 shrink-0 cursor-pointer rounded-full border-2 border-slate-600 bg-slate-900 text-emerald-500 accent-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
                             <span class="min-w-0 flex-1">
-                                <span class="block text-sm font-bold text-slate-100">Primary — Brevo</span>
-                                <span class="mt-0.5 block text-xs text-slate-400">Config mailer: <span class="font-mono text-slate-500">smtp</span> · host <span class="font-mono text-slate-500">smtp-relay.brevo.com</span></span>
+                                <span class="block text-sm font-bold text-slate-100">Primary Ã¢â‚¬â€ Brevo</span>
+                                <span class="mt-0.5 block text-xs text-slate-400">Config mailer: <span class="font-mono text-slate-500">smtp</span> Ã‚Â· host <span class="font-mono text-slate-500">smtp-relay.brevo.com</span></span>
                             </span>
                         </label>
                         <label class="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-all border-slate-700 bg-slate-900/40 hover:border-slate-600 has-[:checked]:border-blue-500/60 has-[:checked]:bg-blue-500/10 has-[:checked]:ring-1 has-[:checked]:ring-blue-500/35">
@@ -453,8 +453,8 @@
                                 :checked="'{{ $defaultMailer }}' === 'google'"
                                 class="mt-1 size-5 shrink-0 cursor-pointer rounded-full border-2 border-slate-600 bg-slate-900 text-blue-500 accent-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
                             <span class="min-w-0 flex-1">
-                                <span class="block text-sm font-bold text-slate-100">Secondary — Gmail</span>
-                                <span class="mt-0.5 block text-xs text-slate-400">Config mailer: <span class="font-mono text-slate-500">google</span> · typical host <span class="font-mono text-slate-500">smtp.gmail.com</span></span>
+                                <span class="block text-sm font-bold text-slate-100">Secondary Ã¢â‚¬â€ Gmail</span>
+                                <span class="mt-0.5 block text-xs text-slate-400">Config mailer: <span class="font-mono text-slate-500">google</span> Ã‚Â· typical host <span class="font-mono text-slate-500">smtp.gmail.com</span></span>
                             </span>
                         </label>
                     </fieldset>
@@ -481,20 +481,20 @@
                         </div>
                         <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2">
                             @if($defaultMailer === 'smtp')
-                            <div class="inline-flex items-center gap-1 bg-violet-500/15 text-violet-300 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-violet-500/25 min-w-[80px] justify-center" title="This mailer is selected as default for the app">
+                            <div class="inline-flex items-center gap-1 bg-violet-500/15 text-violet-300 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-violet-500/25 min-w-20 justify-center" title="This mailer is selected as default for the app">
                                 <span class="material-symbols-rounded text-sm leading-none">check_circle</span>
                                 In use
                             </div>
                             @endif
-                            <div class="inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-500/20 min-w-[80px] justify-center">
+                            <div class="inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-500/20 min-w-20 justify-center">
                                 Primary
                             </div>
                             @if($brevoKeyName)
-                            <div class="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-300 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide border border-amber-500/20 max-w-[180px] truncate" title="{{ $brevoKeyName }}">
+                            <div class="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-300 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide border border-amber-500/20 max-w-45 truncate" title="{{ $brevoKeyName }}">
                                 Key: {{ $brevoKeyName }}
                             </div>
                             @endif
-                            <div class="inline-flex items-center gap-1.5 bg-slate-600/30 text-slate-200 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide border border-slate-500/30 min-w-[90px] justify-center">
+                            <div class="inline-flex items-center gap-1.5 bg-slate-600/30 text-slate-200 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide border border-slate-500/30 min-w-22.5 justify-center">
                                 <span class="text-slate-400 font-semibold uppercase">Daily</span>
                                 <span>{{ $brevoUsed }} / {{ $brevoLimit }}</span>
                             </div>
@@ -571,15 +571,15 @@
                         </div>
                         <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2">
                             @if($defaultMailer === 'google')
-                            <div class="inline-flex items-center gap-1 bg-violet-500/15 text-violet-300 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-violet-500/25 min-w-[80px] justify-center" title="This mailer is selected as default for the app">
+                            <div class="inline-flex items-center gap-1 bg-violet-500/15 text-violet-300 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-violet-500/25 min-w-20 justify-center" title="This mailer is selected as default for the app">
                                 <span class="material-symbols-rounded text-sm leading-none">check_circle</span>
                                 In use
                             </div>
                             @endif
-                            <div class="inline-flex items-center gap-2 bg-slate-500/10 text-slate-400 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-slate-500/20 min-w-[80px] justify-center">
+                            <div class="inline-flex items-center gap-2 bg-slate-500/10 text-slate-400 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-slate-500/20 min-w-20 justify-center">
                                 Secondary
                             </div>
-                            <div class="inline-flex items-center gap-1.5 bg-slate-600/30 text-slate-200 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide border border-slate-500/30 min-w-[90px] justify-center">
+                            <div class="inline-flex items-center gap-1.5 bg-slate-600/30 text-slate-200 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide border border-slate-500/30 min-w-22.5 justify-center">
                                 <span class="text-slate-400 font-semibold uppercase">Daily</span>
                                 <span>{{ $googleUsed }} / {{ $googleLimit }}</span>
                             </div>
@@ -722,7 +722,7 @@
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" wire:model.live="googleSyncEnabled" wire:change="toggleGoogleSync" class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                         </label>
                     </div>
                 </div>
@@ -778,7 +778,7 @@
                         </div>
                         <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden" 
                              style="--disk-progress: {{ $stats['disk']['percent'] ?? 0 }}%">
-                            <div class="h-full bg-gradient-to-r from-plum to-plum-dark transition-all duration-1000" 
+                            <div class="h-full bg-linear-to-r from-plum to-plum-dark transition-all duration-1000" 
                                  style="width: var(--disk-progress)"></div>
                         </div>
                     </div>
@@ -846,7 +846,7 @@
                             wire:loading.attr="disabled"
                             wire:target="unlockSystem"
                             class="block w-full pl-12 pr-4 py-4 bg-slate-900/50 border border-slate-700 rounded-2xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-plum/50 focus:border-plum transition-all text-center tracking-[0.5em] font-bold disabled:opacity-50 disabled:cursor-wait" 
-                            placeholder="••••••••" 
+                            placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢" 
                             required>
                     </div>
                 </div>
@@ -874,7 +874,7 @@
             </form>
         </div>
 
-        <p class="mt-8 text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em]">BigFun Entertainment · System v3.0</p>
+        <p class="mt-8 text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em]">BigFun Entertainment Ã‚Â· System v3.0</p>
     </div>
     @endif
 </div>

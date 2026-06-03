@@ -1,4 +1,4 @@
-<div class="max-w-[1440px] mx-auto space-y-6">
+<div class="max-w-360 mx-auto space-y-6">
 
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -12,11 +12,11 @@
             <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                 <span class="material-symbols-rounded">search</span>
             </span>
-            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Full name or ID..." class="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:bg-white focus:border-[#9E6B73]/50 outline-none text-sm transition-all shadow-sm">
+            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Full name or ID..." class="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:bg-white focus:border-plum/50 outline-none text-sm transition-all shadow-sm">
         </div>
 
         <div class="flex gap-4 w-full md:w-auto">
-            <input type="date" wire:model.live="date_filter" class="w-full md:w-auto py-3 px-3 bg-gray-50 rounded-xl border border-transparent focus:bg-white focus:border-[#9E6B73]/50 outline-none text-sm font-medium text-gray-600 shadow-sm">
+            <input type="date" wire:model.live="date_filter" class="w-full md:w-auto py-3 px-3 bg-gray-50 rounded-xl border border-transparent focus:bg-white focus:border-plum/50 outline-none text-sm font-medium text-gray-600 shadow-sm">
         </div>
 
         @if (!empty($search) || !empty($date_filter))
@@ -30,7 +30,7 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-[2rem] shadow-xl shadow-black-200/50 border border-gray-100 overflow-hidden flex flex-col">
+    <div class="bg-white rounded-4xl shadow-xl shadow-black-200/50 border border-gray-100 overflow-hidden flex flex-col">
 
         <div class="hidden lg:block overflow-x-auto custom-scrollbar flex-1">
             <table class="w-full text-left border-collapse">
@@ -57,7 +57,7 @@
                         <td class="p-5 text-gray-600 max-w-xs truncate" title="{{ $row->items->pluck('item_name')->implode(', ') }}">
                             {{ $row->items->count() > 0 ? $row->items->pluck('item_name')->implode(', ') : 'No items listed' }}
                         </td>
-                        <td class="p-5 font-bold text-[#9E6B73]">
+                        <td class="p-5 font-bold text-plum">
                             ${{ number_format($row->total_amount, 2) }}
                         </td>
                         <td class="p-5 text-[11px] font-bold text-gray-500 italic">
@@ -73,7 +73,7 @@
                             <span class="px-2.5 py-1 rounded-lg {{ $badgeClass }} text-xs font-bold border">{{ $status }}</span>
                         </td>
                         <td class="p-5 text-right">
-                            <a href="{{ route('supervisor.bookings.overview', $row->id) }}" class="inline-flex items-center justify-center text-gray-400 hover:text-[#9E6B73] p-1 transition rounded-full hover:bg-gray-100">
+                            <a href="{{ route('supervisor.bookings.overview', $row->id) }}" class="inline-flex items-center justify-center text-gray-400 hover:text-plum p-1 transition rounded-full hover:bg-gray-100">
                                 <span class="material-symbols-rounded">visibility</span>
                             </a>
                         </td>
@@ -111,7 +111,7 @@
                         <div class="flex items-center gap-2 text-xs text-gray-500">
                             <span>{{ \Carbon\Carbon::parse($row->event_date)->format('M d, Y') }}</span>
                             <span class="w-1 h-1 rounded-full bg-gray-300"></span>
-                            <span class="font-bold text-[#9E6B73]">${{ number_format($row->total_amount, 2) }}</span>
+                            <span class="font-bold text-plum">${{ number_format($row->total_amount, 2) }}</span>
                             @if($row->booked_by)
                                 <span class="w-1 h-1 rounded-full bg-gray-300"></span>
                                 <span class="italic text-[10px]">{{ $row->booked_by }}</span>
@@ -143,7 +143,7 @@
                 @endif
 
                 @if ($history->hasMorePages())
-                <button wire:click="nextPage" class="flex items-center gap-1 px-4 py-2 text-sm font-medium text-white bg-[#9E6B73] border border-transparent rounded-lg hover:bg-[#86545C] transition shadow-md shadow-[#9E6B73]/30">
+                <button wire:click="nextPage" class="flex items-center gap-1 px-4 py-2 text-sm font-medium text-white bg-plum border border-transparent rounded-lg hover:bg-plum-dark transition shadow-md shadow-plum/30">
                     Next <span class="material-symbols-rounded text-base">arrow_forward</span>
                 </button>
                 @else

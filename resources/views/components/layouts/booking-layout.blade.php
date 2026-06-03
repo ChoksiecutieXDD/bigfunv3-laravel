@@ -24,7 +24,7 @@
     @include('components.ui.confirm') {{-- Centered action confirmation modals --}}
 
     <header class="w-full bg-white shadow-sm border-b border-slate-100 sticky top-0 z-40">
-        <div class="max-w-[1400px] mx-auto px-6 lg:px-8 py-4 flex justify-between items-center">
+        <div class="max-w-350 mx-auto px-6 lg:px-8 py-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-lg bg-plum flex items-center justify-center text-white shadow-sm">
                     <span class="material-symbols-rounded text-[20px]">settings</span>

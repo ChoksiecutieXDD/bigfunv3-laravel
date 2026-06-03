@@ -50,7 +50,7 @@
 }"
     x-on:show-toast.window="addToast($event.detail)"
     x-on:notify.window="addToast($event.detail)"
-    class="fixed top-6 right-6 z-[999999] flex flex-col gap-3 pointer-events-none" 
+    class="fixed top-6 right-6 z-999999 flex flex-col gap-3 pointer-events-none" 
     style="width: 380px;"
     x-cloak>
     
@@ -68,7 +68,7 @@
                 'border-red-500/40': toast.type === 'error',
                 'border-amber-500/40': toast.type === 'warning',
                 'border-blue-500/40': toast.type === 'info',
-                'border-[#9E6B73]/40': toast.type === 'primary'
+                'border-plum/40': toast.type === 'primary'
             }"
             @click="toast.visible = false">
             
@@ -78,7 +78,7 @@
                     'bg-red-500/15 text-red-400': toast.type === 'error',
                     'bg-amber-500/15 text-amber-400': toast.type === 'warning',
                     'bg-blue-500/15 text-blue-400': toast.type === 'info',
-                    'bg-[#9E6B73]/15 text-[#9E6B73]': toast.type === 'primary'
+                    'bg-plum/15 text-plum': toast.type === 'primary'
                 }">
                 <span class="material-symbols-rounded text-xl" x-text="toast.icon"></span>
             </div>

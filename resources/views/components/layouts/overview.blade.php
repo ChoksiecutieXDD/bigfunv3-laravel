@@ -14,7 +14,7 @@
     @livewireStyles
 </head>
 
-<body class="bg-[#C5A8A3] text-[#2D3748] font-['Poppins'] min-h-screen py-6 px-4 md:py-12 md:px-6">
+<body class="bg-[#C5A8A3] text-text-main font-['Poppins'] min-h-screen py-6 px-4 md:py-12 md:px-6">
 
     {{ $slot }}
 

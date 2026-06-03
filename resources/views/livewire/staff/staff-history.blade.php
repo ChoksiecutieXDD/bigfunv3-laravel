@@ -1,4 +1,4 @@
-<div class="max-w-[1440px] mx-auto w-full pb-12 px-4 sm:px-6 lg:px-8">
+<div class="max-w-360 mx-auto w-full pb-12 px-4 sm:px-6 lg:px-8">
     <!-- Header -->
     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6 mt-4">
         <div>
@@ -15,7 +15,7 @@
     <!-- Filters Section -->
     <div class="bg-white/95 backdrop-blur-md rounded-2xl p-5 sm:p-6 mb-10 border border-white/50 shadow-xl shadow-black/10">
         <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-3">
-            <div class="w-8 h-8 rounded-lg bg-[#FDF2F4] flex items-center justify-center text-[#9E6B73]">
+            <div class="w-8 h-8 rounded-lg bg-plum-light flex items-center justify-center text-plum">
                 <span class="material-symbols-rounded text-xl">filter_list</span>
             </div>
             <h2 class="text-lg font-bold text-gray-800">Filter History</h2>
@@ -28,7 +28,7 @@
                 <div class="relative">
                     <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
                     <input wire:model.live.debounce.300ms="search" type="text" placeholder="Job ID, Name, Location..."
-                        class="pl-10 pr-4 py-3 rounded-xl text-sm border-2 border-gray-50 focus:border-[#9E6B73] focus:ring-4 focus:ring-[#9E6B73]/5 shadow-inner bg-gray-50/50 text-gray-800 transition-all font-medium">
+                        class="pl-10 pr-4 py-3 rounded-xl text-sm border-2 border-gray-50 focus:border-plum focus:ring-4 focus:ring-plum/5 shadow-inner bg-gray-50/50 text-gray-800 transition-all font-medium">
                 </div>
             </div>
 
@@ -36,13 +36,13 @@
             <div class="lg:col-span-3">
                 <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Specific Date</label>
                 <input wire:model.live="specificDate" type="date"
-                    class="w-full px-4 py-3 rounded-xl text-sm border-2 border-gray-50 focus:border-[#9E6B73] focus:ring-4 focus:ring-[#9E6B73]/5 shadow-inner bg-gray-50/50 text-gray-800 transition-all font-bold">
+                    class="w-full px-4 py-3 rounded-xl text-sm border-2 border-gray-50 focus:border-plum focus:ring-4 focus:ring-plum/5 shadow-inner bg-gray-50/50 text-gray-800 transition-all font-bold">
             </div>
 
             <!-- Status -->
             <div class="lg:col-span-2">
                 <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Status</label>
-                <select wire:model.live="statusFilter" class="w-full px-4 py-3 rounded-xl text-sm border-2 border-gray-50 focus:border-[#9E6B73] focus:ring-4 focus:ring-[#9E6B73]/5 shadow-inner bg-gray-50/50 text-gray-800 transition-all font-bold">
+                <select wire:model.live="statusFilter" class="w-full px-4 py-3 rounded-xl text-sm border-2 border-gray-50 focus:border-plum focus:ring-4 focus:ring-plum/5 shadow-inner bg-gray-50/50 text-gray-800 transition-all font-bold">
                     <option value="">All Statuses</option>
                     <option value="Pending">Pending</option>
                     <option value="Confirmed">Confirmed</option>
@@ -61,9 +61,9 @@
     </div>
 
     <!-- Data Table -->
-    <div class="bg-white rounded-[2rem] shadow-sm overflow-hidden border border-gray-100 mb-8 transition-all hover:shadow-xl">
+    <div class="bg-white rounded-4xl shadow-sm overflow-hidden border border-gray-100 mb-8 transition-all hover:shadow-xl">
         <div class="overflow-x-auto no-scrollbar">
-            <table class="w-full text-left border-collapse min-w-[900px]">
+            <table class="w-full text-left border-collapse min-w-225">
                 <thead>
                     <tr class="bg-gray-50/50 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] border-b border-gray-100">
                         <th class="p-5">Date</th>
@@ -84,7 +84,7 @@
                             if ($job->status == 'Completed') $stClass = 'bg-blue-50 text-blue-700 border-blue-200';
                             if ($job->status == 'Cancelled') $stClass = 'bg-red-50 text-red-600 border-red-200';
                         @endphp
-                        <tr class="hover:bg-[#FDF2F4]/40 transition-colors group">
+                        <tr class="hover:bg-plum-light/40 transition-colors group">
                             <td class="p-5">
                                 <p class="font-black text-gray-800">{{ \Carbon\Carbon::parse($job->event_date)->format('M d, Y') }}</p>
                                 <p class="text-[10px] font-bold text-gray-400 uppercase mt-1">{{ \Carbon\Carbon::parse($job->start_time)->format('g:i A') }}</p>
@@ -109,7 +109,7 @@
                                 </span>
                             </td>
                             <td class="p-5 text-right">
-                                <a href="{{ route('staff.bookings.overview', $job->id) }}" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:bg-[#9E6B73] hover:text-white transition-all shadow-sm hover:shadow-md">
+                                <a href="{{ route('staff.bookings.overview', $job->id) }}" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:bg-plum hover:text-white transition-all shadow-sm hover:shadow-md">
                                     <span class="material-symbols-rounded">visibility</span>
                                 </a>
                             </td>

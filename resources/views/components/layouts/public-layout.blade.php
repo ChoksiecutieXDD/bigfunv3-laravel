@@ -38,8 +38,8 @@
 
 <body class="min-h-screen flex flex-col relative selection:bg-plum selection:text-white">
 
-    <div class="fixed top-[-100px] right-[-100px] w-[600px] h-[600px] bg-[#9E6B73]/5 rounded-full blur-3xl pointer-events-none z-[-2]"></div>
-    <div class="fixed bottom-0 left-0 w-[500px] h-[500px] bg-blue-100/30 rounded-full blur-3xl pointer-events-none z-[-2]"></div>
+    <div class="fixed top-[-100px] right-[-100px] w-150 h-150 bg-plum/5 rounded-full blur-3xl pointer-events-none z-[-2]"></div>
+    <div class="fixed bottom-0 left-0 w-125 h-125 bg-blue-100/30 rounded-full blur-3xl pointer-events-none z-[-2]"></div>
 
     <nav id="navbar" class="nav-container fixed top-0 w-full z-50">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
@@ -48,7 +48,7 @@
                     <img src="/assets/icon/bgfunlogo.png" alt="BigFun - Premium Amusement Rides" width="180" height="48" class="h-10 md:h-12 w-auto transition-transform duration-300 group-hover:scale-105">
                 </a>
                 <div class="flex items-center gap-8">
-                    <a href="/login" class="text-sm font-bold text-gray-500 hover:text-[#9E6B73] transition-colors flex items-center gap-1">
+                    <a href="/login" class="text-sm font-bold text-gray-500 hover:text-plum transition-colors flex items-center gap-1">
                         <span class="material-symbols-rounded text-lg">lock</span>
                         <span class="hidden sm:inline">Staff Portal</span>
                     </a>
@@ -64,7 +64,7 @@
     {{ $slot }}
 
     <footer class="bg-[#2D3748] text-white pt-24 pb-12 mt-12 rounded-t-[3rem] relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-[800px] h-[800px] bg-[#9E6B73] rounded-full blur-[200px] opacity-15 pointer-events-none"></div>
+        <div class="absolute top-0 right-0 w-200 h-200 bg-plum rounded-full blur-[200px] opacity-15 pointer-events-none"></div>
 
         <div class="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
             <!-- CTA Section -->
@@ -83,7 +83,7 @@
                 <!-- Brand -->
                 <div class="flex flex-col items-center md:items-start gap-4 order-2 md:order-1">
                     <img src="/assets/icon/bgfunlogo.png" alt="BigFun Logo Footer" width="140" height="38" class="h-9 w-auto brightness-0 invert opacity-90">
-                    <p class="text-xs font-semibold text-gray-500 tracking-wider uppercase">© 2026 BigFun. All rights reserved.</p>
+                    <p class="text-xs font-semibold text-gray-500 tracking-wider uppercase">Â© 2026 BigFun. All rights reserved.</p>
                 </div>
 
                 <!-- Links -->
@@ -95,11 +95,11 @@
 
                 <!-- Actions -->
                 <div class="flex justify-center md:justify-end items-center gap-4 order-3">
-                    <a href="/login" class="group hover:text-white text-gray-300 transition-all flex items-center gap-2.5 px-6 py-3 rounded-full bg-gray-800/80 hover:bg-[#9E6B73] border border-gray-700 hover:border-[#9E6B73] shadow-lg">
+                    <a href="/login" class="group hover:text-white text-gray-300 transition-all flex items-center gap-2.5 px-6 py-3 rounded-full bg-gray-800/80 hover:bg-plum border border-gray-700 hover:border-plum shadow-lg">
                         <span class="material-symbols-rounded text-lg group-hover:rotate-12 transition-transform">lock</span> 
                         <span class="text-sm font-bold">Staff Portal</span>
                     </a>
-                    <a href="/supervisor/login" class="opacity-10 hover:opacity-100 transition-all duration-500 text-[#9E6B73] p-2.5 rounded-full hover:bg-white/5" title="Supervisor Access">
+                    <a href="/supervisor/login" class="opacity-10 hover:opacity-100 transition-all duration-500 text-plum p-2.5 rounded-full hover:bg-white/5" title="Supervisor Access">
                         <span class="material-symbols-rounded text-2xl">admin_panel_settings</span>
                     </a>
                 </div>
@@ -107,7 +107,7 @@
         </div>
     </footer>
 
-    <a href="/system/settings" class="fixed bottom-0 right-0 w-10 h-10 opacity-0 z-[9999] cursor-default"></a>
+    <a href="/system/settings" class="fixed bottom-0 right-0 w-10 h-10 opacity-0 z-9999 cursor-default"></a>
 
     <script>
         const navbar = document.getElementById('navbar');

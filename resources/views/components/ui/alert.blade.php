@@ -39,7 +39,7 @@
     x-transition:leave-start="opacity-100 translate-y-0"
     x-transition:leave-end="opacity-0 -translate-y-5"
     style="display: none;"
-    class="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 px-6 py-4 rounded-2xl text-white shadow-2xl cursor-pointer"
+    class="fixed top-6 left-1/2 -translate-x-1/2 z-9999 flex items-center gap-3 px-6 py-4 rounded-2xl text-white shadow-2xl cursor-pointer"
     :class="type === 'error' ? 'bg-red-500' : (type === 'success' ? 'bg-emerald-500' : 'bg-plum')"
     @click="show = false"
     x-cloak>

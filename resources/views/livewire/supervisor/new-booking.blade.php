@@ -15,7 +15,7 @@
 
 
     <div class="flex w-full relative overflow-hidden">
-        <main class="flex-1 pt-4 pb-16 px-0 max-w-[1440px] mx-auto w-full">
+        <main class="flex-1 pt-4 pb-16 px-0 max-w-360 mx-auto w-full">
 
             <form id="combinedBookingForm" onsubmit="return false;" class="form-layout-wrapper">
                 <input type="hidden" name="booking_id" id="booking_id" value="{{ $booking_id }}">
@@ -41,11 +41,11 @@
                             <div>
                             <div class="flex items-center gap-2">
                                 <h1 class="text-3xl font-extrabold text-[#1E293B]">{{ $is_edit_mode ? 'Edit Booking' : 'Create Booking' }}</h1>
-                                <button type="button" @click="modals.systemInfo = true" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:bg-[#9E6B73]/10 hover:text-[#9E6B73] transition-colors flex items-center justify-center">
+                                <button type="button" @click="modals.systemInfo = true" class="w-6 h-6 rounded-full bg-slate-100 text-slate-400 hover:bg-plum/10 hover:text-plum transition-colors flex items-center justify-center">
                                     <span class="material-symbols-rounded text-base">info</span>
                                 </button>
                             </div>
-                            <p class="text-sm text-slate-500 font-medium mt-1 uppercase tracking-wide text-[10px]">Invoice: <span class="font-bold text-[#9D686E]">{{ $invoice_number }}</span></p>
+                            <p class="text-sm text-slate-500 font-medium mt-1 uppercase tracking-wide text-[10px]">Invoice: <span class="font-bold text-plum">{{ $invoice_number }}</span></p>
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
@@ -58,7 +58,7 @@
                             <button type="button" @click="modals.reset = true" class="btn-action bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 flex-1 sm:flex-none justify-center">
                                 <span class="material-symbols-rounded mr-2 text-lg">restart_alt</span> Reset Form
                             </button>
-                            <button type="button" @click="openReviewModal()" class="btn-action bg-[#9E6B73] text-white hover:bg-[#86545C] flex-1 sm:flex-none justify-center shadow-md shadow-[#9E6B73]/20">
+                            <button type="button" @click="openReviewModal()" class="btn-action bg-plum text-white hover:bg-plum-dark flex-1 sm:flex-none justify-center shadow-md shadow-plum/20">
                                 <span class="material-symbols-rounded mr-2 text-lg">playlist_add_check</span> Review Details
                             </button>
                         </div>
@@ -66,11 +66,11 @@
                 </div>
 
                 <div class="financial-panel" wire:ignore>
-                    <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-[#9E6B73]/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+                    <div class="absolute top-0 right-0 w-150 h-150 bg-plum/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
 
                     <div class="flex items-center justify-between border-b border-slate-700 pb-4 relative z-10">
                         <div class="flex items-center gap-3">
-                            <span class="material-symbols-rounded text-[#9E6B73] text-3xl">account_balance_wallet</span>
+                            <span class="material-symbols-rounded text-plum text-3xl">account_balance_wallet</span>
                             <h2 class="text-xl font-bold text-white uppercase tracking-wide">Financials & Payment</h2>
                         </div>
                         <div class="text-right">
@@ -81,7 +81,7 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
                         <div class="space-y-4">
-                            <h3 class="text-sm font-bold text-[#9E6B73] uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Cost Breakdown</h3>
+                            <h3 class="text-sm font-bold text-plum uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Cost Breakdown</h3>
 
                             <div class="flex justify-between items-center text-sm text-slate-300">
                                 <span>Duration Cost</span>
@@ -118,17 +118,17 @@
                                 <label class="text-[10px] text-slate-400 uppercase font-bold mb-2 block">Override Final Total (Optional)</label>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 font-bold">$</span>
-                                    <input type="number" name="final_total" id="override_total" placeholder="Leave empty to use calculated sum" @input="calculateFinalTotals()" class="input-dark input-with-icon !py-3">
+                                    <input type="number" name="final_total" id="override_total" placeholder="Leave empty to use calculated sum" @input="calculateFinalTotals()" class="input-dark input-with-icon py-3!">
                                 </div>
                             </div>
                         </div>
 
                         <div class="space-y-5">
-                            <h3 class="text-sm font-bold text-[#9E6B73] uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Payment Configuration</h3>
+                            <h3 class="text-sm font-bold text-plum uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Payment Configuration</h3>
 
                             <div class="flex flex-col gap-4">
                                 <div class="input-group">
-                                    <label class="input-label text-slate-400 !ml-1">Payment Type</label>
+                                    <label class="input-label text-slate-400 ml-1!">Payment Type</label>
                                     <div class="relative">
                                         <select name="payment_type" x-model="paymentType" @change="updatePaymentMethods()" class="input-dark appearance-none cursor-pointer">
                                             <option value="EFT">EFT</option>
@@ -140,7 +140,7 @@
                                 </div>
 
                                 <div class="input-group" x-show="paymentType === 'EFT'" x-transition>
-                                    <label class="input-label text-slate-400 !ml-1">Payment Method</label>
+                                    <label class="input-label text-slate-400 ml-1!">Payment Method</label>
                                     <div class="relative">
                                         <select name="payment_method" x-model="paymentMethod" @change="triggerRecalculate()" class="input-dark appearance-none cursor-pointer">
                                             <template x-for="opt in paymentMethods" :key="opt">
@@ -153,10 +153,10 @@
                             </div>
 
                             <div x-show="paymentType === 'Card Holder'" x-collapse class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 mt-4 shadow-inner flex flex-col gap-4">
-                                <h4 class="text-xs font-bold text-[#9E6B73] uppercase flex justify-between items-center"><span>Card Details</span><span class="material-symbols-rounded text-sm">lock</span></h4>
+                                <h4 class="text-xs font-bold text-plum uppercase flex justify-between items-center"><span>Card Details</span><span class="material-symbols-rounded text-sm">lock</span></h4>
                                 <div class="grid grid-cols-1 gap-4">
                                     <div class="relative">
-                                        <select name="card_network" id="card_network" x-model="cardNetwork" class="input-dark appearance-none !py-3 text-sm cursor-pointer">
+                                        <select name="card_network" id="card_network" x-model="cardNetwork" class="input-dark appearance-none py-3! text-sm cursor-pointer">
                                             <option value="Visa">Visa</option>
                                             <option value="Mastercard">Mastercard</option>
                                             <option value="American Express">American Express</option>
@@ -208,12 +208,12 @@
                                     <label class="input-floating-label">Reference Number</label>
                                 </div>
                                 <div class="relative">
-                                    <textarea name="payment_notes" placeholder=" " class="input-dark !h-24 resize-none" style="min-height: 96px;"></textarea>
+                                    <textarea name="payment_notes" placeholder=" " class="input-dark h-24! resize-none" style="min-height: 96px;"></textarea>
                                     <label class="input-floating-label">Additional Payment Notes</label>
                                 </div>
                             </div>
 
-                            <div class="flex items-center justify-between bg-[#9E6B73]/20 rounded-xl p-4 border border-[#9E6B73]/30 mt-4">
+                            <div class="flex items-center justify-between bg-plum/20 rounded-xl p-4 border border-plum/30 mt-4">
                                 <span class="text-slate-300 text-xs uppercase font-bold">Req. Deposit (50%)</span>
                                 <span class="text-white font-bold text-xl" id="disp_deposit">$0.00</span>
                             </div>
@@ -226,7 +226,7 @@
 
                 <div class="section-card" wire:ignore>
                     <div class="flex items-center gap-3 border-b border-gray-100 pb-4">
-                        <span class="material-symbols-rounded text-[#9E6B73] text-2xl">calendar_month</span>
+                        <span class="material-symbols-rounded text-plum text-2xl">calendar_month</span>
                         <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Live Availability & Duration</h2>
                     </div>
 
@@ -238,7 +238,7 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <button type="button" class="zoom-btn" @click="calPrev()"><span class="material-symbols-rounded text-sm">chevron_left</span></button>
-                                <p class="text-sm font-bold text-slate-700 w-32 text-center" id="calLabel">—</p>
+                                <p class="text-sm font-bold text-slate-700 w-32 text-center" id="calLabel">ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â</p>
                                 <button type="button" class="zoom-btn" @click="calNext()"><span class="material-symbols-rounded text-sm">chevron_right</span></button>
                             </div>
                         </div>
@@ -268,7 +268,7 @@
                         </div>
                         <div class="input-group">
                             <label class="input-label">Operational Hours</label>
-                            <input type="text" name="operational_hours" id="operational_hours" class="input-field" placeholder="e.g. 9am to 5pm" value="{{ $operational_hours }}" @input="$el.classList.remove('!border-red-500', 'ring-2', 'ring-red-500/20')">
+                            <input type="text" name="operational_hours" id="operational_hours" class="input-field" placeholder="e.g. 9am to 5pm" value="{{ $operational_hours }}" @input="$el.classList.remove('border-red!-500', 'ring-2', 'ring-red-500/20')">
                         </div>
                     </div>
 
@@ -289,10 +289,10 @@
                             <div class="input-group lg:col-span-2">
                                 <label class="input-label">Duration (hours or custom)</label>
                                 <input type="text" name="duration" id="duration" class="input-field" 
-                                    placeholder="e.g. 4 hours or 2 days" value="{{ $this->getVal('duration') }}" @input="triggerRecalculate(true); $el.classList.remove('!border-red-500', 'ring-2', 'ring-red-500/20')">
+                                    placeholder="e.g. 4 hours or 2 days" value="{{ $this->getVal('duration') }}" @input="triggerRecalculate(true); $el.classList.remove('border-red!-500', 'ring-2', 'ring-red-500/20')">
                             </div>
                             <div class="input-group">
-                                <label class="input-label text-[#9E6B73]">Duration Cost</label>
+                                <label class="input-label text-plum">Duration Cost</label>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
                                     <input type="number" name="duration_cost" id="duration_cost" step="0.01" class="input-field pl-8" 
@@ -308,7 +308,7 @@
 
                 <div class="section-card" wire:ignore>
                     <div class="flex items-center gap-3 border-b border-gray-100 pb-6">
-                        <span class="material-symbols-rounded text-[#9E6B73] text-2xl">person_pin</span>
+                        <span class="material-symbols-rounded text-plum text-2xl">person_pin</span>
                         <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Customer & Venue</h2>
                     </div>
 
@@ -422,10 +422,10 @@
                                         <label class="input-label">Delivery Zone</label>
                                         <input type="text" name="delivery_area" id="delivery_area" class="input-field" 
                                             placeholder="e.g. Zone 1, Sydney Metro" 
-                                            value="{{ $this->getVal('delivery_area') }}" @input="$el.classList.remove('!border-red-500', 'ring-2', 'ring-red-500/20')">
+                                            value="{{ $this->getVal('delivery_area') }}" @input="$el.classList.remove('border-red!-500', 'ring-2', 'ring-red-500/20')">
                                     </div>
                                     <div class="input-group">
-                                        <label class="input-label text-[#9E6B73]">Delivery Cost</label>
+                                        <label class="input-label text-plum">Delivery Cost</label>
                                         <div class="relative">
                                             <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
                                             <input type="number" name="delivery_cost" id="delivery_cost" step="0.01" class="input-field pl-8" 
@@ -467,7 +467,7 @@
                     <div class="pt-6 border-t border-gray-100">
                         <label class="input-label mb-2 flex items-center justify-between">
                             <span>Delivery Attachments (Up to 5)</span>
-                            <span class="text-[10px] bg-[#9E6B73]/10 text-[#9E6B73] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Max 5MB Total</span>
+                            <span class="text-[10px] bg-plum/10 text-plum px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Max 5MB Total</span>
                         </label>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             @for ($i = 1; $i <= 5; $i++)
@@ -524,13 +524,13 @@
                                     
                                     <div class="flex items-center justify-between mb-3">
                                         <div class="flex items-center gap-2">
-                                            <div class="w-8 h-8 rounded-lg bg-[#9E6B73]/10 flex items-center justify-center text-[#9E6B73]">
+                                            <div class="w-8 h-8 rounded-lg bg-plum/10 flex items-center justify-center text-plum">
                                                 <span class="material-symbols-rounded text-lg" x-text="isImage ? 'image' : (fileName ? 'description' : 'upload_file')"></span>
                                             </div>
                                             <div class="flex flex-col">
                                                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Slot {{ $i }}</span>
                                                 <template x-if="fileExt">
-                                                    <span class="text-[9px] font-bold bg-[#9E6B73] text-white px-1.5 py-0.5 rounded-md uppercase w-fit" x-text="fileExt"></span>
+                                                    <span class="text-[9px] font-bold bg-plum text-white px-1.5 py-0.5 rounded-md uppercase w-fit" x-text="fileExt"></span>
                                                 </template>
                                             </div>
                                         </div>
@@ -550,7 +550,7 @@
                                                @change="handleFile($el)" 
                                                class="absolute inset-0 opacity-0 cursor-pointer z-10">
                                         
-                                        <div class="border-2 border-dashed border-slate-200 rounded-xl p-2 h-24 flex items-center justify-center bg-white overflow-hidden group-hover:border-[#9E6B73]/30 transition-colors">
+                                        <div class="border-2 border-dashed border-slate-200 rounded-xl p-2 h-24 flex items-center justify-center bg-white overflow-hidden group-hover:border-plum/30 transition-colors">
                                             <template x-if="!fileName">
                                                 <div class="flex flex-col items-center gap-1">
                                                     <span class="text-[10px] font-bold text-slate-400">Click to Upload</span>
@@ -565,8 +565,8 @@
                                                     </template>
                                                     <template x-if="!isImage">
                                                         <div class="flex flex-col items-center justify-center gap-1 p-2 text-center cursor-pointer z-20 w-full h-full" @click.stop="openFile()">
-                                                            <span class="material-symbols-rounded text-[#9E6B73] text-2xl">description</span>
-                                                            <span class="text-[9px] font-bold text-slate-600 truncate max-w-[120px]" x-text="fileName"></span>
+                                                            <span class="material-symbols-rounded text-plum text-2xl">description</span>
+                                                            <span class="text-[9px] font-bold text-slate-600 truncate max-w-30" x-text="fileName"></span>
                                                         </div>
                                                     </template>
                                                 </div>
@@ -582,11 +582,11 @@
                 <div class="section-card" wire:ignore>
                     <div class="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
                         <div class="flex items-center gap-3">
-                            <span class="material-symbols-rounded text-[#9E6B73] text-2xl">celebration</span>
+                            <span class="material-symbols-rounded text-plum text-2xl">celebration</span>
                             <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Attractions & Extras</h2>
                         </div>
                         <div class="relative w-64">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-[#9E6B73]"><span class="material-symbols-rounded text-lg">search</span></span>
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-plum"><span class="material-symbols-rounded text-lg">search</span></span>
                             <input type="text" id="rideSearch" @keyup="filterRides()" placeholder="Search attractions..." class="input-field input-with-icon py-2 text-sm">
                         </div>
                     </div>
@@ -599,7 +599,7 @@
                             @php $catIndex++; @endphp
                             <div class="category-section" data-category="{{ $catName }}">
                                 <div class="flex items-center gap-3 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                    <span class="w-8 h-8 rounded-lg bg-white text-[#9E6B73] flex items-center justify-center font-bold text-xs shadow-sm">{{ $catIndex }}</span>
+                                    <span class="w-8 h-8 rounded-lg bg-white text-plum flex items-center justify-center font-bold text-xs shadow-sm">{{ $catIndex }}</span>
                                     <h3 class="text-md font-bold text-slate-700 flex-1">{{ $catName }}</h3>
                                     @if ($catData['limit'] > 0)
                                     <span class="cat-limit-badge text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide border border-amber-200">Syncing Limits</span>
@@ -639,8 +639,8 @@
                                         <div class="flex justify-between items-start gap-2 mb-2 w-full">
                                             <div class="pr-2 w-full">
                                                 <div class="flex items-center gap-2">
-                                                    <h4 class="font-bold text-slate-800 text-sm leading-snug group-hover:text-[#9E6B73]">{{ $pName }}</h4>
-                                                    <button type="button" @click.stop="openProductDetails($event.currentTarget.closest('.product-card'))" class="text-slate-300 hover:text-[#9E6B73] transition-colors p-1 rounded-full hover:bg-slate-100 flex items-center justify-center">
+                                                    <h4 class="font-bold text-slate-800 text-sm leading-snug group-hover:text-plum">{{ $pName }}</h4>
+                                                    <button type="button" @click.stop="openProductDetails($event.currentTarget.closest('.product-card'))" class="text-slate-300 hover:text-plum transition-colors p-1 rounded-full hover:bg-slate-100 flex items-center justify-center">
                                                         <span class="material-symbols-rounded text-lg">info</span>
                                                     </button>
                                                 </div>
@@ -653,7 +653,7 @@
                                         </div>
                                         
                                         <div x-show="isChecked" class="mt-2 pt-3 border-t border-slate-100 w-full" @click.stop x-cloak>
-                                            <label class="text-[9px] font-black text-[#9E6B73] uppercase tracking-widest block mb-1.5 flex items-center gap-1.5">
+                                            <label class="text-[9px] font-black text-plum uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
                                                 <span class="material-symbols-rounded text-xs">edit_note</span>
                                                 Set Manual Price
                                             </label>
@@ -662,7 +662,7 @@
                                                 <input type="number" 
                                                        name="manual_prices[{{ $pName }}]"
                                                        step="0.01" 
-                                                       class="manual-ride-price w-full bg-white border border-slate-200 rounded-xl py-1.5 pl-5 pr-2 text-[11px] font-black text-slate-700 focus:ring-2 focus:ring-[#9E6B73]/20 focus:border-[#9E6B73] transition-all" 
+                                                       class="manual-ride-price w-full bg-white border border-slate-200 rounded-xl py-1.5 pl-5 pr-2 text-[11px] font-black text-slate-700 focus:ring-2 focus:ring-plum/20 focus:border-plum transition-all" 
                                                        placeholder="0.00"
                                                        value="{{ $isChecked ? ($this->selected_manual_prices[$pName] ?? '') : '' }}"
                                                        @input="triggerRecalculate(true)"
@@ -678,7 +678,7 @@
                         </div>
 
                         <div class="bg-slate-50 rounded-3xl p-6 border border-slate-200 mt-8">
-                            <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2 mb-6 border-b border-slate-200 pb-3"><span class="material-symbols-rounded text-[#9E6B73]">tune</span> Extra Configurations</h3>
+                            <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2 mb-6 border-b border-slate-200 pb-3"><span class="material-symbols-rounded text-plum">tune</span> Extra Configurations</h3>
 
                             <div id="dynamicExtrasContainer" class="grid grid-cols-1 gap-6">
                                 <p class="text-xs text-slate-500 italic py-4 col-span-full">Select attractions to view related extras.</p>
@@ -690,11 +690,11 @@
         </main>
     </div>
 
-    <div x-show="modals.review" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[9999]">
+    <div x-show="modals.review" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-9999">
         <div x-show="modals.review" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.review = false"></div>
         <div x-show="modals.review" x-transition class="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl flex flex-col max-h-[90vh]">
             <div class="p-6 border-b border-gray-100 flex items-center gap-3 bg-slate-800 text-white rounded-t-3xl">
-                <span class="material-symbols-rounded text-3xl text-[#9E6B73]">fact_check</span>
+                <span class="material-symbols-rounded text-3xl text-plum">fact_check</span>
                 <div>
                     <h3 class="text-xl font-bold">Review Booking Details</h3>
                     <p class="text-xs text-slate-300">Confirm everything looks correct before saving.</p>
@@ -735,7 +735,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                        <h4 class="text-xs font-bold text-[#9E6B73] uppercase mb-3 border-b pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">person</span> Customer Info</h4>
+                        <h4 class="text-xs font-bold text-plum uppercase mb-3 border-b pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">person</span> Customer Info</h4>
                         <div class="space-y-2 text-sm text-slate-600">
                             <p class="flex justify-between"><span class="font-bold">Name:</span> <span id="rev_name"></span></p>
                             <p class="flex justify-between"><span class="font-bold">Email:</span> <span id="rev_email"></span></p>
@@ -748,9 +748,9 @@
                     </div>
 
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                        <h4 class="text-xs font-bold text-[#9E6B73] uppercase mb-3 border-b pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">event</span> Event & Venue Info</h4>
+                        <h4 class="text-xs font-bold text-plum uppercase mb-3 border-b pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">event</span> Event & Venue Info</h4>
                         <div class="space-y-2 text-sm text-slate-600">
-                            <p class="flex justify-between"><span class="font-bold">Date:</span> <span id="rev_date" class="text-[#9E6B73] font-bold"></span></p>
+                            <p class="flex justify-between"><span class="font-bold">Date:</span> <span id="rev_date" class="text-plum font-bold"></span></p>
                             <p class="flex justify-between"><span class="font-bold">Op. Hours:</span> <span id="rev_op_hours"></span></p>
                             <p class="flex justify-between"><span class="font-bold">Time:</span> <span id="rev_time"></span></p>
                             <p class="flex justify-between"><span class="font-bold">Event Type:</span> <span id="rev_event_type"></span></p>
@@ -764,7 +764,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm h-full">
-                        <h4 class="text-xs font-bold text-[#9E6B73] uppercase mb-3 border-b pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">celebration</span> Selected Attractions & Staff</h4>
+                        <h4 class="text-xs font-bold text-plum uppercase mb-3 border-b pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">celebration</span> Selected Attractions & Staff</h4>
                         <ul id="rev_attractions" class="space-y-2 text-sm font-bold text-slate-700 mb-4"></ul>
 
                         <div class="border-t border-slate-100 pt-3">
@@ -780,7 +780,7 @@
 
                     <div class="bg-slate-800 text-white p-5 rounded-2xl border border-slate-700 shadow-sm flex flex-col justify-between">
                         <div>
-                            <h4 class="text-xs font-bold text-[#9E6B73] uppercase mb-3 border-b border-slate-600 pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">payments</span> Financials</h4>
+                            <h4 class="text-xs font-bold text-plum uppercase mb-3 border-b border-slate-600 pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">payments</span> Financials</h4>
                             <div class="space-y-2 text-sm text-slate-300">
                                 <p class="flex justify-between"><span>Duration:</span> <span id="rev_dur_cost" class="font-bold text-white"></span></p>
                                 <p class="flex justify-between"><span>Delivery:</span> <span id="rev_del_cost" class="font-bold text-white"></span></p>
@@ -794,7 +794,7 @@
                                     <div class="flex justify-between text-[10px]"><span class="text-slate-500 uppercase">Exp/CVV:</span> <span class="font-mono text-white">** / ** | ***</span></div>
                                 </div>
                                 <p class="flex justify-between text-xs text-emerald-400"><span>Deposit Paid:</span> <span id="rev_deposit_paid" class="font-bold"></span></p>
-                                <p class="flex justify-between font-bold items-center border-t border-slate-600 pt-3 mt-2"><span class="text-[#9E6B73] uppercase text-xs tracking-wider">Balance Due:</span> <span id="rev_balance_due" class="text-2xl text-white"></span></p>
+                                <p class="flex justify-between font-bold items-center border-t border-slate-600 pt-3 mt-2"><span class="text-plum uppercase text-xs tracking-wider">Balance Due:</span> <span id="rev_balance_due" class="text-2xl text-white"></span></p>
 
                                 <div id="rev_receipt_wrapper" class="hidden bg-slate-900 rounded-lg p-3 mt-3 border border-slate-700">
                                     <p class="flex justify-between text-[10px] items-center text-slate-400 uppercase font-bold tracking-tight"><span>Receipt Ref:</span> <span id="rev_receipt_id" class="text-white"></span></p>
@@ -810,7 +810,7 @@
                 </div>
 
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                    <h4 class="text-xs font-bold text-[#9E6B73] uppercase mb-3 border-b pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">notes</span> Notes</h4>
+                    <h4 class="text-xs font-bold text-plum uppercase mb-3 border-b pb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">notes</span> Notes</h4>
                     <p class="flex flex-col text-sm text-slate-600"><span class="font-bold mb-1">Delivery Notes:</span> <span id="rev_del_notes" class="leading-relaxed bg-slate-50 p-2 rounded-lg text-xs"></span></p>
                     <p class="flex flex-col text-sm text-slate-600 mt-3"><span class="font-bold mb-1">Customer Notes:</span> <span id="rev_cust_notes" class="leading-relaxed bg-slate-50 p-2 rounded-lg text-xs"></span></p>
                 </div>
@@ -818,14 +818,14 @@
 
             <div class="p-5 border-t border-gray-100 flex gap-4 bg-white rounded-b-3xl">
                 <button type="button" @click="modals.review = false" class="flex-1 py-4 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition">Go Back & Edit</button>
-                <button type="button" @click="finalizeBooking()" id="btnSaveFinal" class="flex-1 py-4 bg-[#9E6B73] text-white font-bold rounded-xl hover:bg-[#86545C] shadow-lg shadow-[#9E6B73]/20 transition flex items-center justify-center gap-2 text-lg">
+                <button type="button" @click="finalizeBooking()" id="btnSaveFinal" class="flex-1 py-4 bg-plum text-white font-bold rounded-xl hover:bg-plum-dark shadow-lg shadow-plum/20 transition flex items-center justify-center gap-2 text-lg">
                     <span class="material-symbols-rounded">check_circle</span> Confirm & Save Booking
                 </button>
             </div>
         </div>
     </div>
 
-    <div x-show="modals.history" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10000]">
+    <div x-show="modals.history" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-10000">
         <div x-show="modals.history" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.history = false"></div>
         <div x-show="modals.history" x-transition class="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
             <div class="p-6 border-b border-gray-100 flex flex-col gap-4 bg-green-600 text-white rounded-t-2xl">
@@ -838,13 +838,13 @@
                     <input type="text" x-model="searchHistory" @input="filterCustomers()" placeholder="Search name or email..." class="w-full pl-12 pr-4 py-3 rounded-xl bg-white/20 text-white placeholder-white/70 focus:bg-white focus:text-slate-800 outline-none transition border border-transparent focus:border-white">
                 </div>
             </div>
-            <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-slate-50 min-h-[400px]">
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-slate-50 min-h-100">
                 <template x-for="c in paginatedCustomers">
                     <div class="p-3 bg-white border border-gray-100 rounded-xl hover:border-green-300 hover:bg-green-50 cursor-pointer flex justify-between items-center transition group" @click="fillCustomerDetails(c)">
                         <div>
                             <p class="font-bold text-slate-800" x-text="(c.customer_first_name + ' ' + (c.customer_last_name || '')).trim()"></p>
-                            <p class="text-[10px] font-black text-[#9E6B73] uppercase tracking-tighter" x-show="c.suburb" x-text="c.suburb + (c.state ? ', ' + c.state : '')"></p>
-                            <p class="text-xs text-gray-400 mt-0.5" x-text="(c.customer_organization || 'Private') + ' • ' + (c.customer_email || c.customer_phone || '')"></p>
+                            <p class="text-[10px] font-black text-plum uppercase tracking-tighter" x-show="c.suburb" x-text="c.suburb + (c.state ? ', ' + c.state : '')"></p>
+                            <p class="text-xs text-gray-400 mt-0.5" x-text="(c.customer_organization || 'Private') + ' ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ ' + (c.customer_email || c.customer_phone || '')"></p>
                         </div>
                         <span class="text-xs font-bold text-green-600 opacity-0 group-hover:opacity-100 transition">Select</span>
                     </div>
@@ -863,7 +863,7 @@
         </div>
     </div>
 
-    <div x-show="modals.exit" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10001]">
+    <div x-show="modals.exit" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-10001">
         <div x-show="modals.exit" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.exit = false"></div>
         <div x-show="modals.exit" x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center">
             <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
@@ -878,7 +878,7 @@
         </div>
     </div>
 
-    <div x-show="modals.reset" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10001]">
+    <div x-show="modals.reset" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-10001">
         <div x-show="modals.reset" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.reset = false"></div>
         <div x-show="modals.reset" x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center">
             <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
@@ -894,7 +894,7 @@
     </div>
 
     <!-- Category Limit Modal -->
-    <div id="categoryLimitModal" x-show="modals.limitExceeded" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10002]">
+    <div id="categoryLimitModal" x-show="modals.limitExceeded" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-10002">
         <div x-show="modals.limitExceeded" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.limitExceeded = false"></div>
         <div x-show="modals.limitExceeded" x-transition class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 text-center">
             <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-600">
@@ -903,7 +903,7 @@
             <h3 class="text-xl font-bold text-slate-800 mb-3 uppercase tracking-tight">Category Limit Reached</h3>
             <p class="text-sm text-slate-600 mb-8 leading-relaxed">
                 You have reached the maximum limit of <span class="font-bold text-slate-800" x-text="limitExceededLimit"></span> items for the
-                <span class="font-extrabold text-[#9E6B73] underline decoration-2 underline-offset-4" x-text="limitExceededCategory"></span> category.
+                <span class="font-extrabold text-plum underline decoration-2 underline-offset-4" x-text="limitExceededCategory"></span> category.
                 Please deselect an item before adding a new one.
             </p>
             <button type="button" @click="modals.limitExceeded = false" class="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition shadow-lg shadow-slate-200 uppercase tracking-widest text-xs">
@@ -913,13 +913,13 @@
     </div>
 
     <!-- SYSTEM INFO MODAL -->
-    <div x-show="modals.systemInfo" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10005]">
+    <div x-show="modals.systemInfo" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-10005">
         <div x-show="modals.systemInfo" x-transition.opacity.duration.300ms class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="modals.systemInfo = false"></div>
         <div x-show="modals.systemInfo" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="opacity-0 scale-90 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-            class="relative w-full max-w-lg bg-white rounded-[24px] shadow-2xl overflow-hidden z-10 border-t-8 border-[#9E6B73]">
+            class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden z-10 border-t-8 border-plum">
             
             <div class="p-8 pb-4 text-left">
-                <div class="w-16 h-16 bg-[#9E6B73]/10 rounded-2xl flex items-center justify-center mb-6 text-[#9E6B73]">
+                <div class="w-16 h-16 bg-plum/10 rounded-2xl flex items-center justify-center mb-6 text-plum">
                     <span class="material-symbols-rounded text-3xl font-bold">help_center</span>
                 </div>
                 <h3 class="text-2xl font-black text-slate-800 mb-2 tracking-tight">System Concurrency & Guidelines</h3>
@@ -965,26 +965,26 @@
     </div>
 
     <!-- Image Preview Modal -->
-    <div x-show="modals.imagePreviewVisible" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[999999]">
+    <div x-show="modals.imagePreviewVisible" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-999999">
         <div x-show="modals.imagePreviewVisible" x-transition.opacity class="absolute inset-0 bg-slate-900/90 backdrop-blur-md" @click="modals.imagePreviewVisible = false"></div>
         <div x-show="modals.imagePreviewVisible" x-transition class="relative max-w-5xl w-full max-h-[90vh] flex flex-col items-center justify-center pointer-events-none">
-            <button @click="modals.imagePreviewVisible = false" class="absolute -top-12 right-0 text-white hover:text-[#9E6B73] transition pointer-events-auto p-2 bg-white/10 rounded-full">
+            <button @click="modals.imagePreviewVisible = false" class="absolute -top-12 right-0 text-white hover:text-plum transition pointer-events-auto p-2 bg-white/10 rounded-full">
                 <span class="material-symbols-rounded text-3xl">close</span>
             </button>
             <img :src="modals.imagePreview" class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl pointer-events-auto overflow-hidden">
         </div>
     </div>
 
-    <button type="button" @click="previewSidebarVisible = !previewSidebarVisible" class="fixed bottom-6 right-6 w-14 h-14 bg-[#9E6B73] text-white rounded-full shadow-lg shadow-[#9E6B73]/30 flex items-center justify-center hover:bg-[#855359] hover:-translate-y-1 transition-all z-40 group" title="Toggle Email Preview">
+    <button type="button" @click="previewSidebarVisible = !previewSidebarVisible" class="fixed bottom-6 right-6 w-14 h-14 bg-plum text-white rounded-full shadow-lg shadow-plum/30 flex items-center justify-center hover:bg-plum-dark hover:-translate-y-1 transition-all z-40 group" title="Toggle Email Preview">
         <span class="material-symbols-rounded text-2xl group-hover:scale-110 transition-transform">visibility</span>
     </button>
 
     <!-- EMAIL PREVIEW SIDEBAR -->
-    <aside :class="previewSidebarVisible ? 'translate-x-0' : 'translate-x-full'" class="fixed top-0 right-0 h-full w-full md:w-[500px] bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.1)] border-l border-gray-200 z-50 flex flex-col transition-transform duration-300 ease-in-out" x-cloak>
+    <aside :class="previewSidebarVisible ? 'translate-x-0' : 'translate-x-full'" class="fixed top-0 right-0 h-full w-full md:w-125 bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.1)] border-l border-gray-200 z-50 flex flex-col transition-transform duration-300 ease-in-out" x-cloak>
         <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
             <div>
                 <h3 class="font-bold text-slate-800 flex items-center gap-2">
-                    <span class="material-symbols-rounded text-[#9E6B73]">visibility</span> Email Preview
+                    <span class="material-symbols-rounded text-plum">visibility</span> Email Preview
                 </h3>
                 <p class="text-[10px] text-slate-500 uppercase tracking-wide">Reference while editing</p>
             </div>
@@ -1008,17 +1008,17 @@
             </template>
         </div>
         <div class="p-4 border-t border-gray-100 bg-gray-50">
-            <button type="button" @click="extractEmailData()" class="w-full py-3 bg-[#9E6B73] text-white font-bold rounded-xl hover:bg-[#855359] shadow-lg shadow-[#9E6B73]/20 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="!selectedEmailData">
+            <button type="button" @click="extractEmailData()" class="w-full py-3 bg-plum text-white font-bold rounded-xl hover:bg-plum-dark shadow-lg shadow-plum/20 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="!selectedEmailData">
                 <span class="material-symbols-rounded">integration_instructions</span> Extract Data
             </button>
         </div>
     </aside>
 
     <!-- GMAIL SEARCH MODAL -->
-    <div x-show="gmailModalVisible" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[9999]" x-cloak>
+    <div x-show="gmailModalVisible" class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-9999" x-cloak>
         <div x-show="gmailModalVisible" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="gmailModalVisible = false"></div>
         <div x-show="gmailModalVisible" x-transition class="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl flex flex-col max-h-[85vh] z-10 overflow-hidden border border-slate-200">
-            <div class="p-6 border-b border-gray-100 flex flex-col gap-4 bg-[#9E6B73] text-white">
+            <div class="p-6 border-b border-gray-100 flex flex-col gap-4 bg-plum text-white">
                 <div class="flex justify-between items-center">
                     <h3 class="text-xl font-bold flex items-center gap-2"><span class="material-symbols-rounded">mail</span> Import from Gmail</h3>
                     <button type="button" @click="gmailModalVisible = false" class="text-white/70 hover:text-white p-2 rounded-full hover:bg-white/20 transition"><span class="material-symbols-rounded text-lg">close</span></button>
@@ -1028,7 +1028,7 @@
                         <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400"><span class="material-symbols-rounded text-lg">search</span></span>
                         <input type="text" x-model="gmailSearchQuery" @keyup.enter="fetchEmails()" placeholder="Search subject (e.g. Quote #123)..." class="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/95 text-gray-800 text-sm focus:bg-white outline-none transition border-none shadow-inner placeholder:text-gray-400">
                     </div>
-                    <button type="button" @click="fetchEmails()" class="bg-white text-[#9E6B73] px-6 py-3.5 rounded-xl font-bold hover:bg-gray-50 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" :disabled="isFetchingEmails">
+                    <button type="button" @click="fetchEmails()" class="bg-white text-plum px-6 py-3.5 rounded-xl font-bold hover:bg-gray-50 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" :disabled="isFetchingEmails">
                         <span x-text="isFetchingEmails ? 'Searching...' : 'Search'"></span>
                     </button>
                 </div>
@@ -1041,19 +1041,19 @@
                     </div>
                 </template>
                 <template x-for="(email, index) in emailList" :key="email.id">
-                    <div @click="selectEmail(email)" class="p-4 bg-white border border-gray-100 rounded-2xl hover:border-[#9E6B73]/50 hover:bg-[#FFF5F7]/30 cursor-pointer flex justify-between items-start transition group shadow-sm">
+                    <div @click="selectEmail(email)" class="p-4 bg-white border border-gray-100 rounded-2xl hover:border-plum/50 hover:bg-bg-page/30 cursor-pointer flex justify-between items-start transition group shadow-sm">
                         <div class="flex-1 min-w-0 pr-4">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="material-symbols-rounded text-slate-400 text-[16px]">person</span>
                                 <span class="font-extrabold text-sm text-slate-800 truncate" x-text="email.name"></span>
                                 <span class="text-xs text-slate-400 truncate" x-text="'<' + email.email + '>'"></span>
                             </div>
-                            <h4 class="font-bold text-[#9E6B73] text-sm mb-1.5 truncate" x-text="email.subject || '(No Subject)'"></h4>
+                            <h4 class="font-bold text-plum text-sm mb-1.5 truncate" x-text="email.subject || '(No Subject)'"></h4>
                             <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed" x-text="email.snippet"></p>
                         </div>
-                        <div class="flex flex-col items-end gap-3 min-w-[80px]">
+                        <div class="flex flex-col items-end gap-3 min-w-20">
                             <span class="text-[10px] font-bold text-slate-400 tracking-wider uppercase bg-slate-100 px-2 py-1 rounded-md" x-text="email.date"></span>
-                            <div class="bg-[#9E6B73]/10 text-[#9E6B73] text-[10px] font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                            <div class="bg-plum/10 text-plum text-[10px] font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
                                 Select Email
                             </div>
                         </div>
@@ -1064,12 +1064,12 @@
     </div>
 
     <!-- Product Details Modal -->
-    <div x-show="productDetails.visible" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[20000]">
+    <div x-show="productDetails.visible" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-20000">
         <div x-show="productDetails.visible" x-transition.opacity class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="productDetails.visible = false"></div>
         <div x-show="productDetails.visible" x-transition class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
             <div class="p-6 bg-slate-800 text-white flex justify-between items-center">
                 <div class="flex items-center gap-3">
-                    <span class="material-symbols-rounded text-[#9E6B73] text-2xl">info</span>
+                    <span class="material-symbols-rounded text-plum text-2xl">info</span>
                     <h3 class="text-xl font-bold" x-text="productDetails.name">Product Specification</h3>
                 </div>
                 <button type="button" @click="productDetails.visible = false" class="text-slate-400 hover:text-white transition">
@@ -1090,12 +1090,12 @@
 
                 <div>
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Key Specifications</span>
-                    <div class="bg-slate-50/50 rounded-xl p-5 border border-slate-100 min-h-[100px]">
+                    <div class="bg-slate-50/50 rounded-xl p-5 border border-slate-100 min-h-25">
                         <template x-if="productDetails.spec">
                             <ul class="space-y-3">
                                 <template x-for="line in productDetails.spec.split('\n').filter(l => l.trim())">
                                     <li class="flex items-start gap-3">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-[#9E6B73] mt-1.5 shrink-0"></span>
+                                        <span class="w-1.5 h-1.5 rounded-full bg-plum mt-1.5 shrink-0"></span>
                                         <span class="text-sm text-slate-600 font-medium leading-relaxed" x-text="line"></span>
                                     </li>
                                 </template>

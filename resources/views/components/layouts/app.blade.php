@@ -14,7 +14,7 @@
     @livewireStyles
 </head>
 
-<body class="min-h-screen bg-[#F6F7FB] bg-[radial-gradient(1200px_600px_at_15%_-10%,rgba(158,107,115,.18),transparent_60%),radial-gradient(900px_500px_at_95%_10%,rgba(134,84,92,.14),transparent_55%)] text-[#2D3748] font-['Poppins'] w-full pb-12">
+<body class="min-h-screen bg-[#F6F7FB] bg-[radial-gradient(1200px_600px_at_15%_-10%,rgba(158,107,115,.18),transparent_60%),radial-gradient(900px_500px_at_95%_10%,rgba(134,84,92,.14),transparent_55%)] text-text-main font-['Poppins'] w-full pb-12">
 
     <main class="w-full min-h-screen pt-24 px-4 lg:px-8 pb-12 transition-all duration-300">
         {{ $slot }}

@@ -2,7 +2,7 @@
     <div x-data="{ slide: 0, timer: null }"
         x-init="timer = setInterval(() => { slide = (slide + 1) % 3 }, 5000)"
         class="hidden lg:flex w-7/12 bg-login-image relative items-center justify-center overflow-hidden h-full">
-        <div class="absolute inset-0 bg-gradient-to-tr from-[#86545C]/90 to-[#9E6B73]/40 mix-blend-multiply"></div>
+        <div class="absolute inset-0 bg-linear-to-tr from-plum-dark/90 to-plum/40 mix-blend-multiply"></div>
 
         <div class="relative z-10 p-16 w-full max-w-3xl flex flex-col justify-center h-full">
             <div class="relative h-48 mb-8">
@@ -54,14 +54,14 @@
                 @enderror
 
                 <button type="submit"
-                    class="w-full py-4 bg-[#9E6B73] text-white font-bold rounded-2xl text-lg hover:bg-[#86545C] hover:shadow-lg hover:shadow-[#9E6B73]/30 hover:-translate-y-1 transition-all duration-300 flex justify-center items-center gap-2">
+                    class="w-full py-4 bg-plum text-white font-bold rounded-2xl text-lg hover:bg-plum-dark hover:shadow-lg hover:shadow-plum/30 hover:-translate-y-1 transition-all duration-300 flex justify-center items-center gap-2">
                     <span wire:loading.remove wire:target="sendResetLink">Send Reset Link</span>
                     <span wire:loading wire:target="sendResetLink">Verifying Account...</span>
                 </button>
             </form>
 
             <div class="mt-8 text-center animate-enter delay-200">
-                <a href="{{ route('login') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#9E6B73] transition p-2">
+                <a href="{{ route('login') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-plum transition p-2">
                     <span class="material-symbols-rounded text-lg">arrow_back</span>
                     Back to Login
                 </a>
@@ -84,7 +84,7 @@
             @endif
 
             <p class="mt-12 text-center text-xs text-gray-400 pb-4">
-                © 2026 BigFun Management System
+                Â© 2026 BigFun Management System
             </p>
         </div>
     </div>

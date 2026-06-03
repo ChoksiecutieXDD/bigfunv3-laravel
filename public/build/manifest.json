@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-C_WbXMww.css",
+    "file": "assets/app-2fOpFIcw.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -15,19 +15,19 @@
     "isEntry": true
   },
   "resources/js/availability-sync.js": {
-    "file": "assets/availability-sync-gDJV8tAt.js",
+    "file": "assets/availability-sync-QFtfi6hc.js",
     "name": "availability-sync",
     "src": "resources/js/availability-sync.js",
     "isEntry": true
   },
   "resources/js/edit-booking.js": {
-    "file": "assets/edit-booking-BkbiJoNG.js",
+    "file": "assets/edit-booking-DvA8L68J.js",
     "name": "edit-booking",
     "src": "resources/js/edit-booking.js",
     "isEntry": true
   },
   "resources/js/new-booking.js": {
-    "file": "assets/new-booking-BFP2Ug58.js",
+    "file": "assets/new-booking-DunNYJqP.js",
     "name": "new-booking",
     "src": "resources/js/new-booking.js",
     "isEntry": true

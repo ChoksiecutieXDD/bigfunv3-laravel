@@ -1,4 +1,4 @@
-<div class="max-w-[1440px] mx-auto w-full pb-12 px-4 sm:px-6 lg:px-8">
+<div class="max-w-360 mx-auto w-full pb-12 px-4 sm:px-6 lg:px-8">
     <!-- Header -->
     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6 mt-4">
         <div>
@@ -20,16 +20,16 @@
     <!-- Search Section -->
     <div class="bg-white/95 backdrop-blur-md rounded-2xl p-5 sm:p-6 mb-10 border border-white/50 shadow-xl shadow-black/10">
         <div class="flex items-center gap-3 mb-5 border-b border-gray-100 pb-3">
-            <div class="w-8 h-8 rounded-lg bg-[#FDF2F4] flex items-center justify-center text-[#9E6B73]">
+            <div class="w-8 h-8 rounded-lg bg-plum-light flex items-center justify-center text-plum">
                 <span class="material-symbols-rounded text-xl">search</span>
             </div>
             <h2 class="text-lg font-bold text-gray-800">Find Assignments</h2>
         </div>
         <div class="flex flex-col sm:flex-row gap-3 w-full">
-            <div class="relative flex-grow">
+            <div class="relative grow">
                 <span class="material-symbols-rounded absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">search</span>
                 <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search Booking ID, Name, or Location..."
-                    class="pl-12 pr-4 py-4 rounded-xl text-sm border-2 border-gray-50 focus:border-[#9E6B73] focus:ring-4 focus:ring-[#9E6B73]/5 w-full shadow-inner bg-gray-50/50 text-gray-800 transition-all font-medium">
+                    class="pl-12 pr-4 py-4 rounded-xl text-sm border-2 border-gray-50 focus:border-plum focus:ring-4 focus:ring-plum/5 w-full shadow-inner bg-gray-50/50 text-gray-800 transition-all font-medium">
             </div>
             @if(!empty($search))
                 <button wire:click="$set('search', '')" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-6 py-4 rounded-xl text-sm font-bold transition-all shadow-sm">Clear</button>
@@ -40,22 +40,22 @@
     <!-- Upcoming View -->
     <div class="{{ $activeTab == 'upcoming' ? '' : 'hidden' }}">
         @if($upcomingAssignments->isEmpty())
-            <div class="bg-white/90 backdrop-blur rounded-[2rem] p-16 text-center border border-white/50 shadow-sm">
+            <div class="bg-white/90 backdrop-blur rounded-4xl p-16 text-center border border-white/50 shadow-sm">
                 <div class="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 text-gray-300">
                     <span class="material-symbols-rounded text-5xl">event_available</span>
                 </div>
                 <h3 class="text-2xl font-black text-gray-800">No Confirmed Assignments</h3>
-                <p class="text-gray-500 mt-2 max-w-sm mx-auto">No upcoming <span class="font-bold text-[#9E6B73]">Confirmed</span> lead jobs found matching your criteria.</p>
+                <p class="text-gray-500 mt-2 max-w-sm mx-auto">No upcoming <span class="font-bold text-plum">Confirmed</span> lead jobs found matching your criteria.</p>
             </div>
         @else
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 @foreach ($upcomingAssignments as $job)
-                    <div class="bg-white rounded-[1.5rem] p-6 shadow-sm border border-gray-50 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col h-full relative overflow-hidden">
+                    <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-50 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col h-full relative overflow-hidden">
                         <!-- Decorative element -->
-                        <div class="absolute top-0 right-0 w-24 h-24 bg-[#FDF2F4] rounded-bl-[4rem] -mr-12 -mt-12 transition-all group-hover:bg-[#FDF2F4]/60"></div>
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-plum-light rounded-bl-[4rem] -mr-12 -mt-12 transition-all group-hover:bg-plum-light/60"></div>
 
                         <div class="relative z-10 flex justify-between items-start mb-5">
-                            <div class="bg-[#FDF2F4] text-[#9E6B73] font-bold text-[10px] px-3 py-1.5 rounded-lg border border-[#9E6B73]/10 uppercase tracking-widest truncate max-w-[150px]">
+                            <div class="bg-plum-light text-plum font-bold text-[10px] px-3 py-1.5 rounded-lg border border-plum/10 uppercase tracking-widest truncate max-w-37.5">
                                 {{ $job->event_type }}
                             </div>
                             <span class="bg-pink-100 text-pink-700 text-[10px] font-black px-3 py-1 rounded-full border border-pink-200 uppercase">Lead Op</span>
@@ -65,7 +65,7 @@
                             <h3 class="text-2xl font-black text-gray-800 leading-tight">
                                 {{ \Carbon\Carbon::parse($job->event_date)->format('D, M d') }}
                             </h3>
-                            <div class="flex items-center gap-2 text-[#9E6B73] font-bold mt-1 text-sm">
+                            <div class="flex items-center gap-2 text-plum font-bold mt-1 text-sm">
                                 <span class="material-symbols-rounded text-lg">schedule</span>
                                 {{ \Carbon\Carbon::parse($job->start_time)->format('g:i A') }}
                             </div>
@@ -96,7 +96,7 @@
                             </div>
                         </div>
 
-                        <a href="{{ route('staff.bookings.overview', $job->id) }}" class="relative z-10 w-full py-4 rounded-xl bg-gray-900 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#9E6B73] hover:shadow-lg hover:shadow-gray-200 transition-all">
+                        <a href="{{ route('staff.bookings.overview', $job->id) }}" class="relative z-10 w-full py-4 rounded-xl bg-gray-900 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-plum hover:shadow-lg hover:shadow-gray-200 transition-all">
                             View Details <span class="material-symbols-rounded text-base">arrow_forward_ios</span>
                         </a>
                     </div>
@@ -112,7 +112,7 @@
     <!-- History View -->
     <div class="{{ $activeTab == 'past' ? '' : 'hidden' }}">
         @if($pastAssignments->isEmpty())
-            <div class="bg-white/90 backdrop-blur rounded-[2rem] p-16 text-center border border-white/50 shadow-sm">
+            <div class="bg-white/90 backdrop-blur rounded-4xl p-16 text-center border border-white/50 shadow-sm">
                 <div class="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 text-gray-300">
                     <span class="material-symbols-rounded text-5xl">history</span>
                 </div>
@@ -120,9 +120,9 @@
                 <p class="text-gray-500 mt-2 max-w-sm mx-auto">Completed or cancelled lead jobs will appear here.</p>
             </div>
         @else
-            <div class="bg-white rounded-[1.5rem] shadow-sm overflow-hidden border border-gray-100 mb-8">
+            <div class="bg-white rounded-3xl shadow-sm overflow-hidden border border-gray-100 mb-8">
                 <div class="overflow-x-auto no-scrollbar">
-                    <table class="w-full text-left border-collapse min-w-[800px]">
+                    <table class="w-full text-left border-collapse min-w-200">
                         <thead>
                             <tr class="bg-gray-50/50 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] border-b border-gray-100">
                                 <th class="p-5">Date</th>
@@ -135,7 +135,7 @@
                         </thead>
                         <tbody class="divide-y divide-gray-50">
                             @foreach ($pastAssignments as $job)
-                                <tr class="hover:bg-[#FDF2F4]/40 transition-colors group">
+                                <tr class="hover:bg-plum-light/40 transition-colors group">
                                     <td class="p-5">
                                         <p class="font-black text-gray-800">{{ \Carbon\Carbon::parse($job->event_date)->format('M d, Y') }}</p>
                                         <p class="text-[10px] font-bold text-gray-400 uppercase mt-0.5">{{ \Carbon\Carbon::parse($job->start_time)->format('g:i A') }}</p>
@@ -161,7 +161,7 @@
                                         </span>
                                     </td>
                                     <td class="p-5 text-right">
-                                        <a href="{{ route('staff.bookings.overview', $job->id) }}" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:bg-[#9E6B73] hover:text-white transition-all shadow-sm hover:shadow-md">
+                                        <a href="{{ route('staff.bookings.overview', $job->id) }}" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:bg-plum hover:text-white transition-all shadow-sm hover:shadow-md">
                                             <span class="material-symbols-rounded">visibility</span>
                                         </a>
                                     </td>

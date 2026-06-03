@@ -1,4 +1,4 @@
-<div class="max-w-[1440px] mx-auto w-full space-y-6 pb-12">
+<div class="max-w-360 mx-auto w-full space-y-6 pb-12">
     <!-- Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
@@ -57,10 +57,10 @@
         <div class="xl:col-span-2 bg-white rounded-3xl p-6 shadow-lg shadow-black/5 border border-white/50 flex flex-col transition-all hover:shadow-xl hover:shadow-black/10">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <span class="material-symbols-rounded text-[#9E6B73]">monitoring</span> 
+                    <span class="material-symbols-rounded text-plum">monitoring</span> 
                     Booking Analytics
                 </h3>
-                <select wire:model.live="chartPeriod" class="bg-gray-50 border-none text-xs font-bold text-gray-500 py-2 px-4 rounded-xl cursor-pointer hover:bg-gray-100 outline-none focus:ring-2 focus:ring-[#9E6B73]/20">
+                <select wire:model.live="chartPeriod" class="bg-gray-50 border-none text-xs font-bold text-gray-500 py-2 px-4 rounded-xl cursor-pointer hover:bg-gray-100 outline-none focus:ring-2 focus:ring-plum/20">
                     <option value="This Week">This Week</option>
                     <option value="This Month">This Month</option>
                     <option value="This Year">This Year</option>
@@ -68,7 +68,7 @@
             </div>
 
             <!-- Inline Alpine for Line Chart -->
-            <div class="relative flex-1 min-h-[300px] w-full"
+            <div class="relative flex-1 min-h-75 w-full"
                 wire:ignore
                 x-data="{
                     chartInstance: null,
@@ -149,13 +149,13 @@
         <div class="bg-white rounded-3xl p-6 shadow-lg shadow-black/5 border border-white/50 flex flex-col transition-all hover:shadow-xl hover:shadow-black/10">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <span class="material-symbols-rounded text-[#9E6B73]">pie_chart</span>
+                    <span class="material-symbols-rounded text-plum">pie_chart</span>
                     Payment Status
                 </h3>
             </div>
 
             <!-- Inline Alpine for Pie Chart -->
-            <div class="relative flex-1 min-h-[220px] flex items-center justify-center">
+            <div class="relative flex-1 min-h-55 flex items-center justify-center">
                 @if(($payment_breakdown['Paid'] ?? 0) + ($payment_breakdown['Partial'] ?? 0) > 0)
                     <div class="w-full h-full"
                         wire:ignore
@@ -235,7 +235,7 @@
         <div class="xl:col-span-3 bg-white rounded-3xl p-6 shadow-lg shadow-black/5 border border-white/50">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-lg font-bold text-gray-800">Recent Bookings</h3>
-                <a href="{{ route('admin.manages') }}" wire:navigate class="text-[#9E6B73] text-xs font-bold hover:underline">View All</a>
+                <a href="{{ route('admin.manages') }}" wire:navigate class="text-plum text-xs font-bold hover:underline">View All</a>
             </div>
             <div class="space-y-4">
                 @forelse ($recent_activities as $act)
@@ -250,8 +250,8 @@
                     <div class="flex-1 min-w-0 text-left">
                         <p class="text-sm font-bold text-gray-800 truncate">{{ $act->customer_first_name }} {{ $act->customer_last_name }}</p>
                         <p class="text-xs text-gray-400">
-                            {{ \Carbon\Carbon::parse($act->event_date)->format('M d, Y') }} • #{{ $act->id }}
-                            @if($act->booked_by) • <span class="text-[#9E6B73] font-bold">By: {{ $act->booked_by }}</span> @endif
+                            {{ \Carbon\Carbon::parse($act->event_date)->format('M d, Y') }} Ã¢â‚¬Â¢ #{{ $act->id }}
+                            @if($act->booked_by) Ã¢â‚¬Â¢ <span class="text-plum font-bold">By: {{ $act->booked_by }}</span> @endif
                         </p>
                     </div>
                     <span class="text-[10px] font-bold px-2 py-1 rounded-lg {{ $stClass }}">{{ $act->status }}</span>

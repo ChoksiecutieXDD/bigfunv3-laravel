@@ -27,7 +27,7 @@ $maxWidthClass = [
     x-on:keydown.escape.window="show = false"
     x-show="show"
     x-cloak
-    class="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto sm:p-6"
+    class="fixed inset-0 z-100 flex items-center justify-center p-4 overflow-y-auto sm:p-6"
     style="display: none;">
     <div x-show="show"
         x-transition:enter="transition ease-out duration-300"
@@ -47,7 +47,7 @@ $maxWidthClass = [
         x-transition:leave="transition ease-in duration-200 transform"
         x-transition:leave-start="opacity-100 scale-100 translate-y-0"
         x-transition:leave-end="opacity-0 scale-90 translate-y-4"
-        class="relative w-full {{ $maxWidthClass }} bg-white rounded-[24px] shadow-2xl z-[101] overflow-hidden flex flex-col max-h-[90vh]">
+        class="relative w-full {{ $maxWidthClass }} bg-white rounded-3xl shadow-2xl z-101 overflow-hidden flex flex-col max-h-[90vh]">
         {{ $slot }}
     </div>
 </div>

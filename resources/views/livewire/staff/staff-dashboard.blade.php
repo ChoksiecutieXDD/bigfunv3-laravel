@@ -69,16 +69,16 @@
         }
     </style>
 
-    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-360 mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Top Overview & Stats -->
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-8 mt-4">
             <div class="w-full lg:w-auto">
-                <h1 class="text-2xl md:text-4xl font-extrabold text-white drop-shadow-md">Hello, {{ $firstNameOnly }}! 👋</h1>
+                <h1 class="text-2xl md:text-4xl font-extrabold text-white drop-shadow-md">Hello, {{ $firstNameOnly }}! ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ¢â‚¬Â¹</h1>
                 <p class="text-white/90 font-medium mt-1 text-sm md:text-base">Here is your operational overview.</p>
             </div>
 
             <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-                <div class="bg-white/90 backdrop-blur px-5 py-4 rounded-2xl shadow-sm border border-white/50 flex items-center gap-4 flex-1 lg:min-w-[180px]">
+                <div class="bg-white/90 backdrop-blur px-5 py-4 rounded-2xl shadow-sm border border-white/50 flex items-center gap-4 flex-1 lg:min-w-45">
                     <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 shadow-inner">
                         <span class="material-symbols-rounded text-2xl">calendar_month</span>
                     </div>
@@ -87,7 +87,7 @@
                         <div class="text-xl md:text-2xl font-black text-gray-800 leading-none">{{ $upcoming_count }}</div>
                     </div>
                 </div>
-                <div class="bg-white/90 backdrop-blur px-5 py-4 rounded-2xl shadow-sm border border-white/50 flex items-center gap-4 flex-1 lg:min-w-[180px]">
+                <div class="bg-white/90 backdrop-blur px-5 py-4 rounded-2xl shadow-sm border border-white/50 flex items-center gap-4 flex-1 lg:min-w-45">
                     <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0 shadow-inner">
                         <span class="material-symbols-rounded text-2xl">check_circle</span>
                     </div>
@@ -102,16 +102,16 @@
         <!-- Livewire Reactive Search Bar -->
         <div class="bg-white/95 backdrop-blur-md rounded-2xl p-5 sm:p-6 mb-10 border border-white/50 shadow-xl shadow-black/10">
             <div class="flex items-center gap-3 mb-5 border-b border-gray-100 pb-3">
-                <div class="w-8 h-8 rounded-lg bg-[#FDF2F4] flex items-center justify-center text-[#9E6B73]">
+                <div class="w-8 h-8 rounded-lg bg-plum-light flex items-center justify-center text-plum">
                     <span class="material-symbols-rounded text-xl">search</span>
                 </div>
                 <h2 class="text-lg font-bold text-gray-800">Find Booking</h2>
             </div>
             <div class="flex flex-col sm:flex-row gap-3 w-full">
-                <div class="relative flex-grow">
+                <div class="relative grow">
                     <span class="material-symbols-rounded absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">search</span>
                     <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search by Job ID or Customer Name..."
-                        class="pl-12 pr-4 py-4 rounded-xl text-sm border-2 border-gray-50 focus:border-[#9E6B73] focus:ring-4 focus:ring-[#9E6B73]/5 w-full shadow-inner bg-gray-50/50 text-gray-800 transition-all font-medium">
+                        class="pl-12 pr-4 py-4 rounded-xl text-sm border-2 border-gray-50 focus:border-plum focus:ring-4 focus:ring-plum/5 w-full shadow-inner bg-gray-50/50 text-gray-800 transition-all font-medium">
                 </div>
                 @if (!empty($search))
                 <button wire:click="clearSearch" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-6 py-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center sm:w-auto shadow-sm">
@@ -158,12 +158,12 @@
             $roleClass = ($role === 'Driver') ? 'role-driver' : (($role === 'Lead Op') ? 'role-lead' : 'role-team');
             @endphp
             <div class="bg-white rounded-2xl p-5 shadow-lg shadow-black/5 hover:shadow-xl transition group relative overflow-hidden flex flex-col h-full">
-                <div class="absolute top-0 right-0 w-16 h-16 bg-[#FDF2F4] rounded-bl-full -mr-8 -mt-8 z-0"></div>
+                <div class="absolute top-0 right-0 w-16 h-16 bg-plum-light rounded-bl-full -mr-8 -mt-8 z-0"></div>
                 <div class="relative z-10 flex-1 flex flex-col">
                     <div class="flex justify-between items-center mb-3">
                         <div class="flex items-center gap-2">
                             <span class="text-[#191D2C] font-extrabold text-sm tracking-tight">#{{ $job->id }}</span>
-                            <div class="bg-gray-100 text-gray-500 font-bold text-[10px] px-2 py-1 rounded uppercase tracking-wide truncate max-w-[80px] sm:max-w-none">{{ $job->event_type }}</div>
+                            <div class="bg-gray-100 text-gray-500 font-bold text-[10px] px-2 py-1 rounded uppercase tracking-wide truncate max-w-20 sm:max-w-none">{{ $job->event_type }}</div>
                         </div>
                         <span class="role-pill {{ $roleClass }} shrink-0">{{ $role }}</span>
                     </div>
@@ -172,7 +172,7 @@
                             {{ \Carbon\Carbon::parse($job->event_date)->format('d') }}
                             <span class="text-lg font-medium text-gray-400">{{ \Carbon\Carbon::parse($job->event_date)->format('M') }}</span>
                         </h3>
-                        <p class="text-[#9E6B73] font-bold text-sm flex items-center gap-1 mt-1">
+                        <p class="text-plum font-bold text-sm flex items-center gap-1 mt-1">
                             <span class="material-symbols-rounded text-sm">schedule</span>
                             {{ \Carbon\Carbon::parse($job->start_time)->format('g:i A') }} - {{ $job->end_time ? \Carbon\Carbon::parse($job->end_time)->format('g:i A') : 'TBD' }}
                             @if(!empty($job->duration))
@@ -219,7 +219,7 @@
         </h2>
         <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-white/50">
             <div class="w-full overflow-x-auto custom-scrollbar">
-                <table class="w-full text-left border-collapse min-w-[1000px]">
+                <table class="w-full text-left border-collapse min-w-250">
                     <thead class="bg-gray-50 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
                         <tr>
                             <th class="p-5">Date</th>
@@ -246,15 +246,15 @@
                             <td class="p-5 text-gray-500">#{{ $job->id }}</td>
                             <td class="p-5"><span class="role-pill {{ $roleClass }}">{{ $role }}</span></td>
                             <td class="p-5 font-medium text-gray-700">{{ $job->event_type }}</td>
-                            <td class="p-5 text-gray-700 truncate max-w-[120px]" title="{{ $job->lead_operator }}">
+                            <td class="p-5 text-gray-700 truncate max-w-30" title="{{ $job->lead_operator }}">
                                 {!! !empty($job->lead_operator) ? $job->lead_operator : '<span class="text-gray-400">-</span>' !!}
                             </td>
-                            <td class="p-5 text-gray-700 truncate max-w-[120px]" title="{{ $job->lead_deliverer }}">
+                            <td class="p-5 text-gray-700 truncate max-w-30" title="{{ $job->lead_deliverer }}">
                                 {!! !empty($job->lead_deliverer) ? $job->lead_deliverer : '<span class="text-gray-400">-</span>' !!}
                             </td>
                             <td class="p-5 text-gray-500 truncate max-w-xs">{{ $job->address_line_1 }}</td>
                             <td class="p-5"><span class="status-pill status-confirmed">Confirmed</span></td>
-                            <td class="p-5 text-right"><a href="{{ route('staff.bookings.overview', $job->id) }}" class="text-gray-400 hover:text-[#9E6B73] transition"><span class="material-symbols-rounded">visibility</span></a></td>
+                            <td class="p-5 text-right"><a href="{{ route('staff.bookings.overview', $job->id) }}" class="text-gray-400 hover:text-plum transition"><span class="material-symbols-rounded">visibility</span></a></td>
                         </tr>
                         @empty
                         <tr>

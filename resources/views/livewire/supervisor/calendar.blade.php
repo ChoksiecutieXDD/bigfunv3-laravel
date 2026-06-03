@@ -1,4 +1,4 @@
-<div x-data="{ remindersOpen: false }" class="w-full max-w-[1440px] mx-auto space-y-8 pb-12">
+<div x-data="{ remindersOpen: false }" class="w-full max-w-360 mx-auto space-y-8 pb-12">
 
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -11,8 +11,8 @@
         </a>
     </div>
 
-    <div class="bg-white rounded-[2rem] shadow-xl p-8">
-        <h3 class="text-xl font-bold text-[#2D3748] mb-6 flex items-center justify-between">
+    <div class="bg-white rounded-4xl shadow-xl p-8">
+        <h3 class="text-xl font-bold text-text-main mb-6 flex items-center justify-between">
             Monthly Financials
             {{-- FIXED: Added null, $currentMonth, 1 to prevent day-31 rollover bugs --}}
             <span class="text-xs bg-gray-100 text-gray-500 px-3 py-1 rounded-full">{{ \Carbon\Carbon::create(null, $currentMonth, 1)->format('F') }} Stats</span>
@@ -20,7 +20,7 @@
 
         <div class="flex flex-col xl:flex-row gap-10">
             <div class="flex-1">
-                <div class="grid grid-cols-3 pb-3 border-b border-gray-100 font-bold text-sm text-[#2D3748]">
+                <div class="grid grid-cols-3 pb-3 border-b border-gray-100 font-bold text-sm text-text-main">
                     <div class="text-left">Metric</div>
                     <div class="text-right">Bookings</div>
                     <div class="text-right">Revenue</div>
@@ -40,8 +40,8 @@
 
                 <div class="grid grid-cols-3 py-4 text-sm items-center">
                     <div class="text-left font-bold text-plum">Year To Date ({{ $currentYear }})</div>
-                    <div class="text-right font-bold text-[#2D3748]">{{ $stats['ytdBookings'] ?? 0 }}</div>
-                    <div class="text-right font-bold text-[#2D3748]">${{ number_format($stats['ytdRevenue'] ?? 0, 2) }}</div>
+                    <div class="text-right font-bold text-text-main">{{ $stats['ytdBookings'] ?? 0 }}</div>
+                    <div class="text-right font-bold text-text-main">${{ number_format($stats['ytdRevenue'] ?? 0, 2) }}</div>
                 </div>
             </div>
 
@@ -69,7 +69,7 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-[2rem] shadow-xl flex flex-col h-[800px] overflow-hidden mt-8">
+    <div class="bg-white rounded-4xl shadow-xl flex flex-col h-275 overflow-hidden mt-8">
 
         <div class="calendar-header-bar p-5 flex flex-col justify-between shrink-0 z-30 relative gap-4">
             <div class="flex flex-col xl:flex-row justify-between items-center w-full gap-4">
@@ -83,7 +83,7 @@
                         Today
                     </button>
 
-                    <h3 class="text-2xl font-bold tracking-tight text-center min-w-[200px] text-white">
+                    <h3 class="text-2xl font-bold tracking-tight text-center min-w-50 text-white">
                         @if($showWholeYear)
                             Year {{ $currentYear }} Overview
                         @else
@@ -381,9 +381,9 @@
                             default => 'bg-gray-50 text-gray-500 border-gray-100'
                         };
                     @endphp
-                    <a href="{{ route('supervisor.bookings.overview', $event->id) }}" class="block p-3 border rounded-lg text-sm transition shadow-sm group bg-gray-50 hover:bg-white border-gray-100 hover:border-[#9D686E]/40">
+                    <a href="{{ route('supervisor.bookings.overview', $event->id) }}" class="block p-3 border rounded-lg text-sm transition shadow-sm group bg-gray-50 hover:bg-white border-gray-100 hover:border-plum/40">
                         <div class="flex justify-between items-start mb-1">
-                            <p class="font-bold transition text-gray-700 group-hover:text-[#9D686E]">{{ \Carbon\Carbon::parse($event->event_date)->format('l, M d') }}</p>
+                            <p class="font-bold transition text-gray-700 group-hover:text-plum">{{ \Carbon\Carbon::parse($event->event_date)->format('l, M d') }}</p>
                             <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-gray-500 bg-gray-200/50">
                                 @php
                                     $startTime = $event->start_time;

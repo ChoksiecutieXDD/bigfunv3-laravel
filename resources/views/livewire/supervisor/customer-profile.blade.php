@@ -1,4 +1,4 @@
-<div class="max-w-[1440px] mx-auto space-y-6">
+<div class="max-w-360 mx-auto space-y-6">
 
     <!-- Navigation Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
@@ -12,7 +12,7 @@
             </div>
         </div>
         <div class="flex gap-2">
-            <a href="mailto:{{ $booking->customer_email }}" class="px-6 py-2.5 bg-[#9D686E] text-white rounded-xl font-bold shadow-lg shadow-[#9D686E]/20 hover:bg-[#855359] transition flex items-center gap-2 text-xs uppercase tracking-widest">
+            <a href="mailto:{{ $booking->customer_email }}" class="px-6 py-2.5 bg-plum text-white rounded-xl font-bold shadow-lg shadow-plum/20 hover:bg-plum-dark transition flex items-center gap-2 text-xs uppercase tracking-widest">
                 <span class="material-symbols-rounded text-lg">mail</span> Contact Customer
             </a>
         </div>
@@ -25,9 +25,9 @@
             
             <!-- Customer Identity Card -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center relative overflow-hidden group">
-                <div class="absolute top-0 left-0 w-full h-1 bg-[#9D686E]"></div>
+                <div class="absolute top-0 left-0 w-full h-1 bg-plum"></div>
                 
-                <div class="w-24 h-24 bg-slate-50 rounded-[2.5rem] mx-auto flex items-center justify-center text-4xl text-[#9D686E] mb-5 border-2 border-[#9D686E]/10 group-hover:rotate-6 transition-transform">
+                <div class="w-24 h-24 bg-slate-50 rounded-[2.5rem] mx-auto flex items-center justify-center text-4xl text-plum mb-5 border-2 border-plum/10 group-hover:rotate-6 transition-transform">
                     <span class="material-symbols-rounded text-5xl">person</span>
                 </div>
                 
@@ -36,7 +36,7 @@
 
                 <div class="mt-8 space-y-4 text-left">
                     <div class="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100/50">
-                        <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[#9D686E] shadow-sm"><span class="material-symbols-rounded text-xl">call</span></div>
+                        <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-plum shadow-sm"><span class="material-symbols-rounded text-xl">call</span></div>
                         <div>
                             <p class="text-[9px] uppercase font-black text-slate-400 tracking-widest">Primary Contact</p>
                             <p class="text-sm font-black text-slate-800">{{ $booking->customer_phone }}</p>
@@ -44,7 +44,7 @@
                     </div>
 
                     <div class="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100/50">
-                        <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[#9D686E] shadow-sm"><span class="material-symbols-rounded text-xl">location_on</span></div>
+                        <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-plum shadow-sm"><span class="material-symbols-rounded text-xl">location_on</span></div>
                         <div class="min-w-0">
                             <p class="text-[9px] uppercase font-black text-slate-400 tracking-widest">Latest Deployment</p>
                             <p class="text-xs font-bold text-slate-800 leading-tight truncate">{{ $booking->address_line_1 }}</p>
@@ -56,9 +56,9 @@
 
             <!-- Stats Grid -->
             <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm group hover:border-[#9D686E]/30 transition-colors">
+                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm group hover:border-plum/30 transition-colors">
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Total Bookings</span>
-                    <p class="text-3xl font-black text-[#9D686E] tracking-tighter">{{ $totalBookings }}</p>
+                    <p class="text-3xl font-black text-plum tracking-tighter">{{ $totalBookings }}</p>
                 </div>
                 <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm group hover:border-green-200 transition-colors">
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Lifetime Value</span>
@@ -72,7 +72,7 @@
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-black text-slate-800 flex items-center gap-3 uppercase text-sm tracking-widest">
-                        <span class="material-symbols-rounded text-[#9D686E]">history</span> Booking History
+                        <span class="material-symbols-rounded text-plum">history</span> Booking History
                     </h3>
                     <span class="px-3 py-1 bg-white rounded-lg border border-slate-200 text-[10px] font-black text-slate-500 uppercase tracking-widest">Record for: {{ $booking->customer_email }}</span>
                 </div>
@@ -115,7 +115,7 @@
                                 </td>
                                 <td class="px-8 py-5 text-right font-black text-slate-800 tracking-tighter text-sm">${{ number_format($row->total_amount, 2) }}</td>
                                 <td class="px-8 py-5 text-right">
-                                    <a href="{{ route('supervisor.bookings.overview', $row->id) }}" wire:navigate class="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:bg-[#9D686E] hover:text-white transition-all shadow-sm group-hover:scale-105">
+                                    <a href="{{ route('supervisor.bookings.overview', $row->id) }}" wire:navigate class="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:bg-plum hover:text-white transition-all shadow-sm group-hover:scale-105">
                                         <span class="material-symbols-rounded text-lg">open_in_new</span>
                                     </a>
                                 </td>

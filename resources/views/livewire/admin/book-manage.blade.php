@@ -62,7 +62,7 @@
         }
     </style>
 
-    <div class="max-w-[1440px] mx-auto w-full space-y-6 pb-12">
+    <div class="max-w-360 mx-auto w-full space-y-6 pb-12">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
             <div>
                 <h1 class="text-3xl font-extrabold text-white drop-shadow-sm">Book Manage</h1>
@@ -70,10 +70,10 @@
             </div>
         </div>
 
-    <section class="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden mb-10">
+    <section class="bg-white rounded-4xl shadow-xl border border-gray-100 overflow-hidden mb-10">
         <div class="p-5 sm:p-6 border-b border-gray-50 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
             <h3 class="text-base sm:text-lg font-extrabold text-gray-800 flex items-center gap-2">
-                <span class="material-symbols-rounded text-[#9E6B73]">calendar_month</span>
+                <span class="material-symbols-rounded text-plum">calendar_month</span>
                 Upcoming Schedule
             </h3>
 
@@ -82,7 +82,7 @@
                     <span class="material-symbols-rounded text-lg">search</span>
                 </span>
                 <input type="text" wire:model.live.debounce.300ms="search_up" placeholder="Search upcoming..."
-                    class="w-full lg:w-72 pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-[#9E6B73] focus:ring-1 focus:ring-[#9E6B73] transition">
+                    class="w-full lg:w-72 pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-plum focus:ring-1 focus:ring-plum transition">
             </div>
         </div>
 
@@ -105,14 +105,14 @@
                             <div class="flex items-center gap-2">
                                 <p class="text-xs text-gray-500 truncate">{{ $row->event_type ?? 'Event' }}</p>
                                 @if($row->booked_by)
-                                <span class="text-[9px] font-bold text-[#9E6B73]/60 italic flex items-center gap-0.5">
+                                <span class="text-[9px] font-bold text-plum/60 italic flex items-center gap-0.5">
                                     <span class="material-symbols-rounded text-[10px]">person_add</span>
                                     By: {{ $row->booked_by }}
                                 </span>
                                 @endif
                             </div>
                         </div>
-                        <a href="{{ route('admin.bookings.overview', $row->id) }}" wire:navigate class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-white border border-gray-200 text-gray-500 hover:text-[#9E6B73] hover:border-[#9E6B73] transition" title="View Details">
+                        <a href="{{ route('admin.bookings.overview', $row->id) }}" wire:navigate class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-white border border-gray-200 text-gray-500 hover:text-plum hover:border-plum transition" title="View Details">
                             <span class="material-symbols-rounded">visibility</span>
                         </a>
                     </div>
@@ -124,7 +124,7 @@
                         </div>
                         <div class="rounded-2xl bg-white border border-gray-200 p-3">
                             <p class="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Amount</p>
-                            <p class="text-sm font-extrabold text-[#9E6B73] mt-1">${{ number_format($row->total_amount, 2) }}</p>
+                            <p class="text-sm font-extrabold text-plum mt-1">${{ number_format($row->total_amount, 2) }}</p>
                         </div>
                     </div>
                 </div>
@@ -177,12 +177,12 @@
                         <td class="px-6 py-4">
                             <span class="text-[11px] font-bold text-gray-500 italic">{{ $row->booked_by ?: 'System' }}</span>
                         </td>
-                        <td class="px-6 py-4 font-extrabold text-[#9E6B73]">${{ number_format($row->total_amount, 2) }}</td>
+                        <td class="px-6 py-4 font-extrabold text-plum">${{ number_format($row->total_amount, 2) }}</td>
                         <td class="px-6 py-4">
                             <span class="status-badge st-{{ $row->status }}">{{ $row->status }}</span>
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <a href="{{ route('admin.bookings.overview', $row->id) }}" wire:navigate class="inline-flex items-center justify-center text-gray-400 hover:text-[#9E6B73] p-2 hover:bg-gray-100 rounded-2xl transition" title="View Details">
+                            <a href="{{ route('admin.bookings.overview', $row->id) }}" wire:navigate class="inline-flex items-center justify-center text-gray-400 hover:text-plum p-2 hover:bg-gray-100 rounded-2xl transition" title="View Details">
                                 <span class="material-symbols-rounded">visibility</span>
                             </a>
                         </td>
@@ -204,7 +204,7 @@
         @endif
     </section>
 
-    <section class="bg-white rounded-[2rem] shadow-xl border border-gray-100 p-5 sm:p-6 relative overflow-hidden mb-10">
+    <section class="bg-white rounded-4xl shadow-xl border border-gray-100 p-5 sm:p-6 relative overflow-hidden mb-10">
         <div class="absolute top-0 left-0 w-1.5 h-full bg-green-500"></div>
 
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6 pl-2">
@@ -236,7 +236,7 @@
                 <div class="border border-gray-200 rounded-2xl p-4 hover:shadow-md transition bg-gray-50/50 flex flex-col h-full">
                     <div class="flex justify-between items-start mb-2 gap-2">
                         <span class="text-xs font-extrabold text-gray-400">#{{ $b->id }}</span>
-                        <span class="text-xs font-extrabold text-[#9E6B73] bg-[#FDF2F4] px-2 py-1 rounded-xl whitespace-nowrap">
+                        <span class="text-xs font-extrabold text-plum bg-plum-light px-2 py-1 rounded-xl whitespace-nowrap">
                             {{ \Carbon\Carbon::parse($b->event_date)->format('M d, Y') }}
                         </span>
                     </div>
@@ -248,7 +248,7 @@
                     <p class="text-xs text-gray-500 mb-1 truncate">{{ $b->event_type ?? 'Event' }}</p>
 
                     @if($b->booked_by)
-                    <div class="mb-4 text-[10px] font-bold text-[#9E6B73]/60 italic flex items-center gap-1">
+                    <div class="mb-4 text-[10px] font-bold text-plum/60 italic flex items-center gap-1">
                         <span class="material-symbols-rounded text-xs">person_add</span>
                         By: {{ $b->booked_by }}
                     </div>
@@ -257,7 +257,7 @@
                     @endif
 
                     <div class="mt-auto">
-                        <a href="{{ route('admin.bookings.overview', $b->id) }}" wire:navigate class="w-full py-2.5 bg-white border border-gray-200 text-gray-700 hover:text-[#9E6B73] hover:border-[#9E6B73] hover:bg-gray-50 rounded-2xl flex items-center justify-center gap-2 transition text-xs font-extrabold shadow-sm">
+                        <a href="{{ route('admin.bookings.overview', $b->id) }}" wire:navigate class="w-full py-2.5 bg-white border border-gray-200 text-gray-700 hover:text-plum hover:border-plum hover:bg-gray-50 rounded-2xl flex items-center justify-center gap-2 transition text-xs font-extrabold shadow-sm">
                             <span class="material-symbols-rounded text-base">visibility</span> View Details
                         </a>
                     </div>
@@ -278,7 +278,7 @@
         </div>
     </section>
 
-    <section class="bg-white rounded-[2rem] shadow-xl border border-gray-100 p-5 sm:p-6 relative overflow-hidden mb-10">
+    <section class="bg-white rounded-4xl shadow-xl border border-gray-100 p-5 sm:p-6 relative overflow-hidden mb-10">
         <div class="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
 
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6 pl-2">

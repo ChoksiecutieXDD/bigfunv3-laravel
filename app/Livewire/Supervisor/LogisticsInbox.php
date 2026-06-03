@@ -639,6 +639,7 @@ class LogisticsInbox extends Component
         if ($this->search_pay) {
             $paymentsQuery->where(function ($q) {
                 $q->where('id', 'like', "%{$this->search_pay}%")
+                    ->orWhere('invoice_number', 'like', "%{$this->search_pay}%")
                     ->orWhere('customer_first_name', 'like', "%{$this->search_pay}%")
                     ->orWhere('customer_last_name', 'like', "%{$this->search_pay}%")
                     ->orWhere('customer_organization', 'like', "%{$this->search_pay}%");
@@ -655,6 +656,7 @@ class LogisticsInbox extends Component
         if ($this->search_full) {
             $fullyPaidQuery->where(function ($q) {
                 $q->where('id', 'like', "%{$this->search_full}%")
+                    ->orWhere('invoice_number', 'like', "%{$this->search_full}%")
                     ->orWhere('customer_first_name', 'like', "%{$this->search_full}%")
                     ->orWhere('customer_last_name', 'like', "%{$this->search_full}%")
                     ->orWhere('customer_organization', 'like', "%{$this->search_full}%");
@@ -666,6 +668,7 @@ class LogisticsInbox extends Component
         if ($this->search_inv) {
             $invoicesQuery->where(function ($q) {
                 $q->where('id', 'like', "%{$this->search_inv}%")
+                    ->orWhere('invoice_number', 'like', "%{$this->search_inv}%")
                     ->orWhere('customer_first_name', 'like', "%{$this->search_inv}%")
                     ->orWhere('customer_last_name', 'like', "%{$this->search_inv}%");
             });
@@ -675,7 +678,9 @@ class LogisticsInbox extends Component
         $ordersQuery = Booking::where('event_date', '>=', now()->toDateString())->where('status', 'Confirmed');
         if ($this->search_ord) {
             $ordersQuery->where(function ($q) {
-                $q->where('customer_first_name', 'like', "%{$this->search_ord}%")
+                $q->where('id', 'like', "%{$this->search_ord}%")
+                    ->orWhere('invoice_number', 'like', "%{$this->search_ord}%")
+                    ->orWhere('customer_first_name', 'like', "%{$this->search_ord}%")
                     ->orWhere('customer_last_name', 'like', "%{$this->search_ord}%");
             });
         }
@@ -687,7 +692,9 @@ class LogisticsInbox extends Component
             ->where('event_date', '<', now()->toDateString());
         if ($this->search_deb) {
             $debtorsQuery->where(function ($q) {
-                $q->where('customer_first_name', 'like', "%{$this->search_deb}%")
+                $q->where('id', 'like', "%{$this->search_deb}%")
+                    ->orWhere('invoice_number', 'like', "%{$this->search_deb}%")
+                    ->orWhere('customer_first_name', 'like', "%{$this->search_deb}%")
                     ->orWhere('customer_last_name', 'like', "%{$this->search_deb}%");
             });
         }

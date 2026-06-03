@@ -23,7 +23,7 @@
         <div class="flex items-center gap-3">
             <img src="{{ asset('assets/icon/bgfunlogo.png') }}" alt="BigFun" class="h-8">
         </div>
-        <a href="{{ route('admin.calendar') }}" class="flex items-center gap-2 px-4 py-2 bg-[#9D686E] text-white rounded-xl font-bold shadow-md shadow-[#9D686E]/20 hover:opacity-90 transition text-xs uppercase tracking-wide">
+        <a href="{{ route('admin.calendar') }}" class="flex items-center gap-2 px-4 py-2 bg-plum text-white rounded-xl font-bold shadow-md shadow-plum/20 hover:opacity-90 transition text-xs uppercase tracking-wide">
             <span class="material-symbols-rounded text-lg">arrow_back</span>
             <span class="hidden sm:inline">Back to Calendar</span>
         </a>

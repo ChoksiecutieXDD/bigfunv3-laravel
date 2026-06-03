@@ -39,7 +39,7 @@
 
     <div class="flex flex-col md:flex-row gap-6 flex-1 w-full max-w-7xl mx-auto relative z-10">
 
-        <div class="w-full md:w-64 flex flex-col bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-xl shrink-0 h-[200px] md:h-[calc(100vh-150px)]">
+        <div class="w-full md:w-64 flex flex-col bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-xl shrink-0 h-50 md:h-[calc(100vh-150px)]">
             <div class="p-4 border-b border-slate-700/50 bg-slate-800/80 rounded-t-2xl shrink-0">
                 <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tables</h2>
             </div>
@@ -59,7 +59,7 @@
             </div>
         </div>
 
-        <div class="flex-1 flex flex-col bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-xl md:h-[calc(100vh-150px)] min-h-[500px] w-full overflow-hidden relative">
+        <div class="flex-1 flex flex-col bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-xl md:h-[calc(100vh-150px)] min-h-125 w-full overflow-hidden relative">
 
             <div wire:loading wire:target="selectTable" class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl">
                 <div class="flex flex-col items-center text-blue-400">

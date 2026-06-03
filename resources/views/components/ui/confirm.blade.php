@@ -29,7 +29,7 @@
     }"
     @open-modal.window="openModal"
     x-show="show"
-    class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+    class="fixed inset-0 z-100 flex items-center justify-center p-4"
     style="display: none;"
     x-cloak>
 
@@ -45,7 +45,7 @@
         x-transition:leave="transition ease-in duration-200 transform"
         x-transition:leave-start="opacity-100 scale-100 translate-y-0"
         x-transition:leave-end="opacity-0 scale-90 translate-y-4"
-        class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-6 md:p-8 flex flex-col items-center text-center z-[101]">
+        class="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6 md:p-8 flex flex-col items-center text-center z-101">
 
         <div class="w-16 h-16 rounded-full flex items-center justify-center mb-5"
             :class="{

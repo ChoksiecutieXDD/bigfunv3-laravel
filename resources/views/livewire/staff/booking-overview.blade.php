@@ -1,7 +1,7 @@
 <div x-data="{ 
         historyModal: false
     }"
-    class="max-w-[1440px] mx-auto space-y-6">
+    class="max-w-360 mx-auto space-y-6">
 
     <!-- Header & Title -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -23,7 +23,7 @@
 
     <!-- Booking Origin & Timeline -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
-        <div class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100 text-[#9D686E]">
+        <div class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100 text-plum">
             <span class="material-symbols-rounded">history_edu</span>
             <span class="text-sm font-bold uppercase tracking-wide">Booking Origin & Timeline</span>
         </div>
@@ -71,12 +71,12 @@
 
     <!-- Document Generation Toolbar (Limited for Staff) -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
-        <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100 text-[#9D686E]">
+        <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100 text-plum">
             <span class="material-symbols-rounded text-xl">print</span>
             <span class="text-sm font-bold uppercase tracking-wide">Resources</span>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="{{ route('pdf.delivery_receipt', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-bold tracking-tight transition whitespace-nowrap bg-[#9D686E] border border-[#9D686E] text-white shadow-sm hover:bg-white hover:text-[#9D686E] no-underline">
+            <a href="{{ route('pdf.delivery_receipt', $booking->id) }}" target="_blank" class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-bold tracking-tight transition whitespace-nowrap bg-plum border border-plum text-white shadow-sm hover:bg-white hover:text-plum no-underline">
                 <i class="fa-solid fa-truck-ramp-box"></i> DELIVERY RECEIPT
             </a>
         </div>
@@ -91,7 +91,7 @@
             <!-- Work Order Details -->
             <div class="lg:col-span-12">
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 h-full">
-                    <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100 text-[#9D686E]">
+                    <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100 text-plum">
                         <span class="material-symbols-rounded">event_note</span><span class="text-sm font-bold uppercase tracking-wide">Work Order Details</span>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -101,7 +101,7 @@
                             <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Service Date</span><span class="text-[0.8rem] font-bold text-slate-800">{{ \Carbon\Carbon::parse($booking->event_date)->format('l, d M Y') }}</span></div>
                         </div>
                         <div class="space-y-2">
-                            <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Operations Window</span><span class="text-[0.8rem] font-black text-[#9D686E]">{{ $timeString }}</span></div>
+                            <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Operations Window</span><span class="text-[0.8rem] font-black text-plum">{{ $timeString }}</span></div>
                             <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Shift Duration</span><span class="text-[0.8rem] font-bold text-gray-800">{{ $booking->duration ?: 'no note' }}</span></div>
                             <div class="flex justify-between mb-1 pb-1 border-b border-dotted border-gray-100"><span class="text-[0.7rem] font-bold text-slate-400 uppercase">Operational Hour</span><span class="text-[0.8rem] font-bold text-slate-800">{{ $booking->operational_hours ?: '-' }}</span></div>
                         </div>
@@ -121,7 +121,7 @@
             <div class="lg:col-span-4">
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 h-full flex flex-col justify-between">
                     <div>
-                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100 text-[#9D686E]">
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100 text-plum">
                             <span class="material-symbols-rounded">person_pin</span><span class="text-sm font-bold uppercase tracking-wide">Client Profile</span>
                         </div>
                         <div class="space-y-3">
@@ -148,7 +148,7 @@
             <!-- Service Assets -->
             <div class="lg:col-span-8">
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 h-full">
-                    <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100 text-[#9D686E]">
+                    <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100 text-plum">
                         <span class="material-symbols-rounded">attractions</span><span class="text-sm font-bold uppercase tracking-wide">Service Assets</span>
                     </div>
                     <!-- Header Row -->
@@ -161,14 +161,14 @@
                         @forelse ($items as $s)
                         <div class="grid grid-cols-12 gap-2 items-start bg-gray-50/50 rounded-xl px-3 py-3 border border-gray-100 hover:bg-white hover:shadow-sm transition-all duration-200">
                             <div class="col-span-7 flex flex-col">
-                                <span class="text-[0.7rem] font-black text-[#9D686E] uppercase tracking-tight leading-tight">{{ $s->item_name }}</span>
+                                <span class="text-[0.7rem] font-black text-plum uppercase tracking-tight leading-tight">{{ $s->item_name }}</span>
                                 @if($s->is_custom)<span class="text-[8px] font-bold text-amber-500 uppercase mt-0.5">Custom</span>@endif
                             </div>
                             <div class="col-span-4">
                                 @if($s->specification)
                                 <div class="text-[9px] text-gray-500 space-y-0.5 leading-relaxed">
                                     @foreach(explode("\n", str_replace(["\r\n", "\r"], "\n", $s->specification)) as $line)
-                                    @if(trim($line))<div class="flex items-start gap-1"><span class="mt-1.5 w-1 h-1 rounded-full bg-[#9D686E]/50 shrink-0"></span><span>{{ trim($line) }}</span></div>@endif
+                                    @if(trim($line))<div class="flex items-start gap-1"><span class="mt-1.5 w-1 h-1 rounded-full bg-plum/50 shrink-0"></span><span>{{ trim($line) }}</span></div>@endif
                                     @endforeach
                                 </div>
                                 @else
@@ -194,7 +194,7 @@
                         @if($cat === 'General Logistics' && $booking->logistics_surfaces)
                         <div class="grid grid-cols-12 gap-2 items-center bg-slate-50/50 rounded-xl px-3 py-2.5 border border-slate-100 hover:bg-white hover:shadow-sm transition-all duration-200">
                             <div class="col-span-7 flex items-center gap-2">
-                                <span class="material-symbols-rounded text-xs text-[#9D686E]">local_shipping</span>
+                                <span class="material-symbols-rounded text-xs text-plum">local_shipping</span>
                                 <span class="text-[0.7rem] font-bold text-slate-600 uppercase tracking-tight">Surface: {{ $booking->logistics_surfaces }}</span>
                             </div>
                             <div class="col-span-4 text-[9px] italic text-slate-400">Logistics Configuration</div>
@@ -207,7 +207,7 @@
                         @if($isSelected)
                         <div class="grid grid-cols-12 gap-2 items-center bg-slate-50/50 rounded-xl px-3 py-2.5 border border-slate-100 hover:bg-white hover:shadow-sm transition-all duration-200">
                             <div class="col-span-7 flex items-center gap-2">
-                                <span class="material-symbols-rounded text-xs text-[#9D686E]">add_circle</span>
+                                <span class="material-symbols-rounded text-xs text-plum">add_circle</span>
                                 <span class="text-[0.7rem] font-bold text-slate-600 uppercase tracking-tight">{{ $addon['addon_label'] }}</span>
                             </div>
                             <div class="col-span-4 text-[9px] italic text-slate-400">Extra / Configuration</div>
@@ -225,7 +225,7 @@
                         @if($isYes)
                         <div class="grid grid-cols-12 gap-2 items-center bg-slate-50/50 rounded-xl px-3 py-2.5 border border-slate-100 hover:bg-white hover:shadow-sm transition-all duration-200">
                             <div class="col-span-7 flex items-center gap-2">
-                                <span class="material-symbols-rounded text-xs text-[#9D686E]">help_center</span>
+                                <span class="material-symbols-rounded text-xs text-plum">help_center</span>
                                 <span class="text-[0.7rem] font-bold text-slate-600 uppercase tracking-tight">{{ $q['question_text'] }}</span>
                             </div>
                             <div class="col-span-4 text-[9px] italic text-slate-400">Extra / Configuration</div>
@@ -247,7 +247,7 @@
                         @if($selectedOpt)
                         <div class="grid grid-cols-12 gap-2 items-center bg-slate-50/50 rounded-xl px-3 py-2.5 border border-slate-100 hover:bg-white hover:shadow-sm transition-all duration-200">
                             <div class="col-span-7 flex items-center gap-2">
-                                <span class="material-symbols-rounded text-xs text-[#9D686E]">settings_input_component</span>
+                                <span class="material-symbols-rounded text-xs text-plum">settings_input_component</span>
                                 <span class="text-[0.7rem] font-bold text-slate-600 uppercase tracking-tight">{{ $dd['label'] }}: {{ $selectedOpt['option_label'] }}</span>
                             </div>
                             <div class="col-span-4 text-[9px] italic text-slate-400">Extra / Configuration</div>
@@ -264,17 +264,17 @@
         <!-- Row 3: Operational Notes -->
         <div>
             <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-                <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100 text-[#9D686E]">
+                <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100 text-plum">
                     <span class="material-symbols-rounded">chat_bubble</span><span class="text-sm font-bold uppercase tracking-wide">Operational Notes</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-yellow-50/50 p-5 rounded-2xl border border-yellow-100">
                         <span class="text-[10px] font-black text-yellow-700 uppercase tracking-widest block mb-2">Customer Briefing</span>
-                        <div class="bg-white/50 p-4 rounded-xl text-[12px] text-gray-700 italic leading-relaxed shadow-sm min-h-[60px]">{{ $booking->notes_customer ?: 'no special notes provided' }}</div>
+                        <div class="bg-white/50 p-4 rounded-xl text-[12px] text-gray-700 italic leading-relaxed shadow-sm min-h-15">{{ $booking->notes_customer ?: 'no special notes provided' }}</div>
                     </div>
                     <div class="bg-blue-50/50 p-5 rounded-2xl border border-blue-100">
                         <span class="text-[10px] font-black text-blue-700 uppercase tracking-widest block mb-2">Logistics Instructions</span>
-                        <div class="bg-white/50 p-4 rounded-xl text-[12px] text-gray-700 italic leading-relaxed shadow-sm min-h-[60px]">{{ $booking->note_delivery ?? $booking->notes_delivery ?: 'no logistics instructions recorded' }}</div>
+                        <div class="bg-white/50 p-4 rounded-xl text-[12px] text-gray-700 italic leading-relaxed shadow-sm min-h-15">{{ $booking->note_delivery ?? $booking->notes_delivery ?: 'no logistics instructions recorded' }}</div>
                     </div>
                 </div>
             </div>
@@ -286,13 +286,13 @@
             <!-- Deployment Team -->
             <div>
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 h-full">
-                    <div class="flex items-center gap-2 mb-5 pb-2 border-b border-gray-100 text-[#9D686E]">
+                    <div class="flex items-center gap-2 mb-5 pb-2 border-b border-gray-100 text-plum">
                         <span class="material-symbols-rounded">engineering</span><span class="text-sm font-bold uppercase tracking-wide">Deployment Team</span>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100 flex flex-col items-center text-center group">
                             <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">Project Lead</span>
-                            <div class="w-12 h-12 rounded-2xl bg-[#9D686E] text-white flex items-center justify-center text-sm font-black shadow-lg shadow-[#9D686E]/20 capitalize group-hover:scale-110 transition-transform">{{ substr($booking->lead_operator ?? '?', 0, 1) }}</div>
+                            <div class="w-12 h-12 rounded-2xl bg-plum text-white flex items-center justify-center text-sm font-black shadow-lg shadow-plum/20 capitalize group-hover:scale-110 transition-transform">{{ substr($booking->lead_operator ?? '?', 0, 1) }}</div>
                             <p class="text-xs font-black text-gray-800 mt-3 tracking-tighter uppercase line-clamp-2 leading-tight">{{ $booking->lead_operator ?? 'Unassigned' }}</p>
                         </div>
                         <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100 flex flex-col items-center text-center group">
@@ -307,11 +307,11 @@
             <!-- Work Site Location -->
             <div>
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 h-full flex flex-col justify-center">
-                    <div class="flex items-center gap-2 mb-5 pb-2 border-b border-gray-100 text-[#9D686E]">
+                    <div class="flex items-center gap-2 mb-5 pb-2 border-b border-gray-100 text-plum">
                         <span class="material-symbols-rounded">location_on</span><span class="text-sm font-bold uppercase tracking-wide">Work Site Location</span>
                     </div>
                     <div class="flex gap-4 items-start">
-                        <div class="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-[#9D686E] border border-gray-100 shrink-0 shadow-sm">
+                        <div class="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-plum border border-gray-100 shrink-0 shadow-sm">
                             <span class="material-symbols-rounded text-3xl">map</span>
                         </div>
                         <div>
@@ -329,7 +329,7 @@
         <!-- Row 5: Photographic Assets -->
         <div>
             <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-                <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100 text-[#9D686E]">
+                <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100 text-plum">
                     <span class="material-symbols-rounded">panorama_horizontal</span><span class="text-sm font-bold uppercase tracking-wide">Photographic Assets</span>
                 </div>
                 @if(empty($galleryFiles))
@@ -358,10 +358,10 @@
                         @endif
 
                         <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                            <a href="{{ $filePath }}" target="_blank" class="w-10 h-10 rounded-full bg-white text-[#9D686E] flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
+                            <a href="{{ $filePath }}" target="_blank" class="w-10 h-10 rounded-full bg-white text-plum flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
                                 <span class="material-symbols-rounded">visibility</span>
                             </a>
-                            <a href="{{ $filePath }}" download class="w-10 h-10 rounded-full bg-white text-[#9D686E] flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
+                            <a href="{{ $filePath }}" download class="w-10 h-10 rounded-full bg-white text-plum flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
                                 <span class="material-symbols-rounded">download</span>
                             </a>
                         </div>

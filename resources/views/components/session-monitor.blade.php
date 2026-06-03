@@ -22,7 +22,7 @@
             logoutUrl: '{{ route('logout') }}',
             csrfToken: '{{ csrf_token() }}'
         })"
-        class="fixed bottom-6 right-6 z-[9999]"
+        class="fixed bottom-6 right-6 z-9999"
         x-show="showCountdown"
         x-cloak
         x-transition:enter="transition ease-out duration-300"
@@ -46,7 +46,7 @@
                     $role === 'Supervisor' ? '/supervisor/calendar' : 
                     (in_array($role, ['Administrator', 'Admin']) ? '/admin/dashboard' : '/staff/dashboard') 
                 }}" 
-                class="ml-2 px-4 py-2 bg-[#9E6B73] text-white text-xs font-bold rounded-xl hover:bg-[#86545C] transition-all shadow-md">
+                class="ml-2 px-4 py-2 bg-plum text-white text-xs font-bold rounded-xl hover:bg-plum-dark transition-all shadow-md">
                     Return
                 </a>
             </div>

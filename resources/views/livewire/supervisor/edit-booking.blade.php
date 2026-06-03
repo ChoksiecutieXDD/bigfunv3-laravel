@@ -64,7 +64,7 @@
     class="w-full relative pb-8">
 
     <div class="flex w-full relative overflow-hidden">
-        <main class="flex-1 pt-4 pb-16 px-0 max-w-[1440px] mx-auto w-full">
+        <main class="flex-1 pt-4 pb-16 px-0 max-w-360 mx-auto w-full">
             <form id="combinedBookingForm" onsubmit="return false;" class="form-layout-wrapper">
                 <input type="hidden" name="booking_id" id="booking_id" value="{{ $booking->id }}">
                 <input type="hidden" name="invoice_number" id="invoice_number" value="{{ $booking->invoice_number }}">
@@ -81,10 +81,10 @@
                                 <h3 class="text-base font-bold text-red-800 mb-1 leading-none uppercase tracking-wide">Validation Blocked</h3>
                                 <div class="text-sm text-red-700 space-y-1 mt-2">
                                     @foreach($activeConflicts as $conf)
-                                    <p class="flex items-center gap-2 font-medium">• <span class="font-bold">{{ $conf }}</span> is already booked on this date.</p>
+                                    <p class="flex items-center gap-2 font-medium">ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ <span class="font-bold">{{ $conf }}</span> is already booked on this date.</p>
                                     @endforeach
                                     @foreach($activeCapacityBreaches as $cat => $data)
-                                    <p class="flex items-center gap-2 font-medium">• <span class="font-bold">{{ $cat }}</span> capacity exceeded ({{ $data['current'] + $data['added'] }} / {{ $data['limit'] }}).</p>
+                                    <p class="flex items-center gap-2 font-medium">ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ <span class="font-bold">{{ $cat }}</span> capacity exceeded ({{ $data['current'] + $data['added'] }} / {{ $data['limit'] }}).</p>
                                     @endforeach
                                 </div>
                                 <p class="text-[11px] font-black text-red-600 mt-3 uppercase tracking-widest">Please change the date or remove items to enable saving</p>
@@ -126,11 +126,11 @@
                                         Edit Now
                                     </div>
 
-                                    <button type="button" @click="modals.info = true" class="w-9 h-9 flex items-center justify-center rounded-xl bg-white text-slate-400 hover:bg-[#9E6B73] hover:text-white transition-all duration-300 shadow-sm border border-slate-200 hover:border-[#9E6B73]/30">
+                                    <button type="button" @click="modals.info = true" class="w-9 h-9 flex items-center justify-center rounded-xl bg-white text-slate-400 hover:bg-plum hover:text-white transition-all duration-300 shadow-sm border border-slate-200 hover:border-plum/30">
                                         <span class="material-symbols-rounded text-lg">info</span>
                                     </button>
                                 </div>
-                                <p class="text-sm text-slate-500 font-medium mt-1 uppercase tracking-wide text-[10px]">Invoice: <span class="font-bold text-[#9D686E]">{{ $booking->invoice_number ?? $booking->id }}</span></p>
+                                <p class="text-sm text-slate-500 font-medium mt-1 uppercase tracking-wide text-[10px]">Invoice: <span class="font-bold text-plum">{{ $booking->invoice_number ?? $booking->id }}</span></p>
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
@@ -138,7 +138,7 @@
                             $hasConflicts = !empty($activeConflicts) || !empty($activeCapacityBreaches);
                             $saveBtnClass = $hasConflicts
                             ? 'bg-red-100 text-red-400 cursor-not-allowed border-red-200 opacity-60'
-                            : 'bg-[#9E6B73] text-white hover:bg-[#86545C] shadow-md shadow-[#9E6B73]/20';
+                            : 'bg-plum text-white hover:bg-plum-dark shadow-md shadow-plum/20';
                             @endphp
                             <button
                                 @if(!$hasConflicts) @click="modals.saveConfirm = true" @endif
@@ -153,22 +153,22 @@
                 </div>
 
                 <div class="financial-panel">
-                    <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-[#9E6B73]/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+                    <div class="absolute top-0 right-0 w-150 h-150 bg-plum/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
 
                     <div class="flex items-center justify-between border-b border-slate-700 pb-4 relative z-10">
                         <div class="flex items-center gap-3">
-                            <span class="material-symbols-rounded text-[#9E6B73] text-3xl">account_balance_wallet</span>
+                            <span class="material-symbols-rounded text-plum text-3xl">account_balance_wallet</span>
                             <h2 class="text-xl font-bold text-white uppercase tracking-wide">Financials & Payment</h2>
                         </div>
                         <div class="flex gap-4">
-                            <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 shadow-inner flex flex-col items-end min-w-[200px]">
+                            <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 shadow-inner flex flex-col items-end min-w-50">
                                 <p class="text-[10px] text-slate-400 uppercase font-black tracking-[0.15em] mb-1">Outstanding Balance</p>
                                 <div class="flex items-center gap-2">
                                     <span id="icon_balance" class="material-symbols-rounded text-xl {{ $balanceDue > 0.01 ? 'text-rose-500' : 'text-emerald-500' }}">{{ $balanceDue > 0.01 ? 'pending' : 'check_circle' }}</span>
                                     <p class="text-4xl font-extrabold tracking-tighter {{ $balanceDue > 0.01 ? 'text-rose-400' : 'text-emerald-400' }}" id="disp_balance">${{ number_format($balanceDue, 2) }}</p>
                                 </div>
                             </div>
-                            <div class="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/30 shadow-inner flex flex-col items-end min-w-[200px]">
+                            <div class="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/30 shadow-inner flex flex-col items-end min-w-50">
                                 <p class="text-[10px] text-slate-500 uppercase font-black tracking-[0.15em] mb-1">Total Amount</p>
                                 <div class="flex items-center gap-2">
                                     <span class="material-symbols-rounded text-xl text-white/20">payments</span>
@@ -180,7 +180,7 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
                         <div class="space-y-4">
-                            <h3 class="text-sm font-bold text-[#9E6B73] uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Cost Breakdown</h3>
+                            <h3 class="text-sm font-bold text-plum uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Cost Breakdown</h3>
 
                             <div class="flex justify-between items-center text-sm text-slate-300">
                                 <span>Duration Cost</span>
@@ -221,7 +221,7 @@
                             </div>
                             <div class="flex justify-between items-center text-base font-black text-white mt-1.5 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
                                 <div class="flex items-center gap-2">
-                                    <span class="material-symbols-rounded text-[#9E6B73] text-lg">account_balance</span>
+                                    <span class="material-symbols-rounded text-plum text-lg">account_balance</span>
                                     <span class="font-bold uppercase tracking-wider text-[11px]">Outstanding Balance</span>
                                 </div>
                                 <span class="text-xl font-black {{ $balanceDue > 0.01 ? 'text-rose-400' : 'text-emerald-400' }}" id="disp_balance_footer">${{ number_format($balanceDue, 2) }}</span>
@@ -229,11 +229,11 @@
                         </div>
 
                         <div class="space-y-5">
-                            <h3 class="text-sm font-bold text-[#9E6B73] uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Payment Configuration</h3>
+                            <h3 class="text-sm font-bold text-plum uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Payment Configuration</h3>
 
                             <div class="flex flex-col gap-4">
                                 <div class="input-group">
-                                    <label class="input-label text-slate-400 !ml-1">Payment Type</label>
+                                    <label class="input-label text-slate-400 ml-1!">Payment Type</label>
                                     <div class="relative">
                                         <select wire:model.live="form.payment_type"
                                             @change="paymentType = $event.target.value; updatePaymentMethods()"
@@ -248,7 +248,7 @@
 
                                 @if(($form['payment_type'] ?? '') === 'EFT')
                                 <div class="input-group animate-[fadeIn_0.2s_ease-in]">
-                                    <label class="input-label text-slate-400 !ml-1">Specific Method</label>
+                                    <label class="input-label text-slate-400 ml-1!">Specific Method</label>
                                     <div class="relative">
                                         <select wire:model="form.eft_method" class="input-dark appearance-none cursor-pointer">
                                             <option value="Direct Deposit">Direct Deposit</option>
@@ -264,10 +264,10 @@
 
                             @if(in_array(($form['payment_type'] ?? ''), ['Card Holder', 'credit_card']))
                             <div class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 mt-4 shadow-inner flex flex-col gap-4 animate-[fadeIn_0.2s_ease-in]">
-                                <h4 class="text-xs font-bold text-[#9E6B73] uppercase flex justify-between items-center"><span>Card Details</span><span class="material-symbols-rounded text-sm">lock</span></h4>
+                                <h4 class="text-xs font-bold text-plum uppercase flex justify-between items-center"><span>Card Details</span><span class="material-symbols-rounded text-sm">lock</span></h4>
                                 <div class="grid grid-cols-1 gap-4">
                                     <div class="relative">
-                                        <select wire:model="form.card_network" class="input-dark appearance-none !py-3 text-sm cursor-pointer">
+                                        <select wire:model="form.card_network" class="input-dark appearance-none py-3! text-sm cursor-pointer">
                                             <option value="Visa">Visa</option>
                                             <option value="Mastercard">Mastercard</option>
                                             <option value="American Express">American Express</option>
@@ -304,7 +304,7 @@
                             </div>
                             @endif
 
-                            <div class="flex items-center justify-between bg-[#9E6B73]/20 rounded-xl p-4 border border-[#9E6B73]/30 mt-4">
+                            <div class="flex items-center justify-between bg-plum/20 rounded-xl p-4 border border-plum/30 mt-4">
                                 <span class="text-slate-300 text-xs uppercase font-bold">Req. Deposit (50%)</span>
                                 <span class="text-white font-bold text-xl" id="disp_deposit">${{ number_format($depositRequired, 2) }}</span>
                             </div>
@@ -315,17 +315,17 @@
                 <div class="section-card">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-6 px-8 pt-8">
                         <div class="flex items-center gap-3">
-                            <span class="material-symbols-rounded text-[#9E6B73] text-2xl">calendar_month</span>
+                            <span class="material-symbols-rounded text-plum text-2xl">calendar_month</span>
                             <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Live Availability & Movement</h2>
                         </div>
                         <div class="flex items-center gap-3 bg-slate-50 p-2 rounded-[20px] border border-slate-100">
-                            <button type="button" wire:click="calPrev" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95">
+                            <button type="button" wire:click="calPrev" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-plum shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95">
                                 <span class="material-symbols-rounded text-xl font-bold">chevron_left</span>
                             </button>
                             <p class="text-[13px] font-black text-slate-700 w-40 text-center uppercase tracking-widest">
                                 {{ \Carbon\Carbon::create($calYear, $calMonth, 1)->format('F Y') }}
                             </p>
-                            <button type="button" wire:click="calNext" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95">
+                            <button type="button" wire:click="calNext" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-plum shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95">
                                 <span class="material-symbols-rounded text-xl font-bold">chevron_right</span>
                             </button>
                         </div>
@@ -354,14 +354,14 @@
                             $isSelected=$d['date']===$tempSelectedDate;
                             $isOriginal=$d['date']===($booking->event_date);
 
-                            $ring = $isSelected ? 'border-[#9D686E] bg-pink-50 ring-4 ring-[#9D686E]/10 shadow-md z-10' : '';
-                            $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9D686E] shadow-inner' : '';
+                            $ring = $isSelected ? 'border-plum bg-pink-50 ring-4 ring-plum/10 shadow-md z-10' : '';
+                            $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-plum shadow-inner' : '';
                             @endphp
                             <button type="button" wire:click="selectDate('{{ $d['date'] }}')"
-                                class="h-24 rounded-2xl border transition-all relative group {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $originStyle }} hover:-translate-y-1 hover:shadow-lg hover:border-[#9D686E]">
+                                class="h-24 rounded-2xl border transition-all relative group {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $originStyle }} hover:-translate-y-1 hover:shadow-lg hover:border-plum">
 
                                 @if($isOriginal)
-                                <div class="absolute -top-1.5 -right-1.5 bg-[#9D686E] text-white text-[7px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
+                                <div class="absolute -top-1.5 -right-1.5 bg-plum text-white text-[7px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
                                 @endif
 
                                 @if($d['conflict'] ?? false)
@@ -439,16 +439,16 @@
                                 </div>
 
                                 @if(!empty($modalNameConflicts))
-                                <div class="bg-[#9D686E]/5 border border-[#9D686E]/10 rounded-[24px] p-5">
-                                    <p class="text-[10px] font-black text-[#9D686E] uppercase tracking-tight mb-4 flex items-center gap-2">
+                                <div class="bg-plum/5 border border-plum/10 rounded-3xl p-5">
+                                    <p class="text-[10px] font-black text-plum uppercase tracking-tight mb-4 flex items-center gap-2">
                                         <span class="material-symbols-rounded text-sm">person_alert</span>
                                         Duplicate Contact Found
                                     </p>
                                     <div class="space-y-2">
                                         @foreach($modalNameConflicts as $nc)
-                                        <div class="flex justify-between items-center bg-white/80 p-3 rounded-2xl border border-[#9D686E]/10 shadow-sm">
+                                        <div class="flex justify-between items-center bg-white/80 p-3 rounded-2xl border border-plum/10 shadow-sm">
                                             <div class="flex items-center gap-3">
-                                                <span class="text-[10px] font-black text-[#9D686E]">#{{ $nc['invoice_number'] ?? $nc['id'] }}</span>
+                                                <span class="text-[10px] font-black text-plum">#{{ $nc['invoice_number'] ?? $nc['id'] }}</span>
                                                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{{ $nc['item_names_summary'] ?? 'Customer Record' }}</span>
                                             </div>
                                             <span class="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 uppercase">{{ $nc['status'] }}</span>
@@ -459,7 +459,7 @@
                                 @endif
                             </div>
 
-                            <div class="p-3 bg-white rounded-2xl border border-slate-100 flex items-center justify-center min-h-[50px]">
+                            <div class="p-3 bg-white rounded-2xl border border-slate-100 flex items-center justify-center min-h-12.5">
                                 @if(empty($modalConflicts) && empty($modalCapacityBreaches))
                                 <div class="flex items-center gap-2 text-emerald-600 font-bold px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100 w-full justify-center">
                                     <span class="material-symbols-rounded text-xl">check_circle</span>
@@ -502,7 +502,7 @@
                                 <input type="text" id="duration" name="duration" wire:model="form.duration" class="input-field" placeholder="e.g. 4 hours or 2 days" @input="triggerRecalculate(true)">
                             </div>
                             <div class="input-group">
-                                <label class="input-label text-[#9E6B73]">Duration Cost</label>
+                                <label class="input-label text-plum">Duration Cost</label>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
                                     <input type="number" id="duration_cost" name="duration_cost" wire:model="form.duration_cost" step="0.01" class="input-field pl-8" placeholder="0.00" @input="triggerRecalculate(true)">
@@ -514,7 +514,7 @@
 
                 <div class="section-card">
                     <div class="flex items-center gap-3 border-b border-gray-100 pb-6">
-                        <span class="material-symbols-rounded text-[#9E6B73] text-2xl">person_pin</span>
+                        <span class="material-symbols-rounded text-plum text-2xl">person_pin</span>
                         <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Customer & Venue</h2>
                     </div>
 
@@ -628,7 +628,7 @@
                                         <input type="text" id="delivery_area" name="delivery_area" wire:model="form.delivery_area" class="input-field" placeholder="e.g. Zone 1, Sydney Metro">
                                     </div>
                                     <div class="input-group">
-                                        <label class="input-label text-[#9E6B73]">Delivery Cost</label>
+                                        <label class="input-label text-plum">Delivery Cost</label>
                                         <div class="relative">
                                             <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold">$</span>
                                             <input type="number" id="delivery_cost" name="delivery_cost" wire:model.live="form.delivery_cost" step="0.01" class="input-field pl-8" placeholder="0.00" @input="triggerRecalculate()">
@@ -672,7 +672,7 @@
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                             <div class="flex flex-col gap-1">
                                 <label class="input-label mb-0 flex items-center gap-2">
-                                    <span class="material-symbols-rounded text-sm text-[#9E6B73]">attachment</span>
+                                    <span class="material-symbols-rounded text-sm text-plum">attachment</span>
                                     <span>Delivery Attachments <span class="font-black text-slate-400">({{ $this->booking->id ? "Manage" : "Up to 5" }})</span></span>
                                 </label>
                                 <p class="text-[10px] text-slate-500 font-medium italic">Upload proof of delivery or site photos (JPG/PNG only)</p>
@@ -690,7 +690,7 @@
                                         <div class="flex items-center gap-2">
                                             <div class="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                                                 <div class="h-full transition-all duration-500 ease-out rounded-full"
-                                                    :class="parseFloat(totalSizeMB) >= 5 ? 'bg-rose-500' : (parseFloat(totalSizeMB) >= 3.5 ? 'bg-amber-500' : 'bg-[#9E6B73]')"
+                                                    :class="parseFloat(totalSizeMB) >= 5 ? 'bg-rose-500' : (parseFloat(totalSizeMB) >= 3.5 ? 'bg-amber-500' : 'bg-plum')"
                                                     :style="'width: ' + Math.min(100, (parseFloat(totalSizeMB) / 5) * 100) + '%'"></div>
                                             </div>
                                             <span class="text-[11px] font-black text-slate-700" x-text="totalSizeMB + 'MB / 5MB'"></span>
@@ -781,13 +781,13 @@
 
                                 <div class="flex items-center justify-between mb-3">
                                     <div class="flex items-center gap-2">
-                                        <div class="w-8 h-8 rounded-lg bg-[#9E6B73]/10 flex items-center justify-center text-[#9E6B73]">
+                                        <div class="w-8 h-8 rounded-lg bg-plum/10 flex items-center justify-center text-plum">
                                             <span class="material-symbols-rounded text-lg" x-text="isImage ? 'image' : (fileName ? 'description' : 'upload_file')"></span>
                                         </div>
                                         <div class="flex flex-col">
                                             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Slot {{ $i }}</span>
                                             <template x-if="fileExt">
-                                                <span class="text-[9px] font-bold bg-[#9E6B73] text-white px-1.5 py-0.5 rounded-md uppercase w-fit" x-text="fileExt"></span>
+                                                <span class="text-[9px] font-bold bg-plum text-white px-1.5 py-0.5 rounded-md uppercase w-fit" x-text="fileExt"></span>
                                             </template>
                                         </div>
                                     </div>
@@ -808,7 +808,7 @@
                                         @change="handleFile($el)"
                                         class="absolute inset-0 opacity-0 cursor-pointer z-10">
 
-                                    <div class="border-2 border-dashed border-slate-200 rounded-xl p-2 h-24 flex items-center justify-center bg-white overflow-hidden group-hover:border-[#9E6B73]/30 transition-colors">
+                                    <div class="border-2 border-dashed border-slate-200 rounded-xl p-2 h-24 flex items-center justify-center bg-white overflow-hidden group-hover:border-plum/30 transition-colors">
                                         <template x-if="!fileName">
                                             <div class="flex flex-col items-center gap-1">
                                                 <span class="text-[10px] font-bold text-slate-400">Click to Upload</span>
@@ -823,8 +823,8 @@
                                                 </template>
                                                 <template x-if="!isImage">
                                                     <div class="flex flex-col items-center justify-center gap-1 p-2 text-center cursor-pointer z-20 w-full h-full" @click.stop="openFile()">
-                                                        <span class="material-symbols-rounded text-[#9E6B73] text-2xl">description</span>
-                                                        <span class="text-[9px] font-bold text-slate-600 truncate max-w-[120px]" x-text="fileName"></span>
+                                                        <span class="material-symbols-rounded text-plum text-2xl">description</span>
+                                                        <span class="text-[9px] font-bold text-slate-600 truncate max-w-30" x-text="fileName"></span>
                                                     </div>
                                                 </template>
                                             </div>
@@ -840,11 +840,11 @@
                 <div class="section-card" wire:key="attractions-section">
                     <div class="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
                         <div class="flex items-center gap-3">
-                            <span class="material-symbols-rounded text-[#9E6B73] text-2xl">celebration</span>
+                            <span class="material-symbols-rounded text-plum text-2xl">celebration</span>
                             <h2 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Attractions & Extras</h2>
                         </div>
                         <div class="relative w-64">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-[#9E6B73]"><span class="material-symbols-rounded text-lg">search</span></span>
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-plum"><span class="material-symbols-rounded text-lg">search</span></span>
                             <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search attractions..." class="input-field input-with-icon py-2 text-sm">
                         </div>
                     </div>
@@ -856,7 +856,7 @@
                         @php $catIndex++; @endphp
                         <div class="category-section" data-category="{{ $catName }}">
                             <div class="flex items-center gap-3 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                <span class="w-8 h-8 rounded-lg bg-white text-[#9E6B73] flex items-center justify-center font-bold text-xs shadow-sm">{{ $catIndex }}</span>
+                                <span class="w-8 h-8 rounded-lg bg-white text-plum flex items-center justify-center font-bold text-xs shadow-sm">{{ $catIndex }}</span>
                                 <h3 class="text-md font-bold text-slate-700 flex-1">{{ $catName }}</h3>
                                 @if(($catData['limit'] ?? 0) > 0)
                                 <span class="cat-limit-badge text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold uppercase tracking-wide">Category Limit: {{ $catData['limit'] }}</span>
@@ -869,10 +869,10 @@
                                 $isSelected = isset($selectedItems[$cleanName]);
                                 $itemData = $isSelected ? $selectedItems[$cleanName] : ['qty' => 1, 'price' => $p['price']];
                                 $availInfo = $availability[$cleanName] ?? ['left' => 99, 'sold_out' => false];
-                                $cardClass = $isSelected ? 'border-[#9E6B73] bg-[#FFF5F7] ring-2 ring-[#9E6B73]/20' : 'border-slate-200 hover:border-slate-300';
+                                $cardClass = $isSelected ? 'border-plum bg-bg-page ring-2 ring-plum/20' : 'border-slate-200 hover:border-slate-300';
                                 if (!$isSelected && $availInfo['sold_out']) $cardClass = 'opacity-60 bg-slate-50 border-slate-200';
                                 @endphp
-                                <div class="product-card group relative h-full flex flex-col rounded-[22px] border pb-4 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1.5 {{ $isSelected ? 'selected ring-2 ring-[#9D686E] bg-white shadow-xl translate-y--1' : 'bg-white/40 border-slate-100 hover:border-[#9E6B73]/30 bg-white shadow-sm' }}"
+                                <div class="product-card group relative h-full flex flex-col rounded-[22px] border pb-4 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1.5 {{ $isSelected ? 'selected ring-2 ring-plum bg-white shadow-xl translate-y--1' : 'border-slate-100 hover:border-plum/30 bg-white shadow-sm' }}"
                                     wire:loading.class="opacity-60 pointer-events-none grayscale-[0.5]"
                                     wire:key="product-{{ $p['name'] }}"
                                     data-name="{{ $p['name'] }}"
@@ -894,8 +894,8 @@
                                     <div class="flex justify-between items-start gap-2 mb-2 w-full relative">
                                         <div class="pr-2 w-full">
                                             <div class="flex items-center gap-2">
-                                                <h4 class="font-bold text-slate-800 text-sm leading-snug group-hover:text-[#9E6B73]">{{ $p['name'] }}</h4>
-                                                <button type="button" @click.stop="openProductDetails($event.currentTarget.closest('.product-card'))" class="text-slate-300 hover:text-[#9E6B73] transition-colors p-1 rounded-full hover:bg-slate-100 flex items-center justify-center shrink-0">
+                                                <h4 class="font-bold text-slate-800 text-sm leading-snug group-hover:text-plum">{{ $p['name'] }}</h4>
+                                                <button type="button" @click.stop="openProductDetails($event.currentTarget.closest('.product-card'))" class="text-slate-300 hover:text-plum transition-colors p-1 rounded-full hover:bg-slate-100 flex items-center justify-center shrink-0">
                                                     <span class="material-symbols-rounded text-lg">info</span>
                                                 </button>
                                             </div>
@@ -913,12 +913,12 @@
                                                     <span class="status-badge {{ $badgeClass }}">{{ $isSoldOut ? 'SOLD OUT' : $left . ' AVAILABLE' }}</span>
                                             </div>
                                         </div>
-                                        <div class="custom-checkbox flex-shrink-0"></div>
+                                        <div class="custom-checkbox shrink-0"></div>
                                         <input type="checkbox" class="ride-checkbox hidden" {{ $isSelected ? 'checked' : '' }}>
                                     </div>
 
                                     <div class="mt-4 pt-3 border-t border-slate-100 ride-override-panel {{ $isSelected ? '' : 'hidden' }}" @click.stop x-cloak>
-                                        <label class="text-[9px] font-black text-[#9E6B73] uppercase tracking-widest block mb-1.5 flex items-center gap-1.5">
+                                        <label class="text-[9px] font-black text-plum uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
                                             <span class="material-symbols-rounded text-xs">edit_note</span>
                                             Price Override
                                         </label>
@@ -928,7 +928,7 @@
                                                 wire:model.live="selectedItems.{{ $cleanName }}.price"
                                                 oninput="if(window.triggerRecalculate) window.triggerRecalculate()"
                                                 step="0.01"
-                                                class="manual-ride-price w-full bg-white border border-slate-200 rounded-xl py-1.5 pl-5 pr-2 text-[11px] font-black text-slate-700 focus:ring-2 focus:ring-[#9E6B73]/20 focus:border-[#9E6B73] transition-all"
+                                                class="manual-ride-price w-full bg-white border border-slate-200 rounded-xl py-1.5 pl-5 pr-2 text-[11px] font-black text-slate-700 focus:ring-2 focus:ring-plum/20 focus:border-plum transition-all"
                                                 placeholder="0.00">
                                         </div>
                                     </div>
@@ -946,7 +946,7 @@
                         @endforeach
 
                         <div class="bg-slate-50 rounded-3xl p-6 border border-slate-200 mt-8">
-                            <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2 mb-6 border-b border-slate-200 pb-3"><span class="material-symbols-rounded text-[#9E6B73]">tune</span> Extra Configurations</h3>
+                            <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2 mb-6 border-b border-slate-200 pb-3"><span class="material-symbols-rounded text-plum">tune</span> Extra Configurations</h3>
 
                             <div id="dynamicExtrasContainer" class="grid grid-cols-1 gap-6" wire:ignore>
                                 <p class="text-xs text-slate-500 italic py-4 col-span-full">Select attractions to view related extras.</p>
@@ -960,7 +960,7 @@
 
     <template x-teleport="body">
         <!-- SAVE CONFIRM MODAL -->
-        <div x-show="modals.saveConfirm" class="fixed inset-0 z-[9999] flex items-center justify-center p-6" x-cloak>
+        <div x-show="modals.saveConfirm" class="fixed inset-0 z-9999 flex items-center justify-center p-6" x-cloak>
             <div x-show="modals.saveConfirm"
                 x-transition.opacity.duration.300ms
                 class="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
@@ -976,7 +976,7 @@
                 class="relative w-full max-w-md bg-white rounded-[28px] shadow-2xl overflow-hidden z-10">
 
                 <!-- Header Band -->
-                <div class="bg-gradient-to-br from-[#9D686E] to-[#7C4E54] px-8 pt-10 pb-8 text-center">
+                <div class="bg-linear-to-br from-plum to-[#7C4E54] px-8 pt-10 pb-8 text-center">
                     <div class="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-inner backdrop-blur-sm">
                         <span class="material-symbols-rounded text-white text-4xl">save_as</span>
                     </div>
@@ -999,7 +999,7 @@
                             wire:click="saveBooking"
                             @click="if(typeof finalizeBooking === 'function') finalizeBooking(); if(typeof saveCurrentExtrasState === 'function') saveCurrentExtrasState(false); if(typeof triggerRecalculate === 'function') triggerRecalculate();"
                             wire:loading.attr="disabled"
-                            class="w-full py-4 bg-[#9D686E] text-white hover:bg-[#7C4E54] font-black text-[13px] rounded-2xl transition-all active:scale-95 uppercase tracking-widest flex items-center justify-center gap-2.5 disabled:opacity-75 disabled:cursor-wait shadow-none">
+                            class="w-full py-4 bg-plum text-white hover:bg-[#7C4E54] font-black text-[13px] rounded-2xl transition-all active:scale-95 uppercase tracking-widest flex items-center justify-center gap-2.5 disabled:opacity-75 disabled:cursor-wait shadow-none">
                             <span wire:loading.remove wire:target="saveBooking" class="flex items-center gap-2.5">
                                 <span class="material-symbols-rounded text-xl leading-none">check_circle</span>
                                 Confirm & Save Booking
@@ -1023,7 +1023,7 @@
 
     <template x-teleport="body">
         <!-- CHANGE EXTRAS CONFIRM MODAL -->
-        <div x-show="modals.changeExtrasConfirm" class="fixed inset-0 z-[10001] flex items-center justify-center p-4" x-cloak>
+        <div x-show="modals.changeExtrasConfirm" class="fixed inset-0 z-10001 flex items-center justify-center p-4" x-cloak>
             <div x-show="modals.changeExtrasConfirm"
                 x-transition.opacity.duration.300ms
                 class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
@@ -1036,7 +1036,7 @@
                 x-transition:leave="transition ease-in duration-200 transform"
                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                 x-transition:leave-end="opacity-0 scale-90 translate-y-4"
-                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10 text-center z-10">
+                class="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl p-10 text-center z-10">
                 <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-600 ring-8 ring-amber-50">
                     <span class="material-symbols-rounded text-4xl font-bold">edit_attributes</span>
                 </div>
@@ -1044,7 +1044,7 @@
                 <p class="text-[14px] font-medium text-slate-500 mb-10 leading-relaxed px-4">Modifying these extras may impact the total quote and setup requirements for this attraction.</p>
                 <div class="flex gap-4">
                     <button @click="modals.changeExtrasConfirm = false" class="flex-1 py-4 text-slate-600 font-black text-[13px] hover:bg-slate-50 rounded-2xl transition-colors uppercase tracking-widest">Go Back</button>
-                    <button id="btnConfirmExtraChange" class="flex-1 py-4 bg-[#9D686E] text-white hover:bg-[#855359] font-black text-[13px] rounded-2xl shadow-xl shadow-[#9D686E]/20 transition-all active:scale-95 uppercase tracking-widest">Confirm</button>
+                    <button id="btnConfirmExtraChange" class="flex-1 py-4 bg-plum text-white hover:bg-plum-dark font-black text-[13px] rounded-2xl shadow-xl shadow-plum/20 transition-all active:scale-95 uppercase tracking-widest">Confirm</button>
                 </div>
             </div>
         </div>
@@ -1052,7 +1052,7 @@
 
     <template x-teleport="body">
         <!-- FULL CAPACITY / 0 LIMIT MODAL -->
-        <div x-show="modals.fullCapacityWarning" class="fixed inset-0 z-[10003] flex items-center justify-center p-4" x-cloak>
+        <div x-show="modals.fullCapacityWarning" class="fixed inset-0 z-10003 flex items-center justify-center p-4" x-cloak>
             <div x-show="modals.fullCapacityWarning"
                 x-transition.opacity.duration.300ms
                 class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
@@ -1065,7 +1065,7 @@
                 x-transition:leave="transition ease-in duration-200 transform"
                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                 x-transition:leave-end="opacity-0 scale-90 translate-y-4"
-                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10 text-center z-10">
+                class="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl p-10 text-center z-10">
                 <div class="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500 shadow-inner">
                     <span class="material-symbols-rounded text-4xl font-bold">inventory_2</span>
                 </div>
@@ -1082,7 +1082,7 @@
 
     <template x-teleport="body">
         <!-- Category Limit Modal -->
-        <div x-show="modals.limitExceeded" class="fixed inset-0 z-[10002] flex items-center justify-center p-4" x-cloak>
+        <div x-show="modals.limitExceeded" class="fixed inset-0 z-10002 flex items-center justify-center p-4" x-cloak>
             <div x-show="modals.limitExceeded"
                 x-transition.opacity.duration.300ms
                 class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
@@ -1095,14 +1095,14 @@
                 x-transition:leave="transition ease-in duration-200 transform"
                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                 x-transition:leave-end="opacity-0 scale-90 translate-y-4"
-                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10 text-center z-10">
+                class="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl p-10 text-center z-10">
                 <div class="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500 shadow-inner">
                     <span class="material-symbols-rounded text-4xl font-bold">warning</span>
                 </div>
                 <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight uppercase">Limit Reached</h3>
                 <p class="text-[14px] font-medium text-slate-600 mb-8 leading-relaxed px-4">
                     You have reached the maximum cap of <span class="font-black text-slate-800" x-text="limitExceededLimit"></span> items for the
-                    <span class="font-black text-[#9D686E] underline decoration-2 underline-offset-4" x-text="limitExceededCategory"></span> category.
+                    <span class="font-black text-plum underline decoration-2 underline-offset-4" x-text="limitExceededCategory"></span> category.
                 </p>
                 <button type="button" @click="modals.limitExceeded = false" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition shadow-xl uppercase tracking-widest text-[11px] flex items-center justify-center gap-2">
                     <span class="material-symbols-rounded text-base">thumb_up</span>
@@ -1114,7 +1114,7 @@
 
     <template x-teleport="body">
         <!-- FILE SIZE ALERT MODAL -->
-        <div x-show="modals.fileSizeAlert" class="fixed inset-0 z-[100000] flex items-center justify-center p-4" x-cloak>
+        <div x-show="modals.fileSizeAlert" class="fixed inset-0 z-100000 flex items-center justify-center p-4" x-cloak>
             <div x-show="modals.fileSizeAlert"
                 x-transition.opacity.duration.300ms
                 class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
@@ -1124,7 +1124,7 @@
                 x-transition:enter="transition ease-out duration-300 transform"
                 x-transition:enter-start="opacity-0 scale-90 translate-y-4"
                 x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-                class="relative w-full max-w-lg bg-white rounded-[24px] shadow-2xl overflow-hidden z-10 border-t-8 border-rose-500 p-8 text-center">
+                class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden z-10 border-t-8 border-rose-500 p-8 text-center">
 
                 <div class="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500 ring-8 ring-rose-50/50">
                     <span class="material-symbols-rounded text-4xl font-bold">file_upload_off</span>
@@ -1178,12 +1178,12 @@
 
     <template x-teleport="body">
         <!-- Product Details Modal -->
-        <div x-show="productDetails.visible" x-cloak class="fixed inset-0 z-[20000] flex items-center justify-center p-4">
+        <div x-show="productDetails.visible" x-cloak class="fixed inset-0 z-20000 flex items-center justify-center p-4">
             <div x-show="productDetails.visible" x-transition.opacity.duration.300ms class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="productDetails.visible = false"></div>
             <div x-show="productDetails.visible" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="opacity-0 scale-90 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" x-transition:leave="transition ease-in duration-200 transform" x-transition:leave-start="opacity-100 scale-100 translate-y-0" x-transition:leave-end="opacity-0 scale-90 translate-y-4" class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden z-10">
                 <div class="p-6 bg-slate-800 text-white flex justify-between items-center">
                     <div class="flex items-center gap-3">
-                        <span class="material-symbols-rounded text-[#9E6B73] text-2xl">info</span>
+                        <span class="material-symbols-rounded text-plum text-2xl">info</span>
                         <h3 class="text-xl font-bold" x-text="productDetails.name">Product Specification</h3>
                     </div>
                     <button type="button" @click="productDetails.visible = false" class="text-slate-400 hover:text-white transition">
@@ -1202,12 +1202,12 @@
                     <div class="h-px bg-slate-100"></div>
                     <div>
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Key Specifications</span>
-                        <div class="bg-slate-50/50 rounded-xl p-5 border border-slate-100 min-h-[100px]">
+                        <div class="bg-slate-50/50 rounded-xl p-5 border border-slate-100 min-h-25">
                             <template x-if="productDetails.spec">
                                 <ul class="space-y-3">
                                     <template x-for="line in productDetails.spec.split('\n').filter(l => l.trim())">
                                         <li class="flex items-start gap-3">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-[#9E6B73] mt-1.5 shrink-0"></span>
+                                            <span class="w-1.5 h-1.5 rounded-full bg-plum mt-1.5 shrink-0"></span>
                                             <span class="text-sm text-slate-600 font-medium leading-relaxed" x-text="line"></span>
                                         </li>
                                     </template>
@@ -1228,11 +1228,11 @@
 
     <template x-teleport="body">
         <!-- MOVE CONFIRM MODAL -->
-        <div x-show="modals.moveConfirm" class="fixed inset-0 z-[10010] flex items-center justify-center p-4" x-cloak>
+        <div x-show="modals.moveConfirm" class="fixed inset-0 z-10010 flex items-center justify-center p-4" x-cloak>
             <div x-show="modals.moveConfirm" x-transition.opacity.duration.300ms class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="modals.moveConfirm = false"></div>
             <div x-show="modals.moveConfirm" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="opacity-0 scale-90 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10 text-center z-10 border-t-8 border-[#9D686E]">
-                <div class="w-20 h-20 bg-[#9D686E]/10 rounded-full flex items-center justify-center mx-auto mb-6 text-[#9D686E] ring-8 ring-[#9D686E]/5">
+                class="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl p-10 text-center z-10 border-t-8 border-plum">
+                <div class="w-20 h-20 bg-plum/10 rounded-full flex items-center justify-center mx-auto mb-6 text-plum ring-8 ring-plum/5">
                     <span class="material-symbols-rounded text-4xl font-bold">event_repeat</span>
                 </div>
                 <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">Confirm Move?</h3>
@@ -1241,7 +1241,7 @@
                 </p>
                 <div class="flex gap-4">
                     <button @click="modals.moveConfirm = false" class="flex-1 py-4 text-slate-500 font-black text-[11px] hover:bg-slate-50 rounded-xl transition uppercase tracking-widest border border-slate-200">Go Back</button>
-                    <button @click="modals.moveConfirm = false; $wire.executeMove()" class="flex-1 py-4 bg-[#9D686E] text-white rounded-xl font-black hover:bg-[#855359] transition shadow-lg shadow-[#9D686E]/20 uppercase tracking-widest text-[11px]">Confirm Move</button>
+                    <button @click="modals.moveConfirm = false; $wire.executeMove()" class="flex-1 py-4 bg-plum text-white rounded-xl font-black hover:bg-plum-dark transition shadow-lg shadow-plum/20 uppercase tracking-widest text-[11px]">Confirm Move</button>
                 </div>
             </div>
         </div>
@@ -1249,11 +1249,11 @@
 
     <template x-teleport="body">
         <!-- ITEM REMOVAL CONFIRM MODAL -->
-        <div x-show="modals.removeConfirm" class="fixed inset-0 z-[10010] flex items-center justify-center p-4" x-cloak>
+        <div x-show="modals.removeConfirm" class="fixed inset-0 z-10010 flex items-center justify-center p-4" x-cloak>
             <div x-show="modals.removeConfirm" x-transition.opacity.duration.300ms class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="modals.removeConfirm = false"></div>
             <div x-show="modals.removeConfirm" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="opacity-0 scale-90 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-                class="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10 text-center z-10 border-t-8 border-[#9D686E]">
-                <div class="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 text-[#9D686E] ring-8 ring-rose-50/50">
+                class="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl p-10 text-center z-10 border-t-8 border-plum">
+                <div class="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 text-plum ring-8 ring-rose-50/50">
                     <span class="material-symbols-rounded text-4xl font-bold">delete_sweep</span>
                 </div>
                 <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">Remove Item?</h3>
@@ -1262,7 +1262,7 @@
                 </p>
                 <div class="flex gap-4">
                     <button @click="modals.removeConfirm = false" class="flex-1 py-4 text-slate-500 font-black text-[11px] hover:bg-slate-50 rounded-xl transition uppercase tracking-widest border border-slate-200">Cancel</button>
-                    <button @click="confirmRemoval()" class="flex-1 py-4 bg-[#9D686E] text-white rounded-xl font-black hover:bg-[#855359] transition shadow-lg shadow-[#9D686E]/20 uppercase tracking-widest text-[11px]">Confirm</button>
+                    <button @click="confirmRemoval()" class="flex-1 py-4 bg-plum text-white rounded-xl font-black hover:bg-plum-dark transition shadow-lg shadow-plum/20 uppercase tracking-widest text-[11px]">Confirm</button>
                 </div>
             </div>
         </div>
@@ -1270,7 +1270,7 @@
 
     <template x-teleport="body">
         <!-- CAPACITY CHECK MODAL -->
-        <div x-show="modals.calendarModal" class="fixed inset-0 z-[10005] flex items-center justify-center p-4" x-cloak>
+        <div x-show="modals.calendarModal" class="fixed inset-0 z-10005 flex items-center justify-center p-4" x-cloak>
             <div x-show="modals.calendarModal"
                 x-transition.opacity.duration.300ms
                 class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
@@ -1283,11 +1283,11 @@
                 x-transition:leave="transition ease-in duration-200 transform"
                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                 x-transition:leave-end="opacity-0 scale-90 translate-y-4"
-                class="relative w-full max-w-lg bg-white rounded-[24px] shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]">
+                class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]">
 
                 <div class="px-8 py-8 border-b border-slate-50 flex justify-between items-center shrink-0 bg-white">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-2xl bg-[#9D686E]/10 text-[#9D686E] flex items-center justify-center">
+                        <div class="w-12 h-12 rounded-2xl bg-plum/10 text-plum flex items-center justify-center">
                             <span class="material-symbols-rounded text-2xl font-bold">calendar_month</span>
                         </div>
                         <div>
@@ -1301,18 +1301,18 @@
                 </div>
 
                 <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-white">
-                    <div class="bg-slate-50 p-6 rounded-[24px] mb-8 border border-slate-100">
+                    <div class="bg-slate-50 p-6 rounded-3xl mb-8 border border-slate-100">
                         <div class="flex items-center justify-center mb-4">
                             <div class="flex items-center gap-4">
-                                <button wire:click="calPrev" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_left</span></button>
+                                <button wire:click="calPrev" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-plum shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_left</span></button>
                                 <p class="text-lg font-black text-slate-800 w-48 text-center truncate tracking-widest">{{ \Carbon\Carbon::create($calYear, $calMonth, 1)->format('F Y') }}</p>
-                                <button wire:click="calNext" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-[#9D686E] shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_right</span></button>
+                                <button wire:click="calNext" class="w-10 h-10 flex items-center justify-center bg-white rounded-2xl text-slate-400 hover:text-plum shadow-sm border border-slate-100 transition-all hover:scale-105 active:scale-95"><span class="material-symbols-rounded text-xl font-bold">chevron_right</span></button>
                             </div>
                         </div>
                         <div class="flex items-center justify-center">
-                            <div class="inline-flex items-center gap-2 bg-[#9D686E]/10 border border-[#9D686E]/20 rounded-full px-4 py-2">
-                                <span class="material-symbols-rounded text-[#9D686E] text-sm">shield</span>
-                                <span class="text-[11px] font-extrabold text-[#9D686E] uppercase tracking-widest">Global Soft Limit: 7 MISSIONS / DAY</span>
+                            <div class="inline-flex items-center gap-2 bg-plum/10 border border-plum/20 rounded-full px-4 py-2">
+                                <span class="material-symbols-rounded text-plum text-sm">shield</span>
+                                <span class="text-[11px] font-extrabold text-plum uppercase tracking-widest">Global Soft Limit: 7 MISSIONS / DAY</span>
                             </div>
                         </div>
                     </div>
@@ -1340,14 +1340,14 @@
                             $isSelected=$d['date']===$tempSelectedDate;
                             $isOriginal=$d['date']===$booking->event_date;
 
-                            $ring = $isSelected ? 'border-[#9D686E] bg-pink-50 ring-4 ring-[#9D686E]/10 shadow-md z-10' : '' ;
-                            $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-[#9D686E] shadow-inner' : '';
+                            $ring = $isSelected ? 'border-plum bg-pink-50 ring-4 ring-plum/10 shadow-md z-10' : '' ;
+                            $originStyle = $isOriginal && !$isSelected ? 'border-2 border-dashed border-plum shadow-inner' : '';
                             $opacity = ($d['left'] == 0 && !$isSelected && !$isOriginal) ? 'opacity-40 grayscale-[0.5]' : '' ;
                             @endphp
                             <button wire:click="$set('tempSelectedDate', '{{ $d['date'] }}')"
                                 class="h-20 rounded-2xl border {{ $bg }} {{ $border }} {{ $text }} {{ $ring }} {{ $originStyle }} {{ $opacity }} flex flex-col items-center justify-center cursor-pointer transition-all relative hover:-translate-y-1 hover:shadow-lg group">
                                 @if($isOriginal)
-                                <div class="absolute -top-1.5 -right-1.5 bg-[#9D686E] text-white text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
+                                <div class="absolute -top-1.5 -right-1.5 bg-plum text-white text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm z-20">Current</div>
                                 @endif
                                 @if($d['conflict'] ?? false)
                                 <div class="absolute -top-1.5 -left-1.5 bg-red-600 text-white p-1 rounded-lg shadow-sm animate-pulse z-20">
@@ -1372,7 +1372,7 @@
                     </div>
 
                     @if($tempSelectedDate)
-                    <div class="mt-8 p-6 bg-slate-50 border border-slate-100 rounded-[24px]">
+                    <div class="mt-8 p-6 bg-slate-50 border border-slate-100 rounded-3xl">
                         <div class="flex items-center justify-between mb-4">
                             <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Selected Date: {{ \Carbon\Carbon::parse($tempSelectedDate)->format('d M Y') }}</h4>
                             @if(count($modalConflicts) > 0 || count($modalCapacityBreaches) > 0)
@@ -1478,7 +1478,7 @@
                 <div class="p-8 border-t border-slate-50 bg-white">
                     <button wire:click="applySelectedDate()"
                         @if(count($modalConflicts)> 0 || count($modalCapacityBreaches) > 0) disabled @endif
-                        class="w-full py-5 rounded-2xl font-black transition-all transform active:scale-95 uppercase tracking-widest text-xs {{ (count($modalConflicts) > 0 || count($modalCapacityBreaches) > 0) ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-[#9D686E] text-white shadow-xl shadow-[#9D686E]/20 hover:bg-[#855359]' }}">
+                        class="w-full py-5 rounded-2xl font-black transition-all transform active:scale-95 uppercase tracking-widest text-xs {{ (count($modalConflicts) > 0 || count($modalCapacityBreaches) > 0) ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-plum text-white shadow-xl shadow-plum/20 hover:bg-plum-dark' }}">
                         @if(count($modalConflicts) > 0)
                         <span class="flex items-center justify-center gap-2">
                             <span class="material-symbols-rounded text-sm">block</span>
@@ -1499,7 +1499,7 @@
     </template>
 
     <template x-teleport="body">
-        <div x-show="modals.history" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10000]">
+        <div x-show="modals.history" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-10000">
             <div x-show="modals.history" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.history = false"></div>
             <div x-show="modals.history" x-transition class="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
                 <div class="p-6 border-b border-gray-100 flex flex-col gap-4 bg-green-600 text-white rounded-t-2xl">
@@ -1512,13 +1512,13 @@
                         <input type="text" x-model="searchHistory" @input="filterCustomers()" placeholder="Search name or email..." class="w-full pl-12 pr-4 py-3 rounded-xl bg-white/20 text-white placeholder-white/70 focus:bg-white focus:text-slate-800 outline-none transition border border-transparent focus:border-white">
                     </div>
                 </div>
-                <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-slate-50 min-h-[400px]">
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-slate-50 min-h-100">
                     <template x-for="c in paginatedCustomers">
                         <div class="p-3 bg-white border border-gray-100 rounded-xl hover:border-green-300 hover:bg-green-50 cursor-pointer flex justify-between items-center transition group" @click="fillCustomerDetails(c)">
                             <div>
                                 <p class="font-bold text-slate-800" x-text="(c.customer_first_name + ' ' + (c.customer_last_name || '')).trim()"></p>
-                                <p class="text-[10px] font-black text-[#9E6B73] uppercase tracking-tighter" x-show="c.suburb" x-text="c.suburb + (c.state ? ', ' + c.state : '')"></p>
-                                <p class="text-xs text-gray-400 mt-0.5" x-text="(c.customer_organization || 'Private') + ' • ' + (c.customer_email || c.customer_phone || '')"></p>
+                                <p class="text-[10px] font-black text-plum uppercase tracking-tighter" x-show="c.suburb" x-text="c.suburb + (c.state ? ', ' + c.state : '')"></p>
+                                <p class="text-xs text-gray-400 mt-0.5" x-text="(c.customer_organization || 'Private') + ' ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ ' + (c.customer_email || c.customer_phone || '')"></p>
                             </div>
                             <span class="text-xs font-bold text-green-600 opacity-0 group-hover:opacity-100 transition">Select</span>
                         </div>
@@ -1540,11 +1540,11 @@
 
     <!-- INFORMATION MODAL -->
     <template x-teleport="body">
-        <div x-show="modals.info" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-[10000]">
+        <div x-show="modals.info" x-cloak class="fixed inset-0 modal-wrapper flex items-center justify-center p-4 z-10000">
             <div x-show="modals.info" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="modals.info = false"></div>
 
             <div x-show="modals.info" x-transition.scale.origin.center class="relative w-full max-w-xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-enter">
-                <div class="bg-gradient-to-br from-[#9E6B73] to-[#86545C] p-8 text-white relative">
+                <div class="bg-linear-to-br from-plum to-plum-dark p-8 text-white relative">
                     <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
                     <div class="flex justify-between items-center relative z-10">
                         <div class="flex items-center gap-3">
@@ -1575,7 +1575,7 @@
                         </div>
 
                         <div class="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 transition-hover hover:bg-white hover:shadow-md group">
-                            <div class="w-10 h-10 rounded-xl bg-[#9E6B73]/10 text-[#9E6B73] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                            <div class="w-10 h-10 rounded-xl bg-plum/10 text-plum flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                                 <span class="material-symbols-rounded">payments</span>
                             </div>
                             <div>

@@ -10,7 +10,7 @@
 <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-50 hover:shadow-xl hover:border-gray-200 transition-all duration-300 flex flex-col md:flex-row items-stretch gap-5 group relative overflow-hidden">
     <!-- Date Badge -->
     <div class="flex-shrink-0 w-20 bg-gray-50 rounded-xl py-3 text-center border border-gray-100 flex flex-col justify-center group-hover:bg-pink-50 group-hover:border-pink-100 transition-colors">
-        <span class="block text-[10px] font-black text-[#9E6B73] uppercase tracking-widest leading-none">{{ \Carbon\Carbon::parse($item->event_date)->format('M') }}</span>
+        <span class="block text-[10px] font-black text-plum uppercase tracking-widest leading-none">{{ \Carbon\Carbon::parse($item->event_date)->format('M') }}</span>
         <span class="block text-2xl font-black text-gray-800 my-1">{{ \Carbon\Carbon::parse($item->event_date)->format('d') }}</span>
         <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{{ \Carbon\Carbon::parse($item->event_date)->format('D') }}</span>
     </div>
@@ -74,7 +74,7 @@
     <!-- Action Buttons -->
     <div class="flex flex-row md:flex-col gap-2 shrink-0 pt-4 md:pt-0 border-t md:border-t-0 border-gray-50 justify-center">
         <a href="{{ route('staff.bookings.overview', $item->id) }}"
-            class="flex-1 md:flex-none px-5 py-2.5 bg-gray-900 text-white text-[11px] font-black rounded-xl hover:bg-[#9E6B73] transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg">
+            class="flex-1 md:flex-none px-5 py-2.5 bg-gray-900 text-white text-[11px] font-black rounded-xl hover:bg-plum transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg">
             <span class="material-symbols-rounded text-sm">visibility</span> VIEW
         </a>
 

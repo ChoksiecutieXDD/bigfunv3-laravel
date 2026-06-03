@@ -29,7 +29,7 @@
 
     <!-- Sidebar -->
     <aside id="sidebar"
-        class="fixed inset-y-0 left-0 z-[60] bg-white shadow-2xl lg:shadow-xl flex flex-col h-full border-r border-gray-100 overflow-visible transition-all duration-300 ease-in-out"
+        class="fixed inset-y-0 left-0 z-60 bg-white shadow-2xl lg:shadow-xl flex flex-col h-full border-r border-gray-100 overflow-visible transition-all duration-300 ease-in-out"
         :class="{ 
             'w-20': isCollapsed, 
             'w-72': !isCollapsed, 
@@ -41,11 +41,11 @@
             <img src="{{ asset('assets/icon/bgfunlogo.png') }}" alt="BigFun" class="h-8 w-auto transition-opacity duration-300" x-show="!isCollapsed">
             <img src="{{ asset('assets/icon/bfun.png') }}" alt="B" class="h-8 w-auto transition-opacity duration-300" x-show="isCollapsed" style="display: none;">
 
-            <button type="button" @click="isCollapsed = !isCollapsed" class="hidden lg:flex absolute -right-3 top-1/2 -translate-y-1/2 bg-white border border-gray-200 text-gray-400 p-1 rounded-full shadow-sm z-20 hover:text-[#9E6B73] transition-colors focus:outline-none" aria-label="Toggle sidebar size">
+            <button type="button" @click="isCollapsed = !isCollapsed" class="hidden lg:flex absolute -right-3 top-1/2 -translate-y-1/2 bg-white border border-gray-200 text-gray-400 p-1 rounded-full shadow-sm z-20 hover:text-plum transition-colors focus:outline-none" aria-label="Toggle sidebar size">
                 <span class="material-symbols-rounded text-lg transition-transform duration-300" :class="isCollapsed ? 'rotate-180' : ''">chevron_left</span>
             </button>
 
-            <button type="button" @click="isMobileOpen = false" class="lg:hidden absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#9E6B73] focus:outline-none">
+            <button type="button" @click="isMobileOpen = false" class="lg:hidden absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-plum focus:outline-none">
                 <span class="material-symbols-rounded text-2xl">close</span>
             </button>
         </div>
@@ -68,13 +68,13 @@
         </nav>
 
         <div class="p-4 border-t border-gray-100 whitespace-nowrap overflow-hidden bg-white shrink-0">
-            <a href="{{ route('profile') }}" wire:navigate class="nav-item flex items-center gap-3 p-2 rounded-xl transition-all group {{ request()->routeIs('profile') ? 'bg-[#FDF2F4] ring-1 ring-[#9E6B73]/20' : 'hover:bg-gray-50' }}" :class="isCollapsed ? 'justify-center' : ''">
-                <div class="w-9 h-9 rounded-full bg-[#9E6B73] text-white flex items-center justify-center shrink-0 font-bold shadow-sm text-[13px] tracking-wide">
+            <a href="{{ route('profile') }}" wire:navigate class="nav-item flex items-center gap-3 p-2 rounded-xl transition-all group {{ request()->routeIs('profile') ? 'bg-plum-light ring-1 ring-plum/20' : 'hover:bg-gray-50' }}" :class="isCollapsed ? 'justify-center' : ''">
+                <div class="w-9 h-9 rounded-full bg-plum text-white flex items-center justify-center shrink-0 font-bold shadow-sm text-[13px] tracking-wide">
                     {{ strtoupper(substr(auth()->user()->first_name ?? 'U', 0, 1) . substr(auth()->user()->last_name ?? '', 0, 1)) }}
                 </div>
                 <div class="profile-details overflow-hidden transition-all duration-300" x-show="!isCollapsed">
                     <p class="font-bold text-xs text-gray-700 truncate profile-name">{{ auth()->user()->first_name }} {{ auth()->user()->last_name }}</p>
-                    <p class="text-[10px] text-[#9E6B73] font-semibold truncate">{{ auth()->user()->role ?? 'View Profile' }}</p>
+                    <p class="text-[10px] text-plum font-semibold truncate">{{ auth()->user()->role ?? 'View Profile' }}</p>
                 </div>
             </a>
             <button type="button" @click="logoutModal = true" class="w-full mt-2 nav-item flex items-center gap-3 p-2 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-50 transition-all border-none outline-none" :class="isCollapsed ? 'justify-center' : ''">
@@ -90,7 +90,7 @@
         class="flex-1 transition-all duration-300 ease-in-out min-h-screen pt-16 lg:pt-0 flex flex-col">
 
         <div class="lg:hidden h-16 bg-white border-b border-gray-100 flex items-center px-4 fixed top-0 w-full z-40 shadow-sm">
-            <button @click="isMobileOpen = true" class="text-gray-500 hover:text-[#9E6B73] mr-4 focus:outline-none">
+            <button @click="isMobileOpen = true" class="text-gray-500 hover:text-plum mr-4 focus:outline-none">
                 <span class="material-symbols-rounded text-2xl mt-1">menu</span>
             </button>
             <img src="{{ asset('assets/icon/bgfunlogo.png') }}" alt="BigFun" class="h-6 w-auto">
@@ -105,7 +105,7 @@
     <!-- Logout Confirmation Modal -->
     <div x-show="logoutModal"
         x-cloak
-        class="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+        class="fixed inset-0 z-99999 flex items-center justify-center p-4"
         role="dialog"
         aria-modal="true">
 
@@ -128,7 +128,7 @@
             x-transition:leave-end="opacity-0 translate-y-8 scale-95"
             class="relative bg-white rounded-[2.5rem] shadow-2xl p-8 max-w-sm w-full text-center overflow-hidden">
 
-            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-400 to-[#9E6B73]"></div>
+            <div class="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-red-400 to-plum"></div>
 
             <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500 ring-8 ring-red-50/50">
                 <span class="material-symbols-rounded text-4xl">logout</span>
@@ -140,7 +140,7 @@
             <div class="flex flex-col gap-3">
                 <form method="POST" action="/logout">
                     @csrf
-                    <button type="submit" class="w-full py-4 bg-[#9E6B73] text-white rounded-2xl font-bold hover:bg-[#86545C] shadow-lg shadow-[#9E6B73]/20 transition-all active:scale-[0.98]">
+                    <button type="submit" class="w-full py-4 bg-plum text-white rounded-2xl font-bold hover:bg-plum-dark shadow-lg shadow-plum/20 transition-all active:scale-[0.98]">
                         Yes, Sign Me Out
                     </button>
                 </form>

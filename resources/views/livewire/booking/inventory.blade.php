@@ -1,6 +1,6 @@
 <div
     x-data="{ tab: @entangle('activeTab') }"
-    class="w-full py-10 px-6 lg:px-8 max-w-[1440px] mx-auto relative z-10 font-['Poppins']">
+    class="w-full py-10 px-6 lg:px-8 max-w-360 mx-auto relative z-10 font-['Poppins']">
 
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-text-main tracking-tight">Booking Administration</h1>
@@ -60,7 +60,7 @@
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse min-w-[600px]">
+                <table class="w-full text-left border-collapse min-w-150">
                     <thead class="border-b border-slate-100 bg-slate-50/50">
                         <tr>
                             <th class="py-4 pl-8 text-[11px] font-bold text-slate-500 uppercase tracking-widest w-1/3">Category</th>
@@ -137,7 +137,7 @@
                     <div>
                         <div class="space-y-1.5">
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Physical Stock (Total Units)</label>
-                            <input type="number" wire:model="prod_quantity" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#9E6B73] outline-none transition font-bold text-slate-700" placeholder="e.g. 1">
+                            <input type="number" wire:model="prod_quantity" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-plum outline-none transition font-bold text-slate-700" placeholder="e.g. 1">
                         </div>
                     </div>
                     <div>
@@ -190,7 +190,7 @@
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <table wire:key="products-table" class="w-full text-left border-collapse min-w-[800px]" x-data="{ arranging: null }">
+            <table wire:key="products-table" class="w-full text-left border-collapse min-w-200" x-data="{ arranging: null }">
                 <tbody class="divide-y divide-slate-100">
                     @php $currentCat = ''; @endphp
                     @forelse ($products as $prod)
@@ -223,7 +223,7 @@
                                 </div>
                                 <span class="font-bold text-text-main text-[15px]">{{ $prod->name }}</span>
                                 @if($prod->counts_against && $prod->counts_against !== $prod->category)
-                                <span class="inline-flex items-center gap-1 bg-[#FDF2F4] text-[#B07079] border border-[#F9E1E5] px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">
+                                <span class="inline-flex items-center gap-1 bg-plum-light text-[#B07079] border border-[#F9E1E5] px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">
                                     <span class="material-symbols-rounded text-[14px]">link</span> Target: {{ $prod->counts_against }}
                                 </span>
                                 @endif
@@ -244,7 +244,7 @@
                         </td>
 
                         <td class="py-5 w-[20%] text-text-main font-medium">
-                            <div class="flex flex-col border border-slate-200 rounded-lg text-[11px] w-[130px] overflow-hidden shadow-sm">
+                            <div class="flex flex-col border border-slate-200 rounded-lg text-[11px] w-32.5 overflow-hidden shadow-sm">
                                 <div class="flex justify-between items-center py-2 border-b border-slate-50 px-2 bg-slate-50/50">
                                     <span class="text-[10px] font-bold text-slate-400 uppercase">Total Units</span>
                                     <span class="text-xs font-black text-slate-700">{{ $prod->total_quantity }}</span>

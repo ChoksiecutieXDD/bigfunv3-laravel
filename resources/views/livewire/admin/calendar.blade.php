@@ -1,4 +1,4 @@
-<div class="max-w-[1440px] mx-auto w-full">
+<div class="max-w-360 mx-auto w-full">
     <style>
         .calendar-header-bar {
             background-color: #9E6B73;
@@ -159,22 +159,22 @@
             <p class="text-white/80 mt-1 text-sm font-medium">Overview of appointments and financials.</p>
         </div>
 
-        <!-- ✅ New Booking Href Attached Here -->
-        <a href="{{ route('admin.bookings.create') }}" wire:navigate class="hidden md:flex bg-[#9E6B73] hover:bg-[#86545C] text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-pink-900/20 items-center gap-2 transition transform hover:scale-105 active:scale-95 text-sm">
+        <!-- ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ New Booking Href Attached Here -->
+        <a href="{{ route('admin.bookings.create') }}" wire:navigate class="hidden md:flex bg-plum hover:bg-plum-dark text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-pink-900/20 items-center gap-2 transition transform hover:scale-105 active:scale-95 text-sm">
             <span class="material-symbols-rounded text-lg">add</span> New Booking
         </a>
     </div>
 
     <!-- Financial Stats Card -->
-    <div class="bg-white rounded-[2rem] shadow-xl p-6 lg:p-8 mb-6 lg:mb-8">
-        <h3 class="text-lg lg:text-xl font-bold text-[#2D3748] mb-6 flex items-center justify-between">
+    <div class="bg-white rounded-4xl shadow-xl p-6 lg:p-8 mb-6 lg:mb-8">
+        <h3 class="text-lg lg:text-xl font-bold text-text-main mb-6 flex items-center justify-between">
             Monthly Financials
             <span class="text-xs bg-gray-100 text-gray-500 px-3 py-1 rounded-full">{{ $months[$currentMonth] }}</span>
         </h3>
 
         <div class="flex flex-col xl:flex-row gap-8 lg:gap-10">
             <div class="flex-1">
-                <div class="hidden sm:grid grid-cols-3 pb-3 border-b border-gray-100 font-bold text-sm text-[#2D3748]">
+                <div class="hidden sm:grid grid-cols-3 pb-3 border-b border-gray-100 font-bold text-sm text-text-main">
                     <div class="text-left">Metric</div>
                     <div class="text-right">Bookings</div>
                     <div class="text-right">Revenue</div>
@@ -192,19 +192,19 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0 py-4 border-b border-gray-50 text-sm items-center">
                     <div class="text-left font-bold text-gray-800 flex justify-between sm:block">
                         <span>Saturdays ({{ $calendarData['stats']['satCount'] }}):</span>
-                        <span class="sm:hidden font-bold text-[#9E6B73]">{{ $calendarData['stats']['satBookings'] }}</span>
+                        <span class="sm:hidden font-bold text-plum">{{ $calendarData['stats']['satBookings'] }}</span>
                     </div>
-                    <div class="hidden sm:block text-right font-bold text-[#9E6B73]">{{ $calendarData['stats']['satBookings'] }}</div>
-                    <div class="text-right font-bold text-[#9E6B73]">${{ number_format($calendarData['stats']['satRev'], 2) }}</div>
+                    <div class="hidden sm:block text-right font-bold text-plum">{{ $calendarData['stats']['satBookings'] }}</div>
+                    <div class="text-right font-bold text-plum">${{ number_format($calendarData['stats']['satRev'], 2) }}</div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0 py-4 text-sm items-center">
-                    <div class="text-left font-bold text-[#9E6B73] flex justify-between sm:block">
+                    <div class="text-left font-bold text-plum flex justify-between sm:block">
                         <span>YTD ({{ $currentYear }}):</span>
-                        <span class="sm:hidden font-bold text-[#2D3748]">{{ $calendarData['stats']['ytdCount'] }}</span>
+                        <span class="sm:hidden font-bold text-text-main">{{ $calendarData['stats']['ytdCount'] }}</span>
                     </div>
-                    <div class="hidden sm:block text-right font-bold text-[#2D3748]">{{ $calendarData['stats']['ytdCount'] }}</div>
-                    <div class="text-right font-bold text-[#2D3748]">${{ number_format($calendarData['stats']['ytdRev'], 2) }}</div>
+                    <div class="hidden sm:block text-right font-bold text-text-main">{{ $calendarData['stats']['ytdCount'] }}</div>
+                    <div class="text-right font-bold text-text-main">${{ number_format($calendarData['stats']['ytdRev'], 2) }}</div>
                 </div>
             </div>
 
@@ -221,11 +221,11 @@
     </div>
 
     <!-- Calendar View Container -->
-    <div class="bg-white rounded-[2rem] shadow-xl flex flex-col overflow-hidden relative">
+    <div class="bg-white rounded-4xl shadow-xl flex flex-col overflow-hidden relative">
 
         <!-- Loading Overlay during wire actions -->
         <div wire:loading class="absolute inset-0 z-50 bg-white/60 backdrop-blur-sm flex items-center justify-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-[#9E6B73]"></div>
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-plum"></div>
         </div>
 
         <div class="calendar-header-bar p-4 lg:p-5 flex flex-col justify-between shrink-0 z-30 relative gap-4">
@@ -234,7 +234,7 @@
                 <!-- Month Navigation -->
                 <div class="flex items-center gap-2 lg:gap-4 w-full md:w-auto justify-between md:justify-start order-1 xl:order-1">
                     <button wire:click="previousMonth" class="bg-white/20 hover:bg-white/30 text-white w-10 h-10 rounded-xl font-medium transition flex items-center justify-center backdrop-blur-sm shadow-sm"><span class="material-symbols-rounded">chevron_left</span></button>
-                    <h3 class="text-xl lg:text-2xl font-bold tracking-tight text-center min-w-[140px]">
+                    <h3 class="text-xl lg:text-2xl font-bold tracking-tight text-center min-w-35">
                         @if($showWholeYear)
                             Year {{ $currentYear }} Overview
                         @else
@@ -250,12 +250,12 @@
                     </button>
 
                     <!-- TOGGLE BUTTONS -->
-                    <button wire:click="$toggle('showOnlyBooked')" class="bg-white text-[#9E6B73] font-bold text-xs rounded-xl h-10 px-4 focus:outline-none hover:bg-gray-50 transition border border-white/20 shadow-sm flex items-center gap-2">
+                    <button wire:click="$toggle('showOnlyBooked')" class="bg-white text-plum font-bold text-xs rounded-xl h-10 px-4 focus:outline-none hover:bg-gray-50 transition border border-white/20 shadow-sm flex items-center gap-2">
                         <span class="material-symbols-rounded text-lg">{{ $showOnlyBooked ? 'visibility' : 'visibility_off' }}</span>
                         {{ $showOnlyBooked ? 'Booked Only' : 'All Days' }}
                     </button>
 
-                    <button wire:click="$toggle('showWholeYear')" class="{{ $showWholeYear ? 'bg-[#9E6B73] text-white border-white/40' : 'bg-white text-[#9E6B73]' }} font-bold text-xs rounded-xl h-10 px-4 focus:outline-none transition border shadow-sm flex items-center gap-2">
+                    <button wire:click="$toggle('showWholeYear')" class="{{ $showWholeYear ? 'bg-plum text-white border-white/40' : 'bg-white text-plum' }} font-bold text-xs rounded-xl h-10 px-4 focus:outline-none transition border shadow-sm flex items-center gap-2">
                         <span class="material-symbols-rounded text-lg">calendar_month</span>
                         {{ $showWholeYear ? 'Month' : 'Year' }}
                     </button>
@@ -274,7 +274,7 @@
 
                     <div class="h-6 w-px bg-white/30 mx-1 hidden xl:block"></div>
 
-                    <select wire:model.live="statusFilter" class="filter-select bg-white text-[#9E6B73] font-bold text-xs rounded-xl h-10 focus:outline-none cursor-pointer hover:bg-gray-50 transition border border-white/20 shadow-sm w-full md:w-36 grow md:grow-0">
+                    <select wire:model.live="statusFilter" class="filter-select bg-white text-plum font-bold text-xs rounded-xl h-10 focus:outline-none cursor-pointer hover:bg-gray-50 transition border border-white/20 shadow-sm w-full md:w-36 grow md:grow-0">
                         <option value="All">All Status</option>
                         <option value="Booked">Booked (Confirmed)</option>
                         <option value="Pending">Pending</option>
@@ -290,12 +290,12 @@
         </div>
 
         <!-- Scrollable Booking List -->
-        <div class="flex-1 max-h-[700px] overflow-y-auto custom-scrollbar bg-white relative p-4 lg:p-6">
+        <div class="flex-1 max-h-250 overflow-y-auto custom-scrollbar bg-white relative p-4 lg:p-6">
             @foreach($calendarData['days'] as $day => $data)
             <div class="mb-8">
                 <div class="day-header rounded-xl mb-4 flex justify-between items-center shadow-sm border border-slate-200">
                     <span class="text-lg">{{ $data['date'] }}</span>
-                    <span class="text-xs bg-[#9E6B73]/10 text-[#9E6B73] px-3 py-1 rounded-full font-bold">{{ count($data['bookings']) }} Events</span>
+                    <span class="text-xs bg-plum/10 text-plum px-3 py-1 rounded-full font-bold">{{ count($data['bookings']) }} Events</span>
                 </div>
 
                 @forelse($data['bookings'] as $b)
@@ -308,7 +308,7 @@
                 $termsBadge = $b->terms_agreed == 1 ? '<span class="ml-2 text-[10px] font-bold text-green-600 flex items-center gap-1 border border-green-200 px-1.5 py-0.5 rounded bg-white"><span class="material-symbols-rounded text-sm">check_circle</span> Terms Signed</span>' : '<span class="ml-2 text-[10px] font-bold text-gray-400 flex items-center gap-1 border border-gray-200 px-1.5 py-0.5 rounded bg-white"><span class="material-symbols-rounded text-sm">pending</span> Terms Pending</span>';
                 @endphp
 
-                <!-- ✅ Updated to role-specific route -->
+                <!-- ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Updated to role-specific route -->
                 <a href="{{ route('admin.bookings.overview', $b->id) }}" wire:navigate class="booking-card rounded-xl card-{{ $v['color'] }} mb-3">
                     <div class="w-full min-w-0">
                         <span class="booking-label">Time & Duration</span>
@@ -335,7 +335,7 @@
                     <div class="w-full min-w-0">
                         <span class="booking-label">Staff & Del</span>
                         <div class="flex flex-col gap-1 mt-0.5">
-                            <div class="flex items-center gap-1 text-[11px] text-gray-700" title="Operator"><span class="material-symbols-rounded text-[14px] text-[#9E6B73]">engineering</span> {{ $v['op_name'] }}</div>
+                            <div class="flex items-center gap-1 text-[11px] text-gray-700" title="Operator"><span class="material-symbols-rounded text-[14px] text-plum">engineering</span> {{ $v['op_name'] }}</div>
                             <div class="flex items-center gap-1 text-[11px] text-gray-700" title="Deliverer"><span class="material-symbols-rounded text-[14px] text-blue-500">local_shipping</span> {{ $v['del_name'] }}</div>
                         </div>
                     </div>

@@ -7,7 +7,7 @@
                     </div>
                     ${d}
                 </div>
-            `}let c=!1,m=window.renderCategoryBlockHTML("General Logistics");m&&(e.innerHTML+=i("General Logistics",m),c=!0),w.forEach(r=>{if(r!=="General Logistics"){let d=window.renderCategoryBlockHTML(r);d&&(e.innerHTML+=(c?'<div class="mt-8 pt-6 border-t border-slate-200"></div>':"")+i(r,d),c=!0)}}),c||(e.innerHTML='<p class="text-xs text-slate-500 italic py-4 col-span-full">Select attractions to view related extras.</p>'),window.updateCategoryLimitsUI()},window.renderCategoryBlockHTML=function(o){let p="";if(!window.bookingAppData)return"";const w=window.bookingAppData.config||{questions:{},addons:{},dropdowns:{}};let e=window.bookingAppData.savedExtras||{};Array.isArray(e)&&(e={});const l=window.bookingAppData.selectedItems||{},n=new Set((Array.isArray(l)?l:Object.keys(l)).map(a=>a.toLowerCase().trim()));return w.dropdowns[o]&&w.dropdowns[o].forEach(a=>{let t=`dd_${a.id}`,s=e[t]||"",g=(a.counts_against||o).trim(),i=(a.label||"").toLowerCase().trim(),m=`<option value="" data-price="0" ${s==""?"selected":""}>-- Select Option --</option>`+a.options.map(v=>{const k=(v.option_label||"").toLowerCase().trim(),y=`${i}: ${k}`,x=`${i} - ${k}`,h=n.has(k)||n.has(y)||n.has(x);return`<option value="${v.id}" data-price="${v.option_price}" ${s==v.id||h?"selected":""}>${v.option_label} (+$${v.option_price})</option>`}).join(""),r=s;if(!r){const v=a.options.find(k=>{const y=(k.option_label||"").toLowerCase().trim(),x=`${i}: ${y}`,h=`${i} - ${y}`;return n.has(y)||n.has(x)||n.has(h)});v&&(r=v.id)}let d=a.options.find(v=>v.id==r),u=d?d.option_price:0,b=window.bookingAppData.extraPrices&&window.bookingAppData.extraPrices[t]!==void 0?window.bookingAppData.extraPrices[t]:u,f=r!==""&&r!=="0";window.bookingAppData.activeOverrides&&window.bookingAppData.activeOverrides[t],p+=`
+            `}let c=!1,m=window.renderCategoryBlockHTML("General Logistics");m&&(e.innerHTML+=i("General Logistics",m),c=!0),w.forEach(r=>{if(r!=="General Logistics"){let d=window.renderCategoryBlockHTML(r);d&&(e.innerHTML+=(c?'<div class="mt-8 pt-6 border-t border-slate-200"></div>':"")+i(r,d),c=!0)}}),c||(e.innerHTML='<p class="text-xs text-slate-500 italic py-4 col-span-full">Select attractions to view related extras.</p>'),window.updateCategoryLimitsUI()},window.renderCategoryBlockHTML=function(o){let p="";if(!window.bookingAppData)return"";const w=window.bookingAppData.config||{questions:{},addons:{},dropdowns:{}};let e=window.bookingAppData.savedExtras||{};Array.isArray(e)&&(e={});const l=window.bookingAppData.selectedItems||{},n=new Set((Array.isArray(l)?l:Object.keys(l)).map(a=>a.toLowerCase().trim()));return w.dropdowns[o]&&w.dropdowns[o].forEach(a=>{let t=`dd_${a.id}`,s=e[t]||"",g=(a.counts_against||o).trim(),i=(a.label||"").toLowerCase().trim(),m=`<option value="" data-price="0" ${s==""?"selected":""}>-- Select Option --</option>`+a.options.map(v=>{const k=(v.option_label||"").toLowerCase().trim(),y=`${i}: ${k}`,x=`${i} - ${k}`,h=n.has(k)||n.has(y)||n.has(x);return`<option value="${v.id}" data-price="${v.option_price}" ${s==v.id||h?"selected":""}>${v.option_label}</option>`}).join(""),r=s;if(!r){const v=a.options.find(k=>{const y=(k.option_label||"").toLowerCase().trim(),x=`${i}: ${y}`,h=`${i} - ${y}`;return n.has(y)||n.has(x)||n.has(h)});v&&(r=v.id)}let d=a.options.find(v=>v.id==r),u=d?d.option_price:0,b=window.bookingAppData.extraPrices&&window.bookingAppData.extraPrices[t]!==void 0?window.bookingAppData.extraPrices[t]:u,f=r!==""&&r!=="0";window.bookingAppData.activeOverrides&&window.bookingAppData.activeOverrides[t],p+=`
                     <div class="mt-4 first:mt-0">
                         <label class="text-[10px] font-black text-slate-400 uppercase block mb-1.5 ml-1 tracking-widest">${a.label}</label>
                         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -20,19 +20,19 @@
                                 <div class="relative flex items-center group">
                                     <span class="absolute left-3.5 text-slate-400 text-[11px] font-black group-focus-within:text-[#9E6B73] transition-colors">$</span>
                                     <input type="number" step="0.01" class="w-full bg-white border border-slate-200 rounded-xl py-3 pl-8 pr-3 text-[11px] font-black text-slate-700 focus:border-[#9E6B73] transition shadow-sm outline-none" 
-                                            value="${b}" oninput="window.updateExtraPrice('${t}', this.value)" placeholder="${u}">
+                                            value="${b}" oninput="window.updateExtraPrice('${t}', this.value)" placeholder="0.00">
                                 </div>
                             </div>
                         </div>
-                    </div>`}),w.questions[o]&&w.questions[o].forEach(a=>{let t=`q_${a.id}`,s=e[t]||"",g=(a.counts_against||o).trim(),i=(a.question_text||"").toLowerCase().trim(),c=[...n].some(v=>v.includes(i)),m=s==a.yes_price+"|yes"||c?"selected":"",r=s==a.no_price+"|no"?"selected":"",d=!m&&!r?"selected":"",u=m||r,b=window.bookingAppData.extraPrices&&window.bookingAppData.extraPrices[t]!==void 0?window.bookingAppData.extraPrices[t]:u?m?a.yes_price:a.no_price:0,f=m?a.yes_price:r?a.no_price:0;window.bookingAppData.activeOverrides&&window.bookingAppData.activeOverrides[t],p+=`
+                    </div>`}),w.questions[o]&&w.questions[o].forEach(a=>{let t=`q_${a.id}`,s=e[t]||"",g=(a.counts_against||o).trim(),i=(a.question_text||"").toLowerCase().trim(),c=[...n].some(f=>f.includes(i)),m=s==a.yes_price+"|yes"||c?"selected":"",r=s==a.no_price+"|no"?"selected":"",d=!m&&!r?"selected":"",u=m||r,b=window.bookingAppData.extraPrices&&window.bookingAppData.extraPrices[t]!==void 0?window.bookingAppData.extraPrices[t]:u?m?a.yes_price:a.no_price:0;m?a.yes_price:r&&a.no_price,window.bookingAppData.activeOverrides&&window.bookingAppData.activeOverrides[t],p+=`
                     <div class="mt-4">
                         <label class="text-[10px] font-black text-slate-400 uppercase block mb-1.5 ml-1 tracking-widest">${a.question_text}</label>
                         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                             <div class="flex-1">
                                 <select name="${t}" data-counts-against="${g}" data-original-value="${s}" class="input-field !py-3 text-sm ext-price bg-white cursor-pointer w-full border-slate-200 focus:border-[#9E6B73] transition shadow-sm" onchange="window.handleExtraSelection(this)">
                                     <option value="" data-price="0" ${d}>-- Select Choice --</option>
-                                    <option value="${a.yes_price}|yes" data-price="${a.yes_price}" ${m}>${a.yes_label} (+$${a.yes_price})</option>
-                                    <option value="${a.no_price}|no" data-price="${a.no_price}" ${r}>${a.no_label} (+$${a.no_price})</option>
+                                    <option value="${a.yes_price}|yes" data-price="${a.yes_price}" ${m}>${a.yes_label}</option>
+                                    <option value="${a.no_price}|no" data-price="${a.no_price}" ${r}>${a.no_label}</option>
                                 </select>
                             </div>
                             
@@ -41,7 +41,7 @@
                                 <div class="relative flex items-center group">
                                     <span class="absolute left-3.5 text-slate-400 text-[11px] font-black group-focus-within:text-[#9E6B73] transition-colors">$</span>
                                     <input type="number" step="0.01" class="w-full bg-white border border-slate-200 rounded-xl py-3 pl-8 pr-3 text-[11px] font-black text-slate-700 focus:border-[#9E6B73] transition shadow-sm outline-none" 
-                                           value="${b}" oninput="window.updateExtraPrice('${t}', this.value)" placeholder="${f}">
+                                           value="${b}" oninput="window.updateExtraPrice('${t}', this.value)" placeholder="0.00">
                                 </div>
                             </div>
                         </div>
@@ -52,7 +52,6 @@
                                 <input type="checkbox" name="${t}" value="1" class="ext-price w-5 h-5 text-[#9E6B73] border-slate-300 rounded focus:ring-[#9E6B73] transition-all" data-price="${a.addon_price}" data-counts-against="${d}" data-original-checked="${m}" ${m?"checked":""} onchange="window.handleExtraSelection(this)">
                                 <span class="text-sm font-extrabold text-slate-700 flex-1">${a.addon_label}</span>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] font-black text-[#9E6B73] bg-[#9E6B73]/10 px-3 py-1.5 rounded-xl border border-[#9E6B73]/20 shadow-sm transition-all group-hover:scale-105">+$${Number(a.addon_price).toFixed(2)}</span>
                                 </div>
                             </label>
                             
@@ -64,7 +63,7 @@
                                 <div class="relative flex-1 flex items-center group">
                                     <span class="absolute left-3.5 text-slate-400 text-[11px] font-black group-focus-within:text-[#9E6B73] transition-colors">$</span>
                                     <input type="number" step="0.01" class="w-full bg-white border border-slate-200 rounded-xl py-3 pl-8 pr-3 text-[11px] font-black text-slate-700 focus:border-[#9E6B73] transition shadow-sm outline-none" 
-                                           value="${r}" oninput="window.updateExtraPrice('${t}', this.value)" placeholder="${a.addon_price}">
+                                           value="${r}" oninput="window.updateExtraPrice('${t}', this.value)" placeholder="0.00">
                                 </div>
                             </div>
                         </div>

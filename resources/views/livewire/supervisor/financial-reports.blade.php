@@ -1,4 +1,4 @@
-<div class="max-w-[1440px] mx-auto w-full space-y-6 pb-12">
+<div class="max-w-360 mx-auto w-full space-y-6 pb-12">
 
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -9,15 +9,15 @@
         <div class="flex flex-wrap md:flex-nowrap gap-2 bg-white/10 backdrop-blur-sm p-1 rounded-xl items-center">
 
             <div class="gap-2 items-center mr-2 transition-all duration-300 {{ $period === 'custom' ? 'flex' : 'hidden' }}">
-                <input type="date" wire:model="customStart" class="bg-white/90 text-gray-700 text-sm px-2 py-2 rounded-lg border-none focus:ring-2 focus:ring-[#9E6B73] h-10">
+                <input type="date" wire:model="customStart" class="bg-white/90 text-gray-700 text-sm px-2 py-2 rounded-lg border-none focus:ring-2 focus:ring-plum h-10">
                 <span class="text-white font-bold">-</span>
-                <input type="date" wire:model="customEnd" class="bg-white/90 text-gray-700 text-sm px-2 py-2 rounded-lg border-none focus:ring-2 focus:ring-[#9E6B73] h-10">
-                <button wire:click="applyCustomDate" class="bg-[#9E6B73] hover:bg-[#86545C] text-white h-10 w-10 flex items-center justify-center rounded-lg shadow-sm transition">
+                <input type="date" wire:model="customEnd" class="bg-white/90 text-gray-700 text-sm px-2 py-2 rounded-lg border-none focus:ring-2 focus:ring-plum h-10">
+                <button wire:click="applyCustomDate" class="bg-plum hover:bg-plum-dark text-white h-10 w-10 flex items-center justify-center rounded-lg shadow-sm transition">
                     <span class="material-symbols-rounded text-lg">arrow_forward</span>
                 </button>
             </div>
 
-            <select wire:model.live="period" class="bg-white/90 text-gray-700 text-sm font-bold px-4 py-2 rounded-lg border-none focus:ring-2 focus:ring-[#9E6B73] cursor-pointer hover:bg-white transition h-10">
+            <select wire:model.live="period" class="bg-white/90 text-gray-700 text-sm font-bold px-4 py-2 rounded-lg border-none focus:ring-2 focus:ring-plum cursor-pointer hover:bg-white transition h-10">
                 <option value="this_month">This Month</option>
                 <option value="last_month">Last Month</option>
                 <option value="last_3_months">Last 3 Months</option>
@@ -25,19 +25,19 @@
                 <option value="custom">Custom Date...</option>
             </select>
 
-            <button wire:click="exportCsv" class="bg-[#9E6B73] hover:bg-[#86545C] text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2 text-sm h-10">
+            <button wire:click="exportCsv" class="bg-plum hover:bg-plum-dark text-white px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2 text-sm h-10">
                 <span class="material-symbols-rounded text-base">download</span> Export
             </button>
         </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div class="bg-[#F0FFF4] p-6 rounded-[2rem] shadow-lg relative overflow-hidden">
+        <div class="bg-[#F0FFF4] p-6 rounded-4xl shadow-lg relative overflow-hidden">
             <div class="absolute top-0 right-0 w-24 h-24 rounded-bl-full bg-[#dcfce7] opacity-50 pointer-events-none"></div>
             <div class="absolute right-6 top-6 w-10 h-10 bg-green-50 text-green-500 rounded-xl flex items-center justify-center z-10"><span class="material-symbols-rounded text-2xl">payments</span></div>
             <div class="relative z-10 pt-1">
                 <p class="text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Gross Revenue</p>
-                <h3 class="text-2xl font-extrabold text-[#2D3748] mt-2">${{ number_format($summary['revenue'], 2) }}</h3>
+                <h3 class="text-2xl font-extrabold text-text-main mt-2">${{ number_format($summary['revenue'], 2) }}</h3>
                 <p class="text-xs font-bold {{ $summary['growth'] >= 0 ? 'text-green-500' : 'text-red-500' }} mt-2 flex items-center gap-1">
                     <span class="material-symbols-rounded text-sm">{{ $summary['growth'] >= 0 ? 'trending_up' : 'trending_down' }}</span>
                     {{ $summary['growth'] >= 0 ? '+' : '' }}{{ $summary['growth'] }}%
@@ -45,27 +45,27 @@
             </div>
         </div>
 
-        <div class="bg-[#FFFAF0] p-6 rounded-[2rem] shadow-lg relative overflow-hidden">
+        <div class="bg-[#FFFAF0] p-6 rounded-4xl shadow-lg relative overflow-hidden">
             <div class="absolute top-0 right-0 w-24 h-24 rounded-bl-full bg-[#ffedd5] opacity-50 pointer-events-none"></div>
             <div class="absolute right-6 top-6 w-10 h-10 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center z-10"><span class="material-symbols-rounded text-2xl">shopping_cart</span></div>
             <div class="relative z-10 pt-1">
                 <p class="text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Est. Expenses</p>
-                <h3 class="text-2xl font-extrabold text-[#2D3748] mt-2">${{ number_format($summary['expenses'], 2) }}</h3>
+                <h3 class="text-2xl font-extrabold text-text-main mt-2">${{ number_format($summary['expenses'], 2) }}</h3>
                 <p class="text-xs font-bold text-gray-400 mt-2">Approx. 30%</p>
             </div>
         </div>
 
-        <div class="bg-[#FFF5F7] p-6 rounded-[2rem] shadow-lg relative overflow-hidden">
+        <div class="bg-bg-page p-6 rounded-4xl shadow-lg relative overflow-hidden">
             <div class="absolute top-0 right-0 w-24 h-24 rounded-bl-full bg-[#fae8eb] opacity-50 pointer-events-none"></div>
-            <div class="absolute right-6 top-6 w-10 h-10 bg-[#FDF2F4] text-[#9E6B73] rounded-xl flex items-center justify-center z-10"><span class="material-symbols-rounded text-2xl">savings</span></div>
+            <div class="absolute right-6 top-6 w-10 h-10 bg-plum-light text-plum rounded-xl flex items-center justify-center z-10"><span class="material-symbols-rounded text-2xl">savings</span></div>
             <div class="relative z-10 pt-1">
                 <p class="text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">Net Profit</p>
-                <h3 class="text-2xl font-extrabold text-[#9E6B73] mt-2">${{ number_format($summary['profit'], 2) }}</h3>
-                <p class="text-xs font-bold text-[#9E6B73]/70 mt-2">Healthy Margin</p>
+                <h3 class="text-2xl font-extrabold text-plum mt-2">${{ number_format($summary['profit'], 2) }}</h3>
+                <p class="text-xs font-bold text-plum/70 mt-2">Healthy Margin</p>
             </div>
         </div>
 
-        <div class="bg-[#FEF2F2] p-6 rounded-[2rem] shadow-lg relative overflow-hidden">
+        <div class="bg-[#FEF2F2] p-6 rounded-4xl shadow-lg relative overflow-hidden">
             <div class="absolute top-0 right-0 w-24 h-24 rounded-bl-full bg-[#fee2e2] opacity-50 pointer-events-none"></div>
             <div class="absolute right-6 top-6 w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center z-10"><span class="material-symbols-rounded text-2xl">pending_actions</span></div>
             <div class="relative z-10 pt-1">
@@ -79,7 +79,7 @@
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
         <!-- Pending -->
         <button @click="$dispatch('status-filter', 'Pending')" 
-            class="bg-amber-50/50 backdrop-blur-sm p-4 rounded-[2rem] shadow-sm border border-amber-100/50 flex flex-col sm:flex-row items-center gap-3 group hover:bg-amber-50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-amber-200"
+            class="bg-amber-50/50 backdrop-blur-sm p-4 rounded-4xl shadow-sm border border-amber-100/50 flex flex-col sm:flex-row items-center gap-3 group hover:bg-amber-50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-amber-200"
             :class="{ 'ring-2 ring-amber-500 bg-amber-50': $store.activeStatus === 'Pending' }">
             <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-sm">
                 <span class="material-symbols-rounded text-xl">timer</span>
@@ -92,7 +92,7 @@
 
         <!-- Confirmed -->
         <button @click="$dispatch('status-filter', 'Confirmed')" 
-            class="bg-blue-50/50 backdrop-blur-sm p-4 rounded-[2rem] shadow-sm border border-blue-100/50 flex flex-col sm:flex-row items-center gap-3 group hover:bg-blue-50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-blue-200"
+            class="bg-blue-50/50 backdrop-blur-sm p-4 rounded-4xl shadow-sm border border-blue-100/50 flex flex-col sm:flex-row items-center gap-3 group hover:bg-blue-50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-blue-200"
             :class="{ 'ring-2 ring-blue-500 bg-blue-50': $store.activeStatus === 'Confirmed' }">
             <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-sm">
                 <span class="material-symbols-rounded text-xl">verified</span>
@@ -105,7 +105,7 @@
 
         <!-- Completed -->
         <button @click="$dispatch('status-filter', 'Completed')" 
-            class="bg-green-50/50 backdrop-blur-sm p-4 rounded-[2rem] shadow-sm border border-green-100/50 flex flex-col sm:flex-row items-center gap-3 group hover:bg-green-50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-green-200"
+            class="bg-green-50/50 backdrop-blur-sm p-4 rounded-4xl shadow-sm border border-green-100/50 flex flex-col sm:flex-row items-center gap-3 group hover:bg-green-50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-green-200"
             :class="{ 'ring-2 ring-green-500 bg-green-50': $store.activeStatus === 'Completed' }">
             <div class="w-10 h-10 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-sm">
                 <span class="material-symbols-rounded text-xl">task_alt</span>
@@ -118,7 +118,7 @@
 
         <!-- Cancelled -->
         <button @click="$dispatch('status-filter', 'Cancelled')" 
-            class="bg-red-50/50 backdrop-blur-sm p-4 rounded-[2rem] shadow-sm border border-red-100/50 flex flex-col sm:flex-row items-center gap-3 group hover:bg-red-50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-red-200"
+            class="bg-red-50/50 backdrop-blur-sm p-4 rounded-4xl shadow-sm border border-red-100/50 flex flex-col sm:flex-row items-center gap-3 group hover:bg-red-50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-red-200"
             :class="{ 'ring-2 ring-red-500 bg-red-50': $store.activeStatus === 'Cancelled' }">
             <div class="w-10 h-10 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-sm">
                 <span class="material-symbols-rounded text-xl">block</span>
@@ -131,7 +131,7 @@
 
         <!-- Draft -->
         <button @click="$dispatch('status-filter', 'Draft')" 
-            class="bg-slate-50/50 backdrop-blur-sm p-4 rounded-[2rem] shadow-sm border border-slate-100/50 flex flex-col sm:flex-row items-center gap-3 group hover:bg-slate-50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-slate-200"
+            class="bg-slate-50/50 backdrop-blur-sm p-4 rounded-4xl shadow-sm border border-slate-100/50 flex flex-col sm:flex-row items-center gap-3 group hover:bg-slate-50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-slate-200"
             :class="{ 'ring-2 ring-slate-500 bg-slate-50': $store.activeStatus === 'Draft' }">
             <div class="w-10 h-10 bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-sm">
                 <span class="material-symbols-rounded text-xl">edit_note</span>
@@ -222,27 +222,27 @@
          }"
          @update-charts.window="drawCharts($event.detail.chartLabels, $event.detail.chartData, $event.detail.catLabels, $event.detail.catData)">
 
-        <div class="bg-white p-6 rounded-[2rem] shadow-lg border border-gray-100 lg:col-span-2 flex flex-col">
-            <h3 class="font-bold text-[#2D3748] text-lg flex items-center gap-2 mb-6">
-                <span class="material-symbols-rounded text-[#9E6B73]">monitoring</span> Revenue Distribution
+        <div class="bg-white p-6 rounded-4xl shadow-lg border border-gray-100 lg:col-span-2 flex flex-col">
+            <h3 class="font-bold text-text-main text-lg flex items-center gap-2 mb-6">
+                <span class="material-symbols-rounded text-plum">monitoring</span> Revenue Distribution
             </h3>
-            <div class="relative flex-1 min-h-[380px] pb-4">
+            <div class="relative flex-1 min-h-95 pb-4">
                 <canvas id="revenueChart"></canvas>
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-[2rem] shadow-lg border border-gray-100 flex flex-col">
-            <h3 class="font-bold text-[#2D3748] text-lg flex items-center gap-2 mb-6">
-                <span class="material-symbols-rounded text-[#9E6B73]">pie_chart</span> Top Categories
+        <div class="bg-white p-6 rounded-4xl shadow-lg border border-gray-100 flex flex-col">
+            <h3 class="font-bold text-text-main text-lg flex items-center gap-2 mb-6">
+                <span class="material-symbols-rounded text-plum">pie_chart</span> Top Categories
             </h3>
-            <div class="relative flex-1 min-h-[380px] pb-4 flex items-center justify-center">
+            <div class="relative flex-1 min-h-95 pb-4 flex items-center justify-center">
                 <canvas id="categoryChart"></canvas>
             </div>
             <div class="mt-4 text-center text-xs text-gray-400 font-medium">Based on bookings count</div>
         </div>
     </div>
 
-    <div class="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden"
+    <div class="bg-white rounded-4xl shadow-lg border border-gray-100 overflow-hidden"
         x-data="{ 
             page: 1, 
             perPage: 5, 
@@ -279,7 +279,7 @@
             }
         ">
         <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-            <h3 class="font-bold text-[#2D3748] flex items-center gap-2">
+            <h3 class="font-bold text-text-main flex items-center gap-2">
                 <span class="material-symbols-rounded text-gray-400">receipt_long</span> 
                 All Transactions
                 <template x-if="statusFilter">
@@ -350,7 +350,7 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden"
+    <div class="bg-white rounded-4xl shadow-lg border border-gray-100 overflow-hidden"
         x-data="{ page: 1, perPage: 5, items: @js($unpaidList) }"
         x-effect="items = @js($unpaidList); page = 1">
         <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-red-50/50">
@@ -409,7 +409,7 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden"
+    <div class="bg-white rounded-4xl shadow-lg border border-gray-100 overflow-hidden"
         x-data="{ page: 1, perPage: 5, items: @js($paidList) }"
         x-effect="items = @js($paidList); page = 1">
         <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-green-50/50">
