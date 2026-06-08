@@ -6,7 +6,7 @@
             <div class="hero-bg"></div>
             <div class="w-full max-w-7xl mx-auto px-6 lg:px-8">
                 <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-                    <div class="space-y-6 text-center lg:text-left relative z-10">
+                    <div class="space-y-6 text-center lg:text-left relative z-10 lg:self-start">
                         <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-plum/10 shadow-sm animate-bounce-slow">
                             <span class="flex h-2.5 w-2.5 relative">
                                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
