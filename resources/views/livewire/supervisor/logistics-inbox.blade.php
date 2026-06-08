@@ -353,7 +353,7 @@
                             <th class="p-4 font-bold text-left">Customer / Date</th>
                             <th class="p-4 font-bold text-left">Financials</th>
                             <th class="p-4 font-bold text-left w-64">Payment History</th>
-                            <th class="p-4 font-bold text-right">Overview</th>
+                            <th class="p-4 font-bold text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50 bg-white">
@@ -396,9 +396,14 @@
                                 @endforelse
                             </td>
                             <td class="p-4 align-middle text-right">
-                                <a href="{{ route('supervisor.bookings.overview', ['id' => $row->id, 'back' => route('supervisor.logistics')]) }}" class="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-lg text-xs font-black hover:bg-emerald-100 transition shadow-sm border border-emerald-100 no-underline">
-                                    <span class="material-symbols-rounded text-sm">visibility</span> VIEW
-                                </a>
+                                <div class="flex gap-2 justify-end">
+                                    <button wire:click="prepareEmail({{ $row->id }}, 'receipt')" class="inline-flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 px-4 py-1.5 rounded-lg text-xs font-black border border-gray-200 transition shadow-sm transform active:scale-95 cursor-pointer">
+                                        <span class="material-symbols-rounded text-sm">receipt</span> RECEIPT
+                                    </button>
+                                    <a href="{{ route('supervisor.bookings.overview', ['id' => $row->id, 'back' => route('supervisor.logistics')]) }}" class="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-lg text-xs font-black hover:bg-emerald-100 transition shadow-sm border border-emerald-100 no-underline">
+                                        <span class="material-symbols-rounded text-sm">visibility</span> VIEW
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         @empty
