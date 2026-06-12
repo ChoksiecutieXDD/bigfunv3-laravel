@@ -135,7 +135,6 @@
                         <option value="Pending">Pending</option>
                         <option value="Hold">Hold</option>
                         <option value="Completed">Completed</option>
-                        <option value="Cancelled">Cancelled</option>
                         <option value="Draft">Drafts</option>
                     </select>
                 </div>

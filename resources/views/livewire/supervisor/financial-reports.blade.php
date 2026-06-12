@@ -466,5 +466,64 @@
         </div>
     </div>
 
+    <div class="bg-white rounded-4xl shadow-lg border border-gray-100 overflow-hidden"
+        x-data="{ page: 1, perPage: 5, items: @js($cancelledList) }"
+        x-effect="items = @js($cancelledList); page = 1">
+        <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-red-50/50">
+            <h3 class="font-bold text-red-600 flex items-center gap-2"><span class="material-symbols-rounded">cancel</span> Cancelled Bookings</h3>
+            <div class="flex gap-2">
+                <button @click="page > 1 ? page-- : null" :disabled="page === 1" class="px-3 py-1 text-xs rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50">Previous</button>
+                <button @click="page < Math.ceil(items.length / perPage) ? page++ : null" :disabled="page >= Math.ceil(items.length / perPage) || items.length === 0" class="px-3 py-1 text-xs rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50">Next</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto max-h-96">
+            <table class="w-full text-left">
+                <thead class="text-xs font-bold text-gray-400 uppercase bg-gray-50/30 sticky top-0">
+                    <tr>
+                        <th class="px-6 py-4">Event Date</th>
+                        <th class="px-6 py-4">Customer</th>
+                        <th class="px-6 py-4">Method</th>
+                        <th class="px-6 py-4">Type</th>
+                        <th class="px-6 py-4 text-right">Original Total</th>
+                        <th class="px-6 py-4 text-right">Amount Paid</th>
+                        <th class="px-6 py-4 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm divide-y divide-gray-50">
+                    <template x-for="c in items.slice((page - 1) * perPage, page * perPage)" :key="c.id">
+                        <tr class="hover:bg-red-50/30 transition">
+                            <td class="px-6 py-4 text-gray-500" x-text="c.event_date"></td>
+                            <td class="px-6 py-4 font-bold text-gray-700" x-text="c.name"></td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <template x-if="c.payment_type === 'Card Holder'">
+                                        <div class="flex items-center gap-1.5">
+                                            <i class="fa-brands fa-cc-visa text-blue-600" x-show="c.card_network?.toLowerCase().includes('visa')"></i>
+                                            <i class="fa-brands fa-cc-mastercard text-orange-500" x-show="c.card_network?.toLowerCase().includes('mastercard')"></i>
+                                            <i class="fa-brands fa-cc-amex text-blue-400" x-show="c.card_network?.toLowerCase().includes('amex') || c.card_network?.toLowerCase().includes('american express')"></i>
+                                            <i class="fa-brands fa-cc-discover text-orange-400" x-show="c.card_network?.toLowerCase().includes('discover')"></i>
+                                            <i class="fa-solid fa-credit-card text-gray-400" x-show="!c.card_network?.toLowerCase().includes('visa') && !c.card_network?.toLowerCase().includes('mastercard') && !c.card_network?.toLowerCase().includes('amex') && !c.card_network?.toLowerCase().includes('american express') && !c.card_network?.toLowerCase().includes('discover')"></i>
+                                            <span class="text-[10px] font-bold text-gray-600 uppercase">Card</span>
+                                        </div>
+                                    </template>
+                                    <template x-if="c.payment_type !== 'Card Holder'">
+                                        <span class="text-[10px] font-bold text-gray-400 uppercase" x-text="c.payment_type || 'N/A'"></span>
+                                    </template>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4"><span class="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs" x-text="c.event_type"></span></td>
+                            <td class="px-6 py-4 text-right font-bold text-gray-600" x-text="'$' + c.total_amount.toFixed(2)"></td>
+                            <td class="px-6 py-4 text-right font-bold text-green-600" x-text="'$' + c.paid_amount.toFixed(2)"></td>
+                            <td class="px-6 py-4 text-center"><a :href="'/supervisor/bookings/' + c.id" class="text-xs font-bold text-blue-500 hover:underline">View</a></td>
+                        </tr>
+                    </template>
+                    <tr x-show="items.length === 0">
+                        <td colspan="7" class="px-6 py-8 text-center text-gray-400 italic">No cancelled bookings found.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </div>
 

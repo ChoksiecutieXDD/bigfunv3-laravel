@@ -88,6 +88,13 @@ class FinancialReports extends Component
             foreach ($data['paidList'] as $p) {
                 fputcsv($file, [$p['id'], $p['event_date'], $p['name'], $p['total_amount']]);
             }
+            fputcsv($file, []);
+
+            fputcsv($file, ['CANCELLED BOOKINGS']);
+            fputcsv($file, ['ID', 'Date', 'Customer', 'Original Total', 'Paid Amount']);
+            foreach ($data['cancelledList'] as $c) {
+                fputcsv($file, [$c['id'], $c['event_date'], $c['name'], $c['total_amount'], $c['paid_amount']]);
+            }
 
             fclose($file);
         };
@@ -245,6 +252,28 @@ class FinancialReports extends Component
             'Draft'     => $statusCountsRaw['Draft'] ?? 0,
         ];
 
+        // 6. Cancelled Bookings List
+        $cancelledBookings = Booking::withSum('payments', 'amount')
+            ->whereBetween('event_date', [$startDateString, $endDateString])
+            ->where('status', 'Cancelled')
+            ->orderBy('event_date', 'asc')
+            ->get()
+            ->map(function ($b) {
+                $paid = $b->payments_sum_amount ?? 0;
+                return [
+                    'id' => $b->id,
+                    'event_date' => Carbon::parse($b->event_date)->format('M d, Y'),
+                    'name' => trim($b->customer_first_name . ' ' . $b->customer_last_name),
+                    'event_type' => $b->event_type,
+                    'payment_type' => $b->payment_type,
+                    'card_network' => $b->card_network,
+                    'total_amount' => (float) $b->total_amount,
+                    'paid_amount' => (float) $paid,
+                    'balance' => (float) ($b->total_amount - $paid),
+                ];
+            });
+        $cancelledList = $cancelledBookings->toArray();
+
         return [
             'periodLabel' => $periodLabel,
             'startDate' => $startDateString,
@@ -260,6 +289,7 @@ class FinancialReports extends Component
             'unpaidList' => $unpaidList,
             'paidList' => $paidList,
             'transactionList' => $transactionList,
+            'cancelledList' => $cancelledList,
             'chartLabels' => $chartLabels,
             'chartData' => $chartData,
             'catLabels' => $catLabels,

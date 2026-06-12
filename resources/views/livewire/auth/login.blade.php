@@ -83,7 +83,7 @@
             </form>
 
             <p class="mt-8 text-center text-xs text-gray-400 animate-enter delay-300 pb-4">
-                Â© {{ date('Y') }} BigFun Management System
+                &copy; {{ date('Y') }} BigFun Management System
             </p>
         </div>
     </div>

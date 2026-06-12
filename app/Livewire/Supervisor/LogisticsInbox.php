@@ -25,12 +25,14 @@ class LogisticsInbox extends Component
     public string $search_ord = '';
     public string $search_deb = '';
     public string $search_op = '';
+    public string $search_can = '';
 
     // --- Sort Directions ---
     public string $sort_pay = 'asc';
     public string $sort_inv = 'asc';
     public string $sort_deb = 'desc';
     public string $sort_full = 'desc';
+    public string $sort_can = 'desc';
 
     // --- Modal Forms ---
     // Payment Processing
@@ -93,10 +95,12 @@ class LogisticsInbox extends Component
         'search_ord' => ['except' => ''],
         'search_deb' => ['except' => ''],
         'search_op' => ['except' => ''],
+        'search_can' => ['except' => ''],
         'sort_pay' => ['except' => 'asc'],
         'sort_inv' => ['except' => 'asc'],
         'sort_deb' => ['except' => 'desc'],
         'sort_full' => ['except' => 'desc'],
+        'sort_can' => ['except' => 'desc'],
     ];
 
     public function mount()
@@ -128,6 +132,10 @@ class LogisticsInbox extends Component
     public function updatingSearchOp()
     {
         $this->resetPage('page_op');
+    }
+    public function updatingSearchCan()
+    {
+        $this->resetPage('page_can');
     }
 
     public function toggleSort(string $section)
@@ -710,6 +718,18 @@ class LogisticsInbox extends Component
         }
         $operators = $operatorsQuery->paginate(5, ['*'], 'page_op');
 
+        $cancelledQuery = Booking::with('payments')->where('status', 'Cancelled');
+        if ($this->search_can) {
+            $cancelledQuery->where(function ($q) {
+                $q->where('id', 'like', "%{$this->search_can}%")
+                    ->orWhere('invoice_number', 'like', "%{$this->search_can}%")
+                    ->orWhere('customer_first_name', 'like', "%{$this->search_can}%")
+                    ->orWhere('customer_last_name', 'like', "%{$this->search_can}%")
+                    ->orWhere('customer_organization', 'like', "%{$this->search_can}%");
+            });
+        }
+        $cancelledBookings = $cancelledQuery->orderBy('event_date', $this->sort_can)->paginate(5, ['*'], 'page_can');
+
         return view('livewire.supervisor.logistics-inbox', [
             'enquiriesCount' => $enquiriesCount,
             'pendingPayments' => $pendingPayments,
@@ -718,6 +738,7 @@ class LogisticsInbox extends Component
             'orders' => $orders,
             'debtors' => $debtors,
             'operators' => $operators,
+            'cancelledBookings' => $cancelledBookings,
         ]);
     }
 }

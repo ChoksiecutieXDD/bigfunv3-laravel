@@ -76,6 +76,8 @@ class Calendar extends Component
             } else {
                 $query->where('status', $this->statusFilter);
             }
+        } else {
+            $query->whereNotIn('status', ['Cancelled', 'Deleted']);
         }
 
         $rawBookings = $query->get();

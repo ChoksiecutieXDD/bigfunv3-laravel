@@ -48,10 +48,26 @@
                     <img src="/assets/icon/bgfunlogo.png" alt="BigFun - Premium Amusement Rides" width="180" height="48" class="h-10 md:h-12 w-auto transition-transform duration-300 group-hover:scale-105">
                 </a>
                 <div class="flex items-center gap-8">
-                    <a href="/login" class="text-sm font-bold text-gray-500 hover:text-plum transition-colors flex items-center gap-1">
-                        <span class="material-symbols-rounded text-lg">lock</span>
-                        <span class="hidden sm:inline">Staff Portal</span>
-                    </a>
+                    @auth
+                        @php
+                            $role = Auth::user()->role;
+                            $dashboardUrl = '/staff/dashboard';
+                            if ($role === 'Administrator' || $role === 'Admin') {
+                                $dashboardUrl = '/admin/dashboard';
+                            } elseif ($role === 'Supervisor') {
+                                $dashboardUrl = '/supervisor/calendar';
+                            }
+                        @endphp
+                        <a href="{{ $dashboardUrl }}" class="text-sm font-bold text-plum hover:text-plum-dark transition-colors flex items-center gap-1 bg-plum/5 hover:bg-plum/10 px-4 py-2 rounded-full border border-plum/15">
+                            <span class="material-symbols-rounded text-lg">dashboard</span>
+                            <span class="hidden sm:inline">Go to Panel</span>
+                        </a>
+                    @else
+                        <a href="/login" class="text-sm font-bold text-gray-500 hover:text-plum transition-colors flex items-center gap-1">
+                            <span class="material-symbols-rounded text-lg">lock</span>
+                            <span class="hidden sm:inline">Staff Portal</span>
+                        </a>
+                    @endauth
                     <a href="https://bigfun.com.au/" class="btn-plum text-sm font-bold py-3.5 px-7 rounded-full flex items-center gap-2">
                         Get Quote
                         <span class="material-symbols-rounded text-lg">arrow_forward</span>
@@ -83,7 +99,7 @@
                 <!-- Brand -->
                 <div class="flex flex-col items-center md:items-start gap-4 order-2 md:order-1">
                     <img src="/assets/icon/bgfunlogo.png" alt="BigFun Logo Footer" width="140" height="38" class="h-9 w-auto brightness-0 invert opacity-90">
-                    <p class="text-xs font-semibold text-gray-500 tracking-wider uppercase">Â© 2026 BigFun. All rights reserved.</p>
+                    <p class="text-xs font-semibold text-gray-500 tracking-wider uppercase">&copy; 2026 BigFun. All rights reserved.</p>
                 </div>
 
                 <!-- Links -->
@@ -95,13 +111,29 @@
 
                 <!-- Actions -->
                 <div class="flex justify-center md:justify-end items-center gap-4 order-3">
-                    <a href="/login" class="group hover:text-white text-gray-300 transition-all flex items-center gap-2.5 px-6 py-3 rounded-full bg-gray-800/80 hover:bg-plum border border-gray-700 hover:border-plum shadow-lg">
-                        <span class="material-symbols-rounded text-lg group-hover:rotate-12 transition-transform">lock</span> 
-                        <span class="text-sm font-bold">Staff Portal</span>
-                    </a>
-                    <a href="/supervisor/login" class="opacity-10 hover:opacity-100 transition-all duration-500 text-plum p-2.5 rounded-full hover:bg-white/5" title="Supervisor Access">
-                        <span class="material-symbols-rounded text-2xl">admin_panel_settings</span>
-                    </a>
+                    @auth
+                        @php
+                            $role = Auth::user()->role;
+                            $dashboardUrl = '/staff/dashboard';
+                            if ($role === 'Administrator' || $role === 'Admin') {
+                                $dashboardUrl = '/admin/dashboard';
+                            } elseif ($role === 'Supervisor') {
+                                $dashboardUrl = '/supervisor/calendar';
+                            }
+                        @endphp
+                        <a href="{{ $dashboardUrl }}" class="group text-white transition-all flex items-center gap-2.5 px-6 py-3 rounded-full bg-plum hover:bg-plum-dark shadow-lg">
+                            <span class="material-symbols-rounded text-lg group-hover:rotate-12 transition-transform">dashboard</span> 
+                            <span class="text-sm font-bold">Go to Panel</span>
+                        </a>
+                    @else
+                        <a href="/login" class="group hover:text-white text-gray-300 transition-all flex items-center gap-2.5 px-6 py-3 rounded-full bg-gray-800/80 hover:bg-plum border border-gray-700 hover:border-plum shadow-lg">
+                            <span class="material-symbols-rounded text-lg group-hover:rotate-12 transition-transform">lock</span> 
+                            <span class="text-sm font-bold">Staff Portal</span>
+                        </a>
+                        <a href="/supervisor/login" class="opacity-10 hover:opacity-100 transition-all duration-500 text-plum p-2.5 rounded-full hover:bg-white/5" title="Supervisor Access">
+                            <span class="material-symbols-rounded text-2xl">admin_panel_settings</span>
+                        </a>
+                    @endauth
                 </div>
             </div>
         </div>

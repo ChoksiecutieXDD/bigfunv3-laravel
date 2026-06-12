@@ -76,7 +76,7 @@
             </form>
 
             <p class="mt-8 text-center text-xs text-gray-400 animate-enter delay-300 pb-4">
-                Â© 2026 BigFun Management System
+                &copy; 2026 BigFun Management System
             </p>
         </div>
     </div>
